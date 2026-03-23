@@ -199,6 +199,23 @@ export default function ExtensionsManager() {
         </div>
       </div>
 
+      {activeTab === 'all' && searchQuery === '' && (
+        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 flex gap-4 items-start animate-in slide-in-from-top-4 duration-500">
+          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <ShieldCheck className="h-5 w-5 text-emerald-500" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+              Recommended Sources
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              We recommend using <strong>Native Supported</strong> extensions for the best reading experience. 
+              These sources are verified for ultra-fast performance, automatic updates, and maximum security.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredExtensions.map((ext) => (
           <Card key={ext.pkg} className="group p-4 hover:bg-secondary/40 transition-all duration-200">
@@ -218,39 +235,45 @@ export default function ExtensionsManager() {
               </div>
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{ext.name}</span>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{ext.name}</span>
+                      {getNativeSource(ext.pkg) && (
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate opacity-70 max-w-[120px]">{ext.pkg}</p>
+                  </div>
                   <div className="flex items-center gap-2">
                     {(() => {
                       const inst = installedExtensions.find(e => e.pkg === ext.pkg)
                       if (inst && inst.version !== ext.version) {
                         return (
                           <Badge className="bg-blue-500 hover:bg-blue-600 text-[10px] h-5 px-1.5 animate-pulse">
-                            Update Available ⬆
+                            Update ⬆
                           </Badge>
                         )
                       }
                       return null
                     })()}
-                    <Badge variant={ext.nsfw ? 'destructive' : 'secondary'}>
+                    <Badge variant={ext.nsfw ? 'destructive' : 'secondary'} className="text-[9px] h-5">
                       {ext.lang.toUpperCase()}
                     </Badge>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5 overflow-hidden">
-                  <p className="text-[10px] text-muted-foreground truncate opacity-70">{ext.pkg}</p>
                   {(() => {
                     const native = getNativeSource(ext.pkg)
                     if (native) {
                       return (
                         <div className="flex flex-wrap gap-1 items-center">
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
-                            <ShieldCheck className="h-2.5 w-2.5" />
                             SUPPORTED
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 font-medium">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 font-medium whitespace-nowrap">
                             Native ⚡
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase font-medium">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase font-medium truncate max-w-[60px]">
                             {native.theme}
                           </Badge>
                         </div>
