@@ -119,6 +119,12 @@ app.whenReady().then(() => {
   })
 
   // Initialize auto updater
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'anasx07',
+    repo: 'LManwa-Release',
+    private: false
+  })
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
   
