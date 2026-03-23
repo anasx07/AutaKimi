@@ -22,6 +22,6 @@ jobs:
         run: npm ci
 
       - name: Build and Publish to Public Repository
-        run: npx electron-builder --win --publish always
+        run: npm run build && npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}
