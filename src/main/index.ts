@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 
 // Set app name before importing db to ensure correct userData path
@@ -117,7 +118,13 @@ app.whenReady().then(() => {
     }
   })
 
-
+  // Initialize auto updater
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.error('Failed to check for updates:', err)
+  })
 
   createWindow()
 
