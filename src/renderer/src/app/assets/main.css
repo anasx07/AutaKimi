@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5% 64.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+
+
+
+  /* Dabi Theme - Crimson Blood and Pitch Black */
+  .theme-dabi,
+  .dark.theme-dabi {
+    --background: 0 100% 1.5%;
+    --foreground: 0 0% 95%;
+    --card: 0 100% 3%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 100% 1.5%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 350 89% 50%; /* Deep Crimson / Blood Red */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 350 50% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 350 50% 10%;
+    --muted-foreground: 0 20% 65%;
+    --accent: 350 84% 12%;
+    --accent-foreground: 0 0% 98%;
+    --border: 350 50% 10%;
+    --input: 350 50% 10%;
+    --ring: 350 89% 50%;
+  }
+
+  /* Itachi Theme - Deep Indigo and Sharingan Red */
+  .theme-itachi,
+  .dark.theme-itachi {
+    --background: 250 40% 3%;
+    --foreground: 250 20% 95%;
+    --card: 250 40% 5%;
+    --card-foreground: 250 20% 95%;
+    --popover: 250 40% 3%;
+    --popover-foreground: 250 20% 95%;
+    --primary: 355 89% 55%; /* Sharingan Red */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 40% 12%;
+    --secondary-foreground: 250 20% 95%;
+    --muted: 250 40% 12%;
+    --muted-foreground: 250 20% 65%;
+    --accent: 250 40% 15%;
+    --accent-foreground: 250 20% 95%;
+    --border: 250 40% 12%;
+    --input: 250 40% 12%;
+    --ring: 355 89% 55%;
+  }
+
+  /* Goku Ultra Instinct Theme - Electric Blue and Bright Silver */
+  .theme-goku,
+  .dark.theme-goku {
+    --background: 210 50% 98%;
+    --foreground: 220 50% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 50% 10%;
+    --popover: 210 50% 98%;
+    --popover-foreground: 220 50% 10%;
+    --primary: 210 100% 55%; /* Electric Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 90%;
+    --secondary-foreground: 220 50% 10%;
+    --muted: 210 20% 90%;
+    --muted-foreground: 220 20% 40%;
+    --accent: 210 20% 90%;
+    --accent-foreground: 220 50% 10%;
+    --border: 210 20% 85%;
+    --input: 210 20% 85%;
+    --ring: 210 100% 55%;
+  }
+
+  /* All Might Theme - Hero Blue and Golden Sun */
+  .theme-all-might {
+    --background: 40 50% 98%;
+    --foreground: 220 50% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 50% 10%;
+    --popover: 40 50% 98%;
+    --popover-foreground: 220 50% 10%;
+    --primary: 40 100% 50%; /* Golden Hero Orange */
+    --primary-foreground: 220 90% 10%;
+    --secondary: 220 80% 40%; /* Hero Blue */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 40 20% 90%;
+    --muted-foreground: 220 20% 40%;
+    --accent: 40 100% 50%;
+    --accent-foreground: 220 90% 10%;
+    --border: 40 20% 85%;
+    --input: 40 20% 85%;
+    --ring: 40 100% 50%;
+  }
+  
+  .dark.theme-all-might {
+    --background: 220 50% 6%; /* Deep night blue */
+    --foreground: 40 50% 95%;
+    --card: 220 50% 8%;
+    --card-foreground: 40 50% 95%;
+    --popover: 220 50% 6%;
+    --popover-foreground: 40 50% 95%;
+    --primary: 35 100% 55%; /* Sunset Orange/Gold */
+    --primary-foreground: 220 50% 10%;
+    --secondary: 220 50% 15%;
+    --secondary-foreground: 40 50% 95%;
+    --muted: 220 50% 15%;
+    --muted-foreground: 40 20% 70%;
+    --accent: 35 100% 55%;
+    --accent-foreground: 220 50% 10%;
+    --border: 220 50% 15%;
+    --input: 220 50% 15%;
+    --ring: 35 100% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border) / 0.8);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>LManwa</title>
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: * lmanwa-cache:" />
+</head>
+
+<body>
+  <script>
+    (function() {
+      try {
+        var appState = localStorage.getItem('app-storage');
+        var theme = 'system';
+        var colorTheme = 'default';
+        
+        if (appState) {
+          var parsed = JSON.parse(appState);
+          if (parsed && parsed.state) {
+            theme = parsed.state.theme || 'system';
+            colorTheme = parsed.state.colorTheme || 'default';
+          }
+        }
+        
+        var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var html = document.documentElement;
+        
+        if (isDark) {
+          html.classList.add('dark');
+        } else {
+          html.classList.remove('dark');
+        }
+        
+        html.classList.remove('theme-solo-leveling', 'theme-my-hero-academia');
+        if (colorTheme !== 'default') {
+          html.classList.add('theme-' + colorTheme);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <div id="root"></div>
+  <script type="module" src="/src/app/main.tsx"></script>
+</body>
+
+</html>

@@ -1,0 +1,3 @@
+@echo off
+echo Starting Electron dev server...
+npm run dev

@@ -1,0 +1,380 @@
+import { DataService } from '@renderer/shared/api'
+import { useState } from 'react'
+import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings } from 'lucide-react'
+import { cn } from '@renderer/shared/lib/utils'
+import { useUIStore, useLibraryStore } from '@renderer/shared/model'
+import { Button, Input, Card, Badge } from '@renderer/shared/ui'
+
+import localExtensions from '@renderer/shared/api/sources/Extensions.json'
+import { getNativeSource } from '@renderer/shared/api/sources'
+import { DomainOverrideModal } from '@renderer/features/extension-management'
+
+interface Extension {
+  name: string
+  pkg: string
+  version: string
+  lang: string
+  icon?: string
+  nsfw?: number
+  sources?: { name: string; lang: string; id: string; baseUrl: string }[]
+}
+
+export default function ExtensionsManager() {
+  const {
+    showNsfw, selectedLangs, setSelectedLangs
+  } = useUIStore()
+
+  const {
+    installedExtensions, uninstallExtension, setActiveExtension,
+    loadFromDb, extensionSortBy, extensionSortOrder, 
+    setExtensionSortBy, setExtensionSortOrder
+  } = useLibraryStore()
+  const [extensions] = useState<Extension[]>(localExtensions as Extension[])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<'installed' | 'all'>('installed')
+  const [installStatuses, setInstallStatuses] = useState<Record<string, 'loading' | 'success' | 'error' | null>>({})
+  const [editingExt, setEditingExt] = useState<Extension | null>(null)
+
+  const uniqueLangs = [...new Set(extensions.map(ext => ext.lang).filter(l => l && l.toLowerCase() !== 'all'))].sort()
+  const languages = ['all', ...uniqueLangs]
+
+  const filteredExtensions = extensions.filter(ext => {
+    const matchesSearch = ext.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ext.pkg.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesTab = activeTab === 'all' || installedExtensions.some(e => e.pkg === ext.pkg)
+    const matchesLang = selectedLangs.includes('all') || selectedLangs.length === 0 || selectedLangs.includes(ext.lang)
+    const matchesNsfw = showNsfw || !ext.nsfw
+
+    return matchesSearch && matchesTab && matchesLang && matchesNsfw
+  }).sort((a, b) => {
+    if (extensionSortBy === 'name') {
+      return extensionSortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    }
+    if (extensionSortBy === 'installed') {
+      const aInst = installedExtensions.some(e => e.pkg === a.pkg) ? 1 : 0
+      const bInst = installedExtensions.some(e => e.pkg === b.pkg) ? 1 : 0
+      if (aInst !== bInst) {
+        return extensionSortOrder === 'asc' ? bInst - aInst : aInst - bInst
+      }
+      return a.name.localeCompare(b.name)
+    }
+    if (extensionSortBy === 'update') {
+      const hasUpdate = (ext: Extension) => {
+        const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+        return (inst && inst.version !== ext.version) ? 1 : 0
+      }
+      const aUpd = hasUpdate(a)
+      const bUpd = hasUpdate(b)
+      if (aUpd !== bUpd) return bUpd - aUpd
+      return a.name.localeCompare(b.name)
+    }
+    return 0
+  })
+
+  // Helper to get local icon path
+  const getIconPath = (pkg: string) => {
+    try {
+      // Using a relative path that Vite can resolve or a placeholder if missing
+      return new URL(`../../app/assets/ExtensionsIcons/${pkg}.png`, import.meta.url).href
+    } catch (e) {
+      return ''
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Extensions</h1>
+        <p className="text-muted-foreground">Manage and install built-in sources (Self-Contained)</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-4 border-b border-border">
+        {(['installed', 'all'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "pb-3 px-1 text-sm font-medium border-b-2 transition-colors capitalize",
+              activeTab === tab
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab} Extensions ({tab === 'all' ? extensions.length : installedExtensions.length})
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search local extensions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-1 items-center bg-secondary/10 p-2 rounded-md border border-border/40">
+          <span className="text-xs text-muted-foreground mr-1 px-1">Languages:</span>
+          {languages.map((lang) => {
+            const isSelected = selectedLangs.includes(lang)
+            return (
+              <Badge
+                key={lang}
+                variant={isSelected ? 'default' : 'outline'}
+                className="cursor-pointer"
+                onClick={() => {
+                  if (lang === 'all') {
+                    setSelectedLangs(['all'])
+                  } else {
+                    let next = selectedLangs.filter(l => l !== 'all')
+                    if (next.includes(lang)) {
+                      next = next.filter(l => l !== lang)
+                    } else {
+                      next.push(lang)
+                    }
+                    if (next.length === 0) next = ['all']
+                    setSelectedLangs(next)
+                  }
+                }}
+              >
+                {lang === 'all' ? 'Global' : lang.toUpperCase()}
+              </Badge>
+            )
+          })}
+        </div>
+
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2 bg-secondary/10 p-1.5 rounded-md border border-border/40 ml-auto">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground px-2">Sort:</span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (extensionSortBy === 'name') setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+              else { setExtensionSortBy('name'); setExtensionSortOrder('asc') }
+            }}
+            className={cn(
+              "h-8 gap-2 text-xs",
+              extensionSortBy === 'name' ? "bg-primary/10 text-primary hover:bg-primary/20" : "text-muted-foreground"
+            )}
+          >
+            {extensionSortOrder === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
+            Name
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (extensionSortBy === 'installed') setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+              else { setExtensionSortBy('installed'); setExtensionSortOrder('asc') }
+            }}
+            className={cn(
+              "h-8 gap-2 text-xs",
+              extensionSortBy === 'installed' ? "bg-primary/10 text-primary hover:bg-primary/20" : "text-muted-foreground"
+            )}
+          >
+            <PackageCheck className="h-4 w-4" />
+            Installed
+            <ArrowUpDown className={cn("h-3 w-3 opacity-50", extensionSortBy === 'installed' && "opacity-100")} />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExtensionSortBy('update')}
+            className={cn(
+              "h-8 gap-2 text-xs",
+              extensionSortBy === 'update' ? "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20" : "text-muted-foreground"
+            )}
+          >
+            <Sparkles className="h-4 w-4" />
+            Updates
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredExtensions.map((ext) => (
+          <Card key={ext.pkg} className="group p-4 hover:bg-secondary/40 transition-all duration-200">
+            <div className="flex items-start gap-3">
+              <div className="w-14 h-14 rounded-lg bg-secondary flex items-center p-0.5 justify-center relative overflow-hidden ring-2 ring-border/50 group-hover:ring-primary/30 transition-all">
+                <img
+                  src={getIconPath(ext.pkg)}
+                  alt={ext.name}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+                <Package className="w-6 h-6 text-muted-foreground fallback-icon hidden" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{ext.name}</span>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+                      if (inst && inst.version !== ext.version) {
+                        return (
+                          <Badge className="bg-blue-500 hover:bg-blue-600 text-[10px] h-5 px-1.5 animate-pulse">
+                            Update Available ⬆
+                          </Badge>
+                        )
+                      }
+                      return null
+                    })()}
+                    <Badge variant={ext.nsfw ? 'destructive' : 'secondary'}>
+                      {ext.lang.toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5 overflow-hidden">
+                  <p className="text-[10px] text-muted-foreground truncate opacity-70">{ext.pkg}</p>
+                  {(() => {
+                    const native = getNativeSource(ext.pkg)
+                    if (native) {
+                      return (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
+                            <ShieldCheck className="h-2.5 w-2.5" />
+                            SUPPORTED
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 font-medium">
+                            Native ⚡
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase font-medium">
+                            {native.theme}
+                          </Badge>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs font-mono text-muted-foreground">v{ext.version}</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        const instExt = installedExtensions.find(e => e.pkg === ext.pkg)
+                        const isInstalled = !!instExt
+                        const hasUpdate = isInstalled && ext.version !== instExt.version
+
+                        if (isInstalled && !hasUpdate) {
+                          uninstallExtension(ext.pkg)
+                        } else {
+                          // Install or Update
+                          setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'loading' }))
+                          try {
+                            const res = await DataService.installExtension(ext, 'local')
+                            if (res && res.error) throw new Error(res.error)
+
+                            await loadFromDb()
+                            setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'success' }))
+                            setTimeout(() => {
+                              setInstallStatuses(prev => ({ ...prev, [ext.pkg]: null }))
+                            }, 3000);
+                          } catch (err) {
+                            console.error('[ExtensionsManager] Local install failed:', err)
+                            setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+                            setTimeout(() => {
+                              setInstallStatuses(prev => ({ ...prev, [ext.pkg]: null }))
+                            }, 3000);
+                          }
+                        }
+                      }}
+                      className={cn(
+                        "h-8 px-2 text-xs font-medium",
+                        installedExtensions.some(e => e.pkg === ext.pkg) ? "text-red-400 hover:text-red-300" : "text-primary hover:underline hover:bg-transparent"
+                      )}
+                    >
+                      {installStatuses[ext.pkg] === 'loading' && <Loader2 className="animate-spin h-3 w-3 mr-1" />}
+                      {installStatuses[ext.pkg] === 'success' && <Check className="h-3 w-3 mr-1 text-green-500" />}
+                      {installStatuses[ext.pkg] === 'error' && <X className="h-3 w-3 mr-1 text-red-500" />}
+                      {installStatuses[ext.pkg] === 'loading' && 'Installing...'}
+                      {installStatuses[ext.pkg] === 'success' && 'Installed!'}
+                      {installStatuses[ext.pkg] === 'error' && 'Failed!'}
+                      {!installStatuses[ext.pkg] && (
+                        (() => {
+                          const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+                          if (!inst) return 'Install'
+                          if (inst.version !== ext.version) return 'Update'
+                          return 'Uninstall'
+                        })()
+                      )}
+                    </Button>
+                    {installedExtensions.some(e => e.pkg === ext.pkg) && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setActiveExtension(ext.pkg)}
+                          className="h-8 px-2 text-xs text-green-400 hover:text-green-300 hover:underline hover:bg-transparent"
+                        >
+                          Browse <ExternalLink className="ml-1 h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingExt(ext)}
+                          className="h-8 px-2 text-muted-foreground hover:text-primary hover:bg-transparent"
+                          title="Extension Settings"
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {editingExt && (
+        <DomainOverrideModal 
+          isOpen={!!editingExt}
+          onClose={() => setEditingExt(null)}
+          pkg={editingExt.pkg}
+          name={editingExt.name}
+          defaultDomain={localExtensions.find(e => e.pkg === editingExt.pkg)?.sources?.[0]?.baseUrl || ''}
+        />
+      )}
+
+      {filteredExtensions.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="h-20 w-20 rounded-full bg-secondary/50 flex items-center justify-center ring-1 ring-border shadow-sm">
+            <Package className="h-10 w-10 text-muted-foreground/70" />
+          </div>
+          <div className="text-center space-y-1 max-w-sm">
+            <h3 className="text-lg font-semibold text-foreground">
+              {activeTab === 'installed' ? 'No Extensions Installed' : 'No Extensions Found'}
+            </h3>
+            <p className="text-sm">
+              {activeTab === 'installed' 
+                ? 'You haven\'t installed any extensions yet. Browse the full catalog to add sources.'
+                : 'Try adjusting your search query or language filters to find what you\'re looking for.'}
+            </p>
+          </div>
+          {activeTab === 'installed' && (
+            <Button onClick={() => setActiveTab('all')} variant="primary" className="mt-2 text-primary-foreground">
+              Browse All Extensions
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
