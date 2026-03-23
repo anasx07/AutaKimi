@@ -13,6 +13,8 @@ interface UIState {
   showNsfw: boolean
   selectedLangs: string[]
   globalError: string | null
+  updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error'
+  updateProgress: any | null
 
   // Actions
   setActiveTab: (tab: TabType) => void
@@ -22,6 +24,8 @@ interface UIState {
   setShowNsfw: (val: boolean) => Promise<void>
   setSelectedLangs: (langs: string[]) => Promise<void>
   setGlobalError: (error: string | null) => void
+  setUpdateStatus: (status: UIState['updateStatus']) => void
+  setUpdateProgress: (progress: any) => void
   
   // Internal initialization
   _initFromSettings: (settings: Record<string, string>) => void
@@ -35,6 +39,8 @@ export const useUIStore = create<UIState>((set) => ({
   showNsfw: false,
   selectedLangs: ['all'],
   globalError: null,
+  updateStatus: 'idle',
+  updateProgress: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   
@@ -89,6 +95,8 @@ export const useUIStore = create<UIState>((set) => ({
   },
 
   setGlobalError: (err) => set({ globalError: err }),
+  setUpdateStatus: (status) => set({ updateStatus: status }),
+  setUpdateProgress: (progress) => set({ updateProgress: progress }),
 
   _initFromSettings: (settings) => {
     set({

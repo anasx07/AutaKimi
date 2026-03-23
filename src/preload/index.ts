@@ -50,7 +50,13 @@ const api: ElectronApi = {
     getStatus: (args) => ipcRenderer.invoke(IpcChannel.GET_DOWNLOAD_STATUS, args),
     getMangaDownloads: (mangaId) => ipcRenderer.invoke(IpcChannel.GET_MANGA_DOWNLOADS, mangaId),
     getAllMangaDownloads: () => ipcRenderer.invoke(IpcChannel.DOWNLOAD_GET_ALL_MANGA),
-  }
+  },
+  onAppUpdate: (callback) => {
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on(IpcChannel.APP_UPDATE, subscription)
+    return () => ipcRenderer.removeListener(IpcChannel.APP_UPDATE, subscription)
+  },
+  installUpdate: () => ipcRenderer.invoke(IpcChannel.INSTALL_UPDATE),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

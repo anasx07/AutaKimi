@@ -53,6 +53,10 @@ export enum IpcChannel {
   GET_DOWNLOAD_STATUS = 'download:status',
   GET_MANGA_DOWNLOADS = 'download:manga-list',
   DOWNLOAD_GET_ALL_MANGA = 'download:get-all-manga',
+
+  // App Updates
+  APP_UPDATE = 'app:update',
+  INSTALL_UPDATE = 'app:install-update',
 }
 
 /**
@@ -105,4 +109,6 @@ export interface ElectronApi {
     isMaximized: () => Promise<boolean>;
     updateOverlay: (options: { color: string, symbolColor: string }) => Promise<void>;
   };
+  onAppUpdate: (callback: (data: { status: string, progress?: any, error?: string }) => void) => void;
+  installUpdate: () => Promise<void>;
 }

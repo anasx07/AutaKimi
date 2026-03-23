@@ -17,13 +17,24 @@ import { ErrorBoundary } from '@renderer/shared/ui/ErrorBoundary'
 
 import { TitleBar } from '@renderer/widgets/title-bar'
 import Toast from '@renderer/shared/ui/Toast'
+import { UpdaterToast } from '@renderer/shared/ui/UpdaterToast'
 
 function App(): React.JSX.Element {
   const { activeTab, setActiveTab } = useUIStore()
   const { activeExtension, selectedManga, activeChapter, loadFromDb } = useLibraryStore()
 
+  const { setUpdateStatus, setUpdateProgress } = useUIStore()
+
   useEffect(() => {
     loadFromDb()
+    
+    // Listen for app updates
+    const unsubscribe = (window as any).api.onAppUpdate((data: any) => {
+      if (data.status) setUpdateStatus(data.status)
+      if (data.progress) setUpdateProgress(data.progress)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const sidebarItems = [
@@ -148,6 +159,7 @@ function App(): React.JSX.Element {
         </ErrorBoundary>
       )}
       <Toast />
+      <UpdaterToast />
     </div>
   )
 }

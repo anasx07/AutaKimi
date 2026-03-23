@@ -16,6 +16,7 @@ import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
 import { registerWindowHandlers } from './ipc/window'
 import { registerDownloadHandlers } from './ipc/downloads'
+import { IpcChannel } from './types/ipc'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'lmanwa-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
@@ -23,12 +24,13 @@ protocol.registerSchemesAsPrivileged([
 
 const MAX_CACHE_SIZE = 500 * 1024 * 1024 // 500MB
 export let imageCache: DiskCache;
+let mainWindow: BrowserWindow | null = null;
 
 
 
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -48,11 +50,11 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  mainWindow?.on('ready-to-show', () => {
+    mainWindow?.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  mainWindow?.webContents?.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
@@ -128,6 +130,30 @@ app.whenReady().then(() => {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
   
+  // Update events
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'checking' })
+  })
+  autoUpdater.on('update-available', () => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'available' })
+  })
+  autoUpdater.on('update-not-available', () => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'idle' })
+  })
+  autoUpdater.on('download-progress', (progressObj) => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'downloading', progress: progressObj })
+  })
+  autoUpdater.on('update-downloaded', () => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'downloaded' })
+  })
+  autoUpdater.on('error', (err) => {
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'error', error: err.message })
+  })
+
+  ipcMain.handle(IpcChannel.INSTALL_UPDATE, () => {
+    autoUpdater.quitAndInstall()
+  })
+
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     console.error('Failed to check for updates:', err)
   })
