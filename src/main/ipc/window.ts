@@ -1,48 +1,40 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
 import { IpcChannel } from '../types/ipc'
+import { wrapIpc } from './utils'
 
 export function registerWindowHandlers() {
-  ipcMain.handle(IpcChannel.WINDOW_MINIMIZE, (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    win?.minimize()
-  })
+  ipcMain.handle(IpcChannel.WINDOW_MINIMIZE, wrapIpc(async (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
+  }))
 
-  ipcMain.handle(IpcChannel.WINDOW_MAXIMIZE, (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    win?.maximize()
-  })
+  ipcMain.handle(IpcChannel.WINDOW_MAXIMIZE, wrapIpc(async (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.maximize()
+  }))
 
-  ipcMain.handle(IpcChannel.WINDOW_RESTORE, (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    win?.unmaximize()
-  })
+  ipcMain.handle(IpcChannel.WINDOW_RESTORE, wrapIpc(async (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.unmaximize()
+  }))
 
-  ipcMain.handle(IpcChannel.WINDOW_CLOSE, (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    win?.close()
-  })
+  ipcMain.handle(IpcChannel.WINDOW_CLOSE, wrapIpc(async (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
+  }))
 
-  ipcMain.handle(IpcChannel.WINDOW_IS_MAXIMIZED, (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    return win?.isMaximized() ?? false
-  })
+  ipcMain.handle(IpcChannel.WINDOW_IS_MAXIMIZED, wrapIpc(async (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
+  }))
 
-  ipcMain.handle(IpcChannel.WINDOW_UPDATE_OVERLAY, (event, options: { color: string, symbolColor: string }) => {
+  ipcMain.handle(IpcChannel.WINDOW_UPDATE_OVERLAY, wrapIpc(async (event, options: { color: string, symbolColor: string }) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win && process.platform === 'win32') {
-      try {
-        win.setTitleBarOverlay(options)
-      } catch(e) {
-        console.warn('Failed to set title bar overlay:', e)
-      }
+      win.setTitleBarOverlay(options)
     }
-  })
+  }))
 
-  ipcMain.handle(IpcChannel.OPEN_EXTERNAL, async (_, url: string) => {
+  ipcMain.handle(IpcChannel.OPEN_EXTERNAL, wrapIpc(async (_, url: string) => {
     await shell.openExternal(url)
-  })
+  }))
 
-  ipcMain.handle(IpcChannel.OPEN_INTERNAL_BROWSER, async (_, url: string) => {
+  ipcMain.handle(IpcChannel.OPEN_INTERNAL_BROWSER, wrapIpc(async (_, url: string) => {
     const win = new BrowserWindow({
       width: 1024,
       height: 768,
@@ -50,10 +42,9 @@ export function registerWindowHandlers() {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        partition: 'persist:default' // Use default session for cookie sharing
+        partition: 'persist:default'
       }
     })
-
     win.loadURL(url)
-  })
+  }))
 }

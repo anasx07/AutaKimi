@@ -125,7 +125,7 @@ export class MangaSwat implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const id = /^\d+$/.test(manga.id) ? manga.id : manga.url.split('/').filter(Boolean).pop()
+    const id = /^\d+$/.test(manga.id) ? manga.id : (manga.url || '').split('/').filter(Boolean).pop()
     const data = await this.fetchApi(`/series/${id}/`)
     if (!data) return manga
 

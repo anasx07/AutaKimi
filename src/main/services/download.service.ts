@@ -2,6 +2,8 @@ import crypto from 'crypto'
 import { downloadRepo } from '../db'
 import { imageCache } from '../index'
 import { NetworkService } from '../../common/services/network'
+import { NetworkConfig } from '../../common/config/network'
+import { AppService } from './service.registry'
 
 export interface DownloadTask {
   mangaId: string
@@ -9,7 +11,7 @@ export interface DownloadTask {
   pageUrls: string[]
 }
 
-export class DownloadManager {
+export class DownloadManager implements AppService {
   private static instance: DownloadManager
   private activeDownloads: Map<string, boolean> = new Map()
 
@@ -18,6 +20,18 @@ export class DownloadManager {
       DownloadManager.instance = new DownloadManager()
     }
     return DownloadManager.instance
+  }
+
+  async initialize() {
+    console.log('[DownloadManager] Initializing and recovering downloads...');
+    await downloadRepo.recoverOrphanedDownloads();
+  }
+
+  async shutdown() {
+    console.log('[DownloadManager] Shutting down, pausing active downloads...');
+    for (const [key] of this.activeDownloads) {
+      this.activeDownloads.set(key, false);
+    }
   }
 
   async startDownload(task: DownloadTask) {
@@ -49,10 +63,10 @@ export class DownloadManager {
           try {
             const response = await NetworkService.fetchWithRetry(url, {
               headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': NetworkConfig.DEFAULT_UA,
                 'Referer': new URL(url).origin + '/'
               }
-            }, 3, 1000, fetch);
+            }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, fetch);
             
             const resBuffer = Buffer.from(await response.arrayBuffer());
             await imageCache.set(hash, resBuffer);

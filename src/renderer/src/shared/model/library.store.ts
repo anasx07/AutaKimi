@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
 import { NormalizedManga } from '@common/utils/mangaNormalizer'
 import { Chapter } from '@renderer/shared/api/sources/types'
-import { useUIStore } from './ui.store'
 import { useExtensionStore, ExtensionMetadata } from './extension.store'
 import { useReaderStore } from './reader.store'
 import { useHistoryStore } from './history.store'
@@ -34,14 +33,13 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       ])
 
       set({
-        library: libraryItems || [],
+        library: (libraryItems as NormalizedManga[]) || [],
       })
 
       // Initialize specialized stores
-      useExtensionStore.getState()._init(installed as ExtensionMetadata[], settingsMap)
-      useReaderStore.getState()._init(settingsMap)
-      useSettingsStore.getState()._init(settingsMap)
-      useUIStore.getState()._initFromSettings(settingsMap)
+      useExtensionStore.getState()._init(installed as ExtensionMetadata[], settingsMap as Record<string, string>)
+      useReaderStore.getState()._init(settingsMap as Record<string, string>)
+      useSettingsStore.getState()._init(settingsMap as Record<string, string>)
       
       // Load history
       useHistoryStore.getState().loadHistory()

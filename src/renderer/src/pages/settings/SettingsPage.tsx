@@ -31,10 +31,6 @@ import { DEFAULT_THEMES, PREMIUM_THEMES, ThemeOption } from '@renderer/shared/co
 
 export default function SettingsPage() {
   const {
-    showNsfw, setShowNsfw,
-    displayMode, setDisplayMode,
-    theme, setTheme,
-    colorTheme, setColorTheme,
     updateStatus, updateProgress, updateError
   } = useUIStore()
 
@@ -50,7 +46,11 @@ export default function SettingsPage() {
     bypassCloudflare, setBypassCloudflare,
     userAgent, setUserAgent,
     timeoutInterval, setTimeoutInterval,
-    enableLog, setEnableLog
+    enableLog, setEnableLog,
+    showNsfw, setShowNsfw,
+    displayMode, setDisplayMode,
+    theme, setTheme,
+    colorTheme, setColorTheme
   } = useSettingsStore()
 
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -58,22 +58,26 @@ export default function SettingsPage() {
   const handleClearCache = async () => {
     try {
       setStatusMessage('Clearing Cache...')
-      const res = await DataService.clearCache()
-      setStatusMessage(res.success ? 'Cache cleared successfully!' : 'Failed to clear cache')
+      await DataService.clearCache()
+      setStatusMessage('Cache cleared successfully!')
       setTimeout(() => setStatusMessage(null), 2000)
     } catch (e) {
       console.error('Clear cache failed', e)
+      setStatusMessage('Failed to clear cache')
+      setTimeout(() => setStatusMessage(null), 2000)
     }
   }
 
   const handleClearCookies = async () => {
     try {
       setStatusMessage('Clearing Cookies...')
-      const res = await DataService.clearCookies()
-      setStatusMessage(res.success ? 'Cookies cleared successfully!' : 'Failed to clear cookies')
+      await DataService.clearCookies()
+      setStatusMessage('Cookies cleared successfully!')
       setTimeout(() => setStatusMessage(null), 2000)
     } catch (e) {
       console.error('Clear cookies failed', e)
+      setStatusMessage('Failed to clear cookies')
+      setTimeout(() => setStatusMessage(null), 2000)
     }
   }
 

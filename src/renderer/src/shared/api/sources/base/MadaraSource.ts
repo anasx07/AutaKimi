@@ -109,7 +109,7 @@ export class MadaraSource implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const html = await this.fetchHtml(manga.url)
+    const html = await this.fetchHtml(manga.url || '')
     const $ = cheerio.load(html)
 
     const description = $('.summary__content').text().trim() || $('.description-summary').text().trim()

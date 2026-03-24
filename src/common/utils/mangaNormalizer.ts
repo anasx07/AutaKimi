@@ -1,16 +1,6 @@
-export interface NormalizedManga {
-  id: string;
-  title: string;
-  coverUrl: string | null;
-  description: string;
-  status: string;
-  author?: string;
-  artist?: string;
-  genres?: string[];
-  url?: string;
-  pkg?: string;
-  _raw?: any;
-}
+import { Manga } from '../types/manga'
+export type { Manga as NormalizedManga }
+export type { Manga }
 
 export interface Chapter {
   id: string;
@@ -22,7 +12,7 @@ export interface Chapter {
   };
 }
 
-export const normalizeManga = (manga: any, preferredLang?: string): NormalizedManga => {
+export const normalizeManga = (manga: any, preferredLang?: string): Manga => {
   if (!manga) {
     return { id: '', title: 'Unknown', coverUrl: null, description: 'No description', status: 'Unknown' };
   }
