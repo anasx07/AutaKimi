@@ -15,6 +15,7 @@ interface UIState {
   globalError: string | null
   updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error'
   updateProgress: any | null
+  updateError: string | null
 
   // Actions
   setActiveTab: (tab: TabType) => void
@@ -26,6 +27,7 @@ interface UIState {
   setGlobalError: (error: string | null) => void
   setUpdateStatus: (status: UIState['updateStatus']) => void
   setUpdateProgress: (progress: any) => void
+  setUpdateError: (error: string | null) => void
   
   // Internal initialization
   _initFromSettings: (settings: Record<string, string>) => void
@@ -41,6 +43,7 @@ export const useUIStore = create<UIState>((set) => ({
   globalError: null,
   updateStatus: 'idle',
   updateProgress: null,
+  updateError: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   
@@ -97,6 +100,7 @@ export const useUIStore = create<UIState>((set) => ({
   setGlobalError: (err) => set({ globalError: err }),
   setUpdateStatus: (status) => set({ updateStatus: status }),
   setUpdateProgress: (progress) => set({ updateProgress: progress }),
+  setUpdateError: (err) => set({ updateError: err }),
 
   _initFromSettings: (settings) => {
     set({

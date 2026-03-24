@@ -23,15 +23,19 @@ function App(): React.JSX.Element {
   const { activeTab, setActiveTab } = useUIStore()
   const { activeExtension, selectedManga, activeChapter, loadFromDb } = useLibraryStore()
 
-  const { setUpdateStatus, setUpdateProgress } = useUIStore()
+  const { setUpdateStatus, setUpdateProgress, setUpdateError } = useUIStore()
 
   useEffect(() => {
     loadFromDb()
     
     // Listen for app updates
     const unsubscribe = (window as any).api.onAppUpdate((data: any) => {
-      if (data.status) setUpdateStatus(data.status)
+      if (data.status) {
+        setUpdateStatus(data.status)
+        if (data.status === 'checking') setUpdateError(null)
+      }
       if (data.progress) setUpdateProgress(data.progress)
+      if (data.error) setUpdateError(data.error)
     })
 
     return () => unsubscribe()
@@ -86,7 +90,7 @@ function App(): React.JSX.Element {
           </div>
           <div className="flex-1">
             <p className="text-xs font-medium text-foreground">Local User</p>
-            <p className="text-[10px] text-muted-foreground">v0.1.0</p>
+            <p className="text-[10px] text-muted-foreground">v{(window as any).api.version}</p>
           </div>
         </div>
       </aside>

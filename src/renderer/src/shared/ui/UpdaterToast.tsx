@@ -4,7 +4,7 @@ import { Button } from './Button'
 import { cn } from '@renderer/shared/lib/utils'
 
 export function UpdaterToast() {
-  const { updateStatus, updateProgress, setUpdateStatus } = useUIStore()
+  const { updateStatus, updateProgress, updateError, setUpdateStatus } = useUIStore()
 
   if (updateStatus === 'idle') return null
 
@@ -49,7 +49,7 @@ export function UpdaterToast() {
       case 'downloaded':
         return 'Update ready to install!'
       case 'error':
-        return 'Failed to check for updates'
+        return updateError || 'Failed to check for updates'
       default:
         return null
     }
@@ -86,10 +86,17 @@ export function UpdaterToast() {
 
       {(updateStatus === 'error' || (updateStatus === 'downloaded' === false && updateStatus !== 'downloading' && updateStatus !== 'available' && updateStatus !== 'checking')) && (
         <button 
-          onClick={() => setUpdateStatus('idle')}
-          className="ml-2 p-1 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
+          onClick={() => {
+            if (updateStatus === 'error') {
+              (window as any).api.checkForUpdates()
+            } else {
+              setUpdateStatus('idle')
+            }
+          }}
+          className="ml-2 p-1 rounded-md hover:bg-secondary text-muted-foreground transition-colors group"
+          title={updateStatus === 'error' ? 'Retry Check' : 'Close'}
         >
-          <RefreshCcw className="h-4 w-4" />
+          <RefreshCcw className={cn("h-4 w-4", updateStatus === 'error' && "group-hover:rotate-180 transition-transform duration-500")} />
         </button>
       )}
     </div>
