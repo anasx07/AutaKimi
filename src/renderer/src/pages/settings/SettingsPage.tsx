@@ -19,10 +19,13 @@ import {
   Zap,
   Palette,
   Monitor,
-  Sparkles
+  Sparkles,
+  RefreshCcw,
+  Download
 } from 'lucide-react'
 import { useState } from 'react'
 import { useUIStore, useLibraryStore, ThemeType, ColorThemeType } from '@renderer/shared/model'
+import { cn } from '@renderer/shared/lib/utils'
 import { Button, Card, CardContent, Input, Badge, Switch, Select } from '@renderer/shared/ui'
 import { DEFAULT_THEMES, PREMIUM_THEMES, ThemeOption } from '@renderer/shared/config/themes'
 
@@ -31,7 +34,8 @@ export default function SettingsPage() {
     showNsfw, setShowNsfw,
     displayMode, setDisplayMode,
     theme, setTheme,
-    colorTheme, setColorTheme
+    colorTheme, setColorTheme,
+    updateStatus, updateProgress, updateError
   } = useUIStore()
 
   const {
@@ -389,7 +393,93 @@ export default function SettingsPage() {
           </Card>
         </section>
 
-        {/* 5. Advanced */}
+        {/* 5. System Updates */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-primary font-semibold text-lg px-1">
+            <RefreshCcw className={cn("h-5 w-5", updateStatus === 'checking' && "animate-spin")} />
+            System Updates
+          </div>
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Application Version</div>
+                  <div className="text-xs text-muted-foreground">You are currently running v{(window as any).api.version}</div>
+                </div>
+                <Badge variant="outline" className="font-mono px-3 py-1">
+                  v{(window as any).api.version}
+                </Badge>
+              </div>
+
+              <div className="flex flex-col gap-4 pt-2">
+                <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center",
+                      updateStatus === 'error' ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                    )}>
+                      {updateStatus === 'checking' ? <Loader2 className="h-5 w-5 animate-spin" /> :
+                       updateStatus === 'available' || updateStatus === 'downloading' ? <Download className="h-5 w-5" /> :
+                       updateStatus === 'downloaded' ? <CheckCircle2 className="h-5 w-5 text-green-500" /> :
+                       updateStatus === 'error' ? <AlertCircle className="h-5 w-5" /> :
+                       <RefreshCcw className="h-5 w-5 opacity-50" />}
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-semibold capitalize">
+                        {updateStatus === 'idle' ? 'Up to date' : 
+                         updateStatus === 'checking' ? 'Checking for updates...' :
+                         updateStatus === 'available' ? 'Update available!' :
+                         updateStatus === 'downloading' ? 'Downloading update...' :
+                         updateStatus === 'downloaded' ? 'Ready to install' :
+                         updateStatus === 'error' ? 'Update Error' : updateStatus}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {updateStatus === 'error' ? (updateError || 'Could not check for updates') :
+                         updateStatus === 'downloading' ? `Progress: ${updateProgress?.percent ? Math.round(updateProgress.percent) : 0}%` :
+                         'Last checked: Just now'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {updateStatus === 'downloaded' ? (
+                      <Button 
+                        onClick={() => (window as any).api.installUpdate()}
+                        className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-lg shadow-green-900/20"
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        Restart & Install
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline"
+                        onClick={() => (window as any).api.checkForUpdates()}
+                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                        className="gap-2"
+                      >
+                        {updateStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                        {updateStatus === 'error' ? 'Retry Check' : 'Check for Updates'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {updateStatus === 'downloading' && (
+                  <div className="px-1 space-y-1.5">
+                    <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden border border-border/50">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 ease-out" 
+                        style={{ width: `${updateProgress?.percent || 0}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* 6. Advanced */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-yellow-500 font-semibold text-lg px-1">
             <Terminal className="h-5 w-5" />

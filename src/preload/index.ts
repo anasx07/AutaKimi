@@ -35,7 +35,6 @@ const api: ElectronApi = {
     ipcRenderer.invoke(IpcChannel.EXECUTE_EXTENSION, args),
   installExtension: (ext: any, repoUrl: string) => ipcRenderer.invoke(IpcChannel.EXTENSION_INSTALL, { ext, repoUrl }),
   openExternal: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_EXTERNAL, url),
-  platform: process.platform,
   window: {
     minimize: () => ipcRenderer.invoke(IpcChannel.WINDOW_MINIMIZE),
     maximize: () => ipcRenderer.invoke(IpcChannel.WINDOW_MAXIMIZE),
@@ -57,7 +56,10 @@ const api: ElectronApi = {
     return () => ipcRenderer.removeListener(IpcChannel.APP_UPDATE, subscription)
   },
   installUpdate: () => ipcRenderer.invoke(IpcChannel.INSTALL_UPDATE),
+  checkForUpdates: () => ipcRenderer.invoke(IpcChannel.CHECK_FOR_UPDATE),
   openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
+  platform: process.platform,
+  version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

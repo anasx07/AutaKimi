@@ -57,6 +57,8 @@ export enum IpcChannel {
   // App Updates
   APP_UPDATE = 'app:update',
   INSTALL_UPDATE = 'app:install-update',
+  CHECK_FOR_UPDATE = 'app:check-for-update',
+  GET_VERSION = 'app:get-version',
   OPEN_INTERNAL_BROWSER = 'open-internal-browser',
 }
 
@@ -101,7 +103,6 @@ export interface ElectronApi {
     getMangaDownloads: (mangaId: string) => Promise<{ ok: boolean; value: any[]; error?: string }>;
     getAllMangaDownloads: () => Promise<{ ok: boolean; value: any[]; error?: string }>;
   };
-  platform: string;
   window: {
     minimize: () => Promise<void>;
     maximize: () => Promise<void>;
@@ -112,5 +113,8 @@ export interface ElectronApi {
   };
   onAppUpdate: (callback: (data: { status: string, progress?: any, error?: string }) => void) => void;
   installUpdate: () => Promise<void>;
+  checkForUpdates: () => Promise<void>;
   openInternalBrowser: (url: string) => Promise<void>;
+  platform: string;
+  version: string;
 }

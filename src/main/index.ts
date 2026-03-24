@@ -121,6 +121,7 @@ app.whenReady().then(() => {
   })
 
   // Initialize auto updater
+  autoUpdater.logger = console
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'anasx07',
@@ -152,6 +153,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle(IpcChannel.INSTALL_UPDATE, () => {
     autoUpdater.quitAndInstall()
+  })
+
+  ipcMain.handle(IpcChannel.CHECK_FOR_UPDATE, () => {
+    autoUpdater.checkForUpdatesAndNotify()
+  })
+
+  ipcMain.on(IpcChannel.GET_VERSION, (event) => {
+    event.returnValue = app.getVersion()
   })
 
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
