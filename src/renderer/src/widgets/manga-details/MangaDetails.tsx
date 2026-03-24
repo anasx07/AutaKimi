@@ -5,7 +5,14 @@ import {
   Eye, EyeOff, Loader2, Share2, Download, MoreVertical, ShieldAlert, Globe, 
   Search, Filter, ChevronDown, ChevronUp, ExternalLink, ShieldCheck
 } from 'lucide-react'
-import { useUIStore, useLibraryStore, useDownloadStore } from '@renderer/shared/model'
+import { 
+  useUIStore, 
+  useLibraryStore, 
+  useDownloadStore, 
+  useProgressStore,
+  useReaderStore,
+  useExtensionStore
+} from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { Button, Badge, Card, Input, Tooltip, DownloadBadge } from '@renderer/shared/ui'
 
@@ -19,10 +26,11 @@ export default function MangaDetails() {
   const { setActiveTab } = useUIStore()
   const {
     selectedManga, setSelectedManga,
-    setActiveChapter, activeExtension, installedExtensions,
-    readingProgress, pageProgress, loadProgress, markChapterRead,
-    defaultChapterSort
+    setActiveChapter
   } = useLibraryStore()
+  const { activeExtension, installedExtensions } = useExtensionStore()
+  const { readingProgress, pageProgress, loadProgress, markChapterRead } = useProgressStore()
+  const { defaultChapterSort } = useReaderStore()
   const { downloadQueue, addToDownloadQueue } = useDownloadStore()
   const { detailQuery, chaptersQuery } = (() => {
     // We use a small wrapper to handle the query logic

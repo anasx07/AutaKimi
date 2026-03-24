@@ -24,7 +24,7 @@ import {
   Download
 } from 'lucide-react'
 import { useState } from 'react'
-import { useUIStore, useLibraryStore, ThemeType, ColorThemeType } from '@renderer/shared/model'
+import { useUIStore, useReaderStore, useSettingsStore, ThemeType, ColorThemeType } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { Button, Card, CardContent, Input, Badge, Switch, Select } from '@renderer/shared/ui'
 import { DEFAULT_THEMES, PREMIUM_THEMES, ThemeOption } from '@renderer/shared/config/themes'
@@ -44,36 +44,16 @@ export default function SettingsPage() {
     readerDirection, setReaderDirection,
     autoMarkRead, setAutoMarkRead,
     preloadPages, setPreloadPages
-  } = useLibraryStore()
+  } = useReaderStore()
 
-  const [bypassCloudflare, setBypassCloudflare] = useState(true) // Placeholder local sync for now
-  const [userAgent, setUserAgent] = useState('')
-  const [timeoutInterval, setTimeoutInterval] = useState('30000')
-  const [enableLog, setEnableLog] = useState(false)
+  const {
+    bypassCloudflare, setBypassCloudflare,
+    userAgent, setUserAgent,
+    timeoutInterval, setTimeoutInterval,
+    enableLog, setEnableLog
+  } = useSettingsStore()
+
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
-
-  // Initialize local states from DB (some settings aren't in centralized store yet)
-  useState(() => {
-    const init = async () => {
-      const cf = await DataService.db.getSetting('bypass_cloudflare')
-      const ua = await DataService.db.getSetting('user_agent')
-      const tout = await DataService.db.getSetting('timeout_interval')
-      const elog = await DataService.db.getSetting('enable_log')
-      if (cf !== null) setBypassCloudflare(cf === 'true')
-      if (ua !== null) setUserAgent(ua)
-      if (tout !== null) setTimeoutInterval(tout)
-      if (elog !== null) setEnableLog(elog === 'true')
-    }
-    init()
-  })
-
-  const saveSetting = async (key: string, value: string) => {
-    try {
-      await DataService.db.setSetting(key, value)
-    } catch (e) {
-      console.error(`Failed to save setting ${key}`, e)
-    }
-  }
 
   const handleClearCache = async () => {
     try {
@@ -331,10 +311,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={bypassCloudflare}
-                  onCheckedChange={(val) => {
-                    setBypassCloudflare(val)
-                    saveSetting('bypass_cloudflare', val.toString())
-                  }}
+                  onCheckedChange={setBypassCloudflare}
                 />
               </div>
 
@@ -346,10 +323,8 @@ export default function SettingsPage() {
                 <Input
                   placeholder="Custom browser identification..."
                   value={userAgent}
-                  onChange={(e) => {
-                    setUserAgent(e.target.value)
-                    saveSetting('user_agent', e.target.value)
-                  }}
+                  onChange={(e) => setUserAgent(e.target.value)}
+                  onBlur={(e) => setUserAgent(e.target.value)} // Ensure persist on blur is also reactive
                 />
               </div>
 
@@ -361,10 +336,7 @@ export default function SettingsPage() {
                 <Input
                   type="number"
                   value={timeoutInterval}
-                  onChange={(e) => {
-                    setTimeoutInterval(e.target.value)
-                    saveSetting('timeout_interval', e.target.value)
-                  }}
+                  onChange={(e) => setTimeoutInterval(e.target.value)}
                 />
               </div>
             </CardContent>
@@ -494,10 +466,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={enableLog}
-                  onCheckedChange={(val) => {
-                    setEnableLog(val)
-                    saveSetting('enable_log', val.toString())
-                  }}
+                  onCheckedChange={setEnableLog}
                 />
               </div>
 
@@ -532,3 +501,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+
