@@ -75,7 +75,9 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "${productName}.Setup.${version}.${ext}"
+      "artifactName": "${productName}.${ext}"
+      /* "artifactName": "${productName}.Setup.${version}.${ext}" */
+      
     }
   }
 }
