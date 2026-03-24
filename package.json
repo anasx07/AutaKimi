@@ -1,6 +1,6 @@
 {
   "name": "lmanwa",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -74,7 +74,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "${productName}.Setup.${version}.${ext}"
     }
   }
 }
