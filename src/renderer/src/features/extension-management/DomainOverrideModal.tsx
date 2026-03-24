@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Globe, RotateCcw, Save } from 'lucide-react'
 import { Dialog, Button, Input } from '@renderer/shared/ui'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useExtensionStore } from '@renderer/shared/model'
 import { reloadSource } from '@renderer/shared/api/sources'
 
 interface DomainOverrideModalProps {
@@ -13,7 +13,7 @@ interface DomainOverrideModalProps {
 }
 
 export function DomainOverrideModal({ isOpen, onClose, pkg, name, defaultDomain }: DomainOverrideModalProps) {
-  const { domainOverrides, setDomainOverride } = useLibraryStore()
+  const { domainOverrides, setDomainOverride } = useExtensionStore()
   const [newDomain, setNewDomain] = useState('')
 
   useEffect(() => {

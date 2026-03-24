@@ -3,7 +3,7 @@ import { MangaLek } from './native/ma.lmanwa.extension.ar.mangalek'
 import { MangaSwat } from './native/ma.lmanwa.extension.ar.mangaswat'
 import { MangaDexSource } from './official/MangaDexSource'
 import { ISourceAdapter } from './types'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useExtensionStore } from '@renderer/shared/model'
 
 export { MangaDexSource }
 
@@ -26,7 +26,7 @@ export function getNativeSource(pkg: string): ISourceAdapter | null {
     const instance = new SourceClass()
     
     // Apply domain override if exists
-    const override = useLibraryStore.getState().domainOverrides[pkg]
+    const override = useExtensionStore.getState().domainOverrides[pkg]
     if (override && override.startsWith('http')) {
       instance.baseUrl = override
     }

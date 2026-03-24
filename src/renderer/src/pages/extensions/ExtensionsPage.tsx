@@ -1,10 +1,10 @@
 import { Package, ExternalLink, Trash2, Globe } from 'lucide-react'
 import { Button, Badge, Card } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useExtensionStore } from '@renderer/shared/model'
 
 export default function ExtensionsPage() {
-  const { installedExtensions, uninstallExtension, setActiveExtension } = useLibraryStore()
+  const { installedExtensions, uninstallExtension, setActiveExtension } = useExtensionStore()
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">

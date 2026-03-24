@@ -1,19 +1,21 @@
 import { Clock, Trash2, BookOpen, Play } from 'lucide-react'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useEffect } from 'react'
+import { useLibraryStore, useHistoryStore, useExtensionStore } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
-import { useHistoryEntries } from '@renderer/entities/manga/api'
 
 export default function HistoryPage() {
-  const { deleteHistoryByManga, clearHistory, setSelectedManga, setActiveExtension, setActiveChapter } = useLibraryStore()
-  const { data: historyEntries = [], isLoading: loading } = useHistoryEntries(100)
+  const { setSelectedManga, setActiveChapter } = useLibraryStore()
+  const { setActiveExtension } = useExtensionStore()
+  const { 
+    historyEntries, 
+    loadHistory, 
+    clearHistory, 
+    deleteHistoryByManga 
+  } = useHistoryStore()
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center py-20">
-        <Clock className="h-8 w-8 animate-spin text-primary opacity-50" />
-      </div>
-    )
-  }
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
 
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`
@@ -47,7 +49,7 @@ export default function HistoryPage() {
       id: entry.mangaId,
       title: entry.mangaTitle || 'Unknown',
       coverUrl: entry.mangaCover || '',
-      url: entry.mangaUrl || entry.mangaId, // Use mangaUrl if available, rollback on id
+      url: entry.mangaUrl || entry.mangaId,
       status: '',
       description: '',
       genres: [],
@@ -94,7 +96,7 @@ export default function HistoryPage() {
         acc[mangaId].chapterTitle = entry.chapterTitle
         acc[mangaId].chapterId = entry.chapterId
         acc[mangaId].startedAt = entry.startedAt
-        acc[mangaId].mangaUrl = entry.mangaUrl // Preserve newest url too if it updates
+        acc[mangaId].mangaUrl = entry.mangaUrl
       }
     }
     return acc
@@ -105,7 +107,7 @@ export default function HistoryPage() {
   )
 
   return (
-    <div className="p-4 space-y-5 max-w-3xl mx-auto">
+    <div className="p-4 space-y-5 max-w-3xl mx-auto border-0">
       <div className="flex items-center justify-between pb-2">
         <h1 className="text-2xl font-bold tracking-tight">History</h1>
         
@@ -197,8 +199,6 @@ export default function HistoryPage() {
               </div>
             </div>
           ))}
-          
-          {/* Pagination could be handled by useInfiniteQuery if needed */}
         </div>
       )}
     </div>

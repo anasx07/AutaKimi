@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { NormalizedManga, normalizeManga } from '@common/utils/mangaNormalizer'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useBrowseCacheStore } from '@renderer/shared/model'
 
 interface UseMangaPaginationProps {
   activeExtension: string | null
@@ -24,7 +24,7 @@ export function useMangaPagination({
     listCache, offsetCache, hasMoreCache, batchCountCache,
     setListCache, setOffsetCache, setHasMoreCache, setBatchCountCache,
     clearFeedCache
-  } = useLibraryStore()
+  } = useBrowseCacheStore()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

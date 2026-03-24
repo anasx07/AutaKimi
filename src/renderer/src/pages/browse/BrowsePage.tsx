@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { DataService } from '@renderer/shared/api'
 import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List } from 'lucide-react'
-import { useUIStore, useLibraryStore } from '@renderer/shared/model'
+import { useUIStore, useLibraryStore, useExtensionStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
 import { Button, Input, Card, Badge, ErrorState } from '@renderer/shared/ui'
@@ -12,9 +12,8 @@ export default function BrowsePage() {
     displayMode, setDisplayMode
   } = useUIStore()
 
-  const {
-    activeExtension, setActiveExtension, setSelectedManga
-  } = useLibraryStore()
+  const { setSelectedManga } = useLibraryStore()
+  const { activeExtension, setActiveExtension } = useExtensionStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')

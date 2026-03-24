@@ -11,7 +11,7 @@ import ExtensionsPage from '@renderer/pages/extensions/ExtensionsPage'
 import AboutPage from '@renderer/pages/about/AboutPage'
 import HistoryPage from '@renderer/pages/history/HistoryPage'
 import { DownloadQueueProcessor } from '@renderer/widgets/download-queue'
-import { useUIStore, useLibraryStore } from '@renderer/shared/model'
+import { useUIStore, useLibraryStore, useExtensionStore } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { ErrorBoundary } from '@renderer/shared/ui/ErrorBoundary'
 
@@ -21,7 +21,8 @@ import { UpdaterToast } from '@renderer/shared/ui/UpdaterToast'
 
 function App(): React.JSX.Element {
   const { activeTab, setActiveTab } = useUIStore()
-  const { activeExtension, selectedManga, activeChapter, loadFromDb } = useLibraryStore()
+  const { selectedManga, activeChapter, loadFromDb } = useLibraryStore()
+  const { activeExtension } = useExtensionStore()
 
   const { setUpdateStatus, setUpdateProgress, setUpdateError } = useUIStore()
 

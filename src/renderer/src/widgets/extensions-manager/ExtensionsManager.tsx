@@ -2,7 +2,7 @@ import { DataService } from '@renderer/shared/api'
 import { useState } from 'react'
 import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
-import { useUIStore, useLibraryStore } from '@renderer/shared/model'
+import { useUIStore, useLibraryStore, useExtensionStore } from '@renderer/shared/model'
 import { Button, Input, Card, Badge } from '@renderer/shared/ui'
 
 import localExtensions from '@renderer/shared/api/sources/Extensions.json'
@@ -24,11 +24,12 @@ export default function ExtensionsManager() {
     showNsfw, selectedLangs, setSelectedLangs
   } = useUIStore()
 
-  const {
+  const { loadFromDb } = useLibraryStore()
+  const { 
     installedExtensions, uninstallExtension, setActiveExtension,
-    loadFromDb, extensionSortBy, extensionSortOrder, 
-    setExtensionSortBy, setExtensionSortOrder
-  } = useLibraryStore()
+    extensionSortBy, extensionSortOrder, 
+    setExtensionSortBy, setExtensionSortOrder 
+  } = useExtensionStore()
   const [extensions] = useState<Extension[]>(localExtensions as Extension[])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'installed' | 'all'>('installed')

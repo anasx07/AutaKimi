@@ -1,18 +1,25 @@
 import { useEffect, useState, useRef } from 'react'
-import { DataService } from '@renderer/shared/api'
 import { TitleBar } from '@renderer/widgets/title-bar'
 import { ArrowLeft, Loader2, Maximize2, Minimize2, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
-import { useUIStore, useLibraryStore } from '@renderer/shared/model'
+import { 
+  useUIStore, 
+  useLibraryStore, 
+  useReaderStore, 
+  useHistoryStore, 
+  useProgressStore,
+  useExtensionStore
+} from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { useChapterPages } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function ChapterReader() {
   const { setGlobalError } = useUIStore()
-  const { 
-    activeChapter, setActiveChapter, activeExtension, selectedManga, markChapterRead,
-    readerMode, readerDirection, preloadPages, addHistoryEntry
-  } = useLibraryStore()
+  const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
+  const { activeExtension } = useExtensionStore()
+  const { addHistoryEntry } = useHistoryStore()
+  const { markChapterRead, loadProgress, pageProgress } = useProgressStore()
+  const { readerMode, readerDirection, preloadPages } = useReaderStore()
 
   const { data: pages = [], isLoading: loading, error: queryError } = useChapterPages(
     selectedManga?.id || '',
@@ -31,7 +38,6 @@ export default function ChapterReader() {
     const startTime = Date.now()
     const isoStart = new Date().toISOString()
     
-    // Save metadata locally to avoid closure issues on unmount
     const mangaData = selectedManga ? {
       id: selectedManga.id,
       title: selectedManga.title,
@@ -47,7 +53,6 @@ export default function ChapterReader() {
     return () => {
       if (mangaData && chapterData) {
         const duration = Math.round((Date.now() - startTime) / 1000)
-        // Only log if read for more than 3 seconds to avoid noise
         if (duration > 3) {
           addHistoryEntry({
             mangaId: mangaData.id,
@@ -63,11 +68,11 @@ export default function ChapterReader() {
         }
       }
     }
-  }, [addHistoryEntry]) // Runs on mount, returns cleanup for unmount
+  }, [addHistoryEntry])
 
   useEffect(() => {
     if (error) setGlobalError(error)
-  }, [error])
+  }, [error, setGlobalError])
 
   useEffect(() => {
     if (scrollRef.current && !loading) scrollRef.current.scrollTop = 0
@@ -79,19 +84,19 @@ export default function ChapterReader() {
 
     const restoreProgress = async () => {
       try {
-        const rows = await DataService.db.getProgress(selectedManga.id) as { chapterId: string, lastPage: number }[]
-        const progress = rows.find(p => p.chapterId === activeChapter.id)
-        if (progress && progress.lastPage > 1) {
-          setCurrentPage(progress.lastPage)
+        await loadProgress(selectedManga.id)
+        const lastPage = pageProgress[selectedManga.id]?.[activeChapter.id]
+        
+        if (lastPage && lastPage > 1) {
+          setCurrentPage(lastPage)
           
           if (readerMode === 'vertical') {
             setTimeout(() => {
               if (scrollRef.current) {
-                // In vertical mode, the pages are wrapped in a single child div
                 const pageContainer = scrollRef.current.children[0]
                 if (pageContainer) {
                   const pagesElements = pageContainer.children
-                  const targetIndex = progress.lastPage - 1
+                  const targetIndex = lastPage - 1
                   if (pagesElements[targetIndex]) {
                     pagesElements[targetIndex].scrollIntoView({ behavior: 'instant', block: 'start' })
                   }
@@ -116,28 +121,18 @@ export default function ChapterReader() {
     const saveProgress = async () => {
       try {
         const isRead = currentPage >= pages.length
-        
-        // Update DB with page offset
-        await DataService.db.updateProgress({
-          mangaId: selectedManga.id,
-          chapterId: activeChapter.id,
-          isRead: isRead, 
-          lastPage: currentPage
-        });
-        
-        // Update Store State row to sync checkbox list live
-        markChapterRead(selectedManga.id, activeChapter.id, isRead, currentPage)
+        await markChapterRead(selectedManga.id, activeChapter.id, isRead, currentPage)
       } catch (e) {
         console.error('[ChapterReader] Failed to save page progress:', e)
       }
     }
 
-    const timer = setTimeout(saveProgress, 1000) // Debounce saves by 1s
+    const timer = setTimeout(saveProgress, 1000)
     return () => {
       clearTimeout(timer)
-      saveProgress() // Flush instantly on cleanup / unmount
+      saveProgress()
     }
-  }, [currentPage, selectedManga, activeChapter, loading, pages.length, markChapterRead])
+  }, [currentPage, selectedManga, activeChapter, loading, pages.length, isRestored, markChapterRead])
 
   // Preloading Logic
   useEffect(() => {
@@ -273,7 +268,6 @@ export default function ChapterReader() {
 
         {!loading && !error && readerMode === 'paged' && pages.length > 0 && (
           <div className="flex-1 w-full flex items-center justify-center relative touch-none overflow-hidden">
-             {/* Left/Right click zones */}
              <div 
                className="absolute left-0 top-0 bottom-0 w-1/4 h-full z-10 cursor-pointer" 
                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
