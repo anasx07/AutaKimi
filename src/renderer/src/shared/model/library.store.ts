@@ -20,7 +20,7 @@ interface LibraryState {
   setActiveChapter: (chapter: Chapter | null) => void
 }
 
-export const useLibraryStore = create<LibraryState>((set, get) => ({
+export const useLibraryStore = create<LibraryState>((set) => ({
   library: [],
   selectedManga: null,
   activeChapter: null,

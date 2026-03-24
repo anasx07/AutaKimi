@@ -31,7 +31,7 @@ interface ExtensionState {
   _init: (installed: ExtensionMetadata[], settings: Record<string, string>) => void
 }
 
-export const useExtensionStore = create<ExtensionState>((set, get) => ({
+export const useExtensionStore = create<ExtensionState>((set) => ({
   installedExtensions: [],
   activeExtension: null,
   extensionSortBy: 'name',
