@@ -57,6 +57,7 @@ export enum IpcChannel {
   // App Updates
   APP_UPDATE = 'app:update',
   INSTALL_UPDATE = 'app:install-update',
+  OPEN_INTERNAL_BROWSER = 'open-internal-browser',
 }
 
 /**
@@ -111,4 +112,5 @@ export interface ElectronApi {
   };
   onAppUpdate: (callback: (data: { status: string, progress?: any, error?: string }) => void) => void;
   installUpdate: () => Promise<void>;
+  openInternalBrowser: (url: string) => Promise<void>;
 }

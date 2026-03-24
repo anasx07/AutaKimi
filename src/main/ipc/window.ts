@@ -41,4 +41,19 @@ export function registerWindowHandlers() {
   ipcMain.handle(IpcChannel.OPEN_EXTERNAL, async (_, url: string) => {
     await shell.openExternal(url)
   })
+
+  ipcMain.handle(IpcChannel.OPEN_INTERNAL_BROWSER, async (_, url: string) => {
+    const win = new BrowserWindow({
+      width: 1024,
+      height: 768,
+      title: 'Cloudflare Solver',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        partition: 'persist:default' // Use default session for cookie sharing
+      }
+    })
+
+    win.loadURL(url)
+  })
 }

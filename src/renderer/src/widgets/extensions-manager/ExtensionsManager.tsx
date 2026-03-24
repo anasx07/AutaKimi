@@ -264,13 +264,21 @@ export default function ExtensionsManager() {
                 <div className="flex flex-col gap-1.5 overflow-hidden">
                   {(() => {
                     const native = getNativeSource(ext.pkg)
+                    const isFullySupported = ['ma.lmanwa.extension.ar.mangaswat', 'ma.lmanwa.extension.ar.teamx'].includes(ext.pkg)
+                    
                     if (native) {
                       return (
                         <div className="flex flex-wrap gap-1 items-center">
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
-                            SUPPORTED
-                          </Badge>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-yellow-500/10 text-yellow-500 border-yellow-500/20 font-medium whitespace-nowrap">
+                          {isFullySupported ? (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
+                              SUPPORTED
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-500 border-amber-500/20 gap-1 font-bold">
+                              NOT YET SUPPORTED
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 font-medium whitespace-nowrap">
                             Native ⚡
                           </Badge>
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase font-medium truncate max-w-[60px]">

@@ -2,6 +2,7 @@ import dabiImg from '../../app/assets/ThemeCharacter/dabi-from-my-hero-academia_
 import itachiImg from '../../app/assets/ThemeCharacter/itachi-uchiha-naruto_1280x720_xtrafondos.com.jpg'
 import gokuImg from '../../app/assets/ThemeCharacter/goku-super-saiyan-ultra-instinct-dragon-ball-super_1280x720_xtrafondos.com.jpg'
 import allMightImg from '../../app/assets/ThemeCharacter/all-might-from-my-hero-academia_1280x720_xtrafondos.com.jpg'
+import gojoImg from '../../app/assets/ThemeCharacter/satoru-gojo-from-jujutsu-kaisen_1280x720_xtrafondos.com.jpg'
 
 export interface ThemeOption {
   id: string
@@ -96,6 +97,19 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     bgClass: 'text-white border-red-900/50 shadow-md', 
     boxClass: 'bg-red-950/40 border-red-500/30', 
     dotClass: 'bg-red-500', 
+    descClass: 'text-neutral-300 font-medium' 
+  },
+  { 
+    id: 'dark-gojo', 
+    name: 'Gojo Satoru', 
+    desc: 'Six Eyes & Limitless', 
+    theme: 'dark', 
+    colorTheme: 'gojo', 
+    bgImage: gojoImg, 
+    tag: 'Void', 
+    bgClass: 'text-white border-blue-900/50 shadow-md', 
+    boxClass: 'bg-indigo-950/40 border-indigo-500/30', 
+    dotClass: 'bg-blue-400', 
     descClass: 'text-neutral-300 font-medium' 
   }
 ]

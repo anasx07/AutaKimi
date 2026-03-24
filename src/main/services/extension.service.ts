@@ -72,60 +72,25 @@ export class ExtensionOrchestrator {
   // --- Fetch Utilities ---
 
   /**
-   * Electron-native fetch wrapper
+   * Electron-native fetch wrapper using net.fetch for automatic cookie/session handling
    */
   async electronFetch(url: string, init?: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      try {
-        const request = net.request({
-          url,
-          method: init?.method || 'GET',
-        });
-        
-        if (init?.headers) {
-          for (const [key, value] of Object.entries(init.headers)) {
-            request.setHeader(key, value as string);
-          }
-        }
-
-        request.on('error', (err) => reject(err));
-        
-        const timeout = setTimeout(() => {
-          request.abort();
-          reject(new Error('Network request timed out (15s)'));
-        }, 15000);
-
-        request.on('response', (response) => {
-          clearTimeout(timeout);
-          const chunks: Buffer[] = [];
-          response.on('data', (chunk) => chunks.push(chunk));
-          response.on('end', () => {
-            const body = Buffer.concat(chunks).toString('utf-8');
-            resolve({
-              text: async () => body,
-              json: async () => JSON.parse(body),
-              ok: response.statusCode >= 200 && response.statusCode < 300,
-              status: response.statusCode
-            });
-          });
-        });
-
-        if (init?.body) {
-          request.write(typeof init.body === 'string' ? init.body : JSON.stringify(init.body));
-        }
-        
-        request.end();
-      } catch (e) {
-        reject(e);
-      }
-    });
+    try {
+      // net.fetch uses the default session cookies automatically
+      const response = await net.fetch(url, init);
+      return response;
+    } catch (e) {
+      console.error('[ExtensionOrchestrator] electronFetch error:', e);
+      throw e;
+    }
   }
 
   /**
    * Unified fetch entry point for extensions with retry logic
    */
   async fetch(url: string, init?: any, bypassCf = false): Promise<any> {
-    return NetworkService.fetchWithRetry(url, init, 3, 1000, bypassCf ? this.electronFetch : fetch);
+    const fetchFn = bypassCf ? this.electronFetch.bind(this) : fetch;
+    return NetworkService.fetchWithRetry(url, init, 3, 1000, fetchFn);
   }
 
   // --- Installation & Detection ---

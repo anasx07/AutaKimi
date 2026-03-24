@@ -156,6 +156,28 @@
     --input: 220 50% 15%;
     --ring: 35 100% 55%;
   }
+
+  /* Gojo Satoru Theme - Limitless Void (Purple & Azure) */
+  .theme-gojo,
+  .dark.theme-gojo {
+    --background: 250 50% 2%; /* Deep Void */
+    --foreground: 0 0% 98%;
+    --card: 250 50% 4%;
+    --card-foreground: 0 0% 98%;
+    --popover: 250 50% 2%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 210 100% 60%; /* Limitless Azure */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 280 100% 30%; /* Hollow Purple Accent */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 250 30% 10%;
+    --muted-foreground: 250 20% 70%;
+    --accent: 350 100% 50%; /* Crimson Sunset */
+    --accent-foreground: 0 0% 100%;
+    --border: 250 40% 12%;
+    --input: 250 40% 12%;
+    --ring: 210 100% 60%;
+  }
 }
 
 @layer base {

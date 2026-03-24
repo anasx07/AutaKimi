@@ -57,6 +57,7 @@ const api: ElectronApi = {
     return () => ipcRenderer.removeListener(IpcChannel.APP_UPDATE, subscription)
   },
   installUpdate: () => ipcRenderer.invoke(IpcChannel.INSTALL_UPDATE),
+  openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

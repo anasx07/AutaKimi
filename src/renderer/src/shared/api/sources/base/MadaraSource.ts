@@ -16,15 +16,22 @@ export class MadaraSource implements ISourceAdapter {
   ) {}
 
   protected async fetchHtml(url: string, options: any = {}): Promise<string> {
+    if (!url) {
+      console.warn('[MadaraSource] Cannot fetch undefined or empty URL');
+      return '';
+    }
+
     const defaultHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
       'Referer': this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8'
+      'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     }
 
     const res: any = await DataService.fetchText(url, {
       ...options,
+      bypassCf: true,
       headers: { ...defaultHeaders, ...options.headers }
     })
 
@@ -184,5 +191,60 @@ export class MadaraSource implements ISourceAdapter {
     })
 
     return pages
+  }
+
+  protected async fetchAjaxPagination(page: number, extraArgs: any = {}): Promise<MangaPage> {
+    const url = `${this.baseUrl}/wp-admin/admin-ajax.php`
+    const body = new URLSearchParams()
+    body.append('action', 'madara_load_more')
+    body.append('page', (page - 1).toString()) 
+    body.append('template', 'madara-core/content/content-archive')
+    
+    const vars = {
+      paged: page,
+      posts_per_page: 30,
+      ...extraArgs
+    }
+    body.append('vars', JSON.stringify(vars))
+
+    const res: any = await DataService.fetchText(url, {
+      method: 'POST',
+      body: body.toString(),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': this.baseUrl
+      },
+      bypassCf: true
+    })
+
+    if (!res || !res.ok || !res.data) return { manga: [], hasNextPage: false }
+
+    const $ = cheerio.load(res.data)
+    const manga: Manga[] = []
+    
+    $('.manga-item, .page-item-detail, .c-tabs-item__content').each((_, el) => {
+      const node = $(el)
+      const titleNode = node.find('.post-title a, h3 a, h4 a')
+      const title = titleNode.text().trim()
+      const mangaUrl = titleNode.attr('href') || ''
+      const cover = node.find('img').attr('src') || node.find('img').attr('data-src') || node.find('img').attr('data-lazy-src') || ''
+      
+      if (mangaUrl) {
+        manga.push({
+          id: mangaUrl,
+          title,
+          coverUrl: cover,
+          description: node.find('.item-summary, .summary').text().trim(),
+          status: node.find('.mg_status, .status').text().trim(),
+          url: mangaUrl
+        })
+      }
+    })
+
+    return {
+      manga,
+      hasNextPage: manga.length > 0 
+    }
   }
 }
