@@ -76,6 +76,14 @@ export class DownloadRepository {
       .all();
   }
 
+  async recoverOrphanedDownloads() {
+    return this.db
+      .update(schema.downloads)
+      .set({ status: 'paused', updatedAt: new Date().toISOString() })
+      .where(eq(schema.downloads.status, 'downloading'))
+      .run();
+  }
+
   async remove(mangaId: string, chapterId: string) {
     return this.db
       .delete(schema.downloads)

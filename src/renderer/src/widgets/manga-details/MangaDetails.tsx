@@ -433,7 +433,7 @@ export default function MangaDetails() {
             )}>
               {manga.description}
             </p>
-            {!descExpanded && manga.description.length > 200 && (
+            {!descExpanded && (manga.description?.length || 0) > 200 && (
               <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
             )}
           </div>

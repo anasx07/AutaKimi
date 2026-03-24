@@ -42,7 +42,7 @@ export class MangaLek extends MadaraSource {
       return await super.fetchMangaDetails(manga)
     } catch (e: any) {
       console.log(`[MangaLek] fetchMangaDetails failed, trying Yoast API fallback: ${e.message}`)
-      const yoastUrl = `${this.baseUrl}/wp-json/yoast/v1/get_head?url=${encodeURIComponent(manga.url)}`
+      const yoastUrl = `${this.baseUrl}/wp-json/yoast/v1/get_head?url=${encodeURIComponent(manga.url || '')}`
       const jsonStr = await this.fetchHtml(yoastUrl, { silent: true })
       if (jsonStr) {
         try {

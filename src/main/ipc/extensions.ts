@@ -1,18 +1,12 @@
 import { ipcMain } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import { extensionOrchestrator } from '../services/extension.service'
+import { NetworkConfig, getEffectiveUA } from '../../common/config/network'
 import { extensionRepo, settingsRepo } from '../db'
+import { wrapIpc } from './utils'
 
 export function registerExtensionHandlers() {
-  ipcMain.handle(IpcChannel.EXTENSION_INSTALL, async (_, { ext, repoUrl }: { ext: any; repoUrl: string }) => {
-    try {
-      const data = await extensionOrchestrator.install(ext, repoUrl)
-      return { ok: true, value: data }
-    } catch (error: any) {
-      console.error('[extension:install] Error:', error)
-      return { ok: false, error: error.message }
-    }
-  })
+  ipcMain.handle(IpcChannel.EXTENSION_INSTALL, wrapIpc((_, { ext, repoUrl }: { ext: any; repoUrl: string }) => extensionOrchestrator.install(ext, repoUrl)))
 
   interface ExecuteExtensionArgs {
     pkg: string;
@@ -20,12 +14,11 @@ export function registerExtensionHandlers() {
     contextArgs: Record<string, any>;
   }
 
-  ipcMain.handle(IpcChannel.EXECUTE_EXTENSION, async (_, { pkg, code, contextArgs }: ExecuteExtensionArgs) => {
-    try {
+  ipcMain.handle(IpcChannel.EXECUTE_EXTENSION, wrapIpc(async (_, { pkg, code, contextArgs }: ExecuteExtensionArgs) => {
       console.log(`Executing isolated script for pkg: ${pkg}`)
       
       let bypassCf = true
-      let ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      let ua: string = NetworkConfig.DEFAULT_UA
       let baseUrl = ''
 
       try {
@@ -34,7 +27,7 @@ export function registerExtensionHandlers() {
         
         bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
         const rowUa = await settingsRepo.get('user_agent')
-        if (rowUa && rowUa !== 'Default') ua = rowUa
+        ua = getEffectiveUA((rowUa === 'Default' || !rowUa) ? undefined : rowUa)
       } catch (e) { }
 
       const enhancedArgs = {
@@ -44,21 +37,11 @@ export function registerExtensionHandlers() {
         _baseUrl: baseUrl
       }
 
-      const data = await extensionOrchestrator.runInSandbox(code, enhancedArgs)
-      return { ok: true, value: data }
-    } catch (error: any) {
-      return { ok: false, error: error.message }
-    }
-  })
+      return extensionOrchestrator.runInSandbox(code, enhancedArgs)
+  }))
 
-  ipcMain.handle(IpcChannel.DETECT_THEME, async (_, url) => {
-    try {
-      const bypassCfValue = await settingsRepo.get('bypass_cloudflare')
-      const bypassCf = bypassCfValue === 'true'
-      const data = await extensionOrchestrator.detectTheme(url, bypassCf)
-      return { ok: true, value: data }
-    } catch (error: any) {
-      return { ok: false, error: error.message }
-    }
-  })
+  ipcMain.handle(IpcChannel.DETECT_THEME, wrapIpc(async (_, url) => {
+    const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
+    return extensionOrchestrator.detectTheme(url, bypassCf)
+  }))
 }

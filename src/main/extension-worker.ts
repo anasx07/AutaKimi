@@ -2,6 +2,7 @@ import { parentPort, workerData } from 'worker_threads'
 import vm from 'vm'
 import * as cheerio from 'cheerio'
 import { NetworkService } from '../common/services/network'
+import { NetworkConfig } from '../common/config/network'
 
 /**
  * Worker thread script for executing extension code in an isolated VM.
@@ -27,7 +28,7 @@ async function run() {
       const response = await NetworkService.fetchWithRetry(url, {
         ...init,
         headers: {
-          'User-Agent': params._userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': params._userAgent || NetworkConfig.DEFAULT_UA,
           ...(init?.headers || {})
         }
       })

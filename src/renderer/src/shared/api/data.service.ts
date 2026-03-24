@@ -2,180 +2,64 @@ import { NetworkService } from '@common/services/network'
 
 const getApi = () => (window as any).api;
 
+async function callIpc<T = any>(fn: () => Promise<any>): Promise<T> {
+  const res = await fn();
+  if (!res.ok) throw new Error(res.error);
+  return res.value;
+}
+
 export const DataService = {
   db: {
-    getExtensions: async () => {
-      const res = await getApi().db.getExtensions()
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    addExtension: async (data: any) => {
-      const res = await getApi().db.addExtension(data)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getExtension: async (pkg: string) => {
-      const res = await getApi().db.getExtension(pkg)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    removeExtension: async (pkg: string) => {
-      const res = await getApi().db.removeExtension(pkg)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getLibrary: async () => {
-      const res = await getApi().db.getLibrary()
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    toggleLibrary: async (manga: any) => {
-      const res = await getApi().db.toggleLibrary(manga)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getSetting: async (key: string) => {
-      const res = await getApi().db.getSetting(key)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getSettings: async () => {
-      const res = await getApi().db.getSettings()
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    setSetting: async (key: string, value: string) => {
-      const res = await getApi().db.setSetting(key, value)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getProgress: async (mangaId: string) => {
-      const res = await getApi().db.getProgress(mangaId)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    updateProgress: async (data: any) => {
-      const res = await getApi().db.updateProgress(data)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    addHistory: async (data: any) => {
-      const res = await getApi().db.addHistory(data)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getHistory: async (args?: any) => {
-      const res = await getApi().db.getHistory(args)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    deleteHistoryEntry: async (id: number) => {
-      const res = await getApi().db.deleteHistoryEntry(id)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    deleteHistoryByManga: async (mangaId: string) => {
-      const res = await getApi().db.deleteHistoryByManga(mangaId)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    clearHistory: async () => {
-      const res = await getApi().db.clearHistory()
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getChapters: async (mangaId: string) => {
-      const res = await getApi().db.getChapters(mangaId)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    saveChapters: async (args: { mangaId: string; chapters: any[] }) => {
-      const res = await getApi().db.saveChapters(args)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getMangaCache: async (mangaId: string) => {
-      const res = await getApi().db.getMangaCache(mangaId)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
+    getExtensions: () => callIpc(() => getApi().db.getExtensions()),
+    addExtension: (data: any) => callIpc(() => getApi().db.addExtension(data)),
+    getExtension: (pkg: string) => callIpc(() => getApi().db.getExtension(pkg)),
+    removeExtension: (pkg: string) => callIpc(() => getApi().db.removeExtension(pkg)),
+    getLibrary: () => callIpc(() => getApi().db.getLibrary()),
+    toggleLibrary: (manga: any) => callIpc(() => getApi().db.toggleLibrary(manga)),
+    getSetting: (key: string) => callIpc(() => getApi().db.getSetting(key)),
+    getSettings: () => callIpc(() => getApi().db.getSettings()),
+    setSetting: (key: string, value: string) => callIpc(() => getApi().db.setSetting(key, value)),
+    getProgress: (mangaId: string) => callIpc(() => getApi().db.getProgress(mangaId)),
+    updateProgress: (data: any) => callIpc(() => getApi().db.updateProgress(data)),
+    addHistory: (data: any) => callIpc(() => getApi().db.addHistory(data)),
+    getHistory: (args?: any) => callIpc(() => getApi().db.getHistory(args)),
+    deleteHistoryEntry: (id: number) => callIpc(() => getApi().db.deleteHistoryEntry(id)),
+    deleteHistoryByManga: (mangaId: string) => callIpc(() => getApi().db.deleteHistoryByManga(mangaId)),
+    clearHistory: () => callIpc(() => getApi().db.clearHistory()),
+    getChapters: (mangaId: string) => callIpc(() => getApi().db.getChapters(mangaId)),
+    saveChapters: (args: { mangaId: string; chapters: any[] }) => callIpc(() => getApi().db.saveChapters(args)),
+    getMangaCache: (mangaId: string) => callIpc(() => getApi().db.getMangaCache(mangaId)),
     saveMangaCache: async (manga: any) => {
       if (!manga.title) {
         console.warn('[DataService] Skipping saveMangaCache: title is missing', manga)
         return null
       }
-      const res = await getApi().db.saveMangaCache(manga)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
+      return callIpc(() => getApi().db.saveMangaCache(manga))
     }
   },
 
-  fetchRepo: async (url: string) => {
-    const res: any = await NetworkService.executeWithRetry(
-      () => getApi().fetchRepo(url),
-      (r: any) => !r.ok && (r.status >= 500 || r.status === 429)
-    );
-    if (!res.ok) throw new Error(res.error);
-    return res.value;
-  },
-  fetchText: async (url: string, options?: any) => {
-    const res: any = await NetworkService.executeWithRetry(
-      () => getApi().fetchText(url, options),
-      (r: any) => !r.ok && (r.status >= 500 || r.status === 429),
-      options?.attempts || 3,
-      options?.delay || 1000
-    );
-    if (!res.ok) throw new Error(res.error);
-    return res.value;
-  },
-  executeExtension: async (args: any) => {
-    const res: any = await getApi().executeExtension(args)
-    if (!res.ok) throw new Error(res.error)
-    return res.value
-  },
-  installExtension: async (ext: any, repoUrl: string) => {
-    const res: any = await getApi().installExtension(ext, repoUrl)
-    if (!res.ok) throw new Error(res.error)
-    return res.value
-  },
-  clearCache: async () => {
-    const res: any = await getApi().clearCache()
-    if (!res.ok) throw new Error(res.error)
-    return res.value
-  },
-  clearCookies: async () => {
-    const res: any = await getApi().clearCookies()
-    if (!res.ok) throw new Error(res.error)
-    return res.value
-  },
+  fetchRepo: (url: string) => callIpc(() => NetworkService.executeWithRetry(
+    () => getApi().fetchRepo(url),
+    (r: any) => !r.ok && (r.status >= 500 || r.status === 429)
+  )),
+  fetchText: (url: string, options?: any) => callIpc(() => NetworkService.executeWithRetry(
+    () => getApi().fetchText(url, options),
+    (r: any) => !r.ok && (r.status >= 500 || r.status === 429),
+    options?.attempts || 3,
+    options?.delay || 1000
+  )),
+  executeExtension: (args: any) => callIpc(() => getApi().executeExtension(args)),
+  installExtension: (ext: any, repoUrl: string) => callIpc(() => getApi().installExtension(ext, repoUrl)),
+  clearCache: () => callIpc(() => getApi().clearCache()),
+  clearCookies: () => callIpc(() => getApi().clearCookies()),
   openExternal: (url: string) => getApi().openExternal(url),
   openInternalBrowser: (url: string) => getApi().openInternalBrowser(url),
   download: {
-    start: async (args: any) => {
-      const res: any = await getApi().download.start(args)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    cancel: async (args: any) => {
-      const res: any = await getApi().download.cancel(args)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getStatus: async (args: any) => {
-      const res: any = await getApi().download.getStatus(args)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getMangaDownloads: async (mangaId: string) => {
-      const res: any = await getApi().download.getMangaDownloads(mangaId)
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    },
-    getAllMangaDownloads: async () => {
-      const res: any = await getApi().download.getAllMangaDownloads()
-      if (!res.ok) throw new Error(res.error)
-      return res.value
-    }
+    start: (args: any) => callIpc(() => getApi().download.start(args)),
+    cancel: (args: any) => callIpc(() => getApi().download.cancel(args)),
+    getStatus: (args: any) => callIpc(() => getApi().download.getStatus(args)),
+    getMangaDownloads: (mangaId: string) => callIpc(() => getApi().download.getMangaDownloads(mangaId)),
+    getAllMangaDownloads: () => callIpc(() => getApi().download.getAllMangaDownloads())
   },
   platform: (window as any).api?.platform || 'win32'
 }

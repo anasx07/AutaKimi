@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { useUIStore } from '@renderer/shared/model'
+import { useSettingsStore } from '@renderer/shared/model'
 
 export default function TitleBar() {
   // Use window.api.platform safely
   const platform = window.api?.platform || 'win32'
-  const { theme, colorTheme } = useUIStore()
+  const { theme, colorTheme } = useSettingsStore()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function TitleBar() {
   return (
     <div
       ref={ref}
-      className="h-[33px] bg-background text-foreground border-b border-border flex items-center px-4 select-none duration-200 shrink-0"
+      className="h-[33px] bg-background text-foreground border-b border-border flex items-center px-4 select-none shrink-0"
       style={{ WebkitAppRegion: 'drag' } as any}
     >
       <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@ import { DataService } from '@renderer/shared/api'
 import { useState } from 'react'
 import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
-import { useUIStore, useLibraryStore, useExtensionStore } from '@renderer/shared/model'
+import { useLibraryStore, useExtensionStore, useSettingsStore } from '@renderer/shared/model'
 import { Button, Input, Card, Badge } from '@renderer/shared/ui'
 
 import localExtensions from '@renderer/shared/api/sources/Extensions.json'
@@ -22,7 +22,7 @@ interface Extension {
 export default function ExtensionsManager() {
   const {
     showNsfw, selectedLangs, setSelectedLangs
-  } = useUIStore()
+  } = useSettingsStore()
 
   const { loadFromDb } = useLibraryStore()
   const { 
@@ -309,8 +309,7 @@ export default function ExtensionsManager() {
                           // Install or Update
                           setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'loading' }))
                           try {
-                            const res = await DataService.installExtension(ext, 'local')
-                            if (res && res.error) throw new Error(res.error)
+                            await DataService.installExtension(ext, 'local')
 
                             await loadFromDb()
                             setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'success' }))

@@ -1,22 +1,5 @@
-export interface Manga {
-  id: string;
-  title: string;
-  coverUrl?: string;
-  description?: string;
-  status?: string;
-  author?: string;
-  artist?: string;
-  genres?: string[];
-  url: string; // The relative or absolute URL on the source website
-}
-
-export interface Chapter {
-  id: string;
-  title: string;
-  url: string;
-  date?: string;
-  number: number;
-}
+import { Manga, Chapter } from '../../../../../common/types'
+export type { Manga, Chapter }
 
 export interface MangaPage {
   manga: Manga[];

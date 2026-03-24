@@ -216,7 +216,7 @@ export const chapterRepo = new ChapterRepository(ddb);
 export const mangaCacheRepo = new MangaCacheRepository(ddb);
 
 // === Startup Cleanup Routine ===
-const runCleanupRoutine = () => {
+export const runCleanupRoutine = () => {
   console.log('[DB] Running startup cleanup routine...');
   try {
     // Delete chapters for manga that are NOT in library, history, or downloads
@@ -248,6 +248,6 @@ const runCleanupRoutine = () => {
   }
 };
 
-runCleanupRoutine();
+// Cleanup is now called from main index.ts after window is ready-to-show
 
 export default sqlite;

@@ -1,6 +1,9 @@
 import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
 import { join } from 'path'
+import { NetworkConfig } from '../common/config/network'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { ServiceRegistry } from './services/service.registry'
+import { DownloadManager } from './services/download.service'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 
@@ -11,6 +14,10 @@ import { NetworkService } from '../common/services/network'
 import path from 'path'
 import { DiskCache } from './cache/DiskCache'
 import crypto from 'crypto'
+
+// Register Services
+import { runCleanupRoutine } from './db'
+ServiceRegistry.register(DownloadManager.getInstance())
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
@@ -52,6 +59,9 @@ function createWindow(): void {
 
   mainWindow?.on('ready-to-show', () => {
     mainWindow?.show()
+    setImmediate(() => {
+      runCleanupRoutine();
+    });
   })
 
   mainWindow?.webContents?.setWindowOpenHandler((details) => {
@@ -71,7 +81,10 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Initialize Services
+  await ServiceRegistry.initializeAll();
+
   imageCache = new DiskCache(path.join(app.getPath('userData'), 'image_cache'), MAX_CACHE_SIZE)
 
   // Set app user model id for windows
@@ -105,10 +118,10 @@ app.whenReady().then(() => {
 
       const response = await NetworkService.fetchWithRetry(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': NetworkConfig.DEFAULT_UA,
           'Referer': new URL(url).origin + '/'
         }
-      }, 3, 1000, fetch) // Standard fetch is fine here
+      }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, fetch) // Standard fetch is fine here
       
       const resBuffer = Buffer.from(await response.arrayBuffer())
       await imageCache.set(hash, resBuffer)
@@ -183,6 +196,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', async (event) => {
+  event.preventDefault()
+  await ServiceRegistry.shutdownAll()
+  app.exit()
 })
 
 // In this file you can include the rest of your app's specific main process

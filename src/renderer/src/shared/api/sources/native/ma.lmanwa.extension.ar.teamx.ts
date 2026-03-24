@@ -70,7 +70,7 @@ export class TeamX extends MadaraSource {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const html = await this.fetchHtml(manga.url)
+    const html = await this.fetchHtml(manga.url || '')
     if (!html) throw new Error(`[TeamX] Failed to fetch details for ${manga.url}`)
 
     const $ = cheerio.load(html)
