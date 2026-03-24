@@ -76,8 +76,6 @@
         "nsis"
       ],
       "artifactName": "${productName}.${ext}"
-      /* "artifactName": "${productName}.Setup.${version}.${ext}" */
-      
     }
   }
 }
