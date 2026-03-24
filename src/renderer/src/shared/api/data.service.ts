@@ -100,6 +100,10 @@ export const DataService = {
       return res.value
     },
     saveMangaCache: async (manga: any) => {
+      if (!manga.title) {
+        console.warn('[DataService] Skipping saveMangaCache: title is missing', manga)
+        return null
+      }
       const res = await getApi().db.saveMangaCache(manga)
       if (!res.ok) throw new Error(res.error)
       return res.value
@@ -145,6 +149,7 @@ export const DataService = {
     return res.value
   },
   openExternal: (url: string) => getApi().openExternal(url),
+  openInternalBrowser: (url: string) => getApi().openInternalBrowser(url),
   download: {
     start: async (args: any) => {
       const res: any = await getApi().download.start(args)

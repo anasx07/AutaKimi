@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
+import { DataService } from '@renderer/shared/api'
 import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List } from 'lucide-react'
 import { useUIStore, useLibraryStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
-import { Button, Input, Card, Badge } from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, ErrorState } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 
 export default function BrowsePage() {
@@ -30,7 +31,7 @@ export default function BrowsePage() {
     selectedTags
   }), [selectedDemographics, selectedStatus, selectedTags])
 
-  const { mangaList, loading, error, hasMore, lastElementRef } = useMangaPagination({
+  const { mangaList, loading, error, paginationError, hasMore, lastElementRef, refresh, retryPagination } = useMangaPagination({
     activeExtension,
     activeFeed,
     debouncedSearch,
@@ -233,12 +234,19 @@ export default function BrowsePage() {
         </div>
       )}
 
-      {error && (
-        <div className="animate-in slide-in-from-left-2 duration-300">
-          <Badge variant="destructive" className="w-full justify-start p-4 text-sm font-normal rounded-xl bg-destructive/10 border-destructive/20 text-destructive">
-            <span className="font-bold mr-2 uppercase text-[10px] tracking-wider px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground">Error</span> {error}
-          </Badge>
-        </div>
+      {error && mangaList.length === 0 && (
+        <ErrorState
+          title={error.includes('400') || error.includes('403') ? "Cloudflare / Network Error" : "Fetch Error"}
+          message={error}
+          onRetry={refresh}
+          onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
+          onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues/new')}
+          details={{
+            source: metadata?.name || activeExtension,
+            ext: activeExtension,
+            err: error
+          }}
+        />
       )}
 
       {mangaList.length > 0 && (
@@ -332,15 +340,27 @@ export default function BrowsePage() {
             </div>
           )}
 
-          <div ref={lastElementRef} className="h-32 flex items-center justify-center">
+          <div ref={lastElementRef} className="pb-20 flex flex-col items-center justify-center">
             {loading && hasMore && (
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-3 py-10">
                 <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
                 <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold animate-pulse">Loading Content</span>
               </div>
             )}
-            {!hasMore && mangaList.length > 0 && (
-              <div className="flex items-center gap-4 w-full">
+
+            {paginationError && (
+              <ErrorState
+                className="py-10 border-t border-border/20 w-full"
+                title="Pagination Failed"
+                message={paginationError}
+                onRetry={retryPagination}
+                onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
+                onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues')}
+              />
+            )}
+
+            {!hasMore && !paginationError && mangaList.length > 0 && (
+              <div className="flex items-center gap-4 w-full py-10">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent to-border/50" />
                 <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-[0.3em]">End of results</p>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent to-border/50" />

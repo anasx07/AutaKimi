@@ -28,6 +28,8 @@ export function useMangaPagination({
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [paginationError, setPaginationError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const searchToWatch = activeFeed === 'search' ? debouncedSearch : ''
 
   // Derived state
@@ -85,6 +87,7 @@ export function useMangaPagination({
       
       setLoading(true)
       setError(null)
+      setPaginationError(null)
       try {
         const limit = offset === 0 ? 15 : 10
         const pkgParts = activeExtension.split('.')
@@ -108,7 +111,14 @@ export function useMangaPagination({
           res = await runner.searchManga(searchToWatch, page, { ...filters })
         }
 
-        if (res && res.manga) {
+          if (res && res.error && (res.error.includes('403') || res.error.includes('Forbidden'))) {
+            const cfMsg = 'Cloudflare block detected. Please use the Shield icon to solve the challenge.'
+            if (offset === 0) setError(cfMsg)
+            else setPaginationError(cfMsg)
+            return
+          }
+          
+          if (res && res.manga) {
           const normalized = res.manga.map((m: any) => ({
             ...normalizeManga(m, extLang),
             pkg: activeExtension
@@ -122,17 +132,43 @@ export function useMangaPagination({
           setLastBatchCount(res.manga.length)
           setHasMore(res.hasNextPage)
         } else {
-          setError('No data returned')
+          if (offset === 0) {
+            setError(res?.manga ? 'No data returned' : 'Malformed response')
+          } else {
+            setPaginationError('Failed to load next page')
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching manga')
+        let msg = err instanceof Error ? err.message : 'Error fetching manga'
+        if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+          msg = 'Access Blocked (403). Try solving the Cloudflare challenge in Web View.'
+        }
+        
+        if (offset === 0) {
+          setError(msg)
+        } else {
+          setPaginationError(msg)
+        }
       } finally {
         setLoading(false)
       }
     }
 
     fetchManga()
-  }, [activeExtension, activeFeed, searchToWatch, filters, offset])
+  }, [activeExtension, activeFeed, searchToWatch, filters, offset, refreshKey])
 
-  return { mangaList, loading, error, hasMore, lastElementRef }
+  const refresh = useCallback(async () => {
+    clearFeedCache()
+    setOffset(0)
+    setError(null)
+    setPaginationError(null)
+    setRefreshKey(prev => prev + 1)
+  }, [clearFeedCache, activeFeed])
+
+  const retryPagination = useCallback(async () => {
+    setPaginationError(null)
+    setRefreshKey(prev => prev + 1)
+  }, [])
+
+  return { mangaList, loading, error, paginationError, hasMore, lastElementRef, refresh, retryPagination }
 }

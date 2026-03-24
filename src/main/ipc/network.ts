@@ -28,7 +28,7 @@ export function registerNetworkHandlers() {
   ipcMain.handle(IpcChannel.FETCH_TEXT, async (_, url: string, options?: any) => {
     try {
       const bypassCfValue = await settingsRepo.get('bypass_cloudflare')
-      const bypassCf = bypassCfValue === 'true'
+      const bypassCf = options?.bypassCf ?? (bypassCfValue === 'true')
 
       const response = await extensionOrchestrator.fetch(url, options || {}, bypassCf)
       const text = await response.text()

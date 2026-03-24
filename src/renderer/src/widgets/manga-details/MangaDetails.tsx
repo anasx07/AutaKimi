@@ -2,7 +2,7 @@ import { DataService } from '@renderer/shared/api'
 import { useEffect, useState, useRef } from 'react'
 import { 
   ArrowLeft, BookOpen, Clock, Heart, Play, RefreshCw, CheckCircle, 
-  Eye, EyeOff, Loader2, Share2, Download, MoreVertical, Globe, 
+  Eye, EyeOff, Loader2, Share2, Download, MoreVertical, ShieldAlert, Globe, 
   Search, Filter, ChevronDown, ChevronUp, ExternalLink, ShieldCheck
 } from 'lucide-react'
 import { useUIStore, useLibraryStore, useDownloadStore } from '@renderer/shared/model'
@@ -230,6 +230,15 @@ export default function MangaDetails() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10" 
+            title="Solve Cloudflare"
+            onClick={() => manga.url && DataService.openInternalBrowser(manga.url)}
+          >
+            <ShieldAlert className="h-4.5 w-4.5" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => manga.url && DataService.openExternal(manga.url)}>
             <Share2 className="h-4.5 w-4.5" />
           </Button>
@@ -331,10 +340,17 @@ export default function MangaDetails() {
                     </button>
                   </Tooltip>
                   {activeExtension && getNativeSource(activeExtension) && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
-                      <ShieldCheck className="h-3 w-3" />
-                      SUPPORTED
-                    </Badge>
+                    ['ma.lmanwa.extension.ar.mangaswat', 'ma.lmanwa.extension.ar.teamx'].includes(activeExtension) ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
+                        <ShieldCheck className="h-3 w-3" />
+                        SUPPORTED
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-amber-500/10 text-amber-500 border-amber-500/20 gap-1 font-bold">
+                        <ShieldAlert className="h-3 w-3" />
+                        NOT YET SUPPORTED
+                      </Badge>
+                    )
                   )}
                 </span>
               </div>
