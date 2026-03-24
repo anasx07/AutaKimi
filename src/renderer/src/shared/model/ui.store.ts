@@ -3,7 +3,7 @@ import { DataService } from '@renderer/shared/api'
 
 export type TabType = 'library' | 'history' | 'browse' | 'my-extensions' | 'downloads' | 'settings' | 'about'
 export type ThemeType = 'light' | 'dark' | 'system'
-export type ColorThemeType = 'default' | 'dabi' | 'itachi' | 'goku' | 'all-might'
+export type ColorThemeType = 'default' | 'dabi' | 'itachi' | 'goku' | 'all-might' | 'gojo'
 
 interface UIState {
   activeTab: TabType
@@ -63,7 +63,10 @@ export const useUIStore = create<UIState>((set) => ({
     try {
       await DataService.db.setSetting('colorTheme', colorTheme)
       set({ colorTheme })
-      document.documentElement.classList.remove('theme-dabi', 'theme-itachi', 'theme-goku', 'theme-all-might')
+      // Use a more robust way to remove all theme- classes
+      document.documentElement.classList.forEach(className => {
+        if (className.startsWith('theme-')) document.documentElement.classList.remove(className)
+      })
       if (colorTheme !== 'default') document.documentElement.classList.add(`theme-${colorTheme}`)
     } catch (e) {
       console.error('Failed to save color theme:', e)
@@ -118,7 +121,9 @@ export const useUIStore = create<UIState>((set) => ({
     if (isDark) document.documentElement.classList.add('dark')
     else document.documentElement.classList.remove('dark')
     
-    document.documentElement.classList.remove('theme-dabi', 'theme-itachi', 'theme-goku', 'theme-all-might')
+    document.documentElement.classList.forEach(className => {
+      if (className.startsWith('theme-')) document.documentElement.classList.remove(className)
+    })
     if (colorTheme !== 'default') document.documentElement.classList.add(`theme-${colorTheme}`)
   }
 }))
