@@ -277,4 +277,25 @@ export class MadaraSource implements ISourceAdapter {
 
     return pages
   }
+
+  protected async fetchAjaxPagination(page: number, extraArgs: any = {}): Promise<MangaPage> {
+    const body = new URLSearchParams()
+    body.append('action', 'madara_load_more')
+    body.append('page', (page - 1).toString()) // Madara AJAX usually expects 0-indexed or previous page
+    
+    for (const [key, value] of Object.entries(extraArgs)) {
+      body.append(key, value as string)
+    }
+
+    const html = await this.fetchHtml(`${this.baseUrl}/wp-admin/admin-ajax.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+
+    if (!html) return { manga: [], hasNextPage: false }
+    const $ = cheerio.load(html)
+    const manga = this.parseMangaItems($)
+    return { manga, hasNextPage: manga.length > 0 }
+  }
 }
