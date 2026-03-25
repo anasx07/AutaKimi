@@ -6,33 +6,63 @@ import { NetworkConfig } from '../common/config/network'
 
 /**
  * Worker thread script for executing extension code in an isolated VM.
+ *
+ * Security model
+ * ──────────────
+ * The extension code is passed into the sandbox as a plain DATA string
+ * (__extensionCode). Our wrapper script never interpolates that string —
+ * it is compiled at runtime using the vm-context's own AsyncFunction
+ * constructor, so the resulting function only has access to the identifiers
+ * explicitly present in the sandbox. Structural injection (e.g. breaking out
+ * of an IIFE via `}); evil_code; //`) is not possible because user-supplied
+ * text never appears inside our script template.
  */
 async function run() {
   if (!parentPort || !workerData) return
 
   const { code, params } = workerData
 
-  const sandbox = {
+  // Validate that code is a plain string before doing anything with it
+  if (typeof code !== 'string') {
+    parentPort.postMessage({ error: 'Invalid extension code: expected a string.' })
+    return
+  }
+
+  const sandbox: Record<string, unknown> = {
+    // Expose code as DATA — never as script text
+    __extensionCode: code,
+
     console: {
-      log: (...args: any[]) => console.log('[Worker-VM]:', ...args),
-      error: (...args: any[]) => console.error('[Worker-VM Error]:', ...args),
+      log: (...args: unknown[]) => console.log('[Worker-VM]:', ...args),
+      error: (...args: unknown[]) => console.error('[Worker-VM Error]:', ...args),
     },
-    fetch: async (url: string, init?: any) => {
-      // Security: Restrict fetch to extension's baseUrl domain
-      const baseUrl = params._baseUrl
-      if (baseUrl && !url.startsWith(baseUrl)) {
-        throw new Error(`Security Exception: Extension tried to fetch unauthorized URL: ${url}. Fetch is restricted to ${baseUrl}.`)
+
+    fetch: async (url: string, init?: RequestInit) => {
+      // Security: restrict fetch to the extension's registered baseUrl domain
+      const baseUrl = params._baseUrl as string | undefined
+      if (baseUrl) {
+        let reqHost: string
+        try {
+          reqHost = new URL(url).hostname
+        } catch {
+          throw new Error(`Security Exception: invalid URL: ${url}`)
+        }
+        const allowedHost = new URL(baseUrl).hostname
+        if (reqHost !== allowedHost) {
+          throw new Error(
+            `Security Exception: Extension tried to fetch "${reqHost}" but is only allowed to fetch from "${allowedHost}".`
+          )
+        }
       }
 
-      // Use robust fetch with retry
       const response = await NetworkService.fetchWithRetry(url, {
         ...init,
         headers: {
-          'User-Agent': params._userAgent || NetworkConfig.DEFAULT_UA,
-          ...(init?.headers || {})
+          'User-Agent': (params._userAgent as string) || NetworkConfig.DEFAULT_UA,
+          ...((init as any)?.headers || {})
         }
       })
-      
+
       const body = await response.text()
       return {
         ok: response.ok,
@@ -41,29 +71,49 @@ async function run() {
         json: async () => JSON.parse(body)
       }
     },
+
     cheerio: {
       load: (html: string) => cheerio.load(html)
     },
+
     params
   }
 
   const context = vm.createContext(sandbox)
 
+  /**
+   * Wrapper script — contains zero user-supplied text.
+   *
+   * At runtime it reads __extensionCode (a string) from the sandbox and
+   * compiles it using the vm-context's own AsyncFunction constructor. The
+   * resulting async function receives the sandbox values as named parameters
+   * and cannot reference anything outside the sandbox.
+   */
+  const wrapperScript = new vm.Script(`
+    new Promise(function __runExtension(resolve) {
+      try {
+        var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+        var fn = new AsyncFunction(
+          'params',
+          'fetch',
+          'cheerio',
+          'console',
+          __extensionCode
+        );
+        Promise.resolve(fn(params, fetch, cheerio, console)).then(resolve).catch(function(e) {
+          resolve({ error: e.message });
+        });
+      } catch (e) {
+        resolve({ error: e.message });
+      }
+    })
+  `)
+
   try {
-    const script = new vm.Script(`
-      (async () => {
-        try {
-          ${code}
-        } catch (e) {
-          return { error: e.message }
-        }
-      })()
-    `)
-    
-    const result = await script.runInContext(context, { timeout: 30000 })
+    const result = await wrapperScript.runInContext(context, { timeout: 5000 })
     parentPort.postMessage(result)
-  } catch (error: any) {
-    parentPort.postMessage({ error: error.message })
+  } catch (error: unknown) {
+    parentPort.postMessage({ error: error instanceof Error ? error.message : String(error) })
   }
 }
 

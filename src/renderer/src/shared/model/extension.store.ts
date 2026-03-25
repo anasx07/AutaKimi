@@ -12,6 +12,7 @@ export interface ExtensionMetadata {
 
 interface ExtensionState {
   installedExtensions: ExtensionMetadata[]
+  pinnedExtensions: string[]
   activeExtension: string | null
   extensionSortBy: 'name' | 'installed' | 'update' | 'supported'
   extensionSortOrder: 'asc' | 'desc'
@@ -26,6 +27,7 @@ interface ExtensionState {
   setDomainOverride: (pkg: string, domain: string | null) => Promise<void>
   installExtension: (pkg: string) => Promise<void>
   uninstallExtension: (pkg: string) => Promise<void>
+  togglePin: (pkg: string) => Promise<void>
   
   // Init
   _init: (installed: ExtensionMetadata[], settings: Record<string, string>) => void
@@ -33,6 +35,7 @@ interface ExtensionState {
 
 export const useExtensionStore = create<ExtensionState>((set) => ({
   installedExtensions: [],
+  pinnedExtensions: [],
   activeExtension: null,
   extensionSortBy: 'supported',
   extensionSortOrder: 'asc',
@@ -67,8 +70,23 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   uninstallExtension: async (pkg) => {
     await DataService.db.removeExtension(pkg)
     set((state) => ({ 
-      installedExtensions: state.installedExtensions.filter((e) => e.pkg !== pkg) 
+      installedExtensions: state.installedExtensions.filter((e) => e.pkg !== pkg),
+      pinnedExtensions: state.pinnedExtensions.filter(p => p !== pkg)
     }))
+  },
+
+  togglePin: async (pkg) => {
+    set((state) => {
+      const isPinned = state.pinnedExtensions.includes(pkg)
+      const nextPinned = isPinned 
+        ? state.pinnedExtensions.filter(p => p !== pkg)
+        : [...state.pinnedExtensions, pkg]
+      
+      // Persist
+      DataService.db.setSetting('pinned_extensions', nextPinned.join(','))
+      
+      return { pinnedExtensions: nextPinned }
+    })
   },
 
   _init: (installed, settings) => {
@@ -80,8 +98,12 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
       }
     }
 
+    const pinnedStr = settings.pinned_extensions || ''
+    const pinned = pinnedStr ? pinnedStr.split(',') : []
+
     set({
       installedExtensions: installed || [],
+      pinnedExtensions: pinned,
       domainOverrides: overrides,
       extensionSortBy: (settings.extension_sort_by as any) || 'supported',
       extensionSortOrder: (settings.extension_sort_order as any) || 'asc',

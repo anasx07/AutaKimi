@@ -6,15 +6,29 @@ import { ServiceRegistry } from './services/service.registry'
 import { DownloadManager } from './services/download.service'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
+import { TrayManager } from './tray'
 
 // Set app name before importing db to ensure correct userData path
 app.name = 'LManwa'
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    if (!mainWindow.isVisible()) mainWindow.show()
+    mainWindow.focus()
+  }
+})
 
 // Disable Chromium automation detection flags (required for Cloudflare bypass)
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
 
 import { NetworkService } from '../common/services/network'
 import path from 'path'
+import fs from 'fs'
 import { DiskCache } from './cache/DiskCache'
 import crypto from 'crypto'
 
@@ -61,7 +75,7 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true
     }
   })
 
@@ -95,8 +109,30 @@ function createWindow(): void {
     }, 500)
   }
 
-  mainWindow.on('resize', saveState)
   mainWindow.on('move', saveState)
+
+  // System Tray Initialization
+  TrayManager.getInstance().createTray(mainWindow, icon)
+
+  // Handle window close (minimize to tray)
+  mainWindow.on('close', (event) => {
+    // If the app is quitting (via tray or system quit), let it close
+    if ((app as any).isQuitting) {
+      TrayManager.getInstance().destroy()
+      return
+    }
+
+    // Check setting (synchronous DB read for immediate event handling)
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('minimize_to_tray') as { value: string } | undefined
+    const minimizeToTray = row ? row.value !== 'false' : true
+
+    if (minimizeToTray) {
+      event.preventDefault()
+      mainWindow?.hide()
+    } else {
+      TrayManager.getInstance().destroy()
+    }
+  })
 
   mainWindow?.on('ready-to-show', () => {
     mainWindow?.show()
@@ -152,6 +188,26 @@ app.whenReady().then(async () => {
   protocol.handle('lmanwa-cache', async (request) => {
     try {
       const url = request.url.replace('lmanwa-cache://', 'https://')
+      
+      // Prioritize local extension icons (match /icon/, /icons/, or /local-icon/)
+      if ((url.includes('/icons/') || url.includes('/icon/') || url.includes('/local-icon/')) && url.endsWith('.png')) {
+        const filename = path.basename(url)
+        const localIconPath = is.dev 
+          ? path.join(process.cwd(), 'src', 'renderer', 'src', 'app', 'assets', 'Extensionicon', filename)
+          : path.join(process.resourcesPath, 'Extensionicon', filename);
+          
+        try {
+          if (fs.existsSync(localIconPath)) {
+            return new Response(fs.readFileSync(localIconPath))
+          }
+        } catch (e) {
+          console.error('Local icon load failed:', e)
+        }
+        
+        // Block remote icon fetching
+        return new Response('Icon not found locally', { status: 404 })
+      }
+
       const hash = crypto.createHash('md5').update(url).digest('hex')
 
       const buffer = await imageCache.get(hash)

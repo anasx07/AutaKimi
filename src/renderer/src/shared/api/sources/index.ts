@@ -34,7 +34,7 @@ export function getNativeSource(pkg: string): ISourceAdapter | null {
   if (meta) {
     let instance: ISourceAdapter
     if (meta.baseClass === 'Madara') {
-      instance = new MadaraSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id)
+      instance = new MadaraSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id, false, meta.customSelectors)
     } else if (meta.baseClass === 'Iken') {
       instance = new IkenSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.apiUrl || meta.baseUrl, meta.lang, meta.id)
     } else if (meta.baseClass === 'MangaThemesia') {

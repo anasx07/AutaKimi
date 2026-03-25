@@ -18,8 +18,10 @@ export function registerDatabaseHandlers() {
     return true
   }))
 
-  ipcMain.handle(IpcChannel.DB_GET_LIBRARY, wrapIpc(async () => {
-    const rows = await libraryRepo.getAll()
+  ipcMain.handle(IpcChannel.DB_GET_LIBRARY, wrapIpc(async (_, args?: { limit?: number; offset?: number }) => {
+    const limit = args?.limit;
+    const offset = args?.offset;
+    const rows = await libraryRepo.getAll(limit, offset)
     return rows.map(r => ({
       ...JSON.parse(r.metadata || '{}'),
       id: r.id,
@@ -28,6 +30,7 @@ export function registerDatabaseHandlers() {
       status: r.status
     }))
   }))
+
 
   ipcMain.handle(IpcChannel.DB_TOGGLE_LIBRARY, wrapIpc((_, manga: any) => libraryRepo.toggle(manga)))
 

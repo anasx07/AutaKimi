@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
 import { IpcChannel } from '../types/ipc'
-import { wrapIpc } from './utils'
+import { wrapIpc, isValidUrl } from './utils'
 import { cloudflareService } from '../services/cloudflare.service'
 
 export function registerWindowHandlers() {
@@ -32,10 +32,16 @@ export function registerWindowHandlers() {
   }))
 
   ipcMain.handle(IpcChannel.OPEN_EXTERNAL, wrapIpc(async (_, url: string) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL: only http/https is allowed')
     await shell.openExternal(url)
   }))
 
+
   ipcMain.handle(IpcChannel.OPEN_INTERNAL_BROWSER, wrapIpc(async (_, url: string) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL')
+
+    const allowedHost = new URL(url).hostname
+
     const win = new BrowserWindow({
       width: 1024,
       height: 768,
@@ -46,16 +52,34 @@ export function registerWindowHandlers() {
         // No partition — uses session.defaultSession so cookies are shared with net.fetch
       }
     })
+
+    // Block navigations that leave the original host (prevents phishing redirects)
+    win.webContents.on('will-navigate', (event, navUrl) => {
+      if (!isValidUrl(navUrl) || new URL(navUrl).hostname !== allowedHost) {
+        event.preventDefault()
+        shell.openExternal(navUrl).catch(() => {})
+      }
+    })
+
+    // Block new windows entirely — open them externally instead
+    win.webContents.setWindowOpenHandler(({ url: newUrl }) => {
+      if (isValidUrl(newUrl)) shell.openExternal(newUrl).catch(() => {})
+      return { action: 'deny' }
+    })
+
     win.loadURL(url)
   }))
 
+
   ipcMain.handle(IpcChannel.CF_BYPASS, wrapIpc(async (_, url: string) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL')
     // For backward compat: just fetch HTML to trigger bypass, return success boolean
     const html = await cloudflareService.fetchHtmlViaBrowser(url)
     return html !== null
   }))
 
   ipcMain.handle(IpcChannel.CF_FETCH_HTML, wrapIpc(async (_, url: string) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL')
     return cloudflareService.fetchHtmlViaBrowser(url)
   }))
 }

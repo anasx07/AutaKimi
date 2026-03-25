@@ -30,6 +30,7 @@ if (!fs.existsSync(userDataPath)) {
 
 const dbPath = path.join(userDataPath, 'lmanwa.db')
 const sqlite = new Database(dbPath)
+sqlite.pragma('journal_mode = WAL')
 
 // === Versioned Migrations (Raw SQL for legacy compatibility) ===
 const migrate = () => {

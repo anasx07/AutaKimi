@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { Chapter } from '@renderer/shared/api/sources/types'
@@ -92,6 +92,25 @@ export function useMangaChapters(mangaId: string, pkg: string | null, mangaUrl?:
 }
 
 /**
+ * Hook to fetch user library (infinite scroll)
+ */
+export function useInfiniteLibraryItems() {
+  return useInfiniteQuery({
+    queryKey: mangaKeys.library(),
+    queryFn: async ({ pageParam = 0 }) => {
+      const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam })
+      return (result as NormalizedManga[]) || []
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < 50) return undefined
+      return allPages.length * 50
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+/**
  * Hook to fetch user library
  */
 export function useLibraryItems() {
@@ -110,6 +129,23 @@ export function useReadingProgress(mangaId: string) {
     queryKey: mangaKeys.progress(mangaId),
     queryFn: () => DataService.db.getProgress(mangaId),
     enabled: !!mangaId,
+  })
+}
+
+/**
+ * Hook to fetch history entries (infinite scroll)
+ */
+export function useInfiniteHistoryEntries() {
+  return useInfiniteQuery({
+    queryKey: mangaKeys.history(),
+    queryFn: async ({ pageParam = 0 }) => {
+      return DataService.db.getHistory({ limit: 50, offset: pageParam })
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < 50) return undefined
+      return allPages.length * 50
+    },
   })
 }
 

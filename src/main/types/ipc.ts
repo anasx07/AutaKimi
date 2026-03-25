@@ -62,21 +62,24 @@ export enum IpcChannel {
   OPEN_INTERNAL_BROWSER = 'open-internal-browser',
   CF_BYPASS = 'cf:bypass',
   CF_FETCH_HTML = 'cf:fetch-html',
+  CF_STATUS = 'cf:status',
 }
+
+import { FetchOptions, FetchResult } from '../../common/types'
 
 /**
  * Formal interface for the `window.api` bridge.
  */
 export interface ElectronApi {
   fetchRepo: (url: string) => Promise<any>;
-  fetchText: (url: string, options?: any) => Promise<string | null>;
+  fetchText: (url: string, options?: FetchOptions) => Promise<FetchResult>;
   detectTheme: (baseUrl: string) => Promise<string>;
   db: {
     getExtensions: () => Promise<any[]>;
     addExtension: (args: { pkg: string; code?: string; name?: string; baseUrl?: string; lang?: string; icon?: string }) => Promise<{ success?: boolean; error?: string }>;
     getExtension: (pkg: string) => Promise<any | null>;
     removeExtension: (pkg: string) => Promise<boolean>;
-    getLibrary: () => Promise<any[]>;
+    getLibrary: (args?: { limit?: number; offset?: number }) => Promise<any[]>;
     toggleLibrary: (manga: any) => Promise<boolean>;
     getSetting: (key: string) => Promise<string | null>;
     getSettings: () => Promise<Record<string, string>>;
@@ -114,6 +117,7 @@ export interface ElectronApi {
     updateOverlay: (options: { color: string, symbolColor: string }) => Promise<void>;
   };
   onAppUpdate: (callback: (data: { status: string, progress?: any, error?: string }) => void) => void;
+  onCfStatus: (callback: (data: { status: 'started' | 'completed' | 'failed', domain?: string }) => void) => void;
   installUpdate: () => Promise<void>;
   checkForUpdates: () => Promise<void>;
   openInternalBrowser: (url: string) => Promise<void>;

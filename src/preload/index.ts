@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import { IpcChannel, type ElectronApi } from '../main/types/ipc'
 
 // Custom APIs for renderer
@@ -12,7 +11,7 @@ const api: ElectronApi = {
     addExtension: (args) => ipcRenderer.invoke(IpcChannel.DB_ADD_EXTENSION, args),
     getExtension: (pkg: string) => ipcRenderer.invoke(IpcChannel.DB_GET_EXTENSION, pkg),
     removeExtension: (pkg: string) => ipcRenderer.invoke(IpcChannel.DB_REMOVE_EXTENSION, pkg),
-    getLibrary: () => ipcRenderer.invoke(IpcChannel.DB_GET_LIBRARY),
+    getLibrary: (args) => ipcRenderer.invoke(IpcChannel.DB_GET_LIBRARY, args),
     toggleLibrary: (manga: any) => ipcRenderer.invoke(IpcChannel.DB_TOGGLE_LIBRARY, manga),
     getSetting: (key: string) => ipcRenderer.invoke(IpcChannel.DB_GET_SETTING, key),
     getSettings: () => ipcRenderer.invoke(IpcChannel.DB_GET_SETTINGS),
@@ -55,28 +54,37 @@ const api: ElectronApi = {
     ipcRenderer.on(IpcChannel.APP_UPDATE, subscription)
     return () => ipcRenderer.removeListener(IpcChannel.APP_UPDATE, subscription)
   },
+  onCfStatus: (callback) => {
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on(IpcChannel.CF_STATUS, subscription)
+    return () => ipcRenderer.removeListener(IpcChannel.CF_STATUS, subscription)
+  },
   installUpdate: () => ipcRenderer.invoke(IpcChannel.INSTALL_UPDATE),
   checkForUpdates: () => ipcRenderer.invoke(IpcChannel.CHECK_FOR_UPDATE),
   openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
   cfBypass: (url: string) => ipcRenderer.invoke(IpcChannel.CF_BYPASS, url),
   cfFetchHtml: (url: string) => ipcRenderer.invoke(IpcChannel.CF_FETCH_HTML, url),
+  // In sandbox mode, process.platform is not always available or correct.
+  // We can get it from main or use a simplified check if needed.
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+// Expose APIs to the renderer via contextBridge.
+try {
+  // Manual expose for basic electron functionality if needed by toolkit components
+  contextBridge.exposeInMainWorld('electron', {
+    ipcRenderer: {
+      send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
+      on: (channel: string, func: (...args: any[]) => void) => {
+        const subscription = (_event: any, ...args: any[]) => func(...args)
+        ipcRenderer.on(channel, subscription)
+        return () => ipcRenderer.removeListener(channel, subscription)
+      },
+      invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args)
+    }
+  })
+  contextBridge.exposeInMainWorld('api', api)
+} catch (error) {
+  console.error('[Preload] Failed to expose API via contextBridge:', error)
 }
