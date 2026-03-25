@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import { wrapIpc } from './utils'
+import { cloudflareService } from '../services/cloudflare.service'
 
 export function registerWindowHandlers() {
   ipcMain.handle(IpcChannel.WINDOW_MINIMIZE, wrapIpc(async (event) => {
@@ -38,13 +39,23 @@ export function registerWindowHandlers() {
     const win = new BrowserWindow({
       width: 1024,
       height: 768,
-      title: 'Cloudflare Solver',
+      title: 'Web View',
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        partition: 'persist:default'
+        // No partition — uses session.defaultSession so cookies are shared with net.fetch
       }
     })
     win.loadURL(url)
+  }))
+
+  ipcMain.handle(IpcChannel.CF_BYPASS, wrapIpc(async (_, url: string) => {
+    // For backward compat: just fetch HTML to trigger bypass, return success boolean
+    const html = await cloudflareService.fetchHtmlViaBrowser(url)
+    return html !== null
+  }))
+
+  ipcMain.handle(IpcChannel.CF_FETCH_HTML, wrapIpc(async (_, url: string) => {
+    return cloudflareService.fetchHtmlViaBrowser(url)
   }))
 }

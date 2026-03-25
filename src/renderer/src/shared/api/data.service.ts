@@ -54,6 +54,8 @@ export const DataService = {
   clearCookies: () => callIpc(() => getApi().clearCookies()),
   openExternal: (url: string) => getApi().openExternal(url),
   openInternalBrowser: (url: string) => getApi().openInternalBrowser(url),
+  cfBypass: (url: string) => callIpc(() => getApi().cfBypass(url)),
+  cfFetchHtml: (url: string) => callIpc(() => getApi().cfFetchHtml(url)),
   download: {
     start: (args: any) => callIpc(() => getApi().download.start(args)),
     cancel: (args: any) => callIpc(() => getApi().download.cancel(args)),

@@ -1,14 +1,14 @@
 import { DataService } from '@renderer/shared/api'
 import { useEffect, useState, useRef } from 'react'
-import { 
-  ArrowLeft, BookOpen, Clock, Heart, Play, RefreshCw, CheckCircle, 
-  Eye, EyeOff, Loader2, Share2, Download, MoreVertical, ShieldAlert, Globe, 
+import {
+  ArrowLeft, BookOpen, Clock, Heart, Play, RefreshCw, CheckCircle,
+  Eye, EyeOff, Loader2, Share2, Download, MoreVertical, ShieldAlert, Globe,
   Search, Filter, ChevronDown, ChevronUp, ExternalLink, ShieldCheck
 } from 'lucide-react'
-import { 
-  useUIStore, 
-  useLibraryStore, 
-  useDownloadStore, 
+import {
+  useUIStore,
+  useLibraryStore,
+  useDownloadStore,
   useProgressStore,
   useReaderStore,
   useExtensionStore
@@ -20,7 +20,7 @@ import { useMangaDetails, useMangaChapters, useToggleLibrary, useLibraryItems } 
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 import { Chapter } from '@renderer/shared/api/sources/types'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
-import { getNativeSource } from '@renderer/shared/api/sources'
+import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 
 export default function MangaDetails() {
   const { setActiveTab } = useUIStore()
@@ -34,15 +34,16 @@ export default function MangaDetails() {
   const { downloadQueue, addToDownloadQueue } = useDownloadStore()
   const { detailQuery, chaptersQuery } = (() => {
     // We use a small wrapper to handle the query logic
-    const d = useMangaDetails(selectedManga?.id || '', activeExtension)
-    const c = useMangaChapters(selectedManga?.id || '', activeExtension)
+    const pkgToUse = selectedManga?.pkg || activeExtension;
+    const d = useMangaDetails(selectedManga?.id || '', pkgToUse, selectedManga?.url)
+    const c = useMangaChapters(selectedManga?.id || '', pkgToUse, selectedManga?.url)
     return { detailQuery: d, chaptersQuery: c }
   })()
 
   const { data: chapters = [] } = chaptersQuery
   const loading = detailQuery.isLoading || chaptersQuery.isLoading
   const error = (detailQuery.error as Error)?.message || (chaptersQuery.error as Error)?.message || null
-  
+
   const toggleLibraryMutation = useToggleLibrary()
   const { data: libraryItems = [] } = useLibraryItems()
 
@@ -83,7 +84,7 @@ export default function MangaDetails() {
   useEffect(() => {
     if (detailQuery.data && selectedManga) {
       const fresh = detailQuery.data
-      const hasChanged = 
+      const hasChanged =
         fresh.description !== selectedManga.description ||
         fresh.status !== selectedManga.status ||
         fresh.author !== selectedManga.author ||
@@ -124,14 +125,14 @@ export default function MangaDetails() {
   const handleDownload = async (chapter: Chapter) => {
     if (!selectedManga || !activeExtension) return
     try {
-      setDownloadStatuses(prev => ({ 
-        ...prev, 
-        [chapter.id]: { status: 'downloading', cachedPages: 0, totalPages: 0 } 
+      setDownloadStatuses(prev => ({
+        ...prev,
+        [chapter.id]: { status: 'downloading', cachedPages: 0, totalPages: 0 }
       }))
-      
+
       const runner = await ExtensionResolver.resolve(activeExtension)
       if (!runner) throw new Error('Extension not found')
-      
+
       const pages = await runner.fetchPages(chapter.url)
       if (!pages || pages.length === 0) throw new Error('No pages found')
 
@@ -141,9 +142,9 @@ export default function MangaDetails() {
         pageUrls: pages
       })
     } catch (err: any) {
-      setDownloadStatuses(prev => ({ 
-        ...prev, 
-        [chapter.id]: { status: 'error', error: err.message } 
+      setDownloadStatuses(prev => ({
+        ...prev,
+        [chapter.id]: { status: 'error', error: err.message }
       }))
     }
   }
@@ -152,7 +153,7 @@ export default function MangaDetails() {
     setShowDownloadMenu(false)
     if (!selectedManga || !activeExtension) return
 
-    const ascChapters = [...chapters].sort((a,b) => (a.number || 0) - (b.number || 0))
+    const ascChapters = [...chapters].sort((a, b) => (a.number || 0) - (b.number || 0))
     const unreadChapters = ascChapters.filter(c => !readChapterIds.includes(c.id))
 
     let targetChapters: Chapter[] = []
@@ -192,7 +193,7 @@ export default function MangaDetails() {
 
   const nextToRead = (() => {
     if (chapters.length === 0) return null
-    
+
     // 1. Prioritize chapter with active progress (> 1 and not fully read)
     const progMap = selectedManga ? pageProgress[selectedManga.id] : null
     if (progMap) {
@@ -208,7 +209,7 @@ export default function MangaDetails() {
     }
 
     // 2. Otherwise find the first unread chapter (lowest number)
-    const ascChapters = [...chapters].sort((a,b) => 
+    const ascChapters = [...chapters].sort((a, b) =>
       (a.number || 0) - (b.number || 0)
     )
     const firstUnread = ascChapters.find(c => !readChapterIds.includes(c.id))
@@ -218,7 +219,7 @@ export default function MangaDetails() {
     return ascChapters[0] || null
   })()
 
-  const filteredChapters = sortedChapters.filter(c => 
+  const filteredChapters = sortedChapters.filter(c =>
     c.number?.toString().toLowerCase().includes(chapterSearch.toLowerCase()) ||
     c.title.toLowerCase().includes(chapterSearch.toLowerCase())
   )
@@ -229,8 +230,8 @@ export default function MangaDetails() {
     <div className="flex-1 flex flex-col h-full bg-background overflow-y-auto">
       {/* Top Header Bar */}
       <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/60 backdrop-blur-md border-b border-border/50">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="icon"
           onClick={() => setSelectedManga(null)}
           className="h-8 w-8"
@@ -238,10 +239,10 @@ export default function MangaDetails() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
             title="Solve Cloudflare"
             onClick={() => manga.url && DataService.openInternalBrowser(manga.url)}
           >
@@ -251,9 +252,9 @@ export default function MangaDetails() {
             <Share2 className="h-4.5 w-4.5" />
           </Button>
           <div className="relative" ref={downloadMenuRef}>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={cn("h-8 w-8", showDownloadMenu && "bg-secondary/40")}
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
             >
@@ -262,32 +263,32 @@ export default function MangaDetails() {
             {showDownloadMenu && (
               <div className="absolute top-10 right-0 z-50 w-48 bg-card border border-border shadow-md rounded-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="p-1 space-y-0.5">
-                    <button 
-                      onClick={() => handleBulkDownload('unread')}
-                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
-                    >
-                      Download Unread
-                    </button>
-                    <button 
-                      onClick={() => handleBulkDownload('next-5')}
-                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
-                    >
-                      Download Next 5
-                    </button>
-                    <button 
-                      onClick={() => handleBulkDownload('next-10')}
-                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
-                    >
-                      Download Next 10
-                    </button>
-                    <div className="h-px w-full bg-border/50 my-1"></div>
-                    <button 
-                      onClick={() => handleBulkDownload('all')}
-                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
-                    >
-                      Download All
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleBulkDownload('unread')}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
+                  >
+                    Download Unread
+                  </button>
+                  <button
+                    onClick={() => handleBulkDownload('next-5')}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
+                  >
+                    Download Next 5
+                  </button>
+                  <button
+                    onClick={() => handleBulkDownload('next-10')}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
+                  >
+                    Download Next 10
+                  </button>
+                  <div className="h-px w-full bg-border/50 my-1"></div>
+                  <button
+                    onClick={() => handleBulkDownload('all')}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-sm transition-colors font-medium"
+                  >
+                    Download All
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -301,11 +302,11 @@ export default function MangaDetails() {
       <div className="relative w-full overflow-hidden flex-shrink-0 pt-4 px-6 pb-6 border-b border-border/10">
         {coverUrl && (
           <div className="absolute inset-0 z-0">
-             <img src={coverUrl} alt="" className="w-full h-full object-cover blur-3xl opacity-20 scale-125" />
-             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+            <img src={coverUrl} alt="" className="w-full h-full object-cover blur-3xl opacity-35 saturate-150 scale-125" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
           </div>
         )}
-        
+
         <div className="relative z-10 flex gap-6 max-w-7xl mx-auto w-full">
           <Card className="w-32 h-44 sm:w-40 sm:h-56 flex-shrink-0 border-white/10 shadow-2xl overflow-hidden rounded-lg">
             {coverUrl ? (
@@ -321,23 +322,25 @@ export default function MangaDetails() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground line-clamp-2 leading-tight">
               {title}
             </h1>
-            
+
             <div className="space-y-1">
               {manga.author && (
                 <p className="text-sm font-medium text-muted-foreground truncate">
                   {manga.author}
                 </p>
               )}
-              
+
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
                 <div className="flex items-center gap-1 text-green-500 font-semibold">
                   <CheckCircle className="h-3.5 w-3.5 fill-current" />
-                  <span className="capitalize">{manga.status}</span>
+                  <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
+                  {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
+                  <span dir="auto">{manga.status?.split(' • ')[1]}</span>
                 </div>
                 <span className="text-muted-foreground/40">•</span>
                 <span className="text-muted-foreground font-medium flex items-center gap-1.5">
                   <Tooltip content={`Browse ${extension?.name || activeExtension?.split('.').pop()}`} position="top">
-                    <button 
+                    <button
                       onClick={() => {
                         setActiveTab('browse')
                         setSelectedManga(null)
@@ -348,7 +351,7 @@ export default function MangaDetails() {
                     </button>
                   </Tooltip>
                   {activeExtension && getNativeSource(activeExtension) && (
-                    ['ma.lmanwa.extension.ar.mangaswat', 'ma.lmanwa.extension.ar.teamx'].includes(activeExtension) ? (
+                    isFullySupported(activeExtension) ? (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4.5 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
                         <ShieldCheck className="h-3 w-3" />
                         SUPPORTED
@@ -362,9 +365,9 @@ export default function MangaDetails() {
                   )}
                 </span>
               </div>
-              
+
               {manga.url && (
-                <button 
+                <button
                   onClick={() => DataService.openExternal(manga.url!)}
                   className="text-xs text-muted-foreground/60 hover:text-primary transition-colors truncate max-w-full flex items-center gap-1 mt-1 underline underline-offset-2"
                 >
@@ -376,74 +379,74 @@ export default function MangaDetails() {
           </div>
         </div>
       </div>
-
       {/* Action Tab Bar */}
-      <div className="flex items-center justify-around py-3 px-6 max-w-7xl mx-auto w-full border-b border-border/50">
-        <button 
+      <div className="grid grid-cols-3 gap-3 py-4 px-6 max-w-7xl mx-auto w-full border-b border-border/10">
+        <Button
+          variant="outline"
           onClick={() => toggleLibraryMutation.mutate(selectedManga)}
           disabled={toggleLibraryMutation.isPending}
           className={cn(
-            "flex flex-col items-center gap-1 group flex-1 transition-colors",
-            isInLibrary ? "text-primary" : "text-muted-foreground hover:text-foreground",
-            toggleLibraryMutation.isPending && "opacity-50"
+            "h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold",
+            isInLibrary ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Heart className={cn("h-5 w-5", isInLibrary && "fill-current")} />
-          <span className="text-[11px] font-semibold">{isInLibrary ? 'In library' : 'Add to library'}</span>
-        </button>
-        
-        <div className="h-8 w-px bg-border/50 mx-2"></div>
-        
-        <button className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground group flex-1 disabled:opacity-50">
-          <RefreshCw className="h-5 w-5" />
-          <span className="text-[11px] font-semibold">Tracking</span>
-        </button>
-        
-        <div className="h-8 w-px bg-border/50 mx-2"></div>
+          <span className="text-[11px]">{isInLibrary ? 'In Library' : 'Add to Library'}</span>
+        </Button>
 
-        <button 
+        <Button
+          variant="outline"
+          disabled
+          className="h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 rounded-xl opacity-50 cursor-not-allowed font-semibold text-muted-foreground"
+        >
+          <RefreshCw className="h-5 w-5" />
+          <span className="text-[11px]">Tracking</span>
+        </Button>
+
+        <Button
+          variant="outline"
           onClick={() => manga.url && DataService.openExternal(manga.url)}
-          className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground group flex-1"
+          className="h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold text-muted-foreground hover:text-foreground"
         >
           <Globe className="h-5 w-5" />
-          <span className="text-[11px] font-semibold">Web View</span>
-        </button>
+          <span className="text-[11px]">Web View</span>
+        </Button>
       </div>
 
       <div className="p-6 max-w-7xl mx-auto w-full flex-1 space-y-6">
         {/* Synopsis & Genres */}
-        <div className="space-y-4">
+        <Card className="p-5 bg-secondary/10 border-border/20 backdrop-blur-md rounded-xl space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Synopsis</h2>
-            <Button 
-               variant="ghost" 
-               size="sm" 
-               className="h-8 text-xs gap-1 text-muted-foreground"
-               onClick={() => setDescExpanded(!descExpanded)}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs gap-1 text-muted-foreground"
+              onClick={() => setDescExpanded(!descExpanded)}
             >
               {descExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               {descExpanded ? 'Show less' : 'Show more'}
             </Button>
           </div>
-          
+
           <div className="relative">
             <p className={cn(
               "text-sm text-foreground/90 leading-relaxed whitespace-pre-line transition-all duration-300",
               !descExpanded && "line-clamp-3"
             )}>
-              {manga.description}
+              {manga.description || 'No description available.'}
             </p>
             {!descExpanded && (manga.description?.length || 0) > 200 && (
-              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-background via-background/0 to-transparent pointer-events-none"></div>
             )}
           </div>
 
           {manga.genres && manga.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-border/10 mt-1">
               {manga.genres.map((genre) => (
-                <Badge 
-                  key={genre} 
-                  variant="secondary" 
+                <Badge
+                  key={genre}
+                  variant="secondary"
                   className="px-3 py-1 rounded-full text-xs font-medium border-border/40 hover:bg-secondary/80 transition-colors"
                 >
                   {genre}
@@ -451,11 +454,11 @@ export default function MangaDetails() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Continue Reading Banner */}
         {!loading && !error && chapters.length > 0 && nextToRead && (
-          <Button 
+          <Button
             className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 flex items-center justify-center gap-3 rounded-xl transition-all active:scale-[0.99] group overflow-hidden relative"
             onClick={() => setActiveChapter(nextToRead)}
           >
@@ -482,18 +485,18 @@ export default function MangaDetails() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">{chapters.length} Chapters</h2>
             <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className={cn("h-8 w-8", showChapterSearch && "text-primary bg-primary/10")}
                 onClick={() => setShowChapterSearch(!showChapterSearch)}
               >
                 <Search className="h-4 w-4" />
               </Button>
               <Tooltip content="You can change default sort by from Settings" position="top">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="text-xs h-8 gap-1 text-muted-foreground hover:text-foreground"
                   onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                 >
@@ -512,8 +515,8 @@ export default function MangaDetails() {
           {showChapterSearch && (
             <div className="relative animate-in slide-in-from-top-2 duration-200">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search chapter..." 
+              <Input
+                placeholder="Search chapter..."
                 className="pl-9 h-9"
                 value={chapterSearch}
                 onChange={(e) => setChapterSearch(e.target.value)}
@@ -544,15 +547,15 @@ export default function MangaDetails() {
               const isRead = readChapterIds.includes(chapter.id)
               const isQueued = downloadQueue.some(q => q.chapter.id === chapter.id)
               const dateObj = new Date(chapter.date || new Date())
-              const formattedDate = !isNaN(dateObj.getTime()) 
+              const formattedDate = !isNaN(dateObj.getTime())
                 ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : 'N/A'
 
               return (
-                <div 
+                <div
                   key={chapter.id}
                   className={cn(
-                    "flex items-center justify-between w-full px-4 py-3.5 hover:bg-secondary/30 transition-colors group",
+                    "flex items-center justify-between w-full px-4 py-3.5 hover:bg-secondary/40 hover:translate-x-0.5 transition-all duration-200 group",
                     isRead && "opacity-60"
                   )}
                 >
@@ -561,7 +564,7 @@ export default function MangaDetails() {
                     className="flex-1 flex flex-col items-start text-left min-w-0 pr-4"
                   >
                     <div className="flex items-center gap-2 max-w-full">
-                       <span className={cn(
+                      <span className={cn(
                         "font-semibold text-[13px] sm:text-sm transition-colors truncate",
                         isRead ? "text-muted-foreground" : "text-foreground group-hover:text-primary"
                       )}>
@@ -576,9 +579,9 @@ export default function MangaDetails() {
                       })()}
                     </p>
                   </button>
-                  
+
                   <div className="flex items-center gap-2">
-                    <Button 
+                    <Button
                       variant="ghost"
                       size="icon"
                       onClick={(e) => {
@@ -590,9 +593,9 @@ export default function MangaDetails() {
                     >
                       {isRead ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className={cn(
                         "h-9 w-9 text-muted-foreground hover:text-foreground",
                         downloadStatuses[chapter.id]?.status === 'downloading' && "text-blue-400"
@@ -607,12 +610,12 @@ export default function MangaDetails() {
                       {isQueued ? (
                         <DownloadBadge status="pending" progress={{ cached: 0, total: 1 }} />
                       ) : downloadStatuses[chapter.id] ? (
-                        <DownloadBadge 
-                          status={downloadStatuses[chapter.id].status} 
-                          progress={{ 
-                            cached: downloadStatuses[chapter.id].cachedPages, 
-                            total: downloadStatuses[chapter.id].totalPages 
-                          }} 
+                        <DownloadBadge
+                          status={downloadStatuses[chapter.id].status}
+                          progress={{
+                            cached: downloadStatuses[chapter.id].cachedPages,
+                            total: downloadStatuses[chapter.id].totalPages
+                          }}
                         />
                       ) : (
                         <Download className="h-4 w-4" />

@@ -99,7 +99,7 @@ export default function SettingsPage() {
           <div className={`w-3 h-3 rounded-full shadow-sm ${opt.dotClass}`} />
         </div>
         <div className="relative z-10">
-          <div className={`font-semibold flex items-center gap-2 ${isPremium ? 'text-base mb-1' : 'text-sm'}`}>
+          <div className={`flex items-center gap-2 ${isPremium ? 'text-base font-black tracking-tight mb-1 drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]' : 'font-bold text-sm'}`}>
             {opt.name}
             {opt.tag && <span className="text-[9px] font-bold uppercase tracking-wider bg-black/60 text-white px-1.5 py-0.5 rounded shadow border border-white/10">{opt.tag}</span>}
           </div>

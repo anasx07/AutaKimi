@@ -60,6 +60,8 @@ export enum IpcChannel {
   CHECK_FOR_UPDATE = 'app:check-for-update',
   GET_VERSION = 'app:get-version',
   OPEN_INTERNAL_BROWSER = 'open-internal-browser',
+  CF_BYPASS = 'cf:bypass',
+  CF_FETCH_HTML = 'cf:fetch-html',
 }
 
 /**
@@ -115,6 +117,8 @@ export interface ElectronApi {
   installUpdate: () => Promise<void>;
   checkForUpdates: () => Promise<void>;
   openInternalBrowser: (url: string) => Promise<void>;
+  cfBypass: (url: string) => Promise<boolean>;
+  cfFetchHtml: (url: string) => Promise<string | null>;
   platform: string;
   version: string;
 }

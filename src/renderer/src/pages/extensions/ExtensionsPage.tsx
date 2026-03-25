@@ -1,10 +1,11 @@
 import { Package, ExternalLink, Trash2, Globe } from 'lucide-react'
 import { Button, Badge, Card } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { useExtensionStore } from '@renderer/shared/model'
+import { useExtensionStore, useUIStore } from '@renderer/shared/model'
 
 export default function ExtensionsPage() {
   const { installedExtensions, uninstallExtension, setActiveExtension } = useExtensionStore()
+  const { setActiveTab } = useUIStore()
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -70,7 +71,10 @@ export default function ExtensionsPage() {
                   
                   <div className="flex items-center gap-3 pt-3">
                     <Button 
-                      onClick={() => setActiveExtension(ext.pkg)}
+                      onClick={() => {
+                        setActiveExtension(ext.pkg)
+                        setActiveTab('browse')
+                      }}
                       className="flex-1 h-9 gap-2 font-bold shadow-md"
                     >
                       Browse

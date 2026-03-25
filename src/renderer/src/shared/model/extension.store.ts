@@ -13,7 +13,7 @@ export interface ExtensionMetadata {
 interface ExtensionState {
   installedExtensions: ExtensionMetadata[]
   activeExtension: string | null
-  extensionSortBy: 'name' | 'installed' | 'update'
+  extensionSortBy: 'name' | 'installed' | 'update' | 'supported'
   extensionSortOrder: 'asc' | 'desc'
   domainOverrides: Record<string, string>
 
@@ -21,7 +21,7 @@ interface ExtensionState {
   setInstalledExtensions: (exts: ExtensionMetadata[]) => void
   setActiveExtension: (pkg: string | null) => void
   setDomainOverrides: (overrides: Record<string, string>) => void
-  setExtensionSortBy: (val: 'name' | 'installed' | 'update') => Promise<void>
+  setExtensionSortBy: (val: 'name' | 'installed' | 'update' | 'supported') => Promise<void>
   setExtensionSortOrder: (val: 'asc' | 'desc') => Promise<void>
   setDomainOverride: (pkg: string, domain: string | null) => Promise<void>
   installExtension: (pkg: string) => Promise<void>
@@ -34,7 +34,7 @@ interface ExtensionState {
 export const useExtensionStore = create<ExtensionState>((set) => ({
   installedExtensions: [],
   activeExtension: null,
-  extensionSortBy: 'name',
+  extensionSortBy: 'supported',
   extensionSortOrder: 'asc',
   domainOverrides: {},
 
@@ -83,7 +83,7 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
     set({
       installedExtensions: installed || [],
       domainOverrides: overrides,
-      extensionSortBy: (settings.extension_sort_by as any) || 'name',
+      extensionSortBy: (settings.extension_sort_by as any) || 'supported',
       extensionSortOrder: (settings.extension_sort_order as any) || 'asc',
     })
   }

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, session, net } from 'electron'
 import { join } from 'path'
 import { NetworkConfig } from '../common/config/network'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -10,13 +10,16 @@ import icon from '../../resources/icon.png?asset'
 // Set app name before importing db to ensure correct userData path
 app.name = 'LManwa'
 
+// Disable Chromium automation detection flags (required for Cloudflare bypass)
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+
 import { NetworkService } from '../common/services/network'
 import path from 'path'
 import { DiskCache } from './cache/DiskCache'
 import crypto from 'crypto'
 
 // Register Services
-import { runCleanupRoutine } from './db'
+import db, { runCleanupRoutine } from './db'
 ServiceRegistry.register(DownloadManager.getInstance())
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
@@ -32,14 +35,19 @@ protocol.registerSchemesAsPrivileged([
 const MAX_CACHE_SIZE = 500 * 1024 * 1024 // 500MB
 export let imageCache: DiskCache;
 let mainWindow: BrowserWindow | null = null;
+let windowState = { width: 1000, height: 750, x: undefined as number | undefined, y: undefined as number | undefined, isMaximized: false };
 
 
 
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    minWidth: 900,
+    minHeight: 600,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
@@ -56,6 +64,39 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  if (windowState.isMaximized) {
+    mainWindow.maximize()
+  }
+
+  let saveTimeout: NodeJS.Timeout | null = null
+  const saveState = () => {
+    if (saveTimeout) clearTimeout(saveTimeout)
+    saveTimeout = setTimeout(() => {
+      if (!mainWindow) return
+      let bounds: { x: number, y: number, width: number, height: number }
+      try {
+        bounds = mainWindow.getBounds()
+      } catch (e) { return }
+      const isMax = mainWindow.isMaximized()
+      const state = {
+        width: isMax ? windowState.width : bounds.width,
+        height: isMax ? windowState.height : bounds.height,
+        x: isMax ? windowState.x : bounds.x,
+        y: isMax ? windowState.y : bounds.y,
+        isMaximized: isMax
+      }
+      try {
+        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('window_state', JSON.stringify(state))
+        windowState = state
+      } catch (e) {
+        console.error('Failed to save window state:', e)
+      }
+    }, 500)
+  }
+
+  mainWindow.on('resize', saveState)
+  mainWindow.on('move', saveState)
 
   mainWindow?.on('ready-to-show', () => {
     mainWindow?.show()
@@ -116,12 +157,19 @@ app.whenReady().then(async () => {
       const buffer = await imageCache.get(hash)
       if (buffer) return new Response(new Uint8Array(buffer))
 
+      let origin = 'https://'
+      try {
+        origin = new URL(url).origin + '/'
+      } catch { /* ignore */ }
+
       const response = await NetworkService.fetchWithRetry(url, {
         headers: {
-          'User-Agent': NetworkConfig.DEFAULT_UA,
-          'Referer': new URL(url).origin + '/'
+          'User-Agent': session.defaultSession.getUserAgent(),
+          'Referer': origin
         }
-      }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, fetch) // Standard fetch is fine here
+      }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, net.fetch)
+
+      if (!response.ok) return new Response('Error loading resource', { status: response.status })
       
       const resBuffer = Buffer.from(await response.arrayBuffer())
       await imageCache.set(hash, resBuffer)
@@ -179,6 +227,19 @@ app.whenReady().then(async () => {
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     console.error('Failed to check for updates:', err)
   })
+
+  // Load window state
+  try {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('window_state') as { value: string } | undefined
+    if (row?.value) {
+      const saved = JSON.parse(row.value)
+      if (saved && typeof saved === 'object') {
+        windowState = { ...windowState, ...saved }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load window state:', e)
+  }
 
   createWindow()
 
