@@ -7,6 +7,8 @@ interface SettingsState {
   userAgent: string
   timeoutInterval: string
   enableLog: boolean
+  downloadConcurrency: number
+  minimizeToTray: boolean
 
   // UI Settings added
   theme: ThemeType
@@ -20,6 +22,8 @@ interface SettingsState {
   setUserAgent: (val: string) => Promise<void>
   setTimeoutInterval: (val: string) => Promise<void>
   setEnableLog: (val: boolean) => Promise<void>
+  setDownloadConcurrency: (val: number) => Promise<void>
+  setMinimizeToTray: (val: boolean) => Promise<void>
   
   // UI Actions added
   setTheme: (theme: ThemeType) => Promise<void>
@@ -37,6 +41,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   userAgent: '',
   timeoutInterval: '30000',
   enableLog: false,
+  downloadConcurrency: 3,
+  minimizeToTray: true,
+
   
   // UI Settings Defaults
   theme: 'system',
@@ -63,6 +70,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setEnableLog: async (val) => {
     await DataService.db.setSetting('enable_log', val.toString())
     set({ enableLog: val })
+  },
+
+  setDownloadConcurrency: async (val) => {
+    const clamped = Math.max(1, Math.min(5, val))
+    await DataService.db.setSetting('download_concurrency', clamped.toString())
+    set({ downloadConcurrency: clamped })
+  },
+
+  setMinimizeToTray: async (val) => {
+    await DataService.db.setSetting('minimize_to_tray', val.toString())
+    set({ minimizeToTray: val })
   },
 
   setTheme: async (theme) => {
@@ -135,13 +153,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       userAgent: settings.user_agent || '',
       timeoutInterval: settings.timeout_interval || '30000',
       enableLog: settings.enable_log === 'true',
-      
+      downloadConcurrency: settings.download_concurrency ? parseInt(settings.download_concurrency) : 3,
+
       // UI Settings Init
       selectedLangs: settings.selectedLangs ? JSON.parse(settings.selectedLangs) : ['all'],
       showNsfw: settings.showNsfw === 'true',
       displayMode: (settings.displayMode as 'grid' | 'list') || 'grid',
       theme,
       colorTheme,
+      minimizeToTray: settings.minimize_to_tray !== 'false', // Default true
     })
   }
 }))

@@ -21,7 +21,7 @@ export class MangaThemesiaSource implements ISourceAdapter {
       bypassCf: true,
       headers: {
         'Referer': `${this.baseUrl}/`,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
       }
     }
     const res: any = await DataService.fetchText(url, opts)

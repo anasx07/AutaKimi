@@ -34,7 +34,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     }, [isOpen])
 
     return (
-      <div className="relative inline-block w-full" ref={selectRef}>
+      <div className="relative inline-block w-full z-10" ref={selectRef}>
         <div
           role="combobox"
           aria-expanded={isOpen}

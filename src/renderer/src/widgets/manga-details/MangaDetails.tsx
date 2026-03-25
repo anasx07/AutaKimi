@@ -23,7 +23,7 @@ import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 
 export default function MangaDetails() {
-  const { setActiveTab } = useUIStore()
+  const { setActiveTab, isCfBypassing, cfDomain } = useUIStore()
   const {
     selectedManga, setSelectedManga,
     setActiveChapter
@@ -526,9 +526,25 @@ export default function MangaDetails() {
           )}
 
           {loading && (
-            <div className="flex justify-center py-12 text-muted-foreground gap-2 items-center">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading chapters...</span>
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+              <div className="relative">
+                <Loader2 className={cn("h-6 w-6 animate-spin text-primary opacity-60", isCfBypassing && "text-amber-500 opacity-90")} />
+                {isCfBypassing && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-1.5 w-1.5 bg-amber-500 rounded-full animate-ping" />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className={cn("text-sm font-medium", isCfBypassing && "text-amber-500/90")}>
+                  {isCfBypassing 
+                    ? `Bypassing Cloudflare protection${cfDomain ? ` for ${cfDomain}` : ''}...` 
+                    : 'Loading chapters...'}
+                </span>
+                {isCfBypassing && (
+                  <span className="text-[10px] uppercase tracking-wider opacity-50 font-bold">Verification in progress</span>
+                )}
+              </div>
             </div>
           )}
 

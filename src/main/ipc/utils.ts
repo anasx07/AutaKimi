@@ -8,3 +8,9 @@ export function wrapIpc<T>(fn: (event: any, ...args: any[]) => Promise<T>) {
     }
   };
 }
+
+export function isValidUrl(url: string | any = ''): boolean {
+  if (!url || typeof url !== 'string') return false
+  const lower = url.toLowerCase()
+  return lower.startsWith('http://') || lower.startsWith('https://')
+}

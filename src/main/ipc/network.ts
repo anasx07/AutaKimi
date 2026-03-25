@@ -3,11 +3,12 @@ import { IpcChannel } from '../types/ipc'
 import { extensionOrchestrator } from '../services/extension.service'
 import { NetworkConfig } from '../../common/config/network'
 import { settingsRepo } from '../db'
-import { wrapIpc } from './utils'
+import { wrapIpc, isValidUrl } from './utils'
 import { imageCache } from '../index'
 
 export function registerNetworkHandlers() {
   ipcMain.handle(IpcChannel.FETCH_REPO, wrapIpc(async (_, url: string) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL')
     const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
     const headers = { 'User-Agent': NetworkConfig.DEFAULT_UA }
     const response = await extensionOrchestrator.fetch(url, { headers }, bypassCf)
@@ -16,6 +17,7 @@ export function registerNetworkHandlers() {
   }))
 
   ipcMain.handle(IpcChannel.FETCH_TEXT, wrapIpc(async (_, url: string, options?: any) => {
+    if (!isValidUrl(url)) throw new Error('Invalid URL')
     const bypassCf = options?.bypassCf ?? ((await settingsRepo.get('bypass_cloudflare')) === 'true')
     const response = await extensionOrchestrator.fetch(url, options || {}, bypassCf)
     return { data: await response.text(), status: response.status, ok: response.ok }

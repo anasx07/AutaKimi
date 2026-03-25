@@ -12,34 +12,74 @@ import {
   AlertCircle,
   Loader2,
   BookOpen,
-  Layout,
-  ArrowUpDown,
-  MoveHorizontal,
-  Eye,
+  Rows,
+  ChevronRight,
+  Settings2,
   Zap,
   Palette,
   Monitor,
   Sparkles,
-  RefreshCcw,
-  Download
+  MoveHorizontal,
+  ArrowUpDown,
+  Download,
+  RefreshCcw
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUIStore, useReaderStore, useSettingsStore, ThemeType, ColorThemeType } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { Button, Card, CardContent, Input, Badge, Switch, Select } from '@renderer/shared/ui'
 import { DEFAULT_THEMES, PREMIUM_THEMES, ThemeOption } from '@renderer/shared/config/themes'
 
+const ShortcutInput = ({ label, value, onSave }: { label: string, value: string, onSave: (key: string) => void }) => {
+  const [isCapturing, setIsCapturing] = useState(false)
+  
+  useEffect(() => {
+    if (!isCapturing) return
+    const handleDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape') {
+        setIsCapturing(false)
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      onSave(e.code)
+      setIsCapturing(false)
+    }
+    window.addEventListener('keydown', handleDown)
+    return () => window.removeEventListener('keydown', handleDown)
+  }, [isCapturing, onSave])
+
+  return (
+    <div className="flex items-center justify-between p-3 border rounded-xl bg-secondary/20 border-border/50 hover:border-border transition-colors">
+      <div className="flex flex-col">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">{label}</span>
+      </div>
+      <Button 
+        variant={isCapturing ? "secondary" : "ghost"}
+        onClick={() => setIsCapturing(true)}
+        className={cn(
+          "font-mono text-[10px] uppercase min-w-[100px] border border-border shadow-inner text-foreground",
+          isCapturing && "animate-pulse ring-1 ring-primary bg-primary/10 text-primary border-primary/20"
+        )}
+      >
+        {isCapturing ? 'Listening...' : value.replace('Arrow', '')}
+      </Button>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const {
-    updateStatus, updateProgress, updateError
+    updateStatus
   } = useUIStore()
 
   const {
     defaultChapterSort, setDefaultChapterSort,
-    readerMode, setReaderMode,
-    readerDirection, setReaderDirection,
+    readingMode, setReadingMode,
     autoMarkRead, setAutoMarkRead,
-    preloadPages, setPreloadPages
+    preloadPages, setPreloadPages,
+    dragToScroll, setDragToScroll,
+    autoScrollShortcuts, setShortcut
   } = useReaderStore()
 
   const {
@@ -50,9 +90,12 @@ export default function SettingsPage() {
     showNsfw, setShowNsfw,
     displayMode, setDisplayMode,
     theme, setTheme,
-    colorTheme, setColorTheme
+    colorTheme, setColorTheme,
+    downloadConcurrency, setDownloadConcurrency,
+    minimizeToTray, setMinimizeToTray
   } = useSettingsStore()
 
+  const [activeTab, setActiveTab] = useState<'general' | 'reading' | 'advanced'>('general')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const handleClearCache = async () => {
@@ -90,414 +133,345 @@ export default function SettingsPage() {
           setTheme(opt.theme as ThemeType)
           setColorTheme(opt.colorTheme as ColorThemeType)
         }}
-        className={`group flex items-center ${isPremium ? 'gap-4 p-5 min-h-[110px]' : 'gap-3 p-4'} rounded-xl transition-all duration-200 text-left relative overflow-hidden border ${opt.bgClass || ''} ${opt.borderClass || ''} ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100' : 'hover:scale-[1.02] hover:shadow-md active:scale-95 opacity-70 hover:opacity-100 grayscale-[0.2]'}`}
+        className={cn(
+          "group flex items-center rounded-xl transition-all duration-200 text-left relative overflow-hidden border",
+          isPremium ? "gap-4 p-5 min-h-[110px]" : "gap-3 p-4",
+          opt.bgClass, opt.borderClass,
+          isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background opacity-100" : "hover:scale-[1.02] hover:shadow-md active:scale-95 opacity-70 hover:opacity-100 grayscale-[0.2]"
+        )}
         style={opt.bgImage ? { backgroundImage: `url(${opt.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center 20%' } : undefined}
       >
-        {opt.bgImage && <div className={`absolute inset-0 transition-colors z-0 ${opt.theme === 'light' ? 'bg-white/40 group-hover:bg-white/20' : 'bg-black/30 group-hover:bg-black/10'}`} />}
-
-        <div className={`relative z-10 ${isPremium ? 'w-14 h-14' : 'w-10 h-10'} rounded-lg flex items-center justify-center shrink-0 border ${opt.boxClass || 'border-transparent bg-transparent'}`}>
-          <div className={`w-3 h-3 rounded-full shadow-sm ${opt.dotClass}`} />
+        {opt.bgImage && <div className={cn("absolute inset-0 transition-colors z-0", opt.theme === 'light' ? "bg-white/40 group-hover:bg-white/20" : "bg-black/30 group-hover:bg-black/10")} />}
+        <div className={cn("relative z-10 rounded-lg flex items-center justify-center shrink-0 border", isPremium ? "w-14 h-14" : "w-10 h-10", opt.boxClass || "border-transparent bg-transparent")}>
+          <div className={cn("w-3 h-3 rounded-full shadow-sm", opt.dotClass)} />
         </div>
         <div className="relative z-10">
-          <div className={`flex items-center gap-2 ${isPremium ? 'text-base font-black tracking-tight mb-1 drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]' : 'font-bold text-sm'}`}>
+          <div className={cn("flex items-center gap-2", isPremium ? "text-base font-black tracking-tight mb-1 drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]" : "font-bold text-sm")}>
             {opt.name}
             {opt.tag && <span className="text-[9px] font-bold uppercase tracking-wider bg-black/60 text-white px-1.5 py-0.5 rounded shadow border border-white/10">{opt.tag}</span>}
           </div>
-          <div className={`${isPremium ? 'text-sm' : 'text-xs mt-0.5'} ${opt.descClass}`}>{opt.desc}</div>
+          <div className={cn(isPremium ? "text-sm" : "text-xs mt-0.5", opt.descClass)}>{opt.desc}</div>
         </div>
       </button>
     )
   }
 
+  const SidebarItem = ({ id, label, icon: Icon }: { id: any, label: string, icon: any }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={cn(
+        "w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden",
+        activeTab === id 
+          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" 
+          : "text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95"
+      )}
+    >
+      <div className="flex items-center gap-4 relative z-10">
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+          activeTab === id ? "bg-white/20 rotate-12 scale-110" : "bg-secondary group-hover:bg-muted"
+        )}>
+          <Icon className={cn("h-5 w-5", activeTab === id ? "animate-pulse" : "group-hover:scale-110 transition-transform")} />
+        </div>
+        <span className={cn("font-bold tracking-tight uppercase text-xs", activeTab === id ? "opacity-100" : "opacity-70 group-hover:opacity-100")}>{label}</span>
+      </div>
+      <ChevronRight className={cn("h-4 w-4 transition-all duration-300", activeTab === id ? "translate-x-0 opacity-50" : "-translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-50")} />
+      {activeTab === id && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-50" />}
+    </button>
+  )
+
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col space-y-1.5 border-b border-border pb-6">
-        <h1 className="text-4xl font-extrabold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground text-lg">Personalize your reading experience and manage your data.</p>
-      </div>
+    <div className="flex h-full bg-background overflow-hidden animate-in fade-in duration-700">
+      {/* Sidebar */}
+      <aside className="w-80 border-r border-border/60 bg-secondary/10 backdrop-blur-3xl flex flex-col p-6 gap-8">
+        <div className="space-y-1.5 px-2">
+          <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent uppercase italic">L.Settings</h1>
+          <p className="text-[10px] text-muted-foreground font-black tracking-[0.2em] uppercase opacity-50">MANWA ENGINE V2.0</p>
+        </div>
 
-      <div className="grid gap-8">
-        {/* 0. Appearance & Theme */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 text-primary font-semibold text-lg">
-              <Palette className="h-5 w-5" />
-              Appearance & Theme
+        <nav className="flex-1 space-y-3">
+          <SidebarItem id="general" label="Generale" icon={Settings2} />
+          <SidebarItem id="reading" label="Reding" icon={BookOpen} />
+          <SidebarItem id="advanced" label="Advanced" icon={Zap} />
+        </nav>
+
+        <Card className="border-border/40 bg-card group shadow-none">
+          <CardContent className="p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Core Engine Active</span>
             </div>
-            <Button
-              variant={theme === 'system' ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setTheme('system')}
-              className="gap-2 h-8 text-xs font-semibold"
-            >
-              <Monitor className="h-4 w-4" />
-              Sync with System
-            </Button>
-          </div>
+            <p className="text-[9px] text-muted-foreground/60 font-medium leading-relaxed group-hover:text-muted-foreground transition-colors">Your reading state and library are synchronized with the local SQLite database.</p>
+          </CardContent>
+        </Card>
+      </aside>
 
-          <div className="space-y-6 mt-4">
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Default Themes</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {DEFAULT_THEMES.map(opt => renderThemeCard(opt, false))}
-              </div>
-            </div>
-
-            <div className="space-y-3 mt-8">
-              <h3 className="text-xs font-bold flex items-center gap-2 uppercase tracking-wider text-amber-500 pl-1">
-                <Sparkles className="h-4 w-4" /> Premium Themes
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {PREMIUM_THEMES.map(opt => renderThemeCard(opt, true))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 1. Reading Preferences */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-primary font-semibold text-lg px-1">
-            <BookOpen className="h-5 w-5" />
-            Reading Experience
-          </div>
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <ArrowUpDown className="h-4 w-4 opacity-70" />
-                    Default Chapter Sort
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+        <div className="p-10 max-w-5xl mx-auto space-y-12 animate-in slide-in-from-right-8 duration-500 pb-20">
+          
+          {activeTab === 'general' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <section className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic">
+                    <Palette className="h-6 w-6" />
+                    Appearance & Theme
                   </div>
-                  <div className="text-xs text-muted-foreground">Order for lists in Manga Details.</div>
+                  <Button variant={theme === 'system' ? 'primary' : 'outline'} size="sm" onClick={() => setTheme('system')} className="gap-2 h-9 text-xs font-bold uppercase tracking-wider border-border bg-secondary/50 text-foreground">
+                    <Monitor className="h-4 w-4" /> System Sync
+                  </Button>
                 </div>
-                <div className="w-40">
-                  <Select
-                    value={defaultChapterSort}
-                    onValueChange={(val) => setDefaultChapterSort(val as 'asc' | 'desc')}
-                    options={[
-                      { value: 'desc', label: 'Newest First' },
-                      { value: 'asc', label: 'Oldest First' }
-                    ]}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {DEFAULT_THEMES.map(opt => renderThemeCard(opt, false))}
                 </div>
-              </div>
-
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <Layout className="h-4 w-4 opacity-70" />
-                    Reader Mode
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-xs font-black flex items-center gap-2 uppercase tracking-[0.2em] text-amber-500 pl-1">
+                    <Sparkles className="h-4 w-4" /> Premium Themes
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {PREMIUM_THEMES.map(opt => renderThemeCard(opt, true))}
                   </div>
-                  <div className="text-xs text-muted-foreground">Choose your preferred layout.</div>
                 </div>
-                <div className="w-40">
-                  <Select
-                    value={readerMode}
-                    onValueChange={(val) => setReaderMode(val as 'vertical' | 'paged')}
-                    options={[
-                      { value: 'vertical', label: 'Vertical Scroll' },
-                      { value: 'paged', label: 'Paged View' }
-                    ]}
-                  />
-                </div>
-              </div>
+              </section>
 
-              {readerMode === 'paged' && (
-                <div className="p-4 flex items-center justify-between bg-secondary/10 animate-in slide-in-from-top-2 duration-300">
-                  <div className="space-y-0.5">
-                    <div className="text-sm font-medium flex items-center gap-2">
-                      <MoveHorizontal className="h-4 w-4 opacity-70" />
-                      Reading Direction
+              <section className="space-y-6">
+                <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                  <Monitor className="h-6 w-6" />
+                  Interface & Behavior
+                </div>
+                <Card className="border-border bg-card divide-y divide-border overflow-hidden">
+                  <div className="p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors">
+                    <div className="space-y-1">
+                      <div className="text-sm font-bold flex items-center gap-2">Browse Display Mode</div>
+                      <div className="text-xs text-muted-foreground">Default layout for catalog browsing.</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">Navigation direction for paged mode.</div>
-                  </div>
-                  <div className="w-40">
-                    <Select
-                      value={readerDirection}
-                      onValueChange={(val) => setReaderDirection(val as 'ltr' | 'rtl')}
-                      options={[
-                        { value: 'ltr', label: 'Left to Right' },
-                        { value: 'rtl', label: 'Right to Left' }
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <Eye className="h-4 w-4 opacity-70" />
-                    Auto Mark as Read
-                  </div>
-                  <div className="text-xs text-muted-foreground">Automatically track your progress.</div>
-                </div>
-                <Switch
-                  checked={autoMarkRead}
-                  onCheckedChange={setAutoMarkRead}
-                />
-              </div>
-
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <Zap className="h-4 w-4 opacity-70" />
-                    Page Preloading
-                  </div>
-                  <div className="text-xs text-muted-foreground">Number of pages to load in advance.</div>
-                </div>
-                <div className="w-20">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={preloadPages}
-                    onChange={(e) => setPreloadPages(parseInt(e.target.value))}
-                    className="h-9 text-center"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* 2. Library & Display */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-primary font-semibold text-lg px-1">
-            <Layout className="h-5 w-5" />
-            Library & Interface
-          </div>
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium">Browse Display Mode</div>
-                  <div className="text-xs text-muted-foreground">Default layout for catalog browsing.</div>
-                </div>
-                <div className="w-40">
-                  <Select
-                    value={displayMode}
-                    onValueChange={(val) => setDisplayMode(val as 'grid' | 'list')}
-                    options={[
-                      { value: 'grid', label: 'Grid' },
-                      { value: 'list', label: 'List' }
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium">Show NSFW Sources</div>
-                  <div className="text-xs text-muted-foreground">Display 18+ extensions and content.</div>
-                </div>
-                <Switch
-                  checked={showNsfw}
-                  onCheckedChange={setShowNsfw}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* 3. Network & Security */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-primary font-semibold text-lg px-1">
-            <Globe className="h-5 w-5" />
-            Network & Connection
-          </div>
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium">Bypass Cloudflare</div>
-                  <div className="text-xs text-muted-foreground">Experimental protection bypass.</div>
-                </div>
-                <Switch
-                  checked={bypassCloudflare}
-                  onCheckedChange={setBypassCloudflare}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium flex items-center gap-2 leading-none">
-                  <Shield className="h-4 w-4 opacity-70" />
-                  User Agent String
-                </div>
-                <Input
-                  placeholder="Custom browser identification..."
-                  value={userAgent}
-                  onChange={(e) => setUserAgent(e.target.value)}
-                  onBlur={(e) => setUserAgent(e.target.value)} // Ensure persist on blur is also reactive
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium flex items-center gap-2 leading-none">
-                  <Clock className="h-4 w-4 opacity-70" />
-                  Global Timeout (ms)
-                </div>
-                <Input
-                  type="number"
-                  value={timeoutInterval}
-                  onChange={(e) => setTimeoutInterval(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* 4. Maintenance */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-destructive font-semibold text-lg px-1">
-            <Trash2 className="h-5 w-5" />
-            Maintenance
-          </div>
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-12 gap-2 border-destructive/20 hover:bg-destructive/10 hover:text-destructive transition-all" onClick={handleClearCache}>
-                  <Eraser className="h-4 w-4" />
-                  Clear Image Cache
-                </Button>
-                <Button variant="outline" className="h-12 gap-2 border-destructive/20 hover:bg-destructive/10 hover:text-destructive transition-all" onClick={handleClearCookies}>
-                  <Cloud className="h-4 w-4" />
-                  Reset Session Data
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* 5. System Updates */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-primary font-semibold text-lg px-1">
-            <RefreshCcw className={cn("h-5 w-5", updateStatus === 'checking' && "animate-spin")} />
-            System Updates
-          </div>
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium">Application Version</div>
-                  <div className="text-xs text-muted-foreground">You are currently running v{(window as any).api.version}</div>
-                </div>
-                <Badge variant="outline" className="font-mono px-3 py-1">
-                  v{(window as any).api.version}
-                </Badge>
-              </div>
-
-              <div className="flex flex-col gap-4 pt-2">
-                <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg border border-border/50">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center",
-                      updateStatus === 'error' ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
-                    )}>
-                      {updateStatus === 'checking' ? <Loader2 className="h-5 w-5 animate-spin" /> :
-                       updateStatus === 'available' || updateStatus === 'downloading' ? <Download className="h-5 w-5" /> :
-                       updateStatus === 'downloaded' ? <CheckCircle2 className="h-5 w-5 text-green-500" /> :
-                       updateStatus === 'error' ? <AlertCircle className="h-5 w-5" /> :
-                       <RefreshCcw className="h-5 w-5 opacity-50" />}
+                    <div className="w-40">
+                      <Select value={displayMode} onValueChange={(val) => setDisplayMode(val as 'grid' | 'list')} options={[{ value: 'grid', label: 'Grid' }, { value: 'list', label: 'List' }]} />
                     </div>
-                    <div className="space-y-0.5">
-                      <div className="text-sm font-semibold capitalize">
-                        {updateStatus === 'idle' ? 'Up to date' : 
-                         updateStatus === 'checking' ? 'Checking for updates...' :
-                         updateStatus === 'available' ? 'Update available!' :
-                         updateStatus === 'downloading' ? 'Downloading update...' :
-                         updateStatus === 'downloaded' ? 'Ready to install' :
-                         updateStatus === 'error' ? 'Update Error' : updateStatus}
+                  </div>
+                  <div className="p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors">
+                    <div className="space-y-1">
+                      <div className="text-sm font-bold">Show NSFW Sources</div>
+                      <div className="text-xs text-muted-foreground">Display 18+ extensions and content.</div>
+                    </div>
+                    <Switch checked={showNsfw} onCheckedChange={setShowNsfw} />
+                  </div>
+                  <div className="p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors">
+                    <div className="space-y-1">
+                      <div className="text-sm font-bold">Minimize to Tray</div>
+                      <div className="text-xs text-muted-foreground">App stays running in background when closed.</div>
+                    </div>
+                    <Switch checked={minimizeToTray} onCheckedChange={setMinimizeToTray} />
+                  </div>
+                </Card>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'reading' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                    <BookOpen className="h-6 w-6" /> Reading Style
+                 </div>
+                 <Card className="border-border bg-card divide-y divide-border overflow-hidden">
+                    <div className="p-5 flex items-center justify-between bg-muted/20">
+                       <div className="space-y-1">
+                          <div className="text-sm font-bold flex items-center gap-2">Default Sort</div>
+                          <div className="text-xs text-muted-foreground">Order for chapters in manga details.</div>
+                       </div>
+                       <div className="w-40">
+                          <Select value={defaultChapterSort} onValueChange={(val) => setDefaultChapterSort(val as 'asc' | 'desc')} options={[{ value: 'asc', label: 'Oldest First' }, { value: 'desc', label: 'Newest First' }]} />
+                       </div>
+                    </div>
+                    <div className="p-6 space-y-6">
+                       <div className="space-y-1">
+                          <div className="text-sm font-bold flex items-center gap-2">Active Reading Mode</div>
+                          <div className="text-xs text-muted-foreground opacity-60">Select your preferred navigation engine.</div>
+                       </div>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                          {[
+                            { id: 'paged-ltr', label: 'Paged LTR', icon: <MoveHorizontal className="h-4 w-4"/> },
+                            { id: 'paged-rtl', label: 'Paged RTL', icon: <MoveHorizontal className="h-4 w-4 rotate-180"/> },
+                            { id: 'paged-vertical', label: 'Paged Vert', icon: <ArrowUpDown className="h-4 w-4"/> },
+                            { id: 'continuous-vertical', label: 'Continuous', icon: <Rows className="h-4 w-4"/> },
+                            { id: 'webtoon', label: 'Webtoon', icon: <Zap className="h-4 w-4 text-primary animate-pulse"/> },
+                          ].map((mode) => (
+                            <button key={mode.id} onClick={() => setReadingMode(mode.id as any)} className={cn("flex flex-col items-center justify-center p-4 rounded-xl border transition-all gap-3", readingMode === mode.id ? "bg-primary text-primary-foreground shadow-lg scale-105" : "border-border bg-secondary/50 hover:bg-secondary text-muted-foreground opacity-60 hover:opacity-100")}>
+                               <div className={cn("p-2 rounded-lg border", readingMode === mode.id ? "bg-white/20 border-white/20" : "bg-card border-border")}>{mode.icon}</div>
+                               <span className="text-[10px] font-black uppercase tracking-tighter">{mode.label}</span>
+                            </button>
+                          ))}
+                       </div>
+                    </div>
+                    <div className="p-5 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold">Auto Mark Read</div>
+                        <div className="text-xs text-muted-foreground">Automatically track your reading progress.</div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {updateStatus === 'error' ? (updateError || 'Could not check for updates') :
-                         updateStatus === 'downloading' ? `Progress: ${updateProgress?.percent ? Math.round(updateProgress.percent) : 0}%` :
-                         'Last checked: Just now'}
+                      <Switch checked={autoMarkRead} onCheckedChange={setAutoMarkRead} />
+                    </div>
+                    <div className="p-5 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold">Predictive Preloading</div>
+                        <div className="text-xs text-muted-foreground">Number of pages to load in advance.</div>
                       </div>
+                      <Input type="number" min={1} max={10} value={preloadPages} onChange={(e) => setPreloadPages(parseInt(e.target.value))} className="h-9 w-20 text-center font-bold" />
                     </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {updateStatus === 'downloaded' ? (
-                      <Button 
-                        onClick={() => (window as any).api.installUpdate()}
-                        className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-lg shadow-green-900/20"
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                        Restart & Install
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline"
-                        onClick={() => (window as any).api.checkForUpdates()}
-                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                        className="gap-2"
-                      >
-                        {updateStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                        {updateStatus === 'error' ? 'Retry Check' : 'Check for Updates'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {updateStatus === 'downloading' && (
-                  <div className="px-1 space-y-1.5">
-                    <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden border border-border/50">
-                      <div 
-                        className="h-full bg-primary transition-all duration-300 ease-out" 
-                        style={{ width: `${updateProgress?.percent || 0}%` }}
-                      />
+                    <div className="p-5 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold">Drag to Scroll</div>
+                        <div className="text-xs text-muted-foreground">Mouse-driven scroll navigation.</div>
+                      </div>
+                      <Switch checked={dragToScroll} onCheckedChange={setDragToScroll} />
                     </div>
+                 </Card>
+              </section>
+
+              <section className="space-y-6">
+                <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                  <Terminal className="h-6 w-6" /> Keyboard Controls
+                </div>
+                <Card className="border-primary/10 bg-card p-6 border shadow-inner">
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] mb-6">Map your custom engine shortcuts</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <ShortcutInput label="Toggle Auto-Scroll" value={autoScrollShortcuts.toggle} onSave={(k) => setShortcut('toggle', k)} />
+                    <ShortcutInput label="Pause (Hold)" value={autoScrollShortcuts.pause} onSave={(k) => setShortcut('pause', k)} />
+                    <ShortcutInput label="Speed Boost" value={autoScrollShortcuts.boost} onSave={(k) => setShortcut('boost', k)} />
+                    <ShortcutInput label="Slow Down" value={autoScrollShortcuts.slow} onSave={(k) => setShortcut('slow', k)} />
+                    <ShortcutInput label="Reverse (Hold)" value={autoScrollShortcuts.reverse} onSave={(k) => setShortcut('reverse', k)} />
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+                </Card>
+              </section>
+            </div>
+          )}
 
-        {/* 6. Advanced */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-yellow-500 font-semibold text-lg px-1">
-            <Terminal className="h-5 w-5" />
-            Internal Controls
-          </div>
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="text-sm font-medium">Developer Logging</div>
-                  <div className="text-xs text-muted-foreground">Output verbose info to developer console.</div>
-                </div>
-                <Switch
-                  checked={enableLog}
-                  onCheckedChange={setEnableLog}
-                />
-              </div>
+          {activeTab === 'advanced' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <section className="space-y-6">
+                  <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                    <Globe className="h-6 w-6" /> Network & Core
+                  </div>
+                  <Card className="border-border bg-card p-6 space-y-6 shadow-none">
+                     <div className="flex items-center justify-between border-b border-border pb-6">
+                        <div className="space-y-1">
+                           <div className="text-sm font-bold">Bypass Cloudflare</div>
+                           <div className="text-xs text-muted-foreground italic opacity-60 underline decoration-primary/30 underline-offset-4">Experimental protection bypass tool.</div>
+                        </div>
+                        <Switch checked={bypassCloudflare} onCheckedChange={setBypassCloudflare} />
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                           <div className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 tracking-widest"><Shield className="h-3 w-3" /> User Agent identification</div>
+                           <Input placeholder="Custom Identification..." value={userAgent} onChange={(e) => setUserAgent(e.target.value)} className="bg-secondary/20 border-border h-10 font-mono text-xs" />
+                        </div>
+                        <div className="space-y-2">
+                           <div className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 tracking-widest"><Clock className="h-3 w-3" /> Global Timeout (ms)</div>
+                           <Input type="number" value={timeoutInterval} onChange={(e) => setTimeoutInterval(e.target.value)} className="bg-secondary/20 border-border h-10 font-mono text-xs" />
+                        </div>
+                     </div>
+                  </Card>
+               </section>
 
-              <div className="pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-2 bg-green-500/10 text-green-500 px-2 py-1 rounded-full font-medium">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Core SQLite Engine Active
+               <section className="space-y-6">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic">
+                      <Download className="h-6 w-6" /> Download Buffer
+                    </div>
+                    <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 px-3 py-1 font-black uppercase tracking-widest text-[10px] animate-pulse">
+                      <Sparkles className="mr-2 h-3 w-3" /> Premium
+                    </Badge>
+                  </div>
+                  <Card className="border-amber-500/10 bg-card p-6">
+                     <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                           <div className="text-sm font-bold flex items-center gap-2 italic text-foreground">Parallel Streams <Badge variant="outline" className="text-[9px] h-4 font-black bg-primary/20 border-primary/40 text-primary">TURBO</Badge></div>
+                           <p className="text-xs text-muted-foreground max-w-sm">Concurrent page connections. Higher values download faster but risk source rate-limiting.</p>
+                        </div>
+                        <div className="w-44">
+                          <Select value={downloadConcurrency.toString()} onValueChange={(val) => setDownloadConcurrency(parseInt(val))} options={[{ value: '1', label: '1 Sequential' }, { value: '2', label: '2 Parallel' }, { value: '3', label: '3 Parallel' }, { value: '4', label: '4 Parallel' }, { value: '5', label: '5 Extreme' }]} />
+                        </div>
+                     </div>
+                  </Card>
+               </section>
+
+               <section className="space-y-6">
+                  <div className="flex items-center gap-3 text-destructive font-black text-xl uppercase tracking-tighter italic px-1">
+                    <Trash2 className="h-6 w-6" /> Maintenance
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button variant="outline" className="h-20 gap-3 border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex flex-col items-center justify-center font-black uppercase tracking-widest text-xs transition-all active:scale-95 group text-foreground" onClick={handleClearCache}>
+                       <Eraser className="h-5 w-5 group-hover:rotate-12 transition-transform" /> Clear Image Assets
+                    </Button>
+                    <Button variant="outline" className="h-20 gap-3 border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex flex-col items-center justify-center font-black uppercase tracking-widest text-xs transition-all active:scale-95 group text-foreground" onClick={handleClearCookies}>
+                       <Cloud className="h-5 w-5 group-hover:-translate-y-1 transition-transform" /> Reset Session Data
+                    </Button>
+                  </div>
+               </section>
+
+               <section className="space-y-6">
+                  <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                    <RefreshCcw className={cn("h-6 w-6", updateStatus === 'checking' && "animate-spin")} /> Update Engine
+                  </div>
+                  <Card className="border-border bg-card p-6 shadow-none">
+                     <div className="flex items-center justify-between mb-8">
+                        <div className="space-y-1">
+                           <div className="text-lg font-black tracking-tighter uppercase italic opacity-80 leading-none text-foreground">Manwa v{(window as any).api.version}</div>
+                           <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-50">Local Installation Binary</div>
+                        </div>
+                        <Badge variant="outline" className="px-4 py-1.5 font-black uppercase text-[10px] tracking-widest bg-secondary">Up to date</Badge>
+                     </div>
+                     <div className="bg-muted/30 rounded-2xl p-6 border border-border flex items-center justify-between group">
+                        <div className="flex items-center gap-6">
+                           <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all group-hover:scale-110 group-hover:rotate-3 shadow-primary/20", updateStatus === 'error' ? "bg-destructive/10 text-destructive" : "bg-primary text-primary-foreground border border-primary/20")}>
+                             {updateStatus === 'checking' ? <Loader2 className="h-6 w-6 animate-spin" /> : <RefreshCcw className="h-6 w-6" />}
+                           </div>
+                           <div className="space-y-1">
+                              <div className="text-base font-black tracking-tight uppercase italic drop-shadow-sm text-foreground">Check Updates</div>
+                              <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Last synchronized: Just now</div>
+                           </div>
+                        </div>
+                        <Button variant="outline" onClick={() => (window as any).api.checkForUpdates()} disabled={updateStatus === 'checking'} className="h-12 px-8 font-black uppercase tracking-widest text-xs border-primary/20 hover:bg-primary/10 hover:text-primary transition-all active:scale-95 text-foreground">Sync Now</Button>
+                     </div>
+                  </Card>
+               </section>
+
+               <section className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                   <div className="flex items-center gap-3 text-yellow-500 font-black text-xl uppercase tracking-tighter italic">
+                      <Terminal className="h-6 w-6" /> Internal Controls
+                   </div>
+                   <div className="flex items-center gap-2 bg-green-500/10 text-green-500 px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest border border-green-500/20">
+                      <CheckCircle2 className="h-3 w-3" /> Binary Core Active
+                   </div>
                 </div>
-                <a
-                  href="https://github.com/anasr/LManwa"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 hover:text-primary transition-colors underline underline-offset-4"
-                >
-                  GitHub Repository <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+                <Card className="border-border bg-card p-6">
+                  <div className="flex items-center justify-between group">
+                    <div className="space-y-1">
+                      <div className="text-sm font-bold opacity-80 text-foreground">Developer Logging</div>
+                      <div className="text-xs text-muted-foreground italic">Verbose trace output for debugging.</div>
+                    </div>
+                    <Switch checked={enableLog} onCheckedChange={setEnableLog} />
+                  </div>
+                  <div className="mt-8 pt-8 border-t border-border flex items-center justify-between">
+                     <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-[0.2em]">Build Engineering: Deepmind Advanced Agentic Coding</p>
+                     <a href="https://github.com/anasr/LManwa" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px] hover:scale-110 active:scale-95 transition-all">
+                        GitHub Repo <ExternalLink className="h-3 w-3" />
+                     </a>
+                  </div>
+                </Card>
+              </section>
+            </div>
+          )}
+        </div>
+      </main>
 
       {/* Floating Status Message */}
       {statusMessage && (
-        <div className="fixed bottom-8 right-8 animate-in slide-in-from-right-4 duration-300 z-50">
-          <Badge variant={statusMessage.includes('Failed') ? 'destructive' : 'default'} className="px-6 py-3 text-sm shadow-2xl border-2 border-background ring-4 ring-black/20">
-            {statusMessage.includes('Failed') ? <AlertCircle className="mr-2 h-4 w-4" /> : <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <div className="fixed bottom-10 right-10 animate-in slide-in-from-right-8 duration-500 z-50">
+          <Badge variant={statusMessage.includes('Failed') ? 'destructive' : 'default'} className="px-8 py-4 text-sm font-black uppercase tracking-widest shadow-2xl border-2 border-border/20 backdrop-blur-3xl ring-4 ring-black/10">
+            {statusMessage.includes('Failed') ? <AlertCircle className="mr-3 h-5 w-5" /> : <Loader2 className="mr-3 h-5 w-5 animate-spin" />}
             {statusMessage}
           </Badge>
         </div>
@@ -505,4 +479,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-

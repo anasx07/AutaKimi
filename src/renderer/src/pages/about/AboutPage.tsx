@@ -26,10 +26,10 @@ export default function AboutPage() {
       <div className="flex flex-col items-center text-center space-y-6 pt-8">
         <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 flex items-center justify-center p-0.5 shadow-2xl shadow-primary/20 rotate-3 hover:rotate-0 transition-transform duration-500">
           <div className="w-full h-full bg-background rounded-[22px] flex items-center justify-center">
-             <span className="text-4xl font-black bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent">LM</span>
+            <span className="text-4xl font-black bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent">LM</span>
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <h1 className="text-5xl font-extrabold tracking-tight">LManwa</h1>
           <div className="flex items-center justify-center gap-2">
@@ -37,9 +37,9 @@ export default function AboutPage() {
             <Badge variant="outline" className="text-[10px] uppercase tracking-widest font-bold opacity-60">Stable Build</Badge>
           </div>
         </div>
-        
+
         <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
-          The ultimate open-source manga reader for desktop. 
+          The ultimate open-source manga reader for desktop.
           Built for speed, designed for readers, and powered by the community.
         </p>
 
@@ -60,8 +60,8 @@ export default function AboutPage() {
         {features.map((feature, idx) => {
           const Icon = feature.icon
           return (
-            <Card 
-              key={idx} 
+            <Card
+              key={idx}
               className="p-6 bg-card/40 backdrop-blur-sm border-border/30 space-y-4 hover:border-primary/30 transition-all group"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -82,7 +82,7 @@ export default function AboutPage() {
           <Info className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-bold tracking-tight">About Project</h2>
         </div>
-        
+
         <Card className="p-0 border-border/30 bg-card/20 overflow-hidden divide-y divide-border/20">
           <div className="p-6 flex items-start justify-between">
             <div className="space-y-1">
@@ -97,17 +97,6 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
-          
-          <div className="p-6 grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-70">Core Engine</p>
-              <p className="text-sm font-medium">Electron + Node.js</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-70">Frontend</p>
-              <p className="text-sm font-medium">React + Tailwind CSS</p>
-            </div>
-          </div>
 
           <div className="p-6 text-center">
             <p className="text-xs text-muted-foreground">
@@ -116,7 +105,7 @@ export default function AboutPage() {
           </div>
         </Card>
       </div>
-      
+
       <div className="pt-12 pb-8 text-center">
         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground/30">
           Designed with love for the manga community

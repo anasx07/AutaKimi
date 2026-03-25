@@ -122,7 +122,8 @@ export class ExtensionOrchestrator {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
-    const baseUrl = repoUrl.replace('/index.min.json', '');
+    const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main';
+    const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '');
     let code = '';
     
     const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true';
@@ -141,7 +142,8 @@ export class ExtensionOrchestrator {
       }
     }
 
-    const iconUrl = (ext.icon || `${baseUrl}/icon/${ext.pkg}.png`).replace('https://', 'lmanwa-cache://');
+    // Use a clean local-only URL format
+    const iconUrl = `lmanwa-cache://local-icon/${ext.pkg}.png`;
 
     await extensionRepo.upsert({
       pkg: ext.pkg,

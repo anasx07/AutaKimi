@@ -1,0 +1,6 @@
+
+> lmanwa@1.0.15 typecheck:web
+> tsc --noEmit -p tsconfig.web.json --composite false
+
+src/renderer/src/shared/api/sources/native/ma.lmanwa.extension.ar.mangalek.ts(26,17): error TS2339: Property 'fetchAjaxPagination' does not exist on type 'MangaLek'.
+src/renderer/src/shared/api/sources/native/ma.lmanwa.extension.ar.mangalek.ts(37,17): error TS2339: Property 'fetchAjaxPagination' does not exist on type 'MangaLek'.

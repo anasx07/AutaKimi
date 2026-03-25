@@ -1,4 +1,5 @@
 import { NetworkService } from '@common/services/network'
+import { FetchOptions } from '@common/types'
 
 const getApi = () => (window as any).api;
 
@@ -14,7 +15,7 @@ export const DataService = {
     addExtension: (data: any) => callIpc(() => getApi().db.addExtension(data)),
     getExtension: (pkg: string) => callIpc(() => getApi().db.getExtension(pkg)),
     removeExtension: (pkg: string) => callIpc(() => getApi().db.removeExtension(pkg)),
-    getLibrary: () => callIpc(() => getApi().db.getLibrary()),
+    getLibrary: (args?: any) => callIpc(() => getApi().db.getLibrary(args)),
     toggleLibrary: (manga: any) => callIpc(() => getApi().db.toggleLibrary(manga)),
     getSetting: (key: string) => callIpc(() => getApi().db.getSetting(key)),
     getSettings: () => callIpc(() => getApi().db.getSettings()),
@@ -42,7 +43,7 @@ export const DataService = {
     () => getApi().fetchRepo(url),
     (r: any) => !r.ok && (r.status >= 500 || r.status === 429)
   )),
-  fetchText: (url: string, options?: any) => callIpc(() => NetworkService.executeWithRetry(
+  fetchText: (url: string, options?: FetchOptions) => callIpc(() => NetworkService.executeWithRetry(
     () => getApi().fetchText(url, options),
     (r: any) => !r.ok && (r.status >= 500 || r.status === 429),
     options?.attempts || 3,
