@@ -1,0 +1,4760 @@
+{
+  "ma.lmanwa.extension.all.allporncomicsco": {
+    "id": "ma.lmanwa.extension.all.allporncomicsco",
+    "name": "AllPornComics.co",
+    "version": "0.0.1",
+    "baseUrl": "https://allporncomics.co",
+    "apiUrl": "https://allporncomics.co",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.all.comicsvalley": {
+    "id": "ma.lmanwa.extension.all.comicsvalley",
+    "name": "Comics Valley",
+    "version": "0.0.1",
+    "baseUrl": "https://comicsvalley.com",
+    "apiUrl": "https://comicsvalley.com",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.all.grabberzone": {
+    "id": "ma.lmanwa.extension.all.grabberzone",
+    "name": "Grabber Zone",
+    "version": "0.0.1",
+    "baseUrl": "https://grabber.zone",
+    "apiUrl": "https://grabber.zone",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.all.kodokustudio": {
+    "id": "ma.lmanwa.extension.all.kodokustudio",
+    "name": "Kodoku Studio",
+    "version": "0.0.1",
+    "baseUrl": "https://kodokustudio.com",
+    "apiUrl": "https://kodokustudio.com",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.all.mangacrazy": {
+    "id": "ma.lmanwa.extension.all.mangacrazy",
+    "name": "MangaCrazy",
+    "version": "0.0.1",
+    "baseUrl": "https://mangacrazy.net",
+    "apiUrl": "https://mangacrazy.net",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.all.manhwadashraw": {
+    "id": "ma.lmanwa.extension.all.manhwadashraw",
+    "name": "Manhwa-raw",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwa-raw.com",
+    "apiUrl": "https://manhwa-raw.com",
+    "lang": "all",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.arabtoons": {
+    "id": "ma.lmanwa.extension.ar.arabtoons",
+    "name": "عرب تونز",
+    "version": "0.0.1",
+    "baseUrl": "https://arabtoons.net",
+    "apiUrl": "https://arabtoons.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.arbxcomix": {
+    "id": "ma.lmanwa.extension.ar.arbxcomix",
+    "name": "ArbxComix",
+    "version": "0.0.1",
+    "baseUrl": "https://arbxcomix.com",
+    "apiUrl": "https://arbxcomix.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.areamanga": {
+    "id": "ma.lmanwa.extension.ar.areamanga",
+    "name": "أريا مانجا",
+    "version": "0.0.1",
+    "baseUrl": "https://ar.kenmanga.com",
+    "apiUrl": "https://ar.kenmanga.com",
+    "lang": "ar",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDetailsSelector": "div.legendary-single-page",
+      "seriesTitleSelector": ".manga-title-large",
+      "seriesThumbnailSelector": ".manga-poster img",
+      "seriesDescriptionSelector": "div.story-text",
+      "seriesGenreSelector": "div.filter-tags a",
+      "seriesStatusSelector": ".info-label:contains(الحالة) + span",
+      "seriesAuthorSelector": ".info-label:contains(المؤلف) + span",
+      "seriesArtistSelector": ".info-label:contains(الرسام) + span",
+      "searchMangaTitleSelector": ".bigor .tt, h3 a",
+      "searchMangaSelector": ".listupd .manga-card-v",
+      "chapterListSelector": "#chapters-list-container .ch-item"
+    }
+  },
+  "ma.lmanwa.extension.ar.areascans": {
+    "id": "ma.lmanwa.extension.ar.areascans",
+    "name": "Area Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://ar.areascans.org",
+    "apiUrl": "https://ar.areascans.org",
+    "lang": "ar",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.ar.comicverse": {
+    "id": "ma.lmanwa.extension.ar.comicverse",
+    "name": "Comic Verse",
+    "version": "0.0.1",
+    "baseUrl": "https://arcomixverse.blogspot.com",
+    "apiUrl": "https://arcomixverse.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.crowscans": {
+    "id": "ma.lmanwa.extension.ar.crowscans",
+    "name": "Hadess",
+    "version": "0.0.1",
+    "baseUrl": "https://www.hadess.xyz",
+    "apiUrl": "https://www.hadess.xyz",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.detectiveconanar": {
+    "id": "ma.lmanwa.extension.ar.detectiveconanar",
+    "name": "شبكة كونان العربية",
+    "version": "0.0.1",
+    "baseUrl": "https://manga.detectiveconanar.com",
+    "apiUrl": "https://manga.detectiveconanar.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.empirewebtoon": {
+    "id": "ma.lmanwa.extension.ar.empirewebtoon",
+    "name": "Empire Webtoon",
+    "version": "0.0.1",
+    "baseUrl": "https://webtoonempire-bl.com",
+    "apiUrl": "https://webtoonempire-bl.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.goldenmanga": {
+    "id": "ma.lmanwa.extension.ar.goldenmanga",
+    "name": "Golden Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://goldenmanga.net",
+    "apiUrl": "https://goldenmanga.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.hijala": {
+    "id": "ma.lmanwa.extension.ar.hijala",
+    "name": "Hijala",
+    "version": "0.0.1",
+    "baseUrl": "https://hijala.com",
+    "apiUrl": "https://hijala.com",
+    "lang": "ar",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.ar.lonertranslations": {
+    "id": "ma.lmanwa.extension.ar.lonertranslations",
+    "name": "Loner Translations",
+    "version": "0.0.1",
+    "baseUrl": "https://loner-tl.blogspot.com",
+    "apiUrl": "https://loner-tl.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.manga3asq": {
+    "id": "ma.lmanwa.extension.ar.manga3asq",
+    "name": "مانجا العاشق",
+    "version": "0.0.1",
+    "baseUrl": "https://3asq.org",
+    "apiUrl": "https://3asq.org",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangaailand": {
+    "id": "ma.lmanwa.extension.ar.mangaailand",
+    "name": "Manga Ai Land",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-ai-land.blogspot.com",
+    "apiUrl": "https://manga-ai-land.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.mangahub": {
+    "id": "ma.lmanwa.extension.ar.mangahub",
+    "name": "MangaHub",
+    "version": "0.0.1",
+    "baseUrl": "https://www.mangaxhentai.com",
+    "apiUrl": "https://www.mangaxhentai.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.mangalink": {
+    "id": "ma.lmanwa.extension.ar.mangalink",
+    "name": "مانجا لينك",
+    "version": "0.0.1",
+    "baseUrl": "https://link-manga.net",
+    "apiUrl": "https://link-manga.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangalionz": {
+    "id": "ma.lmanwa.extension.ar.mangalionz",
+    "name": "MangaLionz",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-lionz.org",
+    "apiUrl": "https://manga-lionz.org",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangaspark": {
+    "id": "ma.lmanwa.extension.ar.mangaspark",
+    "name": "MangaSpark",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-spark.net",
+    "apiUrl": "https://manga-spark.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangastarz": {
+    "id": "ma.lmanwa.extension.ar.mangastarz",
+    "name": "Manga Starz",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-starz.net",
+    "apiUrl": "https://manga-starz.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangatuk": {
+    "id": "ma.lmanwa.extension.ar.mangatuk",
+    "name": "MangaTuk",
+    "version": "0.0.1",
+    "baseUrl": "https://mangatuk.com",
+    "apiUrl": "https://mangatuk.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.mangaxcore": {
+    "id": "ma.lmanwa.extension.ar.mangaxcore",
+    "name": "Mangax Core",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaxcore.xyz",
+    "apiUrl": "https://mangaxcore.xyz",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.manhatic": {
+    "id": "ma.lmanwa.extension.ar.manhatic",
+    "name": "Manhatic",
+    "version": "0.0.1",
+    "baseUrl": "https://manhatic.com",
+    "apiUrl": "https://manhatic.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.manhatok": {
+    "id": "ma.lmanwa.extension.ar.manhatok",
+    "name": "Manhatok",
+    "version": "0.0.1",
+    "baseUrl": "https://manhatok.blogspot.com",
+    "apiUrl": "https://manhatok.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.murim": {
+    "id": "ma.lmanwa.extension.ar.murim",
+    "name": "Murim",
+    "version": "0.0.1",
+    "baseUrl": "https://www.murim.site",
+    "apiUrl": "https://www.murim.site",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.orcamanga": {
+    "id": "ma.lmanwa.extension.ar.orcamanga",
+    "name": "Orca Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.orcamanga.site",
+    "apiUrl": "https://www.orcamanga.site",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.paradisebl": {
+    "id": "ma.lmanwa.extension.ar.paradisebl",
+    "name": "Paradise BL",
+    "version": "0.0.1",
+    "baseUrl": "https://paradise-bl.com",
+    "apiUrl": "https://paradise-bl.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.rocksmanga": {
+    "id": "ma.lmanwa.extension.ar.rocksmanga",
+    "name": "Rocks Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://rocksmanga.com",
+    "apiUrl": "https://rocksmanga.com",
+    "lang": "ar",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "div.list-body-hh ul li"
+    }
+  },
+  "ma.lmanwa.extension.ar.stellarsaber": {
+    "id": "ma.lmanwa.extension.ar.stellarsaber",
+    "name": "StellarSaber",
+    "version": "0.0.1",
+    "baseUrl": "https://stellarsaber.pro",
+    "apiUrl": "https://stellarsaber.pro",
+    "lang": "ar",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.ar.xsanomanga": {
+    "id": "ma.lmanwa.extension.ar.xsanomanga",
+    "name": "XSano Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.xsano-manga.com",
+    "apiUrl": "https://www.xsano-manga.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.yokai": {
+    "id": "ma.lmanwa.extension.ar.yokai",
+    "name": "Yokai",
+    "version": "0.0.1",
+    "baseUrl": "https://yokai-team.blogspot.com",
+    "apiUrl": "https://yokai-team.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.ar.yonabar": {
+    "id": "ma.lmanwa.extension.ar.yonabar",
+    "name": "Yona Bar",
+    "version": "0.0.1",
+    "baseUrl": "https://yonaber.com",
+    "apiUrl": "https://yonaber.com",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ar.yurimoonsub": {
+    "id": "ma.lmanwa.extension.ar.yurimoonsub",
+    "name": "Yuri Moon Sub",
+    "version": "0.0.1",
+    "baseUrl": "https://yurimoonsub.blogspot.com",
+    "apiUrl": "https://yurimoonsub.blogspot.com",
+    "lang": "ar",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.cs.evilproduction": {
+    "id": "ma.lmanwa.extension.cs.evilproduction",
+    "name": "Evil production",
+    "version": "0.0.1",
+    "baseUrl": "https://evil-manga.eu",
+    "apiUrl": "https://evil-manga.eu",
+    "lang": "cs",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.allporncomic": {
+    "id": "ma.lmanwa.extension.en.allporncomic",
+    "name": "AllPornComic",
+    "version": "0.0.1",
+    "baseUrl": "https://allporncomic.com",
+    "apiUrl": "https://allporncomic.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.allporncomicio": {
+    "id": "ma.lmanwa.extension.en.allporncomicio",
+    "name": "AllPornComic.io",
+    "version": "0.0.1",
+    "baseUrl": "https://allporncomic.io",
+    "apiUrl": "https://allporncomic.io",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.anisascans": {
+    "id": "ma.lmanwa.extension.en.anisascans",
+    "name": "Anisa Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://anisascans.in",
+    "apiUrl": "https://anisascans.in",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.apcomics": {
+    "id": "ma.lmanwa.extension.en.apcomics",
+    "name": "AP Comics",
+    "version": "0.0.1",
+    "baseUrl": "https://apcomics.org",
+    "apiUrl": "https://apcomics.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.aquamanga": {
+    "id": "ma.lmanwa.extension.en.aquamanga",
+    "name": "Aqua Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://aquareader.net",
+    "apiUrl": "https://aquareader.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.arvencomics": {
+    "id": "ma.lmanwa.extension.en.arvencomics",
+    "name": "Arven Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://arvencomics.com",
+    "apiUrl": "https://arvencomics.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.aryascans": {
+    "id": "ma.lmanwa.extension.en.aryascans",
+    "name": "Arya Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://brainrotcomics.com",
+    "apiUrl": "https://brainrotcomics.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.athreascans": {
+    "id": "ma.lmanwa.extension.en.athreascans",
+    "name": "Athrea Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://athreascans.com",
+    "apiUrl": "https://athreascans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.baektoons": {
+    "id": "ma.lmanwa.extension.en.baektoons",
+    "name": "Baek Toons",
+    "version": "0.0.1",
+    "baseUrl": "https://baektoons.com",
+    "apiUrl": "https://baektoons.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.battleinfivesecondsaftermeeting": {
+    "id": "ma.lmanwa.extension.en.battleinfivesecondsaftermeeting",
+    "name": "Battle In 5 Seconds After Meeting",
+    "version": "0.0.1",
+    "baseUrl": "https://www.deatte5.com",
+    "apiUrl": "https://www.deatte5.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.boratscans": {
+    "id": "ma.lmanwa.extension.en.boratscans",
+    "name": "Borat Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://boratscans.com",
+    "apiUrl": "https://boratscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.cocomic": {
+    "id": "ma.lmanwa.extension.en.cocomic",
+    "name": "Cocomic",
+    "version": "0.0.1",
+    "baseUrl": "https://cocomic.co",
+    "apiUrl": "https://cocomic.co",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter:not(.premium)"
+    }
+  },
+  "ma.lmanwa.extension.en.coffeemanga": {
+    "id": "ma.lmanwa.extension.en.coffeemanga",
+    "name": "Coffee Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://coffeemanga.ink",
+    "apiUrl": "https://coffeemanga.ink",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.cucumbermanga": {
+    "id": "ma.lmanwa.extension.en.cucumbermanga",
+    "name": "Cucumber Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://cucumbermanga.com",
+    "apiUrl": "https://cucumbermanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.culturedworks": {
+    "id": "ma.lmanwa.extension.en.culturedworks",
+    "name": "CulturedWorks",
+    "version": "0.0.1",
+    "baseUrl": "https://culturedworks.com",
+    "apiUrl": "https://culturedworks.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDetailsSelector": ".main-info",
+      "seriesGenreSelector": ".meta .genres .genre-item",
+      "seriesStatusSelector": ".info-right .status, ${super.seriesStatusSelector}"
+    }
+  },
+  "ma.lmanwa.extension.en.darkscans": {
+    "id": "ma.lmanwa.extension.en.darkscans",
+    "name": "Dark Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://darkscans.net",
+    "apiUrl": "https://darkscans.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.decadencescans": {
+    "id": "ma.lmanwa.extension.en.decadencescans",
+    "name": "Decadence Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://reader.decadencescans.com",
+    "apiUrl": "https://reader.decadencescans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.dragontea": {
+    "id": "ma.lmanwa.extension.en.dragontea",
+    "name": "DragonTea",
+    "version": "0.0.1",
+    "baseUrl": "https://dragontea.ink",
+    "apiUrl": "https://dragontea.ink",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.drakescans": {
+    "id": "ma.lmanwa.extension.en.drakescans",
+    "name": "Drake Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://drakecomic.org",
+    "apiUrl": "https://drakecomic.org",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.elftoon": {
+    "id": "ma.lmanwa.extension.en.elftoon",
+    "name": "Elf Toon",
+    "version": "0.0.1",
+    "baseUrl": "https://elftoon.com",
+    "apiUrl": "https://elftoon.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "#chapterlist li:not(:has(.gem-price-icon))"
+    }
+  },
+  "ma.lmanwa.extension.en.epicmanga": {
+    "id": "ma.lmanwa.extension.en.epicmanga",
+    "name": "EpicManga",
+    "version": "0.0.1",
+    "baseUrl": "https://epicmanga.co",
+    "apiUrl": "https://epicmanga.co",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.ero18x": {
+    "id": "ma.lmanwa.extension.en.ero18x",
+    "name": "Ero18x",
+    "version": "0.0.1",
+    "baseUrl": "https://ero18x.com",
+    "apiUrl": "https://ero18x.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.erosscans": {
+    "id": "ma.lmanwa.extension.en.erosscans",
+    "name": "Eros Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://erosxsun.xyz",
+    "apiUrl": "https://erosxsun.xyz",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.evascans": {
+    "id": "ma.lmanwa.extension.en.evascans",
+    "name": "Eva Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://evascans.org",
+    "apiUrl": "https://evascans.org",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "searchMangaSelector": "div.manga-card-v, .listupd .bs .bsx",
+      "pageSelector": "div#readerArea img"
+    }
+  },
+  "ma.lmanwa.extension.en.evilflowers": {
+    "id": "ma.lmanwa.extension.en.evilflowers",
+    "name": "Evil Flowers",
+    "version": "0.0.1",
+    "baseUrl": "https://evilflowers.com",
+    "apiUrl": "https://evilflowers.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.fairyscans": {
+    "id": "ma.lmanwa.extension.en.fairyscans",
+    "name": "Fairy Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://fairyscans.com",
+    "apiUrl": "https://fairyscans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.firescans": {
+    "id": "ma.lmanwa.extension.en.firescans",
+    "name": "Firescans",
+    "version": "0.0.1",
+    "baseUrl": "https://firescans.xyz",
+    "apiUrl": "https://firescans.xyz",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.frierenonline": {
+    "id": "ma.lmanwa.extension.en.frierenonline",
+    "name": "Frieren Online",
+    "version": "0.0.1",
+    "baseUrl": "https://www.frieren.online",
+    "apiUrl": "https://www.frieren.online",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.galaxydegenscans": {
+    "id": "ma.lmanwa.extension.en.galaxydegenscans",
+    "name": "GalaxyDegenScans",
+    "version": "0.0.1",
+    "baseUrl": "https://gdscans.com",
+    "apiUrl": "https://gdscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.galaxymanga": {
+    "id": "ma.lmanwa.extension.en.galaxymanga",
+    "name": "Galaxy Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://galaxymanga.io",
+    "apiUrl": "https://galaxymanga.io",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.gedecomix": {
+    "id": "ma.lmanwa.extension.en.gedecomix",
+    "name": "GEDE Comix",
+    "version": "0.0.1",
+    "baseUrl": "https://gedecomix.com",
+    "apiUrl": "https://gedecomix.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.gourmetscans": {
+    "id": "ma.lmanwa.extension.en.gourmetscans",
+    "name": "Gourmet Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://gourmetsupremacy.com",
+    "apiUrl": "https://gourmetsupremacy.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.greedscans": {
+    "id": "ma.lmanwa.extension.en.greedscans",
+    "name": "greed scans",
+    "version": "0.0.1",
+    "baseUrl": "https://greedscans.com",
+    "apiUrl": "https://greedscans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.harimanga": {
+    "id": "ma.lmanwa.extension.en.harimanga",
+    "name": "Harimanga",
+    "version": "0.0.1",
+    "baseUrl": "https://harimanga.me",
+    "apiUrl": "https://harimanga.me",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentai20": {
+    "id": "ma.lmanwa.extension.en.hentai20",
+    "name": "Hentai20",
+    "version": "0.0.1",
+    "baseUrl": "https://hentai20.io",
+    "apiUrl": "https://hentai20.io",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.hentai4free": {
+    "id": "ma.lmanwa.extension.en.hentai4free",
+    "name": "Hentai4Free",
+    "version": "0.0.1",
+    "baseUrl": "https://hentai4free.net",
+    "apiUrl": "https://hentai4free.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentaidex": {
+    "id": "ma.lmanwa.extension.en.hentaidex",
+    "name": "HentaiDex",
+    "version": "0.0.1",
+    "baseUrl": "https://dexhentai.com",
+    "apiUrl": "https://dexhentai.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.hentairead": {
+    "id": "ma.lmanwa.extension.en.hentairead",
+    "name": "HentaiRead",
+    "version": "0.0.1",
+    "baseUrl": "https://hentairead.com",
+    "apiUrl": "https://hentairead.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentaisco": {
+    "id": "ma.lmanwa.extension.en.hentaisco",
+    "name": "HentaiSco",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaisco.cc",
+    "apiUrl": "https://hentaisco.cc",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentaixcomic": {
+    "id": "ma.lmanwa.extension.en.hentaixcomic",
+    "name": "HentaiXComic",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaixcomic.com",
+    "apiUrl": "https://hentaixcomic.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentaixdickgirl": {
+    "id": "ma.lmanwa.extension.en.hentaixdickgirl",
+    "name": "HentaiXDickgirl",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaixdickgirl.com",
+    "apiUrl": "https://hentaixdickgirl.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hentaixyuri": {
+    "id": "ma.lmanwa.extension.en.hentaixyuri",
+    "name": "HentaiXYuri",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaixyuri.com",
+    "apiUrl": "https://hentaixyuri.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.hiperdex": {
+    "id": "ma.lmanwa.extension.en.hiperdex",
+    "name": "Hiperdex",
+    "version": "0.0.1",
+    "baseUrl": "https://hiperdex.com",
+    "apiUrl": "https://hiperdex.com",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "#loop-content div.page-listing-item"
+    }
+  },
+  "ma.lmanwa.extension.en.hm2d": {
+    "id": "ma.lmanwa.extension.en.hm2d",
+    "name": "HM2D",
+    "version": "0.0.1",
+    "baseUrl": "https://doujindistrict.com",
+    "apiUrl": "https://doujindistrict.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.jimanga": {
+    "id": "ma.lmanwa.extension.en.jimanga",
+    "name": "S2Manga.io",
+    "version": "0.0.1",
+    "baseUrl": "https://s2manga.io",
+    "apiUrl": "https://s2manga.io",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.jinmangas": {
+    "id": "ma.lmanwa.extension.en.jinmangas",
+    "name": "Jinmangas",
+    "version": "0.0.1",
+    "baseUrl": "https://jinmangas.com",
+    "apiUrl": "https://jinmangas.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.kappabeast": {
+    "id": "ma.lmanwa.extension.en.kappabeast",
+    "name": "Kappa Beast",
+    "version": "0.0.1",
+    "baseUrl": "https://kappabeast.com",
+    "apiUrl": "https://kappabeast.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "pageSelector": ".epcontent.entry-content img"
+    }
+  },
+  "ma.lmanwa.extension.en.kingofshojo": {
+    "id": "ma.lmanwa.extension.en.kingofshojo",
+    "name": "King of Shojo",
+    "version": "0.0.1",
+    "baseUrl": "https://kingofshojo.com",
+    "apiUrl": "https://kingofshojo.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.kissmangain": {
+    "id": "ma.lmanwa.extension.en.kissmangain",
+    "name": "Kissmanga.in",
+    "version": "0.0.1",
+    "baseUrl": "https://kissmanga.in",
+    "apiUrl": "https://kissmanga.in",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.ksgroupscans": {
+    "id": "ma.lmanwa.extension.en.ksgroupscans",
+    "name": "KSGroupScans",
+    "version": "0.0.1",
+    "baseUrl": "https://ksgroupscans.com",
+    "apiUrl": "https://ksgroupscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.kunmanga": {
+    "id": "ma.lmanwa.extension.en.kunmanga",
+    "name": "Kun Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://kunmanga.com",
+    "apiUrl": "https://kunmanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.lagoonscans": {
+    "id": "ma.lmanwa.extension.en.lagoonscans",
+    "name": "Lagoon Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://lagoonscans.com",
+    "apiUrl": "https://lagoonscans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.lhtranslation": {
+    "id": "ma.lmanwa.extension.en.lhtranslation",
+    "name": "LHTranslation",
+    "version": "0.0.1",
+    "baseUrl": "https://lhtranslation.net",
+    "apiUrl": "https://lhtranslation.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.likemangain": {
+    "id": "ma.lmanwa.extension.en.likemangain",
+    "name": "MangaYY",
+    "version": "0.0.1",
+    "baseUrl": "https://mangayy.org",
+    "apiUrl": "https://mangayy.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.lilymanga": {
+    "id": "ma.lmanwa.extension.en.lilymanga",
+    "name": "Lily Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://lilymanga.net",
+    "apiUrl": "https://lilymanga.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.madaradex": {
+    "id": "ma.lmanwa.extension.en.madaradex",
+    "name": "MadaraDex",
+    "version": "0.0.1",
+    "baseUrl": "https://madaradex.org",
+    "apiUrl": "https://madaradex.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.madarascans": {
+    "id": "ma.lmanwa.extension.en.madarascans",
+    "name": "Madara Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://madarascans.com",
+    "apiUrl": "https://madarascans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDetailsSelector": "div.lh-container",
+      "seriesTitleSelector": "h1.lh-title",
+      "seriesThumbnailSelector": ".lh-poster > img",
+      "seriesDescriptionSelector": "div.lh-story > #manga-story",
+      "seriesGenreSelector": ".lh-genres > .lh-genre-tag",
+      "seriesStatusSelector": "span.status-badge-lux",
+      "searchMangaSelector": "div.listupd>div, div.legend-inner",
+      "pageSelector": ".pagination, .legendary-pagination, .magma-pagination"
+    }
+  },
+  "ma.lmanwa.extension.en.mahouirexnohentaikarte": {
+    "id": "ma.lmanwa.extension.en.mahouirexnohentaikarte",
+    "name": "Mahouirexnohentaikarte",
+    "version": "0.0.1",
+    "baseUrl": "https://mahouirexnohentaikarte.com",
+    "apiUrl": "https://mahouirexnohentaikarte.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manga18free": {
+    "id": "ma.lmanwa.extension.en.manga18free",
+    "name": "Manga18Free",
+    "version": "0.0.1",
+    "baseUrl": "https://manga18free.com",
+    "apiUrl": "https://manga18free.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manga18fx": {
+    "id": "ma.lmanwa.extension.en.manga18fx",
+    "name": "Manga18fx",
+    "version": "0.0.1",
+    "baseUrl": "https://manga18fx.com",
+    "apiUrl": "https://manga18fx.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manga18x": {
+    "id": "ma.lmanwa.extension.en.manga18x",
+    "name": "Manga 18x",
+    "version": "0.0.1",
+    "baseUrl": "https://manga18x.net",
+    "apiUrl": "https://manga18x.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangaclash": {
+    "id": "ma.lmanwa.extension.en.mangaclash",
+    "name": "MangaClash",
+    "version": "0.0.1",
+    "baseUrl": "https://toonclash.com",
+    "apiUrl": "https://toonclash.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangadass": {
+    "id": "ma.lmanwa.extension.en.mangadass",
+    "name": "Manga Dass",
+    "version": "0.0.1",
+    "baseUrl": "https://mangadass.com",
+    "apiUrl": "https://mangadass.com",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": ".row-content-chapter li"
+    }
+  },
+  "ma.lmanwa.extension.en.mangadia": {
+    "id": "ma.lmanwa.extension.en.mangadia",
+    "name": "MangaDia",
+    "version": "0.0.1",
+    "baseUrl": "https://mangadia.com",
+    "apiUrl": "https://mangadia.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangadistrict": {
+    "id": "ma.lmanwa.extension.en.mangadistrict",
+    "name": "Manga District",
+    "version": "0.0.1",
+    "baseUrl": "https://mangadistrict.com",
+    "apiUrl": "https://mangadistrict.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangadrama": {
+    "id": "ma.lmanwa.extension.en.mangadrama",
+    "name": "Manga Drama",
+    "version": "0.0.1",
+    "baseUrl": "https://mangadrama.com",
+    "apiUrl": "https://mangadrama.com",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter.free-chap"
+    }
+  },
+  "ma.lmanwa.extension.en.mangaforfreecom": {
+    "id": "ma.lmanwa.extension.en.mangaforfreecom",
+    "name": "Mangaforfree.com",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaforfree.com",
+    "apiUrl": "https://mangaforfree.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangafree": {
+    "id": "ma.lmanwa.extension.en.mangafree",
+    "name": "Mangafree",
+    "version": "0.0.1",
+    "baseUrl": "https://mangafree.info",
+    "apiUrl": "https://mangafree.info",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangagg": {
+    "id": "ma.lmanwa.extension.en.mangagg",
+    "name": "MangaGG",
+    "version": "0.0.1",
+    "baseUrl": "https://mangagg.com",
+    "apiUrl": "https://mangagg.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangahe": {
+    "id": "ma.lmanwa.extension.en.mangahe",
+    "name": "MangaHe",
+    "version": "0.0.1",
+    "baseUrl": "https://mangahe.com",
+    "apiUrl": "https://mangahe.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangahentai": {
+    "id": "ma.lmanwa.extension.en.mangahentai",
+    "name": "Manga Hentai",
+    "version": "0.0.1",
+    "baseUrl": "https://mangahentai.me",
+    "apiUrl": "https://mangahentai.me",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangakiss": {
+    "id": "ma.lmanwa.extension.en.mangakiss",
+    "name": "Manga Kiss",
+    "version": "0.0.1",
+    "baseUrl": "https://mangakiss.org",
+    "apiUrl": "https://mangakiss.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangamaniacs": {
+    "id": "ma.lmanwa.extension.en.mangamaniacs",
+    "name": "MangaManiacs",
+    "version": "0.0.1",
+    "baseUrl": "https://mangamaniacs.org",
+    "apiUrl": "https://mangamaniacs.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangaread": {
+    "id": "ma.lmanwa.extension.en.mangaread",
+    "name": "Manga Read",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaread.co",
+    "apiUrl": "https://mangaread.co",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangareadorg": {
+    "id": "ma.lmanwa.extension.en.mangareadorg",
+    "name": "MangaRead.org",
+    "version": "0.0.1",
+    "baseUrl": "https://www.mangaread.org",
+    "apiUrl": "https://www.mangaread.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangasushi": {
+    "id": "ma.lmanwa.extension.en.mangasushi",
+    "name": "Mangasushi",
+    "version": "0.0.1",
+    "baseUrl": "https://mangasushi.org",
+    "apiUrl": "https://mangasushi.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.mangatx": {
+    "id": "ma.lmanwa.extension.en.mangatx",
+    "name": "MangaTX",
+    "version": "0.0.1",
+    "baseUrl": "https://mangatx.cc",
+    "apiUrl": "https://mangatx.cc",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesAuthorSelector": ".imptdt:contains(Author) a"
+    }
+  },
+  "ma.lmanwa.extension.en.mangatyrant": {
+    "id": "ma.lmanwa.extension.en.mangatyrant",
+    "name": "MangaTyrant",
+    "version": "0.0.1",
+    "baseUrl": "https://mangatyrant.com",
+    "apiUrl": "https://mangatyrant.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuafast": {
+    "id": "ma.lmanwa.extension.en.manhuafast",
+    "name": "ManhuaFast",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuafast.com",
+    "apiUrl": "https://manhuafast.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuahot": {
+    "id": "ma.lmanwa.extension.en.manhuahot",
+    "name": "ManhuaHot",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuahot.com",
+    "apiUrl": "https://manhuahot.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuanext": {
+    "id": "ma.lmanwa.extension.en.manhuanext",
+    "name": "Manhuanext",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuanext.com",
+    "apiUrl": "https://manhuanext.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuaplus": {
+    "id": "ma.lmanwa.extension.en.manhuaplus",
+    "name": "Manhua Plus",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuaplus.com",
+    "apiUrl": "https://manhuaplus.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuascanus": {
+    "id": "ma.lmanwa.extension.en.manhuascanus",
+    "name": "Manhuascan.us",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuascan.us",
+    "apiUrl": "https://manhuascan.us",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesAuthorSelector": ".tsinfo .imptdt:contains(Author) a"
+    }
+  },
+  "ma.lmanwa.extension.en.manhuatop": {
+    "id": "ma.lmanwa.extension.en.manhuatop",
+    "name": "ManhuaTop",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuatop.org",
+    "apiUrl": "https://manhuatop.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuaus": {
+    "id": "ma.lmanwa.extension.en.manhuaus",
+    "name": "ManhuaUS",
+    "version": "0.0.1",
+    "baseUrl": "https://manhuaus.com",
+    "apiUrl": "https://manhuaus.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhuazonghe": {
+    "id": "ma.lmanwa.extension.en.manhuazonghe",
+    "name": "Manhua Zonghe",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhuazonghe.com",
+    "apiUrl": "https://www.manhuazonghe.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwa18org": {
+    "id": "ma.lmanwa.extension.en.manhwa18org",
+    "name": "Manhwa18.org",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwa18.org",
+    "apiUrl": "https://manhwa18.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwa68": {
+    "id": "ma.lmanwa.extension.en.manhwa68",
+    "name": "Manhwa68",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwa68.com",
+    "apiUrl": "https://manhwa68.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwaclan": {
+    "id": "ma.lmanwa.extension.en.manhwaclan",
+    "name": "ManhwaClan",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwaclan.com",
+    "apiUrl": "https://manhwaclan.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwacomics": {
+    "id": "ma.lmanwa.extension.en.manhwacomics",
+    "name": "Manhwa Comics",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwacomics.com",
+    "apiUrl": "https://manhwacomics.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwaden": {
+    "id": "ma.lmanwa.extension.en.manhwaden",
+    "name": "ManhwaDen",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhwaden.com",
+    "apiUrl": "https://www.manhwaden.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwajoy": {
+    "id": "ma.lmanwa.extension.en.manhwajoy",
+    "name": "Manhwajoy",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwajoy.com",
+    "apiUrl": "https://manhwajoy.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwamanhua": {
+    "id": "ma.lmanwa.extension.en.manhwamanhua",
+    "name": "ManhwaManhua",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwamanhua.com",
+    "apiUrl": "https://manhwamanhua.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwatoon": {
+    "id": "ma.lmanwa.extension.en.manhwatoon",
+    "name": "Manhwa Toon",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhwatoon.me",
+    "apiUrl": "https://www.manhwatoon.me",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.manhwatop": {
+    "id": "ma.lmanwa.extension.en.manhwatop",
+    "name": "Manhwatop",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwatop.com",
+    "apiUrl": "https://manhwatop.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.milftoon": {
+    "id": "ma.lmanwa.extension.en.milftoon",
+    "name": "Milftoon",
+    "version": "0.0.1",
+    "baseUrl": "https://milftoon.xxx",
+    "apiUrl": "https://milftoon.xxx",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.murimscan": {
+    "id": "ma.lmanwa.extension.en.murimscan",
+    "name": "MurimScan",
+    "version": "0.0.1",
+    "baseUrl": "https://www.murimscans.site",
+    "apiUrl": "https://www.murimscans.site",
+    "lang": "en",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.en.nikatoons": {
+    "id": "ma.lmanwa.extension.en.nikatoons",
+    "name": "Nika Toons",
+    "version": "0.0.1",
+    "baseUrl": "https://nikatoons.com",
+    "apiUrl": "https://nikatoons.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "#chapterlist li.chapter-item:not(.premium)"
+    }
+  },
+  "ma.lmanwa.extension.en.nitroscans": {
+    "id": "ma.lmanwa.extension.en.nitroscans",
+    "name": "Nitro Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://nitroscans.net",
+    "apiUrl": "https://nitroscans.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.novel24h": {
+    "id": "ma.lmanwa.extension.en.novel24h",
+    "name": "24HNovel",
+    "version": "0.0.1",
+    "baseUrl": "https://24hnovel.com",
+    "apiUrl": "https://24hnovel.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.novelcrow": {
+    "id": "ma.lmanwa.extension.en.novelcrow",
+    "name": "NovelCrow",
+    "version": "0.0.1",
+    "baseUrl": "https://novelcrow.com",
+    "apiUrl": "https://novelcrow.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.noxenscans": {
+    "id": "ma.lmanwa.extension.en.noxenscans",
+    "name": "Noxen Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://noxenscan.com",
+    "apiUrl": "https://noxenscan.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.orchisasia": {
+    "id": "ma.lmanwa.extension.en.orchisasia",
+    "name": "Orchisasia",
+    "version": "0.0.1",
+    "baseUrl": "https://www.orchisasia.org",
+    "apiUrl": "https://www.orchisasia.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.paragonscans": {
+    "id": "ma.lmanwa.extension.en.paragonscans",
+    "name": "Paragon Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://paragonscans.com",
+    "apiUrl": "https://paragonscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.paritehaber": {
+    "id": "ma.lmanwa.extension.en.paritehaber",
+    "name": "Paritehaber",
+    "version": "0.0.1",
+    "baseUrl": "https://www.paritehaber.com",
+    "apiUrl": "https://www.paritehaber.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.pawmanga": {
+    "id": "ma.lmanwa.extension.en.pawmanga",
+    "name": "Paw Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://pawmanga.com",
+    "apiUrl": "https://pawmanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.petrotechsociety": {
+    "id": "ma.lmanwa.extension.en.petrotechsociety",
+    "name": "Petrotechsociety",
+    "version": "0.0.1",
+    "baseUrl": "https://www.petrotechsociety.org",
+    "apiUrl": "https://www.petrotechsociety.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.philiascans": {
+    "id": "ma.lmanwa.extension.en.philiascans",
+    "name": "Philia Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://philiascans.org",
+    "apiUrl": "https://philiascans.org",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.item:not(:has(a[href='#'])):not(:has(.fa-coins))"
+    }
+  },
+  "ma.lmanwa.extension.en.platinumcrown": {
+    "id": "ma.lmanwa.extension.en.platinumcrown",
+    "name": "Platinum Crown",
+    "version": "0.0.1",
+    "baseUrl": "https://platinumscans.com",
+    "apiUrl": "https://platinumscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.plutoscans": {
+    "id": "ma.lmanwa.extension.en.plutoscans",
+    "name": "FlameScans.lol",
+    "version": "0.0.1",
+    "baseUrl": "https://flamescans.lol",
+    "apiUrl": "https://flamescans.lol",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.pmscans": {
+    "id": "ma.lmanwa.extension.en.pmscans",
+    "name": "Rackus",
+    "version": "0.0.1",
+    "baseUrl": "https://rackusreads.com",
+    "apiUrl": "https://rackusreads.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.ragescans": {
+    "id": "ma.lmanwa.extension.en.ragescans",
+    "name": "Rage Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://ragescans.com",
+    "apiUrl": "https://ragescans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "li:has(.chbox .eph-num):not(:has([data-bs-target='#lockedChapterModal']))"
+    }
+  },
+  "ma.lmanwa.extension.en.ravenscans": {
+    "id": "ma.lmanwa.extension.en.ravenscans",
+    "name": "Raven Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://ravenscans.org",
+    "apiUrl": "https://ravenscans.org",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.razure": {
+    "id": "ma.lmanwa.extension.en.razure",
+    "name": "Razure",
+    "version": "0.0.1",
+    "baseUrl": "https://razure.org",
+    "apiUrl": "https://razure.org",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "searchMangaSelector": ".listupd .bs .bsx:not(:has(.novelabel))",
+      "chapterListSelector": "#chapterlist li:not([data-num*='🔒'])"
+    }
+  },
+  "ma.lmanwa.extension.en.rdscans": {
+    "id": "ma.lmanwa.extension.en.rdscans",
+    "name": "RD Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://rdscans.com",
+    "apiUrl": "https://rdscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.resetscans": {
+    "id": "ma.lmanwa.extension.en.resetscans",
+    "name": "Reset Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://reset-scans.org",
+    "apiUrl": "https://reset-scans.org",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter>div:not(:has(a[href*=#]))"
+    }
+  },
+  "ma.lmanwa.extension.en.restscans": {
+    "id": "ma.lmanwa.extension.en.restscans",
+    "name": "Rest Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://restscans.com",
+    "apiUrl": "https://restscans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.retsu": {
+    "id": "ma.lmanwa.extension.en.retsu",
+    "name": "Retsu",
+    "version": "0.0.1",
+    "baseUrl": "https://retsu.org",
+    "apiUrl": "https://retsu.org",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": ".manga__item"
+    }
+  },
+  "ma.lmanwa.extension.en.rokaricomics": {
+    "id": "ma.lmanwa.extension.en.rokaricomics",
+    "name": "RokariComics",
+    "version": "0.0.1",
+    "baseUrl": "https://rokaricomics.com",
+    "apiUrl": "https://rokaricomics.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "#chapterlist li:has(div.chbox):has(div.eph-num):has(a[href]):not(:has(.text-gold))"
+    }
+  },
+  "ma.lmanwa.extension.en.rosesquadscans": {
+    "id": "ma.lmanwa.extension.en.rosesquadscans",
+    "name": "Rose Squad Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://rosesquadscans.aishiteru.org",
+    "apiUrl": "https://rosesquadscans.aishiteru.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.s2manga": {
+    "id": "ma.lmanwa.extension.en.s2manga",
+    "name": "S2Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://s2manga.com",
+    "apiUrl": "https://s2manga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.sectscans": {
+    "id": "ma.lmanwa.extension.en.sectscans",
+    "name": "SectScans",
+    "version": "0.0.1",
+    "baseUrl": "https://sectscans.com",
+    "apiUrl": "https://sectscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.setsuscans": {
+    "id": "ma.lmanwa.extension.en.setsuscans",
+    "name": "Setsu Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://setsuscans.com",
+    "apiUrl": "https://setsuscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.shibamanga": {
+    "id": "ma.lmanwa.extension.en.shibamanga",
+    "name": "Shiba Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://shibamanga.com",
+    "apiUrl": "https://shibamanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.shojoscans": {
+    "id": "ma.lmanwa.extension.en.shojoscans",
+    "name": "Violet Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://violetscans.org",
+    "apiUrl": "https://violetscans.org",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.shootingstarscans": {
+    "id": "ma.lmanwa.extension.en.shootingstarscans",
+    "name": "Shooting Star Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://shootingstarscans.com",
+    "apiUrl": "https://shootingstarscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.sitemanga": {
+    "id": "ma.lmanwa.extension.en.sitemanga",
+    "name": "Site Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://sitemanga.com",
+    "apiUrl": "https://sitemanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.skymanga": {
+    "id": "ma.lmanwa.extension.en.skymanga",
+    "name": "Sky Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://skymanga.work",
+    "apiUrl": "https://skymanga.work",
+    "lang": "en",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.en.sleepytranslations": {
+    "id": "ma.lmanwa.extension.en.sleepytranslations",
+    "name": "Sleepy Translations",
+    "version": "0.0.1",
+    "baseUrl": "https://sleepytranslations.com",
+    "apiUrl": "https://sleepytranslations.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.spmanhwa": {
+    "id": "ma.lmanwa.extension.en.spmanhwa",
+    "name": "Spmanhwa",
+    "version": "0.0.1",
+    "baseUrl": "https://spmanhwa.online",
+    "apiUrl": "https://spmanhwa.online",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.tappytoonnet": {
+    "id": "ma.lmanwa.extension.en.tappytoonnet",
+    "name": "TappyToon.Net",
+    "version": "0.0.1",
+    "baseUrl": "https://tappytoon.net",
+    "apiUrl": "https://tappytoon.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.toonchill": {
+    "id": "ma.lmanwa.extension.en.toonchill",
+    "name": "ToonChill",
+    "version": "0.0.1",
+    "baseUrl": "https://toonchill.com",
+    "apiUrl": "https://toonchill.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.toongod": {
+    "id": "ma.lmanwa.extension.en.toongod",
+    "name": "ToonGod",
+    "version": "0.0.1",
+    "baseUrl": "https://www.toongod.org",
+    "apiUrl": "https://www.toongod.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.toonily": {
+    "id": "ma.lmanwa.extension.en.toonily",
+    "name": "Toonily",
+    "version": "0.0.1",
+    "baseUrl": "https://$DOMAIN",
+    "apiUrl": "https://$DOMAIN",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.page-item-detail.manga"
+    }
+  },
+  "ma.lmanwa.extension.en.toonizy": {
+    "id": "ma.lmanwa.extension.en.toonizy",
+    "name": "Toonizy",
+    "version": "0.0.1",
+    "baseUrl": "https://toonizy.com",
+    "apiUrl": "https://toonizy.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.topmanhua": {
+    "id": "ma.lmanwa.extension.en.topmanhua",
+    "name": "Top Manhua",
+    "version": "0.0.1",
+    "baseUrl": "https://mangatop.org",
+    "apiUrl": "https://mangatop.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.topmanhuafan": {
+    "id": "ma.lmanwa.extension.en.topmanhuafan",
+    "name": "TopManhua.fan",
+    "version": "0.0.1",
+    "baseUrl": "https://www.topmanhua.fan",
+    "apiUrl": "https://www.topmanhua.fan",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "div.wp-manga-chapter"
+    }
+  },
+  "ma.lmanwa.extension.en.topmanhuanet": {
+    "id": "ma.lmanwa.extension.en.topmanhuanet",
+    "name": "TopManhua.net",
+    "version": "0.0.1",
+    "baseUrl": "https://topmanhua.net",
+    "apiUrl": "https://topmanhua.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.topreadmanhwa": {
+    "id": "ma.lmanwa.extension.en.topreadmanhwa",
+    "name": "TopReadManhwa",
+    "version": "0.0.1",
+    "baseUrl": "https://topreadmanhwa.com",
+    "apiUrl": "https://topreadmanhwa.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.tritiniascans": {
+    "id": "ma.lmanwa.extension.en.tritiniascans",
+    "name": "TritiniaScans",
+    "version": "0.0.1",
+    "baseUrl": "https://tritinia.org",
+    "apiUrl": "https://tritinia.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.utoon": {
+    "id": "ma.lmanwa.extension.en.utoon",
+    "name": "Utoon",
+    "version": "0.0.1",
+    "baseUrl": "https://utoon.net",
+    "apiUrl": "https://utoon.net",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter:not(.premium-block)"
+    }
+  },
+  "ma.lmanwa.extension.en.wearehunger": {
+    "id": "ma.lmanwa.extension.en.wearehunger",
+    "name": "Wearehunger",
+    "version": "0.0.1",
+    "baseUrl": "https://www.wearehunger.site",
+    "apiUrl": "https://www.wearehunger.site",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.webdexscans": {
+    "id": "ma.lmanwa.extension.en.webdexscans",
+    "name": "Webdex Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://webdexscans.com",
+    "apiUrl": "https://webdexscans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.webtoonscan": {
+    "id": "ma.lmanwa.extension.en.webtoonscan",
+    "name": "WebtoonScan",
+    "version": "0.0.1",
+    "baseUrl": "https://webtoonscan.com",
+    "apiUrl": "https://webtoonscan.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.webtoonxyz": {
+    "id": "ma.lmanwa.extension.en.webtoonxyz",
+    "name": "WebtoonXYZ",
+    "version": "0.0.1",
+    "baseUrl": "https://www.webtoon.xyz",
+    "apiUrl": "https://www.webtoon.xyz",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.whalemanga": {
+    "id": "ma.lmanwa.extension.en.whalemanga",
+    "name": "WhaleManga",
+    "version": "0.0.1",
+    "baseUrl": "https://whalemanga.com",
+    "apiUrl": "https://whalemanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.witchscans": {
+    "id": "ma.lmanwa.extension.en.witchscans",
+    "name": "WitchScans",
+    "version": "0.0.1",
+    "baseUrl": "https://witchscans.com",
+    "apiUrl": "https://witchscans.com",
+    "lang": "en",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "div.eplister ul li:has(div.chbox):has(div.eph-num):has(a[href])"
+    }
+  },
+  "ma.lmanwa.extension.en.woopread": {
+    "id": "ma.lmanwa.extension.en.woopread",
+    "name": "WoopRead",
+    "version": "0.0.1",
+    "baseUrl": "https://woopread.com",
+    "apiUrl": "https://woopread.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.wuxiaworld": {
+    "id": "ma.lmanwa.extension.en.wuxiaworld",
+    "name": "WuxiaWorld",
+    "version": "0.0.1",
+    "baseUrl": "https://wuxiaworld.site",
+    "apiUrl": "https://wuxiaworld.site",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.yakshacomics": {
+    "id": "ma.lmanwa.extension.en.yakshacomics",
+    "name": "YakshaComics",
+    "version": "0.0.1",
+    "baseUrl": "https://yakshacomics.com",
+    "apiUrl": "https://yakshacomics.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.yakshascans": {
+    "id": "ma.lmanwa.extension.en.yakshascans",
+    "name": "YakshaScans",
+    "version": "0.0.1",
+    "baseUrl": "https://yakshascans.com",
+    "apiUrl": "https://yakshascans.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.yaoihub": {
+    "id": "ma.lmanwa.extension.en.yaoihub",
+    "name": "Yaoihub",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoihub.com",
+    "apiUrl": "https://yaoihub.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.yaoiscan": {
+    "id": "ma.lmanwa.extension.en.yaoiscan",
+    "name": "YaoiScan",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoiscan.com",
+    "apiUrl": "https://yaoiscan.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.yaoitoon": {
+    "id": "ma.lmanwa.extension.en.yaoitoon",
+    "name": "YaoiToon",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoitoon.com",
+    "apiUrl": "https://yaoitoon.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.zazamanga": {
+    "id": "ma.lmanwa.extension.en.zazamanga",
+    "name": "Zazamanga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.zazamanga.com",
+    "apiUrl": "https://www.zazamanga.com",
+    "lang": "en",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.page-item-detail:not(.manga)",
+      "chapterListSelector": "div.wp-manga-chapter"
+    }
+  },
+  "ma.lmanwa.extension.en.zinchanmanga": {
+    "id": "ma.lmanwa.extension.en.zinchanmanga",
+    "name": "ZinChanManga",
+    "version": "0.0.1",
+    "baseUrl": "https://zinchangmanga.net",
+    "apiUrl": "https://zinchangmanga.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.zinchanmangacom": {
+    "id": "ma.lmanwa.extension.en.zinchanmangacom",
+    "name": "ZinChanManga.com",
+    "version": "0.0.1",
+    "baseUrl": "https://zinchangmanga.com",
+    "apiUrl": "https://zinchangmanga.com",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.zinmanga": {
+    "id": "ma.lmanwa.extension.en.zinmanga",
+    "name": "Zinmanga",
+    "version": "0.0.1",
+    "baseUrl": "https://mangazin.org",
+    "apiUrl": "https://mangazin.org",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.en.zinmanganet": {
+    "id": "ma.lmanwa.extension.en.zinmanganet",
+    "name": "Zinmanga.net",
+    "version": "0.0.1",
+    "baseUrl": "https://zinmanga.net",
+    "apiUrl": "https://zinmanga.net",
+    "lang": "en",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.apollcomics": {
+    "id": "ma.lmanwa.extension.es.apollcomics",
+    "name": "ApollComics",
+    "version": "0.0.1",
+    "baseUrl": "https://apollcomics.es",
+    "apiUrl": "https://apollcomics.es",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.asialotus": {
+    "id": "ma.lmanwa.extension.es.asialotus",
+    "name": "Asia Lotus",
+    "version": "0.0.1",
+    "baseUrl": "https://asialotuss.com",
+    "apiUrl": "https://asialotuss.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.barmanga": {
+    "id": "ma.lmanwa.extension.es.barmanga",
+    "name": "BarManga",
+    "version": "0.0.1",
+    "baseUrl": "https://archiviumbar.com",
+    "apiUrl": "https://archiviumbar.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.begatranslation": {
+    "id": "ma.lmanwa.extension.es.begatranslation",
+    "name": "Bega Translation",
+    "version": "0.0.1",
+    "baseUrl": "https://begatranslation.com",
+    "apiUrl": "https://begatranslation.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.bibliopanda": {
+    "id": "ma.lmanwa.extension.es.bibliopanda",
+    "name": "Biblio Panda",
+    "version": "0.0.1",
+    "baseUrl": "https://bibliopanda.com",
+    "apiUrl": "https://bibliopanda.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.bloomscans": {
+    "id": "ma.lmanwa.extension.es.bloomscans",
+    "name": "Bloom Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://bloomscans.com",
+    "apiUrl": "https://bloomscans.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.bokugentranslation": {
+    "id": "ma.lmanwa.extension.es.bokugentranslation",
+    "name": "BokugenTranslation",
+    "version": "0.0.1",
+    "baseUrl": "https://bokugents.com",
+    "apiUrl": "https://bokugents.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.bymichiscan": {
+    "id": "ma.lmanwa.extension.es.bymichiscan",
+    "name": "Bymichi Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://bymichiby.com",
+    "apiUrl": "https://bymichiby.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.catharsisworld": {
+    "id": "ma.lmanwa.extension.es.catharsisworld",
+    "name": "Catharsis World",
+    "version": "0.0.1",
+    "baseUrl": "https://catharsisworld.dig-it.info",
+    "apiUrl": "https://catharsisworld.dig-it.info",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "button.group > div.grid",
+      "chapterListSelector": "ul#list-chapters li > a"
+    }
+  },
+  "ma.lmanwa.extension.es.catmanhwas": {
+    "id": "ma.lmanwa.extension.es.catmanhwas",
+    "name": "CatManhwas",
+    "version": "0.0.1",
+    "baseUrl": "https://newcat1.xyz",
+    "apiUrl": "https://newcat1.xyz",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.celestialmoon": {
+    "id": "ma.lmanwa.extension.es.celestialmoon",
+    "name": "Celestial Moon",
+    "version": "0.0.1",
+    "baseUrl": "https://celestialmoonscan.es",
+    "apiUrl": "https://celestialmoonscan.es",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.cerberusseries": {
+    "id": "ma.lmanwa.extension.es.cerberusseries",
+    "name": "Cerberus Series",
+    "version": "0.0.1",
+    "baseUrl": "https://legionscans.com/wp",
+    "apiUrl": "https://legionscans.com/wp",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.codexzero": {
+    "id": "ma.lmanwa.extension.es.codexzero",
+    "name": "Codex Zero",
+    "version": "0.0.1",
+    "baseUrl": "https://codex.readkisho.me",
+    "apiUrl": "https://codex.readkisho.me",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.daprob": {
+    "id": "ma.lmanwa.extension.es.daprob",
+    "name": "DapRob",
+    "version": "0.0.1",
+    "baseUrl": "https://daprob.com",
+    "apiUrl": "https://daprob.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.darkroomfansub": {
+    "id": "ma.lmanwa.extension.es.darkroomfansub",
+    "name": "Dark Room Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://lector-darkroomfansub.blogspot.com",
+    "apiUrl": "https://lector-darkroomfansub.blogspot.com",
+    "lang": "es",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.es.datgarscanlation": {
+    "id": "ma.lmanwa.extension.es.datgarscanlation",
+    "name": "Dat-Gar Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://datgarscanlation.blogspot.com",
+    "apiUrl": "https://datgarscanlation.blogspot.com",
+    "lang": "es",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.es.doujinhentai": {
+    "id": "ma.lmanwa.extension.es.doujinhentai",
+    "name": "DoujinHentai",
+    "version": "0.0.1",
+    "baseUrl": "https://doujinhentai.net",
+    "apiUrl": "https://doujinhentai.net",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.c-tabs-item__content > div.c-tabs-item__content, ${popularMangaSelector()}",
+      "chapterListSelector": "ul.main.version-chap > li.wp-manga-chapter:not(:last-child)"
+    }
+  },
+  "ma.lmanwa.extension.es.doujinshell": {
+    "id": "ma.lmanwa.extension.es.doujinshell",
+    "name": "DoujinsHell",
+    "version": "0.0.1",
+    "baseUrl": "https://doujinshell.net",
+    "apiUrl": "https://doujinshell.net",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "div.listing-chapters_wrap li.wp-manga-chapter"
+    }
+  },
+  "ma.lmanwa.extension.es.dragontranslationorg": {
+    "id": "ma.lmanwa.extension.es.dragontranslationorg",
+    "name": "DragonTranslation.org",
+    "version": "0.0.1",
+    "baseUrl": "https://dragontranslation.org",
+    "apiUrl": "https://dragontranslation.org",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.emperorscan": {
+    "id": "ma.lmanwa.extension.es.emperorscan",
+    "name": "Emperor Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://imperiomanhua.com",
+    "apiUrl": "https://imperiomanhua.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.escaneodeleyendas": {
+    "id": "ma.lmanwa.extension.es.escaneodeleyendas",
+    "name": "Escaneo de Leyendas",
+    "version": "0.0.1",
+    "baseUrl": "https://escaneodeleyendas.com",
+    "apiUrl": "https://escaneodeleyendas.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.esmi2manga": {
+    "id": "ma.lmanwa.extension.es.esmi2manga",
+    "name": "Es.Mi2Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://es.mi2manga.com",
+    "apiUrl": "https://es.mi2manga.com",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.site-content div.c-tabs-item__content"
+    }
+  },
+  "ma.lmanwa.extension.es.gistamishouse": {
+    "id": "ma.lmanwa.extension.es.gistamishouse",
+    "name": "Gistamis House",
+    "version": "0.0.1",
+    "baseUrl": "https://gistamishousefansub.blogspot.com",
+    "apiUrl": "https://gistamishousefansub.blogspot.com",
+    "lang": "es",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.es.gremorymangas": {
+    "id": "ma.lmanwa.extension.es.gremorymangas",
+    "name": "Gremory Mangas",
+    "version": "0.0.1",
+    "baseUrl": "https://gremoryhistorias.org",
+    "apiUrl": "https://gremoryhistorias.org",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.hadesnofansub": {
+    "id": "ma.lmanwa.extension.es.hadesnofansub",
+    "name": "Hades no Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://lectorhades.latamtoon.com",
+    "apiUrl": "https://lectorhades.latamtoon.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.haremdekira": {
+    "id": "ma.lmanwa.extension.es.haremdekira",
+    "name": "Harem de Kira",
+    "version": "0.0.1",
+    "baseUrl": "https://kiraproject.lat",
+    "apiUrl": "https://kiraproject.lat",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "button.group > div.grid",
+      "chapterListSelector": "ul#list-chapters li > a"
+    }
+  },
+  "ma.lmanwa.extension.es.hmangakyomi": {
+    "id": "ma.lmanwa.extension.es.hmangakyomi",
+    "name": "Hmangakyomi",
+    "version": "0.0.1",
+    "baseUrl": "https://hmangakyomi.online",
+    "apiUrl": "https://hmangakyomi.online",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.houseofotakus": {
+    "id": "ma.lmanwa.extension.es.houseofotakus",
+    "name": "House Of Otakus",
+    "version": "0.0.1",
+    "baseUrl": "https://houseofotakusv2.xyz",
+    "apiUrl": "https://houseofotakusv2.xyz",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.infrafandub": {
+    "id": "ma.lmanwa.extension.es.infrafandub",
+    "name": "InfraFandub",
+    "version": "0.0.1",
+    "baseUrl": "https://infrafandub.com",
+    "apiUrl": "https://infrafandub.com",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.manga-item",
+      "chapterListSelector": "div.chapters-list a.chapter-item"
+    }
+  },
+  "ma.lmanwa.extension.es.inmortalscan": {
+    "id": "ma.lmanwa.extension.es.inmortalscan",
+    "name": "Inmortal Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://scanimnortal.com",
+    "apiUrl": "https://scanimnortal.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.insanosscan": {
+    "id": "ma.lmanwa.extension.es.insanosscan",
+    "name": "Insanos Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://insanosmanhua.com",
+    "apiUrl": "https://insanosmanhua.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.inventariooculto": {
+    "id": "ma.lmanwa.extension.es.inventariooculto",
+    "name": "Inventario Oculto",
+    "version": "0.0.1",
+    "baseUrl": "https://inventariooculto.com",
+    "apiUrl": "https://inventariooculto.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.jeazscans": {
+    "id": "ma.lmanwa.extension.es.jeazscans",
+    "name": "Jeaz Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://lectorhub.j5z.xyz",
+    "apiUrl": "https://lectorhub.j5z.xyz",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.knightnoscanlation": {
+    "id": "ma.lmanwa.extension.es.knightnoscanlation",
+    "name": "Knight No Scanlation",
+    "version": "0.0.1",
+    "baseUrl": "https://lectorknight.com",
+    "apiUrl": "https://lectorknight.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.lectormangalat": {
+    "id": "ma.lmanwa.extension.es.lectormangalat",
+    "name": "LectorManga.lat",
+    "version": "0.0.1",
+    "baseUrl": "https://lectormangaa.com",
+    "apiUrl": "https://lectormangaa.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.leermanga": {
+    "id": "ma.lmanwa.extension.es.leermanga",
+    "name": "LeerManga",
+    "version": "0.0.1",
+    "baseUrl": "https://leermanga.net",
+    "apiUrl": "https://leermanga.net",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.lmtoonline": {
+    "id": "ma.lmanwa.extension.es.lmtoonline",
+    "name": "Lmtos",
+    "version": "0.0.1",
+    "baseUrl": "https://www.lmtos.com",
+    "apiUrl": "https://www.lmtos.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mangacrab": {
+    "id": "ma.lmanwa.extension.es.mangacrab",
+    "name": "Manga Crab",
+    "version": "0.0.1",
+    "baseUrl": "https://mangacrab.org",
+    "apiUrl": "https://mangacrab.org",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "div.listing-chapters_wrap > ul > li"
+    }
+  },
+  "ma.lmanwa.extension.es.mangaesp": {
+    "id": "ma.lmanwa.extension.es.mangaesp",
+    "name": "MangaEsp",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaesp.topmanhuas.org",
+    "apiUrl": "https://mangaesp.topmanhuas.org",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.mangaromance": {
+    "id": "ma.lmanwa.extension.es.mangaromance",
+    "name": "Manga Romance",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaromance19.com",
+    "apiUrl": "https://mangaromance19.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mangashiina": {
+    "id": "ma.lmanwa.extension.es.mangashiina",
+    "name": "Manga Mukai",
+    "version": "0.0.1",
+    "baseUrl": "https://mangamukai.com",
+    "apiUrl": "https://mangamukai.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.mangasnosekai": {
+    "id": "ma.lmanwa.extension.es.mangasnosekai",
+    "name": "Mangas No Sekai",
+    "version": "0.0.1",
+    "baseUrl": "https://mangasnosekai.com",
+    "apiUrl": "https://mangasnosekai.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mangatv": {
+    "id": "ma.lmanwa.extension.es.mangatv",
+    "name": "Manga  TV",
+    "version": "0.0.1",
+    "baseUrl": "https://mangatv.net",
+    "apiUrl": "https://mangatv.net",
+    "lang": "es",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDescriptionSelector": "b:contains(Sinopsis) + span"
+    }
+  },
+  "ma.lmanwa.extension.es.manhuaonline": {
+    "id": "ma.lmanwa.extension.es.manhuaonline",
+    "name": "SamuraiScan",
+    "version": "0.0.1",
+    "baseUrl": "https://samurai.j5z.xyz",
+    "apiUrl": "https://samurai.j5z.xyz",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.manhwalatino": {
+    "id": "ma.lmanwa.extension.es.manhwalatino",
+    "name": "Manhwa-Latino",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwa-latino.com",
+    "apiUrl": "https://manhwa-latino.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.manhwaonline": {
+    "id": "ma.lmanwa.extension.es.manhwaonline",
+    "name": "ManhwaOnline",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwa-online.com",
+    "apiUrl": "https://manhwa-online.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mantrazscan": {
+    "id": "ma.lmanwa.extension.es.mantrazscan",
+    "name": "Manhwa Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwascan.lat",
+    "apiUrl": "https://manhwascan.lat",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.marmota": {
+    "id": "ma.lmanwa.extension.es.marmota",
+    "name": "Marmota",
+    "version": "0.0.1",
+    "baseUrl": "https://marmota.me",
+    "apiUrl": "https://marmota.me",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mhscans": {
+    "id": "ma.lmanwa.extension.es.mhscans",
+    "name": "MHScans",
+    "version": "0.0.1",
+    "baseUrl": "https://mh.inventariooculto.com",
+    "apiUrl": "https://mh.inventariooculto.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.monopolyscan": {
+    "id": "ma.lmanwa.extension.es.monopolyscan",
+    "name": "Monopoly Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://monopolymanhua.com",
+    "apiUrl": "https://monopolymanhua.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.mundomanhwa": {
+    "id": "ma.lmanwa.extension.es.mundomanhwa",
+    "name": "Mundo Manhwa",
+    "version": "0.0.1",
+    "baseUrl": "https://mundomanhwa.com",
+    "apiUrl": "https://mundomanhwa.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.nartag": {
+    "id": "ma.lmanwa.extension.es.nartag",
+    "name": "Traducciones Amistosas",
+    "version": "0.0.1",
+    "baseUrl": "https://nartag.com",
+    "apiUrl": "https://nartag.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.nekoscans": {
+    "id": "ma.lmanwa.extension.es.nekoscans",
+    "name": "NekoScans",
+    "version": "0.0.1",
+    "baseUrl": "https://nekoproject.org",
+    "apiUrl": "https://nekoproject.org",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.noblessetranslations": {
+    "id": "ma.lmanwa.extension.es.noblessetranslations",
+    "name": "Noblesse Translations",
+    "version": "0.0.1",
+    "baseUrl": "https://nobledicion.yoveo.xyz",
+    "apiUrl": "https://nobledicion.yoveo.xyz",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.novamanhwa": {
+    "id": "ma.lmanwa.extension.es.novamanhwa",
+    "name": "Nova Manhwas",
+    "version": "0.0.1",
+    "baseUrl": "https://novamanhwa.cc",
+    "apiUrl": "https://novamanhwa.cc",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.novatoscans": {
+    "id": "ma.lmanwa.extension.es.novatoscans",
+    "name": "Novato Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://www.novatoscans.top",
+    "apiUrl": "https://www.novatoscans.top",
+    "lang": "es",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.es.ragnarokscanlation": {
+    "id": "ma.lmanwa.extension.es.ragnarokscanlation",
+    "name": "Ragnarok Scanlation",
+    "version": "0.0.1",
+    "baseUrl": "https://ragnarokscanlation.org",
+    "apiUrl": "https://ragnarokscanlation.org",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.raikiscan": {
+    "id": "ma.lmanwa.extension.es.raikiscan",
+    "name": "Raiki Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://raikiscan.com",
+    "apiUrl": "https://raikiscan.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.richtoscan": {
+    "id": "ma.lmanwa.extension.es.richtoscan",
+    "name": "RichtoScan",
+    "version": "0.0.1",
+    "baseUrl": "https://r1.richtoon.top",
+    "apiUrl": "https://r1.richtoon.top",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.sapphirescan": {
+    "id": "ma.lmanwa.extension.es.sapphirescan",
+    "name": "SapphireScan",
+    "version": "0.0.1",
+    "baseUrl": "https://sapphirescan.com",
+    "apiUrl": "https://sapphirescan.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.skymangas": {
+    "id": "ma.lmanwa.extension.es.skymangas",
+    "name": "SkyMangas",
+    "version": "0.0.1",
+    "baseUrl": "https://skymangas.com",
+    "apiUrl": "https://skymangas.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.stickhorse": {
+    "id": "ma.lmanwa.extension.es.stickhorse",
+    "name": "Stick Horse",
+    "version": "0.0.1",
+    "baseUrl": "https://stickhorse.cl",
+    "apiUrl": "https://stickhorse.cl",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.swordofoblivion": {
+    "id": "ma.lmanwa.extension.es.swordofoblivion",
+    "name": "Sword Of Oblivion",
+    "version": "0.0.1",
+    "baseUrl": "https://swordofoblivion.com",
+    "apiUrl": "https://swordofoblivion.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.taurusfansub": {
+    "id": "ma.lmanwa.extension.es.taurusfansub",
+    "name": "Taurus Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://lectortaurus.com",
+    "apiUrl": "https://lectortaurus.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.templescanesp": {
+    "id": "ma.lmanwa.extension.es.templescanesp",
+    "name": "Temple Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://aedexnox.pwhost.xyz",
+    "apiUrl": "https://aedexnox.pwhost.xyz",
+    "lang": "es",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "button.group > div.grid",
+      "chapterListSelector": "ul#list-chapters li > a"
+    }
+  },
+  "ma.lmanwa.extension.es.toones": {
+    "id": "ma.lmanwa.extension.es.toones",
+    "name": "Toon-es",
+    "version": "0.0.1",
+    "baseUrl": "https://toon-es.com",
+    "apiUrl": "https://toon-es.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.topcomicporno": {
+    "id": "ma.lmanwa.extension.es.topcomicporno",
+    "name": "TopComicPorno",
+    "version": "0.0.1",
+    "baseUrl": "https://topcomicporno.com",
+    "apiUrl": "https://topcomicporno.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.uchuujinprojects": {
+    "id": "ma.lmanwa.extension.es.uchuujinprojects",
+    "name": "Uchuujin Projects",
+    "version": "0.0.1",
+    "baseUrl": "https://uchuujinmangas.com",
+    "apiUrl": "https://uchuujinmangas.com",
+    "lang": "es",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.es.vermanhwas": {
+    "id": "ma.lmanwa.extension.es.vermanhwas",
+    "name": "Ver Manhwas",
+    "version": "0.0.1",
+    "baseUrl": "https://vermanhwa.com",
+    "apiUrl": "https://vermanhwa.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.es.yurionline": {
+    "id": "ma.lmanwa.extension.es.yurionline",
+    "name": "Yuri-Online",
+    "version": "0.0.1",
+    "baseUrl": "https://yuri-online.com",
+    "apiUrl": "https://yuri-online.com",
+    "lang": "es",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.bananascan": {
+    "id": "ma.lmanwa.extension.fr.bananascan",
+    "name": "Harmony-Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://harmony-scan.fr",
+    "apiUrl": "https://harmony-scan.fr",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.dassouscan": {
+    "id": "ma.lmanwa.extension.fr.dassouscan",
+    "name": "Dassou Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://dassouscan.com",
+    "apiUrl": "https://dassouscan.com",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.epsilonscan": {
+    "id": "ma.lmanwa.extension.fr.epsilonscan",
+    "name": "Epsilon Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://epsilonscan.to",
+    "apiUrl": "https://epsilonscan.to",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.hentaiorigines": {
+    "id": "ma.lmanwa.extension.fr.hentaiorigines",
+    "name": "Hentai Origines",
+    "version": "0.0.1",
+    "baseUrl": "https://hentai-origines.fr",
+    "apiUrl": "https://hentai-origines.fr",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.hentaiscantrad": {
+    "id": "ma.lmanwa.extension.fr.hentaiscantrad",
+    "name": "Hentai-Scantrad",
+    "version": "0.0.1",
+    "baseUrl": "https://hentai.scantrad-vf.cc",
+    "apiUrl": "https://hentai.scantrad-vf.cc",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.hentaizone": {
+    "id": "ma.lmanwa.extension.fr.hentaizone",
+    "name": "HentaiZone",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaizone.xyz",
+    "apiUrl": "https://hentaizone.xyz",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.histoiredhentai": {
+    "id": "ma.lmanwa.extension.fr.histoiredhentai",
+    "name": "HistoireDHentai",
+    "version": "0.0.1",
+    "baseUrl": "https://hhentai.fr",
+    "apiUrl": "https://hhentai.fr",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.kiwiyascans": {
+    "id": "ma.lmanwa.extension.fr.kiwiyascans",
+    "name": "Kiwiya Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://kiwiyascans.com",
+    "apiUrl": "https://kiwiyascans.com",
+    "lang": "fr",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "chapterListSelector": "ul li:has(div.chbox:not(:has(> span.mcl-price-num))):has(div.eph-num)"
+    }
+  },
+  "ma.lmanwa.extension.fr.lelmanga": {
+    "id": "ma.lmanwa.extension.fr.lelmanga",
+    "name": "Lelmanga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.lelmanga.com",
+    "apiUrl": "https://www.lelmanga.com",
+    "lang": "fr",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesAuthorSelector": ".imptdt:contains(Auteur) i",
+      "seriesArtistSelector": ".imptdt:contains(Artiste) i"
+    }
+  },
+  "ma.lmanwa.extension.fr.mangahubfr": {
+    "id": "ma.lmanwa.extension.fr.mangahubfr",
+    "name": "MangaHub.fr",
+    "version": "0.0.1",
+    "baseUrl": "https://mangahub.fr",
+    "apiUrl": "https://mangahub.fr",
+    "lang": "fr",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter:not(.vip-permission)"
+    }
+  },
+  "ma.lmanwa.extension.fr.mangascantrad": {
+    "id": "ma.lmanwa.extension.fr.mangascantrad",
+    "name": "Manga-Scantrad",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-scantrad.io",
+    "apiUrl": "https://manga-scantrad.io",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.mangasoriginesfr": {
+    "id": "ma.lmanwa.extension.fr.mangasoriginesfr",
+    "name": "Mangas-Origines.fr",
+    "version": "0.0.1",
+    "baseUrl": "https://mangas-origines.fr",
+    "apiUrl": "https://mangas-origines.fr",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.mangasscans": {
+    "id": "ma.lmanwa.extension.fr.mangasscans",
+    "name": "Mangas Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://mangas-scans.com",
+    "apiUrl": "https://mangas-scans.com",
+    "lang": "fr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.fr.pantheonscan": {
+    "id": "ma.lmanwa.extension.fr.pantheonscan",
+    "name": "Pantheon Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://pantheon-scan.com",
+    "apiUrl": "https://pantheon-scan.com",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.scanhentaimenu": {
+    "id": "ma.lmanwa.extension.fr.scanhentaimenu",
+    "name": "X-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://x-manga.org",
+    "apiUrl": "https://x-manga.org",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.softepsilonscan": {
+    "id": "ma.lmanwa.extension.fr.softepsilonscan",
+    "name": "Soft Epsilon Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://epsilonsoft.to",
+    "apiUrl": "https://epsilonsoft.to",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.fr.sushiscan": {
+    "id": "ma.lmanwa.extension.fr.sushiscan",
+    "name": "Sushi-Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://sushiscan.net",
+    "apiUrl": "https://sushiscan.net",
+    "lang": "fr",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesStatusSelector": ".infotable tr:contains(Statut) td:last-child",
+      "seriesAuthorSelector": ".infotable tr:contains(Auteur) td:last-child"
+    }
+  },
+  "ma.lmanwa.extension.fr.sushiscanfr": {
+    "id": "ma.lmanwa.extension.fr.sushiscanfr",
+    "name": "Sushiscan.fr",
+    "version": "0.0.1",
+    "baseUrl": "https://sushiscan.fr",
+    "apiUrl": "https://sushiscan.fr",
+    "lang": "fr",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesStatusSelector": ".imptdt:contains(Statut) i",
+      "seriesAuthorSelector": ".imptdt:contains(Auteur) i, .fmed b:contains(Auteur)+span"
+    }
+  },
+  "ma.lmanwa.extension.fr.toonfr": {
+    "id": "ma.lmanwa.extension.fr.toonfr",
+    "name": "Toon FR",
+    "version": "0.0.1",
+    "baseUrl": "https://toonfr.com",
+    "apiUrl": "https://toonfr.com",
+    "lang": "fr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.aarlas": {
+    "id": "ma.lmanwa.extension.id.aarlas",
+    "name": "Aarlas",
+    "version": "0.0.1",
+    "baseUrl": "https://www.arlas.my.id",
+    "apiUrl": "https://www.arlas.my.id",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.astralscans": {
+    "id": "ma.lmanwa.extension.id.astralscans",
+    "name": "Astral Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://astralscans.top",
+    "apiUrl": "https://astralscans.top",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.birdtoon": {
+    "id": "ma.lmanwa.extension.id.birdtoon",
+    "name": "BirdToon",
+    "version": "0.0.1",
+    "baseUrl": "https://birdtoon.shop",
+    "apiUrl": "https://birdtoon.shop",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.cosmicscansid": {
+    "id": "ma.lmanwa.extension.id.cosmicscansid",
+    "name": "CosmicScans.id",
+    "version": "0.0.1",
+    "baseUrl": "https://lc5.cosmicscans.asia",
+    "apiUrl": "https://lc5.cosmicscans.asia",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDescriptionSelector": ".entry-content[itemprop=description] :not(a,p:has(a))",
+      "searchMangaSelector": ".bixbox:not(.hothome):has(.hpage) .utao .uta .imgu, .bixbox:not(.hothome) .listupd .bs .bsx",
+      "pageSelector": "div#readerarea img:not(noscript img):not([alt=''])"
+    }
+  },
+  "ma.lmanwa.extension.id.dojingnet": {
+    "id": "ma.lmanwa.extension.id.dojingnet",
+    "name": "Dojing.net",
+    "version": "0.0.1",
+    "baseUrl": "https://dojing.net",
+    "apiUrl": "https://dojing.net",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.doujinku": {
+    "id": "ma.lmanwa.extension.id.doujinku",
+    "name": "Doujinku",
+    "version": "0.0.1",
+    "baseUrl": "https://doujinku.org",
+    "apiUrl": "https://doujinku.org",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.florascans": {
+    "id": "ma.lmanwa.extension.id.florascans",
+    "name": "FloraScans",
+    "version": "0.0.1",
+    "baseUrl": "https://florascans.net",
+    "apiUrl": "https://florascans.net",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.holotoon": {
+    "id": "ma.lmanwa.extension.id.holotoon",
+    "name": "Holotoon",
+    "version": "0.0.1",
+    "baseUrl": "https://01.holotoon.site",
+    "apiUrl": "https://01.holotoon.site",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.hwago": {
+    "id": "ma.lmanwa.extension.id.hwago",
+    "name": "Hwago",
+    "version": "0.0.1",
+    "baseUrl": "https://01.hwago.xyz",
+    "apiUrl": "https://01.hwago.xyz",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.inazumanga": {
+    "id": "ma.lmanwa.extension.id.inazumanga",
+    "name": "ReYume",
+    "version": "0.0.1",
+    "baseUrl": "https://www.re-yume.my.id",
+    "apiUrl": "https://www.re-yume.my.id",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.izanamiscans": {
+    "id": "ma.lmanwa.extension.id.izanamiscans",
+    "name": "Izanami Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://izanamiscans.my.id",
+    "apiUrl": "https://izanamiscans.my.id",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesAuthorSelector": ".fmed b:contains(Penulis) + span"
+    }
+  },
+  "ma.lmanwa.extension.id.kanzenin": {
+    "id": "ma.lmanwa.extension.id.kanzenin",
+    "name": "Kanzenin",
+    "version": "0.0.1",
+    "baseUrl": "https://kanzenin.info",
+    "apiUrl": "https://kanzenin.info",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.klikmanga": {
+    "id": "ma.lmanwa.extension.id.klikmanga",
+    "name": "KlikManga",
+    "version": "0.0.1",
+    "baseUrl": "https://klikmanga.org",
+    "apiUrl": "https://klikmanga.org",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.klmanhua": {
+    "id": "ma.lmanwa.extension.id.klmanhua",
+    "name": "KLManhua",
+    "version": "0.0.1",
+    "baseUrl": "https://klmanhua.blogspot.com",
+    "apiUrl": "https://klmanhua.blogspot.com",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.komikav": {
+    "id": "ma.lmanwa.extension.id.komikav",
+    "name": "APKOMIK",
+    "version": "0.0.1",
+    "baseUrl": "https://apkomik.cc",
+    "apiUrl": "https://apkomik.cc",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.komikdewasa": {
+    "id": "ma.lmanwa.extension.id.komikdewasa",
+    "name": "Komik Dewasak",
+    "version": "0.0.1",
+    "baseUrl": "https://komikdewasa.mom",
+    "apiUrl": "https://komikdewasa.mom",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.komikindo": {
+    "id": "ma.lmanwa.extension.id.komikindo",
+    "name": "Komikindo",
+    "version": "0.0.1",
+    "baseUrl": "https://komikindo.club",
+    "apiUrl": "https://komikindo.club",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.komikindoco": {
+    "id": "ma.lmanwa.extension.id.komikindoco",
+    "name": "KomikIndo.co",
+    "version": "0.0.1",
+    "baseUrl": "https://komiksin.net",
+    "apiUrl": "https://komiksin.net",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDetailsSelector": ".seriestucon"
+    }
+  },
+  "ma.lmanwa.extension.id.komikstation": {
+    "id": "ma.lmanwa.extension.id.komikstation",
+    "name": "Komik Station",
+    "version": "0.0.1",
+    "baseUrl": "https://komikstation.org",
+    "apiUrl": "https://komikstation.org",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.komiktap": {
+    "id": "ma.lmanwa.extension.id.komiktap",
+    "name": "Komiktap",
+    "version": "0.0.1",
+    "baseUrl": "https://komiktap.info",
+    "apiUrl": "https://komiktap.info",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.komikucom": {
+    "id": "ma.lmanwa.extension.id.komikucom",
+    "name": "Komiku.com",
+    "version": "0.0.1",
+    "baseUrl": "https://01.komiku.asia",
+    "apiUrl": "https://01.komiku.asia",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.kumapoi": {
+    "id": "ma.lmanwa.extension.id.kumapoi",
+    "name": "KumaPoi",
+    "version": "0.0.1",
+    "baseUrl": "https://kumapoi.info",
+    "apiUrl": "https://kumapoi.info",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.kumopoi": {
+    "id": "ma.lmanwa.extension.id.kumopoi",
+    "name": "KumoPoi",
+    "version": "0.0.1",
+    "baseUrl": "https://kumopoi.org",
+    "apiUrl": "https://kumopoi.org",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.lepoytl": {
+    "id": "ma.lmanwa.extension.id.lepoytl",
+    "name": "LepoyTL",
+    "version": "0.0.1",
+    "baseUrl": "https://www.lepoytl.my.id",
+    "apiUrl": "https://www.lepoytl.my.id",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.lianscans": {
+    "id": "ma.lmanwa.extension.id.lianscans",
+    "name": "LianScans",
+    "version": "0.0.1",
+    "baseUrl": "https://www.lianscans.com",
+    "apiUrl": "https://www.lianscans.com",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.lumireverse": {
+    "id": "ma.lmanwa.extension.id.lumireverse",
+    "name": "LumireVerse",
+    "version": "0.0.1",
+    "baseUrl": "https://lumire.asia",
+    "apiUrl": "https://lumire.asia",
+    "lang": "id",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.manga-card-fixed",
+      "chapterListSelector": "ul#lone-ch-list li.wp-manga-chapter"
+    }
+  },
+  "ma.lmanwa.extension.id.lumoskomik": {
+    "id": "ma.lmanwa.extension.id.lumoskomik",
+    "name": "LumosKomik",
+    "version": "0.0.1",
+    "baseUrl": "https://02.lumosgg.com",
+    "apiUrl": "https://02.lumosgg.com",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.Luvyaa": {
+    "id": "ma.lmanwa.extension.id.Luvyaa",
+    "name": "Luvyaa",
+    "version": "0.0.1",
+    "baseUrl": "https://luvyaa.org",
+    "apiUrl": "https://luvyaa.org",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.mangacan": {
+    "id": "ma.lmanwa.extension.id.mangacan",
+    "name": "Manga Can",
+    "version": "0.0.1",
+    "baseUrl": "https://mangacanblog.com",
+    "apiUrl": "https://mangacanblog.com",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesGenreSelector": ".seriestugenre a[href*=genre]",
+      "pageSelector": "div.images img"
+    }
+  },
+  "ma.lmanwa.extension.id.mangakita": {
+    "id": "ma.lmanwa.extension.id.mangakita",
+    "name": "MangaKita",
+    "version": "0.0.1",
+    "baseUrl": "https://mangakita.me",
+    "apiUrl": "https://mangakita.me",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.mangasusu": {
+    "id": "ma.lmanwa.extension.id.mangasusu",
+    "name": "Mangasusu",
+    "version": "0.0.1",
+    "baseUrl": "https://mangasusuku.com",
+    "apiUrl": "https://mangasusuku.com",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.mangkomik": {
+    "id": "ma.lmanwa.extension.id.mangkomik",
+    "name": "Siren Komik",
+    "version": "0.0.1",
+    "baseUrl": "https://sirenkomik.xyz",
+    "apiUrl": "https://sirenkomik.xyz",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesTitleSelector": "h1.judul-komik",
+      "seriesThumbnailSelector": ".gambar-kecil img",
+      "seriesGenreSelector": ".genre-komik a",
+      "seriesAuthorSelector": ".keterangan-komik:contains(author) span",
+      "seriesArtistSelector": ".keterangan-komik:contains(artist) span",
+      "chapterListSelector": ".list-chapter a"
+    }
+  },
+  "ma.lmanwa.extension.id.manhwadesu": {
+    "id": "ma.lmanwa.extension.id.manhwadesu",
+    "name": "ManhwaDesu",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwadesu.art",
+    "apiUrl": "https://manhwadesu.art",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.manhwahana": {
+    "id": "ma.lmanwa.extension.id.manhwahana",
+    "name": "Manhwahana",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwahana.com",
+    "apiUrl": "https://manhwahana.com",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.manhwaindo": {
+    "id": "ma.lmanwa.extension.id.manhwaindo",
+    "name": "Manhwa Indo",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhwaindo.my",
+    "apiUrl": "https://www.manhwaindo.my",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.manhwalandmom": {
+    "id": "ma.lmanwa.extension.id.manhwalandmom",
+    "name": "ManhwaLand.mom",
+    "version": "0.0.1",
+    "baseUrl": "https://02.manhwaland.land",
+    "apiUrl": "https://02.manhwaland.land",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.manhwalistid": {
+    "id": "ma.lmanwa.extension.id.manhwalistid",
+    "name": "Manhwa List",
+    "version": "0.0.1",
+    "baseUrl": "https://manhwalist02.site",
+    "apiUrl": "https://manhwalist02.site",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.manhwalistorg": {
+    "id": "ma.lmanwa.extension.id.manhwalistorg",
+    "name": "Manhwalist.org",
+    "version": "0.0.1",
+    "baseUrl": "https://isekaikomik.com",
+    "apiUrl": "https://isekaikomik.com",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.mgkomik": {
+    "id": "ma.lmanwa.extension.id.mgkomik",
+    "name": "MG Komik",
+    "version": "0.0.1",
+    "baseUrl": "https://id.mgkomik.cc",
+    "apiUrl": "https://id.mgkomik.cc",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.mihentai": {
+    "id": "ma.lmanwa.extension.id.mihentai",
+    "name": "Mihentai",
+    "version": "0.0.1",
+    "baseUrl": "https://mihentai.net",
+    "apiUrl": "https://mihentai.net",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.mikoroku": {
+    "id": "ma.lmanwa.extension.id.mikoroku",
+    "name": "MikoRoku",
+    "version": "0.0.1",
+    "baseUrl": "https://www.mikoroku.top",
+    "apiUrl": "https://www.mikoroku.top",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.ngamenkomik": {
+    "id": "ma.lmanwa.extension.id.ngamenkomik",
+    "name": "NgamenKomik",
+    "version": "0.0.1",
+    "baseUrl": "https://ngamenkomik05.blogspot.com",
+    "apiUrl": "https://ngamenkomik05.blogspot.com",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.noromax": {
+    "id": "ma.lmanwa.extension.id.noromax",
+    "name": "Noromax",
+    "version": "0.0.1",
+    "baseUrl": "https://noromax02.my.id",
+    "apiUrl": "https://noromax02.my.id",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.okyykomik": {
+    "id": "ma.lmanwa.extension.id.okyykomik",
+    "name": "OkyyKomik",
+    "version": "0.0.1",
+    "baseUrl": "https://www.okyykomik.my.id",
+    "apiUrl": "https://www.okyykomik.my.id",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.omicaso": {
+    "id": "ma.lmanwa.extension.id.omicaso",
+    "name": "Omicaso",
+    "version": "0.0.1",
+    "baseUrl": "https://omicaso.in",
+    "apiUrl": "https://omicaso.in",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.otascans": {
+    "id": "ma.lmanwa.extension.id.otascans",
+    "name": "Ota Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://yurilabs.my.id",
+    "apiUrl": "https://yurilabs.my.id",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.pornhwa18": {
+    "id": "ma.lmanwa.extension.id.pornhwa18",
+    "name": "Pornhwa18",
+    "version": "0.0.1",
+    "baseUrl": "https://pornhwa18.com",
+    "apiUrl": "https://pornhwa18.com",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.sasangeyou": {
+    "id": "ma.lmanwa.extension.id.sasangeyou",
+    "name": "Sasangeyou",
+    "version": "0.0.1",
+    "baseUrl": "https://sasangeyou.net",
+    "apiUrl": "https://sasangeyou.net",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.sektedoujin": {
+    "id": "ma.lmanwa.extension.id.sektedoujin",
+    "name": "Sekte Doujin",
+    "version": "0.0.1",
+    "baseUrl": "https://sektedoujin.cc",
+    "apiUrl": "https://sektedoujin.cc",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.shirakami": {
+    "id": "ma.lmanwa.extension.id.shirakami",
+    "name": "Shirakami",
+    "version": "0.0.1",
+    "baseUrl": "https://shirakami.xyz",
+    "apiUrl": "https://shirakami.xyz",
+    "lang": "id",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.id.shiyurasub": {
+    "id": "ma.lmanwa.extension.id.shiyurasub",
+    "name": "ShiyuraSub",
+    "version": "0.0.1",
+    "baseUrl": "https://shiyurasub.blogspot.com",
+    "apiUrl": "https://shiyurasub.blogspot.com",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.siimanga": {
+    "id": "ma.lmanwa.extension.id.siimanga",
+    "name": "Siikomik",
+    "version": "0.0.1",
+    "baseUrl": "https://siikomik.net",
+    "apiUrl": "https://siikomik.net",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.id.soulscans": {
+    "id": "ma.lmanwa.extension.id.soulscans",
+    "name": "Soul Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://soulscans.my.id",
+    "apiUrl": "https://soulscans.my.id",
+    "lang": "id",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "searchMangaSelector": ".listupd .bs .bsx:not(:has(.novelabel))",
+      "pageSelector": "div#readerarea img:not([src*='.gif'])"
+    }
+  },
+  "ma.lmanwa.extension.id.tooncubus": {
+    "id": "ma.lmanwa.extension.id.tooncubus",
+    "name": "Tooncubus",
+    "version": "0.0.1",
+    "baseUrl": "https://www.tooncubus.top",
+    "apiUrl": "https://www.tooncubus.top",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.ulascomic": {
+    "id": "ma.lmanwa.extension.id.ulascomic",
+    "name": "Ulas Comic",
+    "version": "0.0.1",
+    "baseUrl": "https://www.ulascomic01.xyz",
+    "apiUrl": "https://www.ulascomic01.xyz",
+    "lang": "id",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.id.yubikiri": {
+    "id": "ma.lmanwa.extension.id.yubikiri",
+    "name": "Kaguya",
+    "version": "0.0.1",
+    "baseUrl": "https://v1.kaguya.pro",
+    "apiUrl": "https://v1.kaguya.pro",
+    "lang": "id",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.it.walpurgisscan": {
+    "id": "ma.lmanwa.extension.it.walpurgisscan",
+    "name": "Walpurgi Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://www.walpurgiscan.it",
+    "apiUrl": "https://www.walpurgiscan.it",
+    "lang": "it",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.ja.rawbaka": {
+    "id": "ma.lmanwa.extension.ja.rawbaka",
+    "name": "RawBaka",
+    "version": "0.0.1",
+    "baseUrl": "https://rawbaka.com",
+    "apiUrl": "https://rawbaka.com",
+    "lang": "ja",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ja.rawxz": {
+    "id": "ma.lmanwa.extension.ja.rawxz",
+    "name": "RawJX",
+    "version": "0.0.1",
+    "baseUrl": "https://rawjx.net",
+    "apiUrl": "https://rawjx.net",
+    "lang": "ja",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ko.rawdex": {
+    "id": "ma.lmanwa.extension.ko.rawdex",
+    "name": "RawDEX",
+    "version": "0.0.1",
+    "baseUrl": "https://rawdex.net",
+    "apiUrl": "https://rawdex.net",
+    "lang": "ko",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pl.mangahona": {
+    "id": "ma.lmanwa.extension.pl.mangahona",
+    "name": "MangaHoNa",
+    "version": "0.0.1",
+    "baseUrl": "https://mangahona.pl",
+    "apiUrl": "https://mangahona.pl",
+    "lang": "pl",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.amuy": {
+    "id": "ma.lmanwa.extension.pt.amuy",
+    "name": "Amuy",
+    "version": "0.0.1",
+    "baseUrl": "https://apenasmaisumyaoi.com",
+    "apiUrl": "https://apenasmaisumyaoi.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.apecomics": {
+    "id": "ma.lmanwa.extension.pt.apecomics",
+    "name": "Capitoons",
+    "version": "0.0.1",
+    "baseUrl": "https://capitoons.com",
+    "apiUrl": "https://capitoons.com",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.pt.apenasumafa": {
+    "id": "ma.lmanwa.extension.pt.apenasumafa",
+    "name": "Apenas Uma Fã",
+    "version": "0.0.1",
+    "baseUrl": "https://apenasuma-fa.blogspot.com",
+    "apiUrl": "https://apenasuma-fa.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.arthurscan": {
+    "id": "ma.lmanwa.extension.pt.arthurscan",
+    "name": "Arthur Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://arthurscan.xyz",
+    "apiUrl": "https://arthurscan.xyz",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.atemporal": {
+    "id": "ma.lmanwa.extension.pt.atemporal",
+    "name": "Atemporal",
+    "version": "0.0.1",
+    "baseUrl": "https://atemporal.cloud",
+    "apiUrl": "https://atemporal.cloud",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.pt.borutoexplorer": {
+    "id": "ma.lmanwa.extension.pt.borutoexplorer",
+    "name": "Boruto Explorer",
+    "version": "0.0.1",
+    "baseUrl": "https://leitor.borutoexplorer.com.br",
+    "apiUrl": "https://leitor.borutoexplorer.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.cafecomyaoi": {
+    "id": "ma.lmanwa.extension.pt.cafecomyaoi",
+    "name": "Café com Yaoi",
+    "version": "0.0.1",
+    "baseUrl": "https://cafecomyaoi.com.br",
+    "apiUrl": "https://cafecomyaoi.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.cerisescans": {
+    "id": "ma.lmanwa.extension.pt.cerisescans",
+    "name": "Cerise Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://loverstoon.com",
+    "apiUrl": "https://loverstoon.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.covenscan": {
+    "id": "ma.lmanwa.extension.pt.covenscan",
+    "name": "Coven Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://covendasbruxonas.com",
+    "apiUrl": "https://covendasbruxonas.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.dreamscan": {
+    "id": "ma.lmanwa.extension.pt.dreamscan",
+    "name": "Dream Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://fairydream.com.br",
+    "apiUrl": "https://fairydream.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.euphoriascan": {
+    "id": "ma.lmanwa.extension.pt.euphoriascan",
+    "name": "Euphoria Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://euphoriascan.com",
+    "apiUrl": "https://euphoriascan.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.fenixproject": {
+    "id": "ma.lmanwa.extension.pt.fenixproject",
+    "name": "Fenix Project",
+    "version": "0.0.1",
+    "baseUrl": "https://fenixproject.site",
+    "apiUrl": "https://fenixproject.site",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.fleurblanche": {
+    "id": "ma.lmanwa.extension.pt.fleurblanche",
+    "name": "Fleur Blanche",
+    "version": "0.0.1",
+    "baseUrl": "https://fbsquadx.com",
+    "apiUrl": "https://fbsquadx.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.flowermanga": {
+    "id": "ma.lmanwa.extension.pt.flowermanga",
+    "name": "FlowerManga.net",
+    "version": "0.0.1",
+    "baseUrl": "https://flowermangas.net",
+    "apiUrl": "https://flowermangas.net",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.galaxscanlator": {
+    "id": "ma.lmanwa.extension.pt.galaxscanlator",
+    "name": "GALAX Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://galaxscanlator.blogspot.com",
+    "apiUrl": "https://galaxscanlator.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.ghostscan": {
+    "id": "ma.lmanwa.extension.pt.ghostscan",
+    "name": "Ghost Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://ghostscan.xyz",
+    "apiUrl": "https://ghostscan.xyz",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.hanmokkuscan": {
+    "id": "ma.lmanwa.extension.pt.hanmokkuscan",
+    "name": "Hanmokku Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://hanmokkuscan.blogspot.com",
+    "apiUrl": "https://hanmokkuscan.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.hipercool": {
+    "id": "ma.lmanwa.extension.pt.hipercool",
+    "name": "HipercooL",
+    "version": "0.0.1",
+    "baseUrl": "https://hiper.cool",
+    "apiUrl": "https://hiper.cool",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.hotcabaretscan": {
+    "id": "ma.lmanwa.extension.pt.hotcabaretscan",
+    "name": "Hot Cabaret Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://hotcabaretscan.com",
+    "apiUrl": "https://hotcabaretscan.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.huntersscans": {
+    "id": "ma.lmanwa.extension.pt.huntersscans",
+    "name": "Hunters Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://readhunters.xyz",
+    "apiUrl": "https://readhunters.xyz",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.inkapk": {
+    "id": "ma.lmanwa.extension.pt.inkapk",
+    "name": "Inkapk",
+    "version": "0.0.1",
+    "baseUrl": "https://inkapk.net",
+    "apiUrl": "https://inkapk.net",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.kakuseiproject": {
+    "id": "ma.lmanwa.extension.pt.kakuseiproject",
+    "name": "Kakusei Project",
+    "version": "0.0.1",
+    "baseUrl": "https://kakuseiproject.com",
+    "apiUrl": "https://kakuseiproject.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.kamisamaexplorer": {
+    "id": "ma.lmanwa.extension.pt.kamisamaexplorer",
+    "name": "Kami Sama Explorer",
+    "version": "0.0.1",
+    "baseUrl": "https://leitor.kamisama.com.br",
+    "apiUrl": "https://leitor.kamisama.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.ler999": {
+    "id": "ma.lmanwa.extension.pt.ler999",
+    "name": "Ler 999",
+    "version": "0.0.1",
+    "baseUrl": "https://ler999.blogspot.com",
+    "apiUrl": "https://ler999.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.lermangas": {
+    "id": "ma.lmanwa.extension.pt.lermangas",
+    "name": "Ler Mangas",
+    "version": "0.0.1",
+    "baseUrl": "https://lermangas.me",
+    "apiUrl": "https://lermangas.me",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.limboscan": {
+    "id": "ma.lmanwa.extension.pt.limboscan",
+    "name": "Limbo Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://limboscan.com.br",
+    "apiUrl": "https://limboscan.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.littletyrant": {
+    "id": "ma.lmanwa.extension.pt.littletyrant",
+    "name": "Little Tyrant",
+    "version": "0.0.1",
+    "baseUrl": "https://tiraninha.world",
+    "apiUrl": "https://tiraninha.world",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.mangalivre": {
+    "id": "ma.lmanwa.extension.pt.mangalivre",
+    "name": "Manga Livre",
+    "version": "0.0.1",
+    "baseUrl": "https://mangalivre.tv",
+    "apiUrl": "https://mangalivre.tv",
+    "lang": "pt-BR",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": "li.wp-manga-chapter, li.chapter-li"
+    }
+  },
+  "ma.lmanwa.extension.pt.mangalivreto": {
+    "id": "ma.lmanwa.extension.pt.mangalivreto",
+    "name": "Manga Livre.to",
+    "version": "0.0.1",
+    "baseUrl": "https://mangalivre.to",
+    "apiUrl": "https://mangalivre.to",
+    "lang": "pt-BR",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": ".listing-chapters-wrap .chapter-box"
+    }
+  },
+  "ma.lmanwa.extension.pt.mangaonline": {
+    "id": "ma.lmanwa.extension.pt.mangaonline",
+    "name": "Manga Online",
+    "version": "0.0.1",
+    "baseUrl": "https://mangaonline.red",
+    "apiUrl": "https://mangaonline.red",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.mangasbrasuka": {
+    "id": "ma.lmanwa.extension.pt.mangasbrasuka",
+    "name": "Mangas Brasuka",
+    "version": "0.0.1",
+    "baseUrl": "https://mangasbrasuka.com.br",
+    "apiUrl": "https://mangasbrasuka.com.br",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.mangastop": {
+    "id": "ma.lmanwa.extension.pt.mangastop",
+    "name": "Manga Stop",
+    "version": "0.0.1",
+    "baseUrl": "https://mangastop.net",
+    "apiUrl": "https://mangastop.net",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.pt.minitwoscan": {
+    "id": "ma.lmanwa.extension.pt.minitwoscan",
+    "name": "MiniTwo Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://minitwoscan.com",
+    "apiUrl": "https://minitwoscan.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.monsure": {
+    "id": "ma.lmanwa.extension.pt.monsure",
+    "name": "Monsure",
+    "version": "0.0.1",
+    "baseUrl": "https://monsuresu.com",
+    "apiUrl": "https://monsuresu.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.montetai": {
+    "id": "ma.lmanwa.extension.pt.montetai",
+    "name": "Monte Tai",
+    "version": "0.0.1",
+    "baseUrl": "https://montetaiscanlator.xyz",
+    "apiUrl": "https://montetaiscanlator.xyz",
+    "lang": "pt-BR",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "chapterListSelector": ".mtx-chapter-item"
+    }
+  },
+  "ma.lmanwa.extension.pt.mugiwarasoficial": {
+    "id": "ma.lmanwa.extension.pt.mugiwarasoficial",
+    "name": "Mugiwaras Oficial",
+    "version": "0.0.1",
+    "baseUrl": "https://mugiwarasoficial.com",
+    "apiUrl": "https://mugiwarasoficial.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.ninjascan": {
+    "id": "ma.lmanwa.extension.pt.ninjascan",
+    "name": "Ninja Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://ninjacomics.xyz",
+    "apiUrl": "https://ninjacomics.xyz",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.nocturnesummer": {
+    "id": "ma.lmanwa.extension.pt.nocturnesummer",
+    "name": "Nocturne Summer",
+    "version": "0.0.1",
+    "baseUrl": "https://nocfsb.com",
+    "apiUrl": "https://nocfsb.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.noindexscan": {
+    "id": "ma.lmanwa.extension.pt.noindexscan",
+    "name": "Hanami Heaven",
+    "version": "0.0.1",
+    "baseUrl": "https://hanamiheaven.org",
+    "apiUrl": "https://hanamiheaven.org",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.onepieceteca": {
+    "id": "ma.lmanwa.extension.pt.onepieceteca",
+    "name": "One Piece TECA",
+    "version": "0.0.1",
+    "baseUrl": "https://onepieceteca.com",
+    "apiUrl": "https://onepieceteca.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.origamiorpheans": {
+    "id": "ma.lmanwa.extension.pt.origamiorpheans",
+    "name": "Origami Orpheans",
+    "version": "0.0.1",
+    "baseUrl": "https://origami-orpheans.com",
+    "apiUrl": "https://origami-orpheans.com",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.pt.osakascan": {
+    "id": "ma.lmanwa.extension.pt.osakascan",
+    "name": "Osaka Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://www.osakascan.com",
+    "apiUrl": "https://www.osakascan.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.pinkrosa": {
+    "id": "ma.lmanwa.extension.pt.pinkrosa",
+    "name": "Pink Rosa",
+    "version": "0.0.1",
+    "baseUrl": "https://scanpinkrosa.blogspot.com",
+    "apiUrl": "https://scanpinkrosa.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.pinkseaunicorn": {
+    "id": "ma.lmanwa.extension.pt.pinkseaunicorn",
+    "name": "Pink Sea Unicorn",
+    "version": "0.0.1",
+    "baseUrl": "https://psunicorn.com",
+    "apiUrl": "https://psunicorn.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.pirulitorosa": {
+    "id": "ma.lmanwa.extension.pt.pirulitorosa",
+    "name": "Pirulito Rosa",
+    "version": "0.0.1",
+    "baseUrl": "https://pirulitorosa.site",
+    "apiUrl": "https://pirulitorosa.site",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.pointzerotoons": {
+    "id": "ma.lmanwa.extension.pt.pointzerotoons",
+    "name": "Point Zero Toons",
+    "version": "0.0.1",
+    "baseUrl": "https://kitsuneyako.com",
+    "apiUrl": "https://kitsuneyako.com",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesThumbnailSelector": ".tx-hero-cover > img.wp-post-image"
+    }
+  },
+  "ma.lmanwa.extension.pt.portalyaoi": {
+    "id": "ma.lmanwa.extension.pt.portalyaoi",
+    "name": "Portal Yaoi",
+    "version": "0.0.1",
+    "baseUrl": "https://lerboyslove.com",
+    "apiUrl": "https://lerboyslove.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.remangas": {
+    "id": "ma.lmanwa.extension.pt.remangas",
+    "name": "Remangas",
+    "version": "0.0.1",
+    "baseUrl": "https://remangas.net",
+    "apiUrl": "https://remangas.net",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.starlightscan": {
+    "id": "ma.lmanwa.extension.pt.starlightscan",
+    "name": "Starlight Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://starligthscan.com",
+    "apiUrl": "https://starligthscan.com",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesDetailsSelector": "section.mangaDetails",
+      "seriesTitleSelector": "h1.mangaDetails__title",
+      "seriesThumbnailSelector": "img.mangaDetails__cover",
+      "seriesDescriptionSelector": "span.mangaDetails__description",
+      "seriesGenreSelector": "li.mangaTags__item",
+      "seriesStatusSelector": "span.base__horizontalList[title^=Status]",
+      "seriesAuthorSelector": "span.mangaDetails__author",
+      "searchMangaSelector": "div.bulkMangaList article.bulkMangaCard",
+      "chapterListSelector": "div.mangaDetails__episodesContainer div.mangaDetails__episode",
+      "pageSelector": "div.scanImagesContainer img.scanImage"
+    }
+  },
+  "ma.lmanwa.extension.pt.tankouhentai": {
+    "id": "ma.lmanwa.extension.pt.tankouhentai",
+    "name": "Tankou Hentai",
+    "version": "0.0.1",
+    "baseUrl": "https://tankouhentai.com",
+    "apiUrl": "https://tankouhentai.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.tatakaescan": {
+    "id": "ma.lmanwa.extension.pt.tatakaescan",
+    "name": "Tatakae Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://tatakaescan.com",
+    "apiUrl": "https://tatakaescan.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.temakimangas": {
+    "id": "ma.lmanwa.extension.pt.temakimangas",
+    "name": "Temaki mangás",
+    "version": "0.0.1",
+    "baseUrl": "https://temakimangas.blogspot.com",
+    "apiUrl": "https://temakimangas.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.tiamanhwa": {
+    "id": "ma.lmanwa.extension.pt.tiamanhwa",
+    "name": "Tia Manhwa",
+    "version": "0.0.1",
+    "baseUrl": "https://tiamanhwa.com",
+    "apiUrl": "https://tiamanhwa.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.page-item-detail.manga",
+      "chapterListSelector": "li.wp-manga-chapter, li.chapter-item, div.chapter"
+    }
+  },
+  "ma.lmanwa.extension.pt.traducoesdolipe": {
+    "id": "ma.lmanwa.extension.pt.traducoesdolipe",
+    "name": "Traduções do Lipe",
+    "version": "0.0.1",
+    "baseUrl": "https://traducoesdolipe.blogspot.com",
+    "apiUrl": "https://traducoesdolipe.blogspot.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.tsundokutraducoes": {
+    "id": "ma.lmanwa.extension.pt.tsundokutraducoes",
+    "name": "Tsundoku Traduções",
+    "version": "0.0.1",
+    "baseUrl": "https://tsundoku.com.br",
+    "apiUrl": "https://tsundoku.com.br",
+    "lang": "pt-BR",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "searchMangaSelector": ".utao .uta .imgu, .listupd .bs .bsx:not(:has(span.novelabel)), .listo .bs .bsx:not(:has(span.novelabel))"
+    }
+  },
+  "ma.lmanwa.extension.pt.xxxyaoi": {
+    "id": "ma.lmanwa.extension.pt.xxxyaoi",
+    "name": "XXX Yaoi",
+    "version": "0.0.1",
+    "baseUrl": "https://3xyaoi.com",
+    "apiUrl": "https://3xyaoi.com",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.pt.yaoifanclub": {
+    "id": "ma.lmanwa.extension.pt.yaoifanclub",
+    "name": "Yaoi Fan Club",
+    "version": "0.0.1",
+    "baseUrl": "https://www.yaoifanclub.com",
+    "apiUrl": "https://www.yaoifanclub.com",
+    "lang": "pt-BR",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.pt.yuriverso": {
+    "id": "ma.lmanwa.extension.pt.yuriverso",
+    "name": "Yuri Verso",
+    "version": "0.0.1",
+    "baseUrl": "https://yuri.live",
+    "apiUrl": "https://yuri.live",
+    "lang": "pt-BR",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.ru.mangashi": {
+    "id": "ma.lmanwa.extension.ru.mangashi",
+    "name": "Manga-shi",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-shi.org",
+    "apiUrl": "https://manga-shi.org",
+    "lang": "ru",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.cat300": {
+    "id": "ma.lmanwa.extension.th.cat300",
+    "name": "Cat300",
+    "version": "0.0.1",
+    "baseUrl": "https://cat-300.com",
+    "apiUrl": "https://cat-300.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.catzaa": {
+    "id": "ma.lmanwa.extension.th.catzaa",
+    "name": "Catzaa",
+    "version": "0.0.1",
+    "baseUrl": "https://catzaa.net",
+    "apiUrl": "https://catzaa.net",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.doodmanga": {
+    "id": "ma.lmanwa.extension.th.doodmanga",
+    "name": "Doodmanga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.doodmanga.com",
+    "apiUrl": "https://www.doodmanga.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.doujinlc": {
+    "id": "ma.lmanwa.extension.th.doujinlc",
+    "name": "Doujin-Lc",
+    "version": "0.0.1",
+    "baseUrl": "https://doujin-lc.net",
+    "apiUrl": "https://doujin-lc.net",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.doujinmoon": {
+    "id": "ma.lmanwa.extension.th.doujinmoon",
+    "name": "Doujin Moon",
+    "version": "0.0.1",
+    "baseUrl": "https://doujinmoon.com",
+    "apiUrl": "https://doujinmoon.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.doujinza": {
+    "id": "ma.lmanwa.extension.th.doujinza",
+    "name": "DoujinZa",
+    "version": "0.0.1",
+    "baseUrl": "https://doujinza.com",
+    "apiUrl": "https://doujinza.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.ecchidoujin": {
+    "id": "ma.lmanwa.extension.th.ecchidoujin",
+    "name": "Ecchi-Doujin",
+    "version": "0.0.1",
+    "baseUrl": "https://ecchi-doujin.com",
+    "apiUrl": "https://ecchi-doujin.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.finmanga": {
+    "id": "ma.lmanwa.extension.th.finmanga",
+    "name": "Fin Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.fin-manga.com",
+    "apiUrl": "https://www.fin-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.goddoujin": {
+    "id": "ma.lmanwa.extension.th.goddoujin",
+    "name": "God-Doujin",
+    "version": "0.0.1",
+    "baseUrl": "https://god-doujin.com",
+    "apiUrl": "https://god-doujin.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.gomanga": {
+    "id": "ma.lmanwa.extension.th.gomanga",
+    "name": "Go Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.go-manga.com",
+    "apiUrl": "https://www.go-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.lamimanga": {
+    "id": "ma.lmanwa.extension.th.lamimanga",
+    "name": "Lami-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://mangalami.com",
+    "apiUrl": "https://mangalami.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.makimaaaaa": {
+    "id": "ma.lmanwa.extension.th.makimaaaaa",
+    "name": "Makimaaaaa",
+    "version": "0.0.1",
+    "baseUrl": "https://makimaaaaa.com",
+    "apiUrl": "https://makimaaaaa.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesStatusSelector": ".tsinfo .imptdt:contains(สถานะ) i"
+    }
+  },
+  "ma.lmanwa.extension.th.manga168": {
+    "id": "ma.lmanwa.extension.th.manga168",
+    "name": "Manga168",
+    "version": "0.0.1",
+    "baseUrl": "https://manga1688.com",
+    "apiUrl": "https://manga1688.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.mangaisekaithai": {
+    "id": "ma.lmanwa.extension.th.mangaisekaithai",
+    "name": "MangaIsekaiThai",
+    "version": "0.0.1",
+    "baseUrl": "https://www.mangaisekaithai.net",
+    "apiUrl": "https://www.mangaisekaithai.net",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.mangakimi": {
+    "id": "ma.lmanwa.extension.th.mangakimi",
+    "name": "MangaKimi",
+    "version": "0.0.1",
+    "baseUrl": "https://www.mangakimi.com",
+    "apiUrl": "https://www.mangakimi.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "pageSelector": "div#readerarea img, #readerarea div.displayImage + script:containsData(p,a,c,k,e,d)"
+    }
+  },
+  "ma.lmanwa.extension.th.mangalc": {
+    "id": "ma.lmanwa.extension.th.mangalc",
+    "name": "Manga-Lc",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-lc.net",
+    "apiUrl": "https://manga-lc.net",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.mangastep": {
+    "id": "ma.lmanwa.extension.th.mangastep",
+    "name": "Mangastep",
+    "version": "0.0.1",
+    "baseUrl": "https://mangastep.com",
+    "apiUrl": "https://mangastep.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.manhuabug": {
+    "id": "ma.lmanwa.extension.th.manhuabug",
+    "name": "ManhuaBug",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhuabug.com",
+    "apiUrl": "https://www.manhuabug.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.manhuakey": {
+    "id": "ma.lmanwa.extension.th.manhuakey",
+    "name": "ManhuaKey",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhuakey.com",
+    "apiUrl": "https://www.manhuakey.com",
+    "lang": "th",
+    "baseClass": "Madara",
+    "customSelectors": {
+      "searchMangaSelector": "div.page-item-detail"
+    }
+  },
+  "ma.lmanwa.extension.th.manhuathai": {
+    "id": "ma.lmanwa.extension.th.manhuathai",
+    "name": "ManhuaThai",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhuathai.com",
+    "apiUrl": "https://www.manhuathai.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.manhwabreakup": {
+    "id": "ma.lmanwa.extension.th.manhwabreakup",
+    "name": "ManhwaBreakup",
+    "version": "0.0.1",
+    "baseUrl": "https://www.manhwabreakup.com",
+    "apiUrl": "https://www.manhwabreakup.com",
+    "lang": "th",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.th.moodtoon": {
+    "id": "ma.lmanwa.extension.th.moodtoon",
+    "name": "Moodtoon",
+    "version": "0.0.1",
+    "baseUrl": "https://moon-toon.com",
+    "apiUrl": "https://moon-toon.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.ntrmanga": {
+    "id": "ma.lmanwa.extension.th.ntrmanga",
+    "name": "NTR-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.ntr-manga.net",
+    "apiUrl": "https://www.ntr-manga.net",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.onemanga": {
+    "id": "ma.lmanwa.extension.th.onemanga",
+    "name": "One-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://one-manga.com",
+    "apiUrl": "https://one-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.popsmanga": {
+    "id": "ma.lmanwa.extension.th.popsmanga",
+    "name": "PopsManga",
+    "version": "0.0.1",
+    "baseUrl": "https://popsmanga.net",
+    "apiUrl": "https://popsmanga.net",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.reapertrans": {
+    "id": "ma.lmanwa.extension.th.reapertrans",
+    "name": "ReaperTrans",
+    "version": "0.0.1",
+    "baseUrl": "https://reapertrans.com",
+    "apiUrl": "https://reapertrans.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.singmanga": {
+    "id": "ma.lmanwa.extension.th.singmanga",
+    "name": "SingManga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.sing-manga.com",
+    "apiUrl": "https://www.sing-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.slowmanga": {
+    "id": "ma.lmanwa.extension.th.slowmanga",
+    "name": "Slow Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.slow-manga.com",
+    "apiUrl": "https://www.slow-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.sodsaime": {
+    "id": "ma.lmanwa.extension.th.sodsaime",
+    "name": "สดใสเมะ",
+    "version": "0.0.1",
+    "baseUrl": "https://www.xn--l3c0azab5a2gta.com",
+    "apiUrl": "https://www.xn--l3c0azab5a2gta.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.speedmanga": {
+    "id": "ma.lmanwa.extension.th.speedmanga",
+    "name": "Speed Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://speed-manga.net",
+    "apiUrl": "https://speed-manga.net",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.tanukimanga": {
+    "id": "ma.lmanwa.extension.th.tanukimanga",
+    "name": "Tanuki-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.tanuki-manga.net",
+    "apiUrl": "https://www.tanuki-manga.net",
+    "lang": "th",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.th.toomtammanga": {
+    "id": "ma.lmanwa.extension.th.toomtammanga",
+    "name": "ToomTam-Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://toomtam-manga.com",
+    "apiUrl": "https://toomtam-manga.com",
+    "lang": "th",
+    "baseClass": "MangaThemesia",
+    "customSelectors": {
+      "seriesAuthorSelector": ".imptdt:contains(ผู้เขียน) i",
+      "seriesArtistSelector": ".imptdt:contains(ศิลปิน) i"
+    }
+  },
+  "ma.lmanwa.extension.tr.adonisfansub": {
+    "id": "ma.lmanwa.extension.tr.adonisfansub",
+    "name": "Adonis Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://manga.adonisfansub.com",
+    "apiUrl": "https://manga.adonisfansub.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.afroditscans": {
+    "id": "ma.lmanwa.extension.tr.afroditscans",
+    "name": "Afrodit Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://afroditscans.com",
+    "apiUrl": "https://afroditscans.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.amangaplanet": {
+    "id": "ma.lmanwa.extension.tr.amangaplanet",
+    "name": "Amanga Planet",
+    "version": "0.0.1",
+    "baseUrl": "https://www.amangaplanet.com.tr",
+    "apiUrl": "https://www.amangaplanet.com.tr",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.anikiga": {
+    "id": "ma.lmanwa.extension.tr.anikiga",
+    "name": "Anikiga",
+    "version": "0.0.1",
+    "baseUrl": "https://anikiga.com",
+    "apiUrl": "https://anikiga.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.araznovel": {
+    "id": "ma.lmanwa.extension.tr.araznovel",
+    "name": "ArazNovel",
+    "version": "0.0.1",
+    "baseUrl": "https://araznovel.com",
+    "apiUrl": "https://araznovel.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.arcurafansub": {
+    "id": "ma.lmanwa.extension.tr.arcurafansub",
+    "name": "Arcura Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://arcurafansub.com",
+    "apiUrl": "https://arcurafansub.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.asurascanstr": {
+    "id": "ma.lmanwa.extension.tr.asurascanstr",
+    "name": "Asura Scans TR",
+    "version": "0.0.1",
+    "baseUrl": "https://asurascans.com.tr",
+    "apiUrl": "https://asurascans.com.tr",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.caprazmanga": {
+    "id": "ma.lmanwa.extension.tr.caprazmanga",
+    "name": "ÇaprazManga",
+    "version": "0.0.1",
+    "baseUrl": "https://caprazmanga.com",
+    "apiUrl": "https://caprazmanga.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.diamondfansub": {
+    "id": "ma.lmanwa.extension.tr.diamondfansub",
+    "name": "DiamondFansub",
+    "version": "0.0.1",
+    "baseUrl": "https://diamondfansub.com",
+    "apiUrl": "https://diamondfansub.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.domalfansub": {
+    "id": "ma.lmanwa.extension.tr.domalfansub",
+    "name": "Domal Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://dom4lfansub.online",
+    "apiUrl": "https://dom4lfansub.online",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.gafeland": {
+    "id": "ma.lmanwa.extension.tr.gafeland",
+    "name": "gafeland",
+    "version": "0.0.1",
+    "baseUrl": "https://gafeland.com",
+    "apiUrl": "https://gafeland.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.gaiatoon": {
+    "id": "ma.lmanwa.extension.tr.gaiatoon",
+    "name": "Gaiatoon",
+    "version": "0.0.1",
+    "baseUrl": "https://gaiatoon.com",
+    "apiUrl": "https://gaiatoon.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.garciamanga": {
+    "id": "ma.lmanwa.extension.tr.garciamanga",
+    "name": "Garcia Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://garciamanga.com",
+    "apiUrl": "https://garciamanga.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.ghosthentai": {
+    "id": "ma.lmanwa.extension.tr.ghosthentai",
+    "name": "Ghost Hentai",
+    "version": "0.0.1",
+    "baseUrl": "https://ghosthentai.com",
+    "apiUrl": "https://ghosthentai.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.golgebahcesi": {
+    "id": "ma.lmanwa.extension.tr.golgebahcesi",
+    "name": "Gölge Bahçesi",
+    "version": "0.0.1",
+    "baseUrl": "https://golgebahcesi.com",
+    "apiUrl": "https://golgebahcesi.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.hayalistic": {
+    "id": "ma.lmanwa.extension.tr.hayalistic",
+    "name": "Hayalistic",
+    "version": "0.0.1",
+    "baseUrl": "https://hayalistic.net",
+    "apiUrl": "https://hayalistic.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.holyscans": {
+    "id": "ma.lmanwa.extension.tr.holyscans",
+    "name": "Holy Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://holyscans.com.tr",
+    "apiUrl": "https://holyscans.com.tr",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.kabusmanga": {
+    "id": "ma.lmanwa.extension.tr.kabusmanga",
+    "name": "Kabus Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://kabusmanga.com",
+    "apiUrl": "https://kabusmanga.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.koreliscans": {
+    "id": "ma.lmanwa.extension.tr.koreliscans",
+    "name": "Koreli Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://nabimanga.com",
+    "apiUrl": "https://nabimanga.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.kuroimanga": {
+    "id": "ma.lmanwa.extension.tr.kuroimanga",
+    "name": "Kuroi Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.kuroimanga.top",
+    "apiUrl": "https://www.kuroimanga.top",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.laviniafansub": {
+    "id": "ma.lmanwa.extension.tr.laviniafansub",
+    "name": "Lavinia Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://laviniafansub.site",
+    "apiUrl": "https://laviniafansub.site",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.lilyumfansub": {
+    "id": "ma.lmanwa.extension.tr.lilyumfansub",
+    "name": "LilyumFansub",
+    "version": "0.0.1",
+    "baseUrl": "https://lilyumfansub.com.tr",
+    "apiUrl": "https://lilyumfansub.com.tr",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.lunascans": {
+    "id": "ma.lmanwa.extension.tr.lunascans",
+    "name": "Luna Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://tuhafscans.com",
+    "apiUrl": "https://tuhafscans.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangadusleri": {
+    "id": "ma.lmanwa.extension.tr.mangadusleri",
+    "name": "Mangadusleri",
+    "version": "0.0.1",
+    "baseUrl": "https://mangadusleri.lol",
+    "apiUrl": "https://mangadusleri.lol",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.mangagezgini": {
+    "id": "ma.lmanwa.extension.tr.mangagezgini",
+    "name": "MangaGezgini",
+    "version": "0.0.1",
+    "baseUrl": "https://mangagezgini.online",
+    "apiUrl": "https://mangagezgini.online",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangakusu": {
+    "id": "ma.lmanwa.extension.tr.mangakusu",
+    "name": "Manga Kusu",
+    "version": "0.0.1",
+    "baseUrl": "https://mangakusu.com",
+    "apiUrl": "https://mangakusu.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.mangasehri": {
+    "id": "ma.lmanwa.extension.tr.mangasehri",
+    "name": "Manga Şehri",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-sehri.com",
+    "apiUrl": "https://manga-sehri.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangasehrinet": {
+    "id": "ma.lmanwa.extension.tr.mangasehrinet",
+    "name": "Manga Şehri.net",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-sehri.net",
+    "apiUrl": "https://manga-sehri.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangatilkisi": {
+    "id": "ma.lmanwa.extension.tr.mangatilkisi",
+    "name": "MangaTilkisi",
+    "version": "0.0.1",
+    "baseUrl": "https://www.tilkiscans.com",
+    "apiUrl": "https://www.tilkiscans.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangawow": {
+    "id": "ma.lmanwa.extension.tr.mangawow",
+    "name": "MangaWOW",
+    "version": "0.0.1",
+    "baseUrl": "https://mangawow.org",
+    "apiUrl": "https://mangawow.org",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangawt": {
+    "id": "ma.lmanwa.extension.tr.mangawt",
+    "name": "MangaWT",
+    "version": "0.0.1",
+    "baseUrl": "https://mangawt.com",
+    "apiUrl": "https://mangawt.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mangazure": {
+    "id": "ma.lmanwa.extension.tr.mangazure",
+    "name": "MangaZure",
+    "version": "0.0.1",
+    "baseUrl": "https://mangazure.net",
+    "apiUrl": "https://mangazure.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.mikrokosmosfansub": {
+    "id": "ma.lmanwa.extension.tr.mikrokosmosfansub",
+    "name": "Mikrokosmos Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://mikrokosmosfb.blogspot.com",
+    "apiUrl": "https://mikrokosmosfb.blogspot.com",
+    "lang": "tr",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.tr.milasub": {
+    "id": "ma.lmanwa.extension.tr.milasub",
+    "name": "MilaSub",
+    "version": "0.0.1",
+    "baseUrl": "https://www.millascan.com",
+    "apiUrl": "https://www.millascan.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.moondaisyscans": {
+    "id": "ma.lmanwa.extension.tr.moondaisyscans",
+    "name": "Moon Daisy Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://moondaisyscans.lol",
+    "apiUrl": "https://moondaisyscans.lol",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.nemesisscans": {
+    "id": "ma.lmanwa.extension.tr.nemesisscans",
+    "name": "Nemesisscans",
+    "version": "0.0.1",
+    "baseUrl": "https://nemesisscans.com",
+    "apiUrl": "https://nemesisscans.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.nirvanamanga": {
+    "id": "ma.lmanwa.extension.tr.nirvanamanga",
+    "name": "Nirvana Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://nirvanamanga.com",
+    "apiUrl": "https://nirvanamanga.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.niverafansub": {
+    "id": "ma.lmanwa.extension.tr.niverafansub",
+    "name": "Nivera Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://niverafansub.org",
+    "apiUrl": "https://niverafansub.org",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.opiatoon": {
+    "id": "ma.lmanwa.extension.tr.opiatoon",
+    "name": "Opiatoon",
+    "version": "0.0.1",
+    "baseUrl": "https://opiatoon.lat",
+    "apiUrl": "https://opiatoon.lat",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.patimanga": {
+    "id": "ma.lmanwa.extension.tr.patimanga",
+    "name": "Pati Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.patimanga.com",
+    "apiUrl": "https://www.patimanga.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.raindropfansub": {
+    "id": "ma.lmanwa.extension.tr.raindropfansub",
+    "name": "Raindrop Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://www.raindropteamfan.com",
+    "apiUrl": "https://www.raindropteamfan.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.ruyamanga": {
+    "id": "ma.lmanwa.extension.tr.ruyamanga",
+    "name": "Rüya Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://www.ruyamanga2.com",
+    "apiUrl": "https://www.ruyamanga2.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.ruyamanganet": {
+    "id": "ma.lmanwa.extension.tr.ruyamanganet",
+    "name": "Rüya Manga.net",
+    "version": "0.0.1",
+    "baseUrl": "https://ruyamanga.net",
+    "apiUrl": "https://ruyamanga.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.sereinscan": {
+    "id": "ma.lmanwa.extension.tr.sereinscan",
+    "name": "Serein Scan",
+    "version": "0.0.1",
+    "baseUrl": "https://sereinscan.com",
+    "apiUrl": "https://sereinscan.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.shadowceviri": {
+    "id": "ma.lmanwa.extension.tr.shadowceviri",
+    "name": "Shadow Çeviri",
+    "version": "0.0.1",
+    "baseUrl": "https://shadowceviri.blogspot.com",
+    "apiUrl": "https://shadowceviri.blogspot.com",
+    "lang": "tr",
+    "baseClass": "ZeistManga"
+  },
+  "ma.lmanwa.extension.tr.shijiescans": {
+    "id": "ma.lmanwa.extension.tr.shijiescans",
+    "name": "Shijie Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://shijiescans.com",
+    "apiUrl": "https://shijiescans.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.strayfansub": {
+    "id": "ma.lmanwa.extension.tr.strayfansub",
+    "name": "Stray Fansub",
+    "version": "0.0.1",
+    "baseUrl": "https://strayfansub.net",
+    "apiUrl": "https://strayfansub.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.summertoon": {
+    "id": "ma.lmanwa.extension.tr.summertoon",
+    "name": "SummerToon",
+    "version": "0.0.1",
+    "baseUrl": "https://summertoons.com",
+    "apiUrl": "https://summertoons.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.sunsetmanga": {
+    "id": "ma.lmanwa.extension.tr.sunsetmanga",
+    "name": "Sunset Manga",
+    "version": "0.0.1",
+    "baseUrl": "https://sunsetmanga.com",
+    "apiUrl": "https://sunsetmanga.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.tarotscans": {
+    "id": "ma.lmanwa.extension.tr.tarotscans",
+    "name": "Tarot Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://www.tarotscans.com",
+    "apiUrl": "https://www.tarotscans.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.tempestscans": {
+    "id": "ma.lmanwa.extension.tr.tempestscans",
+    "name": "Tempest Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://tempestmangas.com",
+    "apiUrl": "https://tempestmangas.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.tonizutoon": {
+    "id": "ma.lmanwa.extension.tr.tonizutoon",
+    "name": "TonizuToon",
+    "version": "0.0.1",
+    "baseUrl": "https://tonizu.top",
+    "apiUrl": "https://tonizu.top",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.tortugaceviri": {
+    "id": "ma.lmanwa.extension.tr.tortugaceviri",
+    "name": "Tortuga Ceviri",
+    "version": "0.0.1",
+    "baseUrl": "https://tortugaceviri.com",
+    "apiUrl": "https://tortugaceviri.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.turkcemangaoku": {
+    "id": "ma.lmanwa.extension.tr.turkcemangaoku",
+    "name": "Türkçe Manga Oku",
+    "version": "0.0.1",
+    "baseUrl": "https://trmangaoku.com",
+    "apiUrl": "https://trmangaoku.com",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.turkcemangaokutr": {
+    "id": "ma.lmanwa.extension.tr.turkcemangaokutr",
+    "name": "Türkçe Manga Oku TR",
+    "version": "0.0.1",
+    "baseUrl": "https://turkcemangaoku.com.tr",
+    "apiUrl": "https://turkcemangaoku.com.tr",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.turkmangaoku": {
+    "id": "ma.lmanwa.extension.tr.turkmangaoku",
+    "name": "Turkmangaoku",
+    "version": "0.0.1",
+    "baseUrl": "https://turkmangaoku.com",
+    "apiUrl": "https://turkmangaoku.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.tr.webtoonhatti": {
+    "id": "ma.lmanwa.extension.tr.webtoonhatti",
+    "name": "Webtoon Hatti",
+    "version": "0.0.1",
+    "baseUrl": "https://webtoonhatti.club",
+    "apiUrl": "https://webtoonhatti.club",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.webtoontr": {
+    "id": "ma.lmanwa.extension.tr.webtoontr",
+    "name": "Webtoon TR",
+    "version": "0.0.1",
+    "baseUrl": "https://webtoontr.net",
+    "apiUrl": "https://webtoontr.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.yaoibar": {
+    "id": "ma.lmanwa.extension.tr.yaoibar",
+    "name": "Yaoibar",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoibar.lol",
+    "apiUrl": "https://yaoibar.lol",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.yaoiflix": {
+    "id": "ma.lmanwa.extension.tr.yaoiflix",
+    "name": "Yaoi Flix",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoiflix.lat",
+    "apiUrl": "https://yaoiflix.lat",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.yaoimangaoku": {
+    "id": "ma.lmanwa.extension.tr.yaoimangaoku",
+    "name": "Yaoi Manga Oku",
+    "version": "0.0.1",
+    "baseUrl": "https://yaoimangaoku.net",
+    "apiUrl": "https://yaoimangaoku.net",
+    "lang": "tr",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.tr.zenithscans": {
+    "id": "ma.lmanwa.extension.tr.zenithscans",
+    "name": "Zenith Scans",
+    "version": "0.0.1",
+    "baseUrl": "https://zenithscans.com",
+    "apiUrl": "https://zenithscans.com",
+    "lang": "tr",
+    "baseClass": "MangaThemesia"
+  },
+  "ma.lmanwa.extension.vi.hentaicube": {
+    "id": "ma.lmanwa.extension.vi.hentaicube",
+    "name": "CBHentai",
+    "version": "0.0.1",
+    "baseUrl": "https://2tencb.lat",
+    "apiUrl": "https://2tencb.lat",
+    "lang": "vi",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.vi.hentaivnplus": {
+    "id": "ma.lmanwa.extension.vi.hentaivnplus",
+    "name": "HentaiVN.plus",
+    "version": "0.0.1",
+    "baseUrl": "https://hentaivn.show",
+    "apiUrl": "https://hentaivn.show",
+    "lang": "vi",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.vi.truyentranhdammy": {
+    "id": "ma.lmanwa.extension.vi.truyentranhdammy",
+    "name": "Truyện tranh đam mỹ",
+    "version": "0.0.1",
+    "baseUrl": "https://truyentranhdammyy.site",
+    "apiUrl": "https://truyentranhdammyy.site",
+    "lang": "vi",
+    "baseClass": "Madara"
+  },
+  "ma.lmanwa.extension.vi.truyenvn": {
+    "id": "ma.lmanwa.extension.vi.truyenvn",
+    "name": "TruyenVN",
+    "version": "0.0.1",
+    "baseUrl": "https://truyenvn.shop",
+    "apiUrl": "https://truyenvn.shop",
+    "lang": "vi",
+    "baseClass": "Madara"
+  }
+}

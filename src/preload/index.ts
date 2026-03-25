@@ -58,6 +58,8 @@ const api: ElectronApi = {
   installUpdate: () => ipcRenderer.invoke(IpcChannel.INSTALL_UPDATE),
   checkForUpdates: () => ipcRenderer.invoke(IpcChannel.CHECK_FOR_UPDATE),
   openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
+  cfBypass: (url: string) => ipcRenderer.invoke(IpcChannel.CF_BYPASS, url),
+  cfFetchHtml: (url: string) => ipcRenderer.invoke(IpcChannel.CF_FETCH_HTML, url),
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }

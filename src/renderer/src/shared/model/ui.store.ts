@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type TabType = 'library' | 'history' | 'browse' | 'my-extensions' | 'downloads' | 'settings' | 'about'
+export type TabType = 'library' | 'history' | 'browse' | 'my-extensions' | 'downloads' | 'anime' | 'settings' | 'about'
 export type ThemeType = 'light' | 'dark' | 'system'
 export type ColorThemeType = 'default' | 'dabi' | 'itachi' | 'goku' | 'all-might' | 'gojo'
 

@@ -17,7 +17,7 @@ export const mangaKeys = {
 /**
  * Hook to fetch manga details with caching
  */
-export function useMangaDetails(mangaId: string, pkg: string | null) {
+export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: string) {
   return useQuery({
     queryKey: mangaKeys.details(mangaId),
     queryFn: async () => {
@@ -29,7 +29,8 @@ export function useMangaDetails(mangaId: string, pkg: string | null) {
         try {
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
-            const fresh = await runner.fetchMangaDetails((cached as any)?.url || mangaId)
+            const urlToFetch = mangaUrl || (cached as any)?.url || mangaId;
+            const fresh = await runner.fetchMangaDetails({ id: mangaId, url: urlToFetch, title: '' })
             if (fresh) {
               // Save to cache asynchronously
               DataService.db.saveMangaCache({ ...fresh, pkg })
@@ -52,7 +53,13 @@ export function useMangaDetails(mangaId: string, pkg: string | null) {
 /**
  * Hook to fetch chapters for a manga
  */
-export function useMangaChapters(mangaId: string, pkg: string | null) {
+export function useMangaChapters(mangaId: string, pkg: string | null, mangaUrl?: string) {
+  // Live Debug Hook Entry
+  try {
+    const fs = require('fs');
+    fs.appendFileSync('d:\\DEV\\Apps\\LManwa\\tmp\\chapters_debug.txt', `\n[Hook Called] mangaId: \${mangaId}, pkg: \${pkg}, url: \${mangaUrl}\n`);
+  } catch(err) {}
+
   return useQuery({
     queryKey: mangaKeys.chapters(mangaId),
     queryFn: async () => {
@@ -66,7 +73,8 @@ export function useMangaChapters(mangaId: string, pkg: string | null) {
           if (runner) {
             // We need the manga URL for the extension
             const manga = await DataService.db.getMangaCache(mangaId)
-            const fresh = await runner.fetchChapters((manga as any)?.url || mangaId)
+            const urlToFetch = mangaUrl || (manga as any)?.url || mangaId;
+            const fresh = await runner.fetchChapters(urlToFetch)
             if (fresh && fresh.length > 0) {
               await DataService.db.saveChapters({ mangaId, chapters: fresh })
               return fresh

@@ -1,13 +1,39 @@
 import { DataService } from '@renderer/shared/api'
 import { useState } from 'react'
-import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings } from 'lucide-react'
+import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings, Globe } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 import { useLibraryStore, useExtensionStore, useSettingsStore } from '@renderer/shared/model'
-import { Button, Input, Card, Badge } from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, Select } from '@renderer/shared/ui'
 
 import localExtensions from '@renderer/shared/api/sources/Extensions.json'
-import { getNativeSource } from '@renderer/shared/api/sources'
+import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  all: 'Global',
+  ar: 'العربية',
+  bg: 'Български',
+  ca: 'Català',
+  cs: 'Čeština',
+  de: 'Deutsch',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  id: 'Bahasa Indonesia',
+  it: 'Italiano',
+  ja: '日本語',
+  ko: '한국어',
+  pl: 'Polski',
+  'pt-br': 'Português (Brasil)',
+  ru: 'Русский',
+  th: 'ไทย',
+  tr: 'Türkçe',
+  uk: 'Українська',
+  vi: 'Tiếng Việt',
+  zh: '中文',
+  'zh-hans': '简体中文',
+  'zh-hant': '繁體中文'
+}
 
 interface Extension {
   name: string
@@ -25,10 +51,10 @@ export default function ExtensionsManager() {
   } = useSettingsStore()
 
   const { loadFromDb } = useLibraryStore()
-  const { 
+  const {
     installedExtensions, uninstallExtension, setActiveExtension,
-    extensionSortBy, extensionSortOrder, 
-    setExtensionSortBy, setExtensionSortOrder 
+    extensionSortBy, extensionSortOrder,
+    setExtensionSortBy, setExtensionSortOrder
   } = useExtensionStore()
   const [extensions] = useState<Extension[]>(localExtensions as Extension[])
   const [searchQuery, setSearchQuery] = useState('')
@@ -48,6 +74,15 @@ export default function ExtensionsManager() {
 
     return matchesSearch && matchesTab && matchesLang && matchesNsfw
   }).sort((a, b) => {
+    if (extensionSortBy === 'supported') {
+      const aSupp = isFullySupported(a.pkg) ? 1 : 0
+      const bSupp = isFullySupported(b.pkg) ? 1 : 0
+      if (aSupp !== bSupp) {
+        return extensionSortOrder === 'asc' ? bSupp - aSupp : aSupp - bSupp
+      }
+      return a.name.localeCompare(b.name)
+    }
+
     if (extensionSortBy === 'name') {
       return extensionSortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     }
@@ -118,39 +153,43 @@ export default function ExtensionsManager() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-1 items-center bg-secondary/10 p-2 rounded-md border border-border/40">
-          <span className="text-xs text-muted-foreground mr-1 px-1">Languages:</span>
-          {languages.map((lang) => {
-            const isSelected = selectedLangs.includes(lang)
-            return (
-              <Badge
-                key={lang}
-                variant={isSelected ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => {
-                  if (lang === 'all') {
-                    setSelectedLangs(['all'])
-                  } else {
-                    let next = selectedLangs.filter(l => l !== 'all')
-                    if (next.includes(lang)) {
-                      next = next.filter(l => l !== lang)
-                    } else {
-                      next.push(lang)
-                    }
-                    if (next.length === 0) next = ['all']
-                    setSelectedLangs(next)
-                  }
-                }}
-              >
-                {lang === 'all' ? 'Global' : lang.toUpperCase()}
-              </Badge>
-            )
-          })}
+        <div className="flex items-center gap-2 bg-secondary/10 p-1.5 rounded-md border border-border/40">
+          <Globe className='text-primary' />
+          <span className="text-xs text-muted-foreground">Language:</span>
+          <Select
+            className="h-8 w-[140px] text-xs font-medium p-1 items-center"
+            dir='auto'
+            value={selectedLangs[0] || 'all'}
+            onValueChange={(value) => {
+              setSelectedLangs([value])
+            }}
+            options={languages.map(lang => ({
+              value: lang,
+              label: LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase()
+            }))}
+          />
         </div>
 
         {/* Sort Controls */}
         <div className="flex items-center gap-2 bg-secondary/10 p-1.5 rounded-md border border-border/40 ml-auto">
           <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground px-2">Sort:</span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (extensionSortBy === 'supported') setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+              else { setExtensionSortBy('supported'); setExtensionSortOrder('asc') }
+            }}
+            className={cn(
+              "h-8 gap-2 text-xs",
+              extensionSortBy === 'supported' ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "text-muted-foreground"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Supported
+            <ArrowUpDown className={cn("h-3 w-3 opacity-50", extensionSortBy === 'supported' && "opacity-100")} />
+          </Button>
 
           <Button
             variant="ghost"
@@ -210,7 +249,7 @@ export default function ExtensionsManager() {
               Recommended Sources
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              We recommend using <strong>Native Supported</strong> extensions for the best reading experience. 
+              We recommend using <strong>Native Supported</strong> extensions for the best reading experience.
               These sources are verified for ultra-fast performance, automatic updates, and maximum security.
             </p>
           </div>
@@ -221,7 +260,7 @@ export default function ExtensionsManager() {
         {filteredExtensions.map((ext) => (
           <Card key={ext.pkg} className="group p-4 hover:bg-secondary/40 transition-all duration-200">
             <div className="flex items-start gap-3">
-              <div className="w-14 h-14 rounded-lg bg-secondary flex items-center p-0.5 justify-center relative overflow-hidden ring-2 ring-border/50 group-hover:ring-primary/30 transition-all">
+              <div className="w-14 h-14 flex-shrink-0 rounded-lg bg-secondary flex items-center p-0.5 justify-center relative overflow-hidden ring-2 ring-border/50 group-hover:ring-primary/30 transition-all">
                 <img
                   src={getIconPath(ext.pkg)}
                   alt={ext.name}
@@ -265,12 +304,12 @@ export default function ExtensionsManager() {
                 <div className="flex flex-col gap-1.5 overflow-hidden">
                   {(() => {
                     const native = getNativeSource(ext.pkg)
-                    const isFullySupported = ['ma.lmanwa.extension.ar.mangaswat', 'ma.lmanwa.extension.ar.teamx'].includes(ext.pkg)
-                    
+                    const fullySupported = isFullySupported(ext.pkg)
+
                     if (native) {
                       return (
                         <div className="flex flex-wrap gap-1 items-center">
-                          {isFullySupported ? (
+                          {fullySupported ? (
                             <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1 font-bold">
                               SUPPORTED
                             </Badge>
@@ -375,7 +414,7 @@ export default function ExtensionsManager() {
       </div>
 
       {editingExt && (
-        <DomainOverrideModal 
+        <DomainOverrideModal
           isOpen={!!editingExt}
           onClose={() => setEditingExt(null)}
           pkg={editingExt.pkg}
@@ -394,7 +433,7 @@ export default function ExtensionsManager() {
               {activeTab === 'installed' ? 'No Extensions Installed' : 'No Extensions Found'}
             </h3>
             <p className="text-sm">
-              {activeTab === 'installed' 
+              {activeTab === 'installed'
                 ? 'You haven\'t installed any extensions yet. Browse the full catalog to add sources.'
                 : 'Try adjusting your search query or language filters to find what you\'re looking for.'}
             </p>
