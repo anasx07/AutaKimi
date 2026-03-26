@@ -141,6 +141,7 @@ export class RistoAnimeSource extends AnimeSource {
                 title = t
                 return false // break
             }
+            return true
         })
     }
 
