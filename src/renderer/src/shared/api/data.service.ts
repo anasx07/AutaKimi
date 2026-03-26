@@ -15,7 +15,7 @@ export const DataService = {
     addExtension: (data: any) => callIpc(() => getApi().db.addExtension(data)),
     getExtension: (pkg: string) => callIpc(() => getApi().db.getExtension(pkg)),
     removeExtension: (pkg: string) => callIpc(() => getApi().db.removeExtension(pkg)),
-    getLibrary: (args?: any) => callIpc(() => getApi().db.getLibrary(args)),
+    getLibrary: (args?: { limit?: number; offset?: number; type?: string }) => callIpc(() => getApi().db.getLibrary(args)),
     toggleLibrary: (manga: any) => callIpc(() => getApi().db.toggleLibrary(manga)),
     getSetting: (key: string) => callIpc(() => getApi().db.getSetting(key)),
     getSettings: () => callIpc(() => getApi().db.getSettings()),
@@ -23,7 +23,7 @@ export const DataService = {
     getProgress: (mangaId: string) => callIpc(() => getApi().db.getProgress(mangaId)),
     updateProgress: (data: any) => callIpc(() => getApi().db.updateProgress(data)),
     addHistory: (data: any) => callIpc(() => getApi().db.addHistory(data)),
-    getHistory: (args?: any) => callIpc(() => getApi().db.getHistory(args)),
+    getHistory: (args?: { limit?: number; offset?: number; type?: 'manga' | 'anime' }) => callIpc(() => getApi().db.getHistory(args)),
     deleteHistoryEntry: (id: number) => callIpc(() => getApi().db.deleteHistoryEntry(id)),
     deleteHistoryByManga: (mangaId: string) => callIpc(() => getApi().db.deleteHistoryByManga(mangaId)),
     clearHistory: () => callIpc(() => getApi().db.clearHistory()),
@@ -62,7 +62,7 @@ export const DataService = {
     cancel: (args: any) => callIpc(() => getApi().download.cancel(args)),
     getStatus: (args: any) => callIpc(() => getApi().download.getStatus(args)),
     getMangaDownloads: (mangaId: string) => callIpc(() => getApi().download.getMangaDownloads(mangaId)),
-    getAllMangaDownloads: () => callIpc(() => getApi().download.getAllMangaDownloads())
+    getAllMangaDownloads: (type?: string) => callIpc(() => getApi().download.getAllMangaDownloads(type))
   },
   platform: (window as any).api?.platform || 'win32'
 }

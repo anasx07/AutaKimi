@@ -28,7 +28,7 @@ export class TrayManager {
       },
       { type: 'separator' },
       { 
-        label: 'Quit LManwa', 
+        label: 'Quit AutaKimi', 
         click: () => {
           ;(app as any).isQuitting = true
           app.quit()
@@ -36,7 +36,7 @@ export class TrayManager {
       }
     ])
 
-    this.tray.setToolTip('LManwa')
+    this.tray.setToolTip('AutaKimi')
     this.tray.setContextMenu(contextMenu)
 
     this.tray.on('double-click', () => {

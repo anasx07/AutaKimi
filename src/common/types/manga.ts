@@ -9,5 +9,6 @@ export interface Manga {
   genres?: string[];
   url?: string;
   pkg?: string;
+  mediaType?: 'manga' | 'anime';
   _raw?: any;
 }

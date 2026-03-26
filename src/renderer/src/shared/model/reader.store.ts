@@ -44,7 +44,7 @@ interface ReaderState {
 
 export const useReaderStore = create<ReaderState>((set) => ({
   defaultChapterSort: 'asc',
-  readingMode: 'webtoon',
+  readingMode: 'continuous-vertical',
   autoMarkRead: true,
   preloadPages: 3,
   dragToScroll: true,

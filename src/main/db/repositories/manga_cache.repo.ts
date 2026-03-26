@@ -7,6 +7,7 @@ export class MangaCacheRepository {
 
   async upsert(manga: any) {
     const genres = manga.genres ? JSON.stringify(manga.genres) : null;
+    const type = manga.mediaType || 'manga';
     
     // Check if exists
     const existing = await this.db.select().from(schema.mangaCache).where(eq(schema.mangaCache.id, manga.id)).get();
@@ -22,6 +23,7 @@ export class MangaCacheRepository {
           status: manga.status || null,
           genres: genres,
           url: manga.url || null,
+          type: type,
           updatedAt: new Date().toISOString()
         })
         .where(eq(schema.mangaCache.id, manga.id))
@@ -38,6 +40,7 @@ export class MangaCacheRepository {
           status: manga.status || null,
           genres: genres,
           url: manga.url || null,
+          type: type,
           updatedAt: new Date().toISOString()
         })
         .run();

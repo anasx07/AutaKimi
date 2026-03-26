@@ -45,7 +45,7 @@ export default function MangaDetails() {
   const error = (detailQuery.error as Error)?.message || (chaptersQuery.error as Error)?.message || null
 
   const toggleLibraryMutation = useToggleLibrary()
-  const { data: libraryItems = [] } = useLibraryItems()
+  const { data: libraryItems = [] } = useLibraryItems('manga')
 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultChapterSort)
   const [descExpanded, setDescExpanded] = useState(false)

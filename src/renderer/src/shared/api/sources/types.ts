@@ -21,5 +21,5 @@ export interface ISourceAdapter {
   searchManga(query: string, page: number, extraArgs?: FetchOptions): Promise<MangaPage>;
   fetchMangaDetails(manga: Manga): Promise<Manga>;
   fetchChapters(mangaUrl: string): Promise<Chapter[]>;
-  fetchPages(chapterUrl: string): Promise<string[]>;
+  fetchPages(chapterUrl: string): Promise<string[] | any>;
 }

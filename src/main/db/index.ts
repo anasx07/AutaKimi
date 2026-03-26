@@ -199,6 +199,19 @@ const migrate = () => {
     sqlite.pragma('user_version = 13')
     currentVersion = 13;
   }
+
+  if (currentVersion < 14) {
+    sqlite.pragma('user_version = 14')
+    currentVersion = 14;
+  }
+
+  if (currentVersion < 15) {
+    try { sqlite.exec(`ALTER TABLE library ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    try { sqlite.exec(`ALTER TABLE downloads ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    try { sqlite.exec(`ALTER TABLE manga_cache ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    sqlite.pragma('user_version = 15')
+    currentVersion = 15;
+  }
 }
 
 migrate()

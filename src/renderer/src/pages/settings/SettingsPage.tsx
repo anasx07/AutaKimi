@@ -92,10 +92,12 @@ export default function SettingsPage() {
     theme, setTheme,
     colorTheme, setColorTheme,
     downloadConcurrency, setDownloadConcurrency,
-    minimizeToTray, setMinimizeToTray
+    minimizeToTray, setMinimizeToTray,
+    autoNextAnime, setAutoNextAnime,
+    autoSwitchServer, setAutoSwitchServer
   } = useSettingsStore()
 
-  const [activeTab, setActiveTab] = useState<'general' | 'reading' | 'advanced'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'reading' | 'anime' | 'advanced'>('general')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const handleClearCache = async () => {
@@ -192,6 +194,7 @@ export default function SettingsPage() {
         <nav className="flex-1 space-y-3">
           <SidebarItem id="general" label="Generale" icon={Settings2} />
           <SidebarItem id="reading" label="Reding" icon={BookOpen} />
+          <SidebarItem id="anime" label="Anime" icon={Zap} />
           <SidebarItem id="advanced" label="Advanced" icon={Zap} />
         </nav>
 
@@ -343,6 +346,32 @@ export default function SettingsPage() {
                     <ShortcutInput label="Reverse (Hold)" value={autoScrollShortcuts.reverse} onSave={(k) => setShortcut('reverse', k)} />
                   </div>
                 </Card>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'anime' && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <section className="space-y-6">
+                 <div className="flex items-center gap-3 text-primary font-black text-xl uppercase tracking-tighter italic px-1">
+                    <Zap className="h-6 w-6 text-primary" /> Anime Viewing
+                 </div>
+                 <Card className="border-border bg-card divide-y divide-border overflow-hidden shadow-none">
+                    <div className="p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold flex items-center gap-2">Auto Next Episode</div>
+                        <div className="text-xs text-muted-foreground">Automatically play the next episode when current one ends.</div>
+                      </div>
+                      <Switch checked={autoNextAnime} onCheckedChange={setAutoNextAnime} />
+                    </div>
+                    <div className="p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors">
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold flex items-center gap-2">Auto-Switch Server</div>
+                        <div className="text-xs text-muted-foreground">Automatically switch to a working server if current one fails.</div>
+                      </div>
+                      <Switch checked={autoSwitchServer} onCheckedChange={setAutoSwitchServer} />
+                    </div>
+                 </Card>
               </section>
             </div>
           )}

@@ -1,11 +1,12 @@
 import { Clock, Trash2, BookOpen, Play, Loader2 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLibraryStore, useHistoryStore, useExtensionStore } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib'
 import { useInfiniteHistoryEntries } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function HistoryPage() {
+  const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
   const { setSelectedManga, setActiveChapter } = useLibraryStore()
   const { setActiveExtension } = useExtensionStore()
   const {
@@ -19,7 +20,7 @@ export default function HistoryPage() {
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage
-  } = useInfiniteHistoryEntries()
+  } = useInfiniteHistoryEntries(activeTab)
 
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
@@ -76,7 +77,9 @@ export default function HistoryPage() {
       status: '',
       description: '',
       genres: [],
-    })
+      mediaType: entry.type,
+      pkg: entry.pkg
+    } as any)
   }
 
   const handleContinueReading = (entry: any) => {
@@ -92,7 +95,9 @@ export default function HistoryPage() {
       status: '',
       description: '',
       genres: [],
-    })
+      mediaType: entry.type,
+      pkg: entry.pkg
+    } as any)
 
     setActiveChapter({
       id: entry.chapterId,
@@ -142,13 +147,39 @@ export default function HistoryPage() {
   return (
     <div className="p-4 space-y-5 max-w-3xl mx-auto border-0 flex flex-col h-full">
       <div className="flex items-center justify-between pb-2">
-        <h1 className="text-2xl font-bold tracking-tight">History</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight">History</h1>
+          <div className="flex items-center gap-1 bg-secondary/30 p-1 rounded-lg border border-border/40 w-fit">
+            <Button
+              variant={activeTab === 'manga' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('manga')}
+              className={cn(
+                "h-8 px-4 rounded-md text-xs font-bold transition-all",
+                activeTab === 'manga' ? "shadow-md" : "text-muted-foreground"
+              )}
+            >
+              Manga
+            </Button>
+            <Button
+              variant={activeTab === 'anime' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('anime')}
+              className={cn(
+                "h-8 px-4 rounded-md text-xs font-bold transition-all",
+                activeTab === 'anime' ? "shadow-md" : "text-muted-foreground"
+              )}
+            >
+              Anime
+            </Button>
+          </div>
+        </div>
 
         {allEntries.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8"
+            className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8 self-start mt-1"
             onClick={clearHistory}
             title="Clear All"
           >
@@ -160,7 +191,7 @@ export default function HistoryPage() {
       {sortedGroupedHistory.length === 0 && !isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 text-muted-foreground space-y-3">
           <Clock className="h-14 w-14 stroke-[1.25] text-muted-foreground/30" />
-          <p className="text-sm font-medium">No reading history</p>
+          <p className="text-sm font-medium">No {activeTab} history</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto pr-2">
@@ -183,22 +214,31 @@ export default function HistoryPage() {
                   />
                 ) : (
                   <div className="w-24 h-32 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+                    {activeTab === 'anime' ? (
+                      <Play className="h-8 w-8 text-muted-foreground/40" />
+                    ) : (
+                      <BookOpen className="h-8 w-8 text-muted-foreground/40" />
+                    )}
                   </div>
                 )}
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center space-y-0.5">
                   <h3 dir='auto' className="text-sm font-bold truncate text-foreground group-hover:text-primary transition-colors">
-                    {entry.mangaTitle || 'Unknown Manga'}
+                    {entry.mangaTitle || 'Unknown Title'}
                   </h3>
 
                   <span className="text-xs text-muted-foreground truncate">
-                    {entry.chapterTitle || 'Chapter ' + entry.chapterId}
+                    {entry.type === 'anime' ? 'Episode ' : 'Chapter '}
+                    {entry.chapterTitle || entry.chapterId}
                   </span>
 
                   <div className="flex flex-col pt-0.5 space-y-0.5">
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
-                      <BookOpen className="h-3.5 w-3.5 inline text-muted-foreground/60" />
+                      {entry.type === 'anime' ? (
+                        <Play className="h-3.5 w-3.5 inline text-muted-foreground/60" />
+                      ) : (
+                        <BookOpen className="h-3.5 w-3.5 inline text-muted-foreground/60" />
+                      )}
                       <span>{formatDuration(entry.totalDuration)}</span>
                     </div>
 

@@ -12,6 +12,7 @@ export interface HistoryEntryInput {
   startedAt: string;
   durationSeconds?: number;
   pkg?: string;
+  type?: 'manga' | 'anime';
 }
 
 export class HistoryRepository {
@@ -28,13 +29,21 @@ export class HistoryRepository {
       startedAt: entry.startedAt,
       durationSeconds: entry.durationSeconds || 0,
       pkg: entry.pkg || null,
+      type: entry.type || 'manga'
     }).run();
   }
 
-  async getHistory(limit = 50, offset = 0) {
-    return this.db
+  async getHistory(limit = 50, offset = 0, type?: 'manga' | 'anime') {
+    const query = this.db
       .select()
-      .from(schema.readingHistory)
+      .from(schema.readingHistory);
+
+    if (type) {
+      // @ts-ignore
+      query.where(eq(schema.readingHistory.type, type));
+    }
+
+    return query
       .orderBy(desc(schema.readingHistory.startedAt))
       .limit(limit)
       .offset(offset)

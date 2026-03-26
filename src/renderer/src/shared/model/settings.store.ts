@@ -16,6 +16,9 @@ interface SettingsState {
   displayMode: 'grid' | 'list'
   showNsfw: boolean
   selectedLangs: string[]
+  autoNextAnime: boolean
+  autoSwitchServer: boolean
+  pinnedAnimeSources: string[]
 
   // Actions
   setBypassCloudflare: (val: boolean) => Promise<void>
@@ -24,6 +27,8 @@ interface SettingsState {
   setEnableLog: (val: boolean) => Promise<void>
   setDownloadConcurrency: (val: number) => Promise<void>
   setMinimizeToTray: (val: boolean) => Promise<void>
+  setAutoNextAnime: (val: boolean) => Promise<void>
+  setAutoSwitchServer: (val: boolean) => Promise<void>
   
   // UI Actions added
   setTheme: (theme: ThemeType) => Promise<void>
@@ -31,6 +36,7 @@ interface SettingsState {
   setDisplayMode: (mode: 'grid' | 'list') => Promise<void>
   setShowNsfw: (val: boolean) => Promise<void>
   setSelectedLangs: (langs: string[]) => Promise<void>
+  togglePinnedAnimeSource: (pkg: string) => Promise<void>
   
   // Init
   _init: (settings: Record<string, string>) => void
@@ -51,6 +57,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   displayMode: 'grid',
   showNsfw: false,
   selectedLangs: ['all'],
+  autoNextAnime: true,
+  autoSwitchServer: true,
+  pinnedAnimeSources: [],
 
   setBypassCloudflare: async (val) => {
     await DataService.db.setSetting('bypass_cloudflare', val.toString())
@@ -81,6 +90,24 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setMinimizeToTray: async (val) => {
     await DataService.db.setSetting('minimize_to_tray', val.toString())
     set({ minimizeToTray: val })
+  },
+
+  setAutoNextAnime: async (val) => {
+    try {
+      await DataService.db.setSetting('autoNextAnime', val ? 'true' : 'false')
+      set({ autoNextAnime: val })
+    } catch (e) {
+      console.error('Failed to save autoNextAnime:', e)
+    }
+  },
+
+  setAutoSwitchServer: async (val) => {
+    try {
+      await DataService.db.setSetting('autoSwitchServer', val ? 'true' : 'false')
+      set({ autoSwitchServer: val })
+    } catch (e) {
+      console.error('Failed to save autoSwitchServer:', e)
+    }
   },
 
   setTheme: async (theme) => {
@@ -135,6 +162,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
   },
 
+  togglePinnedAnimeSource: async (pkg) => {
+    try {
+      set((state) => {
+        const isPinned = state.pinnedAnimeSources.includes(pkg)
+        const newList = isPinned
+          ? state.pinnedAnimeSources.filter((p) => p !== pkg)
+          : [...state.pinnedAnimeSources, pkg]
+
+        DataService.db.setSetting('pinnedAnimeSources', JSON.stringify(newList))
+        return { pinnedAnimeSources: newList }
+      })
+    } catch (e) {
+      console.error('Failed to toggle pinned source:', e)
+    }
+  },
+
   _init: (settings) => {
     const theme = (settings.theme as ThemeType) || 'system'
     const colorTheme = (settings.colorTheme as ColorThemeType) || 'default'
@@ -162,6 +205,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       theme,
       colorTheme,
       minimizeToTray: settings.minimize_to_tray !== 'false', // Default true
+      autoNextAnime: settings.autoNextAnime !== 'false',    // Default true
+      autoSwitchServer: settings.autoSwitchServer !== 'false', // Default true
+      pinnedAnimeSources: settings.pinnedAnimeSources ? JSON.parse(settings.pinnedAnimeSources) : [],
     })
   }
 }))

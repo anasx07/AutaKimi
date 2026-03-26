@@ -20,7 +20,10 @@ export const nativeSources: Record<string, new () => ISourceAdapter> = {
 }
 
 export function isFullySupported(pkg: string): boolean {
-  return ['ma.lmanwa.extension.ar.mangaswat', 'ma.lmanwa.extension.ar.teamx'].includes(pkg) || !!(generatedSourcesJson as any)[pkg]
+  return [
+    'ma.lmanwa.extension.ar.mangaswat',
+    'ma.lmanwa.extension.ar.teamx'
+  ].includes(pkg) || !!(generatedSourcesJson as any)[pkg]
 }
 
 const instances: Record<string, ISourceAdapter> = {}

@@ -2,11 +2,14 @@ import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
 import { BookOpen, Compass, Settings, Package, Info, Clock, Download, ChartBarIncreasing } from 'lucide-react'
 import { ExtensionsManager } from '@renderer/widgets/extensions-manager'
 import { MangaDetails } from '@renderer/widgets/manga-details'
+import { AnimeDetails } from '@renderer/widgets/anime-details'
 import { ChapterReader } from '@renderer/widgets/reader'
 import { DownloadQueueProcessor } from '@renderer/widgets/download-queue'
 import { useUIStore, useLibraryStore, useExtensionStore } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { ErrorBoundary } from '@renderer/shared/ui/ErrorBoundary'
+
+import { AnimeViewer } from '@renderer/widgets/anime-viewer'
 
 import { TitleBar } from '@renderer/widgets/title-bar'
 import Toast from '@renderer/shared/ui/Toast'
@@ -20,6 +23,7 @@ const BrowsePage = lazy(() => import('@renderer/pages/browse/BrowsePage'))
 const ExtensionsPage = lazy(() => import('@renderer/pages/extensions/ExtensionsPage'))
 const SettingsPage = lazy(() => import('@renderer/pages/settings/SettingsPage'))
 const AboutPage = lazy(() => import('@renderer/pages/about/AboutPage'))
+const AnimePage = lazy(() => import('@renderer/pages/anime/AnimePage'))
 
 /**
  * TabPanel: Only mounts children once visited, then keeps them alive but hidden.
@@ -96,8 +100,8 @@ function App(): React.JSX.Element {
       { id: 'library', label: 'Library', icon: BookOpen },
       { id: 'downloads', label: 'Downloaded', icon: Download },
       { id: 'history', label: 'History', icon: Clock },
-      { id: 'browse', label: 'Browse', icon: Compass },
-      { id: 'my-extensions', label: 'Extensions', icon: Package },
+      { id: 'browse', label: 'Manga Browser', icon: Compass },
+      { id: 'my-extensions', label: 'Manga Extensions', icon: Package },
       { id: 'anime', label: 'Anime (BETA)', icon: ChartBarIncreasing }, //soon
       { id: 'settings', label: 'Settings', icon: Settings },
       { id: 'about', label: 'About', icon: Info }
@@ -114,7 +118,7 @@ function App(): React.JSX.Element {
         <aside className="w-64 border-r border-border bg-card flex flex-col">
           <div className="p-6">
             <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-              LManwa
+              AutaKimi
             </h2>
           </div>
 
@@ -199,20 +203,20 @@ function App(): React.JSX.Element {
             <AboutPage />
           </TabPanel>
 
-          {/* Anime placeholder (BETA) - if visited would mount, but it's currently empty/beta */}
-          <TabPanel id="anime" activeTab={activeTab} visited={visited}>
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <ChartBarIncreasing className="h-12 w-12 mb-4 opacity-20" />
-              <h3 className="text-xl font-medium">Anime Support</h3>
-              <p>Coming soon in a future update.</p>
-            </div>
+          {/* Anime (Beta) Tab */}
+          <TabPanel id="anime" activeTab={activeTab} visited={visited} label="Anime">
+            <AnimePage />
           </TabPanel>
 
           {/* Overlay Views (Manga Details) */}
           {selectedManga && (
             <div className="absolute inset-0 z-10 bg-background animate-in fade-in slide-in-from-right-4 duration-300">
               <ErrorBoundary label="Manga Details">
-                <MangaDetails />
+                {selectedManga.mediaType === 'anime' ? (
+                  <AnimeDetails />
+                ) : (
+                  <MangaDetails />
+                )}
               </ErrorBoundary>
             </div>
           )}
@@ -220,8 +224,12 @@ function App(): React.JSX.Element {
       </div>
 
       {activeChapter && (
-        <ErrorBoundary label="Reader">
-          <ChapterReader />
+        <ErrorBoundary label="Viewer">
+          {selectedManga?.mediaType === 'anime' ? (
+            <AnimeViewer />
+          ) : (
+            <ChapterReader />
+          )}
         </ErrorBoundary>
       )}
       <Toast />

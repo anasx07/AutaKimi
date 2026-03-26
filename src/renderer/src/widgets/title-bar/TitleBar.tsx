@@ -49,7 +49,7 @@ export default function TitleBar() {
         <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
           LM
         </div>
-        <span className="text-xs font-semibold text-foreground/80 tracking-wide">LManwa</span>
+        <span className="text-xs font-semibold text-foreground/80 tracking-wide">AutaKimi</span>
       </div>
 
       <div className="flex-1" />
