@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLibraryStore } from '@renderer/shared/model'
 import { Download, Loader2, Play } from 'lucide-react'
 import { DataService } from '@renderer/shared/api'
-import { Card, CardContent, Button } from '@renderer/shared/ui'
-import { cn } from '@renderer/shared/lib/utils'
+import { MediaTabSwitcher, MediaGrid, MediaGridItem } from '@renderer/shared/ui'
 
 export default function DownloadsPage() {
   const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
@@ -38,30 +37,7 @@ export default function DownloadsPage() {
               {activeTab === 'anime' ? 'Anime' : 'Manga'} available for offline {activeTab === 'anime' ? 'viewing' : 'reading'}.
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-secondary/30 p-1 rounded-lg border border-border/40 w-fit">
-            <Button
-              variant={activeTab === 'manga' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('manga')}
-              className={cn(
-                "h-8 px-4 rounded-md text-xs font-bold transition-all",
-                activeTab === 'manga' ? "shadow-md" : "text-muted-foreground"
-              )}
-            >
-              Manga
-            </Button>
-            <Button
-              variant={activeTab === 'anime' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('anime')}
-              className={cn(
-                "h-8 px-4 rounded-md text-xs font-bold transition-all",
-                activeTab === 'anime' ? "shadow-md" : "text-muted-foreground"
-              )}
-            >
-              Anime
-            </Button>
-          </div>
+          <MediaTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
       </div>
 
@@ -80,39 +56,23 @@ export default function DownloadsPage() {
           <p>You haven't downloaded any {activeTab} yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 items-start content-start overflow-y-auto pr-2 pb-6 flex-1">
-          {downloads.map((manga) => {
+        <MediaGrid>
+          {downloads.map((manga, idx) => {
             return (
-              <Card
+              <MediaGridItem
                 key={manga.id}
+                title={manga.title}
+                coverUrl={manga.coverUrl}
+                mediaType={activeTab}
+                index={idx}
                 onClick={() => setSelectedManga({
                    ...manga,
                    mediaType: manga.mediaType || activeTab
                 })}
-                className="group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/50 hover:shadow-lg transition-all duration-300"
-              >
-                <div className="aspect-[3/4] relative overflow-hidden bg-secondary/20">
-                  {manga.coverUrl ? (
-                    <img src={manga.coverUrl} alt={manga.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      {activeTab === 'anime' ? (
-                        <Play className="h-10 w-10 text-muted-foreground/30" />
-                      ) : (
-                        <Download className="h-10 w-10 text-muted-foreground/30" />
-                      )}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <CardContent className="p-3 bg-card">
-                  <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">{manga.title}</h3>
-                </CardContent>
-              </Card>
+              />
             )
           })}
-        </div>
-      )}
+        </MediaGrid>      )}
     </div>
   )
 }

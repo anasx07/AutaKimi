@@ -9,7 +9,7 @@ import icon from '../../resources/icon.png?asset'
 import { TrayManager } from './tray'
 
 // Set app name before importing db to ensure correct userData path
-app.name = 'LManwa'
+app.name = 'AutaKimi'
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()

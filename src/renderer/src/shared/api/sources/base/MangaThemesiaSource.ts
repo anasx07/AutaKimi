@@ -4,6 +4,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
 
 export class MangaThemesiaSource implements ISourceAdapter {
   public theme: string = 'mangathemesia'
+  public mediaType: 'manga' | 'anime' = 'manga'
 
   constructor(
     public id: string,

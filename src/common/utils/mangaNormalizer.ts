@@ -17,18 +17,50 @@ export const normalizeManga = (manga: any, preferredLang?: string): Manga => {
     return { id: '', title: 'Unknown', coverUrl: null, description: 'No description', status: 'Unknown' };
   }
 
-  // 1. Extract Title
-  let title = 'Untitled';
-  if (manga.title) {
-    title = manga.title;
+  // 1. Extract Title — guard against empty string sources
+  let title = '';
+  // Check common title fields (Madara, MangaDex, etc.)
+  const possibleTitle = 
+    manga.title || 
+    manga.name || 
+    manga.manga_name || 
+    manga.mangaTitle ||
+    manga.series_title ||
+    manga.label || 
+    manga.alt_title ||
+    manga.title_en ||
+    manga.title_ar;
+  
+  if (possibleTitle && String(possibleTitle).trim()) {
+    title = String(possibleTitle).trim();
   } else if (manga.attributes?.title) {
     if (typeof manga.attributes.title === 'string') {
       title = manga.attributes.title;
     } else {
       title = (preferredLang && manga.attributes.title[preferredLang]) || 
               manga.attributes.title.en || 
-              Object.values(manga.attributes.title)[0] || 
-              'Untitled';
+              Object.values(manga.attributes.title)[0] as string || '';
+    }
+  }
+
+  // Fallback: derive from URL slug (e.g. 'fast-break' → 'Fast Break')
+  // Only if the slug doesn't look like a numeric ID or a hash
+  if (!title) {
+    try {
+      const source = String(manga.url || manga.manga_url || manga.id || '')
+      const slug = source.split('/').filter(Boolean).pop() || ''
+      
+      // If slug is purely numeric or looks like a short-ish hash (e.g. numeric or hex), use 'Untitled'
+      const isNumeric = /^\d+$/.test(slug);
+      const isHash = /^[a-zA-Z0-9]{8,16}$/.test(slug) && !slug.includes('-') && !slug.includes('_');
+
+      if (slug && !isNumeric && !isHash) {
+        title = slug.replace(/-/g, ' ').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+      } else {
+        title = 'Untitled'
+      }
+    } catch {
+      title = 'Untitled'
     }
   }
 

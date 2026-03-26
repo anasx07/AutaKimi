@@ -9,6 +9,7 @@ export interface MangaPage {
 export interface ISourceAdapter {
   id: string; // Internal ID for the source
   name: string;
+  mediaType: 'manga' | 'anime'; // NEW
   version: string; // Added versioning support
   theme: string;   // Added theme identification
   baseUrl: string;
@@ -18,6 +19,8 @@ export interface ISourceAdapter {
   
   fetchPopular(page: number, extraArgs?: FetchOptions): Promise<MangaPage>;
   fetchLatest?(page: number, extraArgs?: FetchOptions): Promise<MangaPage>;
+  getFeedLabels?(): Record<string, string>;
+  isSupported?: boolean;
   searchManga(query: string, page: number, extraArgs?: FetchOptions): Promise<MangaPage>;
   fetchMangaDetails(manga: Manga): Promise<Manga>;
   fetchChapters(mangaUrl: string): Promise<Chapter[]>;

@@ -14,6 +14,7 @@ import { AnimeViewer } from '@renderer/widgets/anime-viewer'
 import { TitleBar } from '@renderer/widgets/title-bar'
 import Toast from '@renderer/shared/ui/Toast'
 import { UpdaterToast } from '@renderer/shared/ui/UpdaterToast'
+import { DataService } from '@renderer/shared/api'
 
 // Lazy load page components
 const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))
@@ -76,7 +77,7 @@ function App(): React.JSX.Element {
     loadFromDb()
 
     // Listen for app updates
-    const unsubscribe = (window as any).api.onAppUpdate((data: any) => {
+    const unsubscribe = DataService.onAppUpdate((data: any) => {
       if (data.status) {
         setUpdateStatus(data.status)
         if (data.status === 'checking') setUpdateError(null)
@@ -160,7 +161,7 @@ function App(): React.JSX.Element {
             </div>
             <div className="flex-1">
               <p className="text-xs font-medium text-foreground">Local User</p>
-              <p className="text-[10px] text-muted-foreground">v{(window as any).api.version}</p>
+              <p className="text-[10px] text-muted-foreground">v{DataService.version}</p>
             </div>
           </div>
         </aside>

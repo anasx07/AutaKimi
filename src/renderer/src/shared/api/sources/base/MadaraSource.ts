@@ -4,6 +4,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage, FetchOptions } from '../type
 
 export class MadaraSource implements ISourceAdapter {
   public theme: string = 'madara'
+  public mediaType: 'manga' | 'anime' = 'manga'
   private workingUrlPatterns: string[] = []
 
   constructor(

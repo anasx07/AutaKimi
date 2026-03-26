@@ -16,7 +16,7 @@ export const useProgressStore = create<ProgressState>((set) => ({
 
   loadProgress: async (mangaId) => {
     try {
-      const rows = await DataService.db.getProgress(mangaId) as any[]
+      const rows = await DataService.db.getProgress(mangaId)
       const readIds = rows.filter(r => !!r.isRead).map(r => r.chapterId)
       const pagesMap: Record<string, number> = {}
       rows.forEach(r => { if (r.lastPage > 0) pagesMap[r.chapterId] = r.lastPage })

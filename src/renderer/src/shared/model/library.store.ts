@@ -65,8 +65,8 @@ export const useLibraryStore = create<LibraryState>((set) => ({
 
   setSelectedManga: (manga: NormalizedManga | null) => set(() => {
     const next: Partial<LibraryState> = { selectedManga: manga }
-    if (manga && (manga as any).pkg) {
-      useExtensionStore.getState().setActiveExtension((manga as any).pkg)
+    if (manga && manga.pkg) {
+      useExtensionStore.getState().setActiveExtension(manga.pkg)
     }
     return next
   }),

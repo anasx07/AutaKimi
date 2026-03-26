@@ -12,6 +12,15 @@ import { getAnimeSource } from '@renderer/shared/api/anime-sources'
 
 
 
+interface AnimeExtensionJSON {
+  pkg: string
+  name: string
+  lang: string
+  version: string
+  isSupported?: boolean
+  sources: { name: string; baseUrl: string }[]
+}
+
 export default function AnimePage() {
   const { installedExtensions } = useExtensionStore()
   const { displayMode, setDisplayMode, pinnedAnimeSources, togglePinnedAnimeSource } = useSettingsStore()
@@ -24,7 +33,7 @@ export default function AnimePage() {
 
   // Display all anime extensions defined in our metadata
   const displayExtensions = useMemo(() =>
-    animeExtensions
+    (animeExtensions as AnimeExtensionJSON[])
       .map(ae => {
         const installed = installedExtensions.find(ie => ie.pkg === ae.pkg)
         return {
@@ -36,7 +45,7 @@ export default function AnimePage() {
             version: ae.version,
             icon: ae.pkg
           }),
-          isSupported: (ae as any).isSupported
+          isSupported: ae.isSupported
         }
       })
       .sort((a, b) => {
@@ -55,7 +64,7 @@ export default function AnimePage() {
   )
 
   const feedLabels = useMemo(() => 
-    (activeSource as any)?.getFeedLabels?.() || {
+    activeSource?.getFeedLabels?.() || {
       popular: 'Popular',
       latest: 'Latest',
       search: 'Search'
@@ -217,7 +226,7 @@ export default function AnimePage() {
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">{ext.name}</h3>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {(ext as any).isSupported && (
+                      {ext.isSupported && (
                         <Badge variant="secondary" className="text-[9px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter">
                           Supported
                         </Badge>

@@ -1,7 +1,6 @@
 import { DataService } from '@renderer/shared/api'
 import { ISourceAdapter, Manga, Chapter, MangaPage } from './types'
-import { getNativeSource } from './index'
-import { getAnimeSource } from '../anime-sources'
+import { SourceRegistry } from './SourceRegistry'
 import { compareVersions } from '@renderer/shared/lib/version'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 
@@ -11,12 +10,18 @@ import { normalizeManga } from '@common/utils/mangaNormalizer'
 export class SandboxRunner implements ISourceAdapter {
   id: string
   name: string
+  mediaType: 'manga' | 'anime' // NEW
   version: string
   theme: string
   baseUrl: string
   lang: string
   nsfw: boolean
   icon: string
+  isSupported: boolean = true
+
+  getFeedLabels?(): Record<string, string> {
+    return { popular: 'Popular', latest: 'Latest', search: 'Search' }
+  }
 
   private extensionCode: string
   private pkg: string
@@ -28,6 +33,7 @@ export class SandboxRunner implements ISourceAdapter {
     // Map headers
     this.id = pkg
     this.name = resExt?.name || pkg
+    this.mediaType = resExt?.type || 'manga'
     this.version = resExt?.version || '0.0.0'
     this.theme = ''
     this.baseUrl = ''
@@ -40,7 +46,7 @@ export class SandboxRunner implements ISourceAdapter {
     const res = await DataService.executeExtension({
       pkg: this.pkg, code: this.extensionCode, contextArgs: { limit: 15, offset: (page - 1) * 15, activeFeed: 'popular', lang: this.lang, ...extraArgs }
     })
-    const manga = (res?.data || []).map((m: any) => normalizeManga(m) as any as Manga)
+    const manga = (res?.data || []).map((m: any) => normalizeManga(m))
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
   }
 
@@ -48,7 +54,7 @@ export class SandboxRunner implements ISourceAdapter {
     const res = await DataService.executeExtension({
       pkg: this.pkg, code: this.extensionCode, contextArgs: { limit: 15, offset: (page - 1) * 15, activeFeed: 'latest', lang: this.lang, ...extraArgs }
     })
-    const manga = (res?.data || []).map((m: any) => normalizeManga(m) as any as Manga)
+    const manga = (res?.data || []).map((m: any) => normalizeManga(m))
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
   }
 
@@ -65,7 +71,7 @@ export class SandboxRunner implements ISourceAdapter {
       pkg: this.pkg, code: this.extensionCode, contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
     })
     if (res && res.data) {
-       return { ...manga, ...normalizeManga(res.data) } as Manga
+       return { ...manga, ...normalizeManga(res.data) }
     }
     return manga
   }
@@ -88,7 +94,7 @@ export class SandboxRunner implements ISourceAdapter {
 export const ExtensionResolver = {
   async resolve(pkg: string): Promise<ISourceAdapter | null> {
     const resExt = await DataService.db.getExtension(pkg)
-    const native = getNativeSource(pkg) || getAnimeSource(pkg)
+    const native = SourceRegistry.resolveNative(pkg)
     
     // 1. Check native compatibility
     if (native) {

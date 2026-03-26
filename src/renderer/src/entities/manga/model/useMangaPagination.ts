@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { NormalizedManga, normalizeManga } from '@common/utils/mangaNormalizer'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { useBrowseCacheStore } from '@renderer/shared/model'
+import { useInfiniteScroll } from '@renderer/shared/lib'
 
 interface UseMangaPaginationProps {
   activeExtension: string | null
@@ -59,17 +60,14 @@ export function useMangaPagination({
     setBatchCountCache(activeFeed, val)
   }
 
-  // Intersection Observer callback
-  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setOffset(prev => prev + (lastBatchCount || (prev === 0 ? 15 : 10)))
-      }
-    })
-    if (node) observer.observe(node)
-    return () => observer.disconnect()
-  }, [loading, hasMore, lastBatchCount])
+  // Use unified infinite scroll hook
+  const lastElementRef = useInfiniteScroll({
+    hasNextPage: hasMore,
+    isFetchingNextPage: loading,
+    fetchNextPage: () => {
+      setOffset(prev => prev + (lastBatchCount || (prev === 0 ? 15 : 10)))
+    }
+  })
 
   // Consolidate filter reset logic
   useEffect(() => {

@@ -1,8 +1,9 @@
 import { Clock, Trash2, BookOpen, Play, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { useLibraryStore, useHistoryStore, useExtensionStore } from '@renderer/shared/model'
-import { Button } from '@renderer/shared/ui'
-import { cn } from '@renderer/shared/lib'
+import { useState } from 'react'
+import { useLibraryStore, useHistoryStore, useExtensionStore, HistoryEntry, Manga, Chapter } from '@renderer/shared/model'
+import { Button, MediaTabSwitcher } from '@renderer/shared/ui'
+import { useInfiniteScroll } from '@renderer/shared/lib'
+import { cn } from '@renderer/shared/lib/utils'
 import { useInfiniteHistoryEntries } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function HistoryPage() {
@@ -22,24 +23,11 @@ export default function HistoryPage() {
     fetchNextPage
   } = useInfiniteHistoryEntries(activeTab)
 
-  const loadMoreRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  const loadMoreRef = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage: !!isFetchingNextPage,
+    fetchNextPage
+  })
 
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`
@@ -64,52 +52,51 @@ export default function HistoryPage() {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const handleEntryClick = (entry: any) => {
-    if (entry.pkg) {
-      setActiveExtension(entry.pkg)
-    }
-
-    setSelectedManga({
-      id: entry.mangaId,
-      title: entry.mangaTitle || 'Unknown',
-      coverUrl: entry.mangaCover || '',
-      url: entry.mangaUrl || entry.mangaId,
-      status: '',
-      description: '',
-      genres: [],
-      mediaType: entry.type,
-      pkg: entry.pkg
-    } as any)
+  const deriveTitle = (entry: HistoryEntry): string => {
+    const raw = entry.mangaTitle?.trim()
+    if (raw) return raw
+    const source = entry.mangaUrl || entry.mangaId || ''
+    const slug = source.split('/').filter(Boolean).pop() || ''
+    return slug
+      ? slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : 'Unknown Title'
   }
 
-  const handleContinueReading = (entry: any) => {
+  const historyToManga = (entry: HistoryEntry): Manga => ({
+    id: entry.mangaId,
+    title: deriveTitle(entry),
+    coverUrl: entry.mangaCover || '',
+    url: entry.mangaUrl || entry.mangaId,
+    status: '',
+    description: '',
+    genres: [],
+    mediaType: entry.type,
+    pkg: entry.pkg
+  })
+
+  const handleEntryClick = (entry: HistoryEntry) => {
+    if (entry.pkg) {
+      setActiveExtension(entry.pkg)
+    }
+    setSelectedManga(historyToManga(entry))
+  }
+
+  const handleContinueReading = (entry: HistoryEntry) => {
     if (entry.pkg) {
       setActiveExtension(entry.pkg)
     }
 
-    setSelectedManga({
-      id: entry.mangaId,
-      title: entry.mangaTitle || 'Unknown',
-      coverUrl: entry.mangaCover || '',
-      url: entry.mangaUrl || entry.mangaId,
-      status: '',
-      description: '',
-      genres: [],
-      mediaType: entry.type,
-      pkg: entry.pkg
-    } as any)
+    setSelectedManga(historyToManga(entry))
 
     setActiveChapter({
       id: entry.chapterId,
-      attributes: {
-        chapter: '',
-        title: entry.chapterTitle || 'Chapter',
-        createdAt: new Date().toISOString()
-      }
-    } as any)
+      title: entry.chapterTitle || 'Chapter',
+      url: entry.mangaUrl || '',
+      number: 0
+    } as Chapter)
   }
 
-  const allEntries = data?.pages.flat() || []
+  const allEntries = (data?.pages.flat() as HistoryEntry[]) || []
 
   // Group history entries by mangaId
   const groupedHistory = allEntries.reduce((acc, entry) => {
@@ -130,9 +117,9 @@ export default function HistoryPage() {
       }
     }
     return acc
-  }, {} as Record<string, any>)
+  }, {} as Record<string, HistoryEntry & { totalDuration: number }>)
 
-  const sortedGroupedHistory = Object.values(groupedHistory).sort((a: any, b: any) =>
+  const sortedGroupedHistory = Object.values(groupedHistory).sort((a, b) =>
     new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
   )
 
@@ -149,30 +136,7 @@ export default function HistoryPage() {
       <div className="flex items-center justify-between pb-2">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold tracking-tight">History</h1>
-          <div className="flex items-center gap-1 bg-secondary/30 p-1 rounded-lg border border-border/40 w-fit">
-            <Button
-              variant={activeTab === 'manga' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('manga')}
-              className={cn(
-                "h-8 px-4 rounded-md text-xs font-bold transition-all",
-                activeTab === 'manga' ? "shadow-md" : "text-muted-foreground"
-              )}
-            >
-              Manga
-            </Button>
-            <Button
-              variant={activeTab === 'anime' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('anime')}
-              className={cn(
-                "h-8 px-4 rounded-md text-xs font-bold transition-all",
-                activeTab === 'anime' ? "shadow-md" : "text-muted-foreground"
-              )}
-            >
-              Anime
-            </Button>
-          </div>
+          <MediaTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
 
         {allEntries.length > 0 && (
@@ -196,7 +160,7 @@ export default function HistoryPage() {
       ) : (
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="flex flex-col gap-4">
-            {sortedGroupedHistory.map((entry: any) => (
+            {sortedGroupedHistory.map((entry) => (
               <div
                 key={entry.mangaId}
                 className={cn(
@@ -224,7 +188,7 @@ export default function HistoryPage() {
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center space-y-0.5">
                   <h3 dir='auto' className="text-sm font-bold truncate text-foreground group-hover:text-primary transition-colors">
-                    {entry.mangaTitle || 'Unknown Title'}
+                    {deriveTitle(entry)}
                   </h3>
 
                   <span className="text-xs text-muted-foreground truncate">

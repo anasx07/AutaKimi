@@ -18,5 +18,5 @@ export function registerDownloadHandlers() {
 
   ipcMain.handle(IpcChannel.GET_MANGA_DOWNLOADS, wrapIpc((_, mangaId: string) => downloadManager.getMangaDownloads(mangaId)))
 
-  ipcMain.handle(IpcChannel.DOWNLOAD_GET_ALL_MANGA, wrapIpc((_, type?: string) => downloadManager.getDownloadedManga(type)))
+  ipcMain.handle(IpcChannel.DOWNLOAD_GET_ALL_MANGA, wrapIpc((_, type?: 'manga' | 'anime') => downloadManager.getDownloadedManga(type)))
 }

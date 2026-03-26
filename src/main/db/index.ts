@@ -212,6 +212,12 @@ const migrate = () => {
     sqlite.pragma('user_version = 15')
     currentVersion = 15;
   }
+
+  if (currentVersion < 16) {
+    try { sqlite.exec(`ALTER TABLE reading_history ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    sqlite.pragma('user_version = 16')
+    currentVersion = 16;
+  }
 }
 
 migrate()

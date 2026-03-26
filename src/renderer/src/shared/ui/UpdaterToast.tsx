@@ -1,5 +1,6 @@
 import { Download, RefreshCcw, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { useUIStore } from '@renderer/shared/model'
+import { DataService } from '@renderer/shared/api'
 import { Button } from './Button'
 import { cn } from '@renderer/shared/lib/utils'
 
@@ -76,7 +77,7 @@ export function UpdaterToast() {
       {updateStatus === 'downloaded' && (
         <Button 
           size="sm" 
-          onClick={() => (window as any).api.installUpdate()}
+          onClick={() => DataService.installUpdate()}
           className="ml-2 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
         >
           <RefreshCcw className="h-3.5 w-3.5" />
@@ -88,7 +89,7 @@ export function UpdaterToast() {
         <button 
           onClick={() => {
             if (updateStatus === 'error') {
-              (window as any).api.checkForUpdates()
+              DataService.checkForUpdates()
             } else {
               setUpdateStatus('idle')
             }

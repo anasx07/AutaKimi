@@ -4,6 +4,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
 export class MangaSwat implements ISourceAdapter {
   public id = 'ma.lmanwa.extension.ar.mangaswat'
   public name = 'MangaSwat'
+  public mediaType: 'manga' | 'anime' = 'manga'
   public version = '0.0.1'
   public theme = 'custom-api'
   public baseUrl = 'https://meshmanga.com'
