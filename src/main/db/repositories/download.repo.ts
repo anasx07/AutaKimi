@@ -61,17 +61,23 @@ export class DownloadRepository {
     return this.db.select().from(schema.downloads).all();
   }
 
-  async getDownloadedManga() {
+  async getDownloadedManga(type?: string) {
+    const filters = [eq(schema.downloads.status, 'completed')];
+    if (type) {
+      filters.push(eq(schema.mangaCache.type, type));
+    }
+
     return this.db
       .select({
         id: schema.mangaCache.id,
         title: schema.mangaCache.title,
         coverUrl: schema.mangaCache.coverUrl,
         url: schema.mangaCache.url,
+        mediaType: schema.mangaCache.type,
       })
       .from(schema.downloads)
       .innerJoin(schema.mangaCache, eq(schema.downloads.mangaId, schema.mangaCache.id))
-      .where(eq(schema.downloads.status, 'completed'))
+      .where(and(...filters))
       .groupBy(schema.mangaCache.id)
       .all();
   }

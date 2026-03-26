@@ -12,6 +12,7 @@ export interface HistoryEntry {
   startedAt: string
   durationSeconds: number
   pkg?: string
+  type?: 'manga' | 'anime'
 }
 
 interface HistoryState {
@@ -19,8 +20,8 @@ interface HistoryState {
   hasMoreHistory: boolean
 
   // Actions
-  loadHistory: () => Promise<void>
-  loadMoreHistory: () => Promise<void>
+  loadHistory: (type?: 'manga' | 'anime') => Promise<void>
+  loadMoreHistory: (type?: 'manga' | 'anime') => Promise<void>
   addHistoryEntry: (entry: Omit<HistoryEntry, 'id'>) => Promise<void>
   deleteHistoryEntry: (id: number) => Promise<void>
   deleteHistoryByManga: (mangaId: string) => Promise<void>
@@ -31,19 +32,19 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
   historyEntries: [],
   hasMoreHistory: true,
 
-  loadHistory: async () => {
+  loadHistory: async (type) => {
     try {
-      const history = await DataService.db.getHistory()
+      const history = await DataService.db.getHistory({ type })
       set({ historyEntries: history, hasMoreHistory: history.length === 50 })
     } catch (e) {
       console.error('Failed to load history:', e)
     }
   },
 
-  loadMoreHistory: async () => {
+  loadMoreHistory: async (type) => {
     try {
       const offset = get().historyEntries.length
-      const history = await DataService.db.getHistory({ limit: 50, offset })
+      const history = await DataService.db.getHistory({ limit: 50, offset, type })
       if (history && history.length > 0) {
         set((state) => ({
           historyEntries: [...state.historyEntries, ...history],

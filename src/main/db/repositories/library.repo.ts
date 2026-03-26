@@ -6,8 +6,9 @@ import { normalizeManga } from '../../../common/utils/mangaNormalizer';
 export class LibraryRepository {
   constructor(private db: BetterSQLite3Database<any>) {}
 
-  async getAll(limit?: number, offset?: number) {
+  async getAll(limit?: number, offset?: number, type?: string) {
     const query = this.db.select().from(library);
+    if (type) query.where(eq(library.type, type));
     if (limit !== undefined) query.limit(limit);
     if (offset !== undefined) query.offset(offset);
     return query.all();
@@ -27,7 +28,8 @@ export class LibraryRepository {
         title: normalized.title,
         coverUrl: normalized.coverUrl,
         status: normalized.status,
-        metadata: JSON.stringify(manga)
+        metadata: JSON.stringify(manga),
+        type: normalized.mediaType || 'manga'
       }).run();
   }
 

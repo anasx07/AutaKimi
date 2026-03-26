@@ -1,12 +1,14 @@
-import { BookOpen, Loader2 } from 'lucide-react'
+import { BookOpen, Loader2, Play } from 'lucide-react'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
-import { Card, CardContent, Badge } from '@renderer/shared/ui'
+import { Card, CardContent, Badge, Button } from '@renderer/shared/ui'
 import { useLibraryStore } from '@renderer/shared/model'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { cn } from '@renderer/shared/lib/utils'
 
 import { useInfiniteLibraryItems } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function LibraryPage() {
+  const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
   const { setSelectedManga } = useLibraryStore()
   const { 
     data, 
@@ -14,7 +16,7 @@ export default function LibraryPage() {
     isFetchingNextPage, 
     hasNextPage, 
     fetchNextPage 
-  } = useInfiniteLibraryItems()
+  } = useInfiniteLibraryItems(activeTab)
 
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
@@ -47,15 +49,47 @@ export default function LibraryPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 flex-1 flex flex-col h-full animate-in fade-in duration-500">
-      <div className="flex flex-col space-y-1.5">
-        <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-        <p className="text-muted-foreground">Your collection of saved manga and manhwa.</p>
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-1.5">
+            <h1 className="text-3xl font-bold tracking-tight">Library</h1>
+            <p className="text-muted-foreground whitespace-nowrap">Your collection of saved {activeTab === 'anime' ? 'anime and series' : 'manga and manhwa'}.</p>
+          </div>
+          <div className="flex items-center gap-1 bg-secondary/30 p-1 rounded-lg border border-border/40 w-fit">
+            <Button
+              variant={activeTab === 'manga' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('manga')}
+              className={cn(
+                "h-8 px-4 rounded-md text-xs font-bold transition-all",
+                activeTab === 'manga' ? "shadow-md" : "text-muted-foreground"
+              )}
+            >
+              Manga
+            </Button>
+            <Button
+              variant={activeTab === 'anime' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('anime')}
+              className={cn(
+                "h-8 px-4 rounded-md text-xs font-bold transition-all",
+                activeTab === 'anime' ? "shadow-md" : "text-muted-foreground"
+              )}
+            >
+              Anime
+            </Button>
+          </div>
+        </div>
       </div>
 
       {allManga.length === 0 && !isLoading && (
         <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-20 space-y-2 opacity-60">
-          <BookOpen className="h-12 w-12 stroke-[1.5]" />
-          <p>Your library is empty. Browse sources to add titles.</p>
+          {activeTab === 'anime' ? (
+            <Play className="h-12 w-12 stroke-[1.5]" />
+          ) : (
+            <BookOpen className="h-12 w-12 stroke-[1.5]" />
+          )}
+          <p>Your {activeTab} library is empty. Browse sources to add titles.</p>
         </div>
       )}
 
@@ -80,7 +114,11 @@ export default function LibraryPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                        {activeTab === 'anime' ? (
+                          <Play className="h-10 w-10 text-muted-foreground/30" />
+                        ) : (
+                          <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                        )}
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

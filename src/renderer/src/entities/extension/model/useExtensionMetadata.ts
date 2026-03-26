@@ -1,5 +1,6 @@
 import { DataService } from '@renderer/shared/api'
 import { useState, useEffect } from 'react'
+import animeExtensions from '@renderer/shared/api/anime-sources/Anime.json'
 
 export interface ExtensionMetadata {
   name: string
@@ -26,6 +27,16 @@ export function useExtensionMetadata(pkg: string | null) {
             baseUrl: res.baseUrl || '',
             icon: res.icon
           })
+        } else {
+          // Check native anime sources
+          const anime = animeExtensions.find(a => a.pkg === pkg)
+          if (anime) {
+            setMetadata({
+              name: anime.name,
+              baseUrl: anime.sources[0]?.baseUrl || '',
+              icon: anime.pkg
+            })
+          }
         }
       } catch (err) {
         console.error(`[useExtensionMetadata] Failed to fetch for ${pkg}:`, err)

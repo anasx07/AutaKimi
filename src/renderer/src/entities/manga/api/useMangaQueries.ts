@@ -9,8 +9,8 @@ export const mangaKeys = {
   details: (id: string) => [...mangaKeys.all, 'details', id] as const,
   chapters: (id: string) => [...mangaKeys.all, 'chapters', id] as const,
   pages: (chapterId: string) => [...mangaKeys.all, 'pages', chapterId] as const,
-  library: () => [...mangaKeys.all, 'library'] as const,
-  history: () => [...mangaKeys.all, 'history'] as const,
+  library: (type?: string) => [...mangaKeys.all, 'library', type].filter(Boolean),
+  history: (type?: string) => [...mangaKeys.all, 'history', type].filter(Boolean),
   progress: (mangaId: string) => [...mangaKeys.all, 'progress', mangaId] as const,
 }
 
@@ -94,11 +94,11 @@ export function useMangaChapters(mangaId: string, pkg: string | null, mangaUrl?:
 /**
  * Hook to fetch user library (infinite scroll)
  */
-export function useInfiniteLibraryItems() {
+export function useInfiniteLibraryItems(type?: string) {
   return useInfiniteQuery({
-    queryKey: mangaKeys.library(),
+    queryKey: mangaKeys.library(type),
     queryFn: async ({ pageParam = 0 }) => {
-      const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam })
+      const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam, type })
       return (result as NormalizedManga[]) || []
     },
     initialPageParam: 0,
@@ -113,10 +113,13 @@ export function useInfiniteLibraryItems() {
 /**
  * Hook to fetch user library
  */
-export function useLibraryItems() {
+export function useLibraryItems(type?: string) {
   return useQuery({
-    queryKey: mangaKeys.library(),
-    queryFn: () => DataService.db.getLibrary(),
+    queryKey: mangaKeys.library(type),
+    queryFn: async () => {
+      const result = await DataService.db.getLibrary({ type })
+      return (result as NormalizedManga[]) || []
+    },
     staleTime: 1000 * 60 * 5,
   })
 }
@@ -135,11 +138,11 @@ export function useReadingProgress(mangaId: string) {
 /**
  * Hook to fetch history entries (infinite scroll)
  */
-export function useInfiniteHistoryEntries() {
+export function useInfiniteHistoryEntries(type?: 'manga' | 'anime') {
   return useInfiniteQuery({
-    queryKey: mangaKeys.history(),
+    queryKey: mangaKeys.history(type),
     queryFn: async ({ pageParam = 0 }) => {
-      return DataService.db.getHistory({ limit: 50, offset: pageParam })
+      return DataService.db.getHistory({ limit: 50, offset: pageParam, type })
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
@@ -152,10 +155,10 @@ export function useInfiniteHistoryEntries() {
 /**
  * Hook to fetch history entries
  */
-export function useHistoryEntries(limit = 50, offset = 0) {
+export function useHistoryEntries(type?: 'manga' | 'anime', limit = 50, offset = 0) {
   return useQuery({
-    queryKey: [...mangaKeys.history(), { limit, offset }],
-    queryFn: () => DataService.db.getHistory({ limit, offset }),
+    queryKey: [...mangaKeys.history(type), { limit, offset }],
+    queryFn: () => DataService.db.getHistory({ limit, offset, type }),
   })
 }
 

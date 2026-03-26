@@ -18,10 +18,11 @@ export function registerDatabaseHandlers() {
     return true
   }))
 
-  ipcMain.handle(IpcChannel.DB_GET_LIBRARY, wrapIpc(async (_, args?: { limit?: number; offset?: number }) => {
+  ipcMain.handle(IpcChannel.DB_GET_LIBRARY, wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: string }) => {
     const limit = args?.limit;
     const offset = args?.offset;
-    const rows = await libraryRepo.getAll(limit, offset)
+    const type = args?.type;
+    const rows = await libraryRepo.getAll(limit, offset, type)
     return rows.map(r => ({
       ...JSON.parse(r.metadata || '{}'),
       id: r.id,
@@ -60,11 +61,15 @@ export function registerDatabaseHandlers() {
     return true
   }))
 
-  ipcMain.handle(IpcChannel.DB_GET_HISTORY, wrapIpc(async (_, args?: { limit?: number; offset?: number } | number) => {
-    let limit = 50, offset = 0
+  ipcMain.handle(IpcChannel.DB_GET_HISTORY, wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: 'manga' | 'anime' } | number) => {
+    let limit = 50, offset = 0, type: 'manga' | 'anime' | undefined = undefined
     if (typeof args === 'number') limit = args
-    else if (args && typeof args === 'object') { limit = args.limit ?? 50; offset = args.offset ?? 0 }
-    return historyRepo.getHistory(limit, offset)
+    else if (args && typeof args === 'object') { 
+      limit = args.limit ?? 50; 
+      offset = args.offset ?? 0; 
+      type = args.type as any
+    }
+    return historyRepo.getHistory(limit, offset, type)
   }))
 
   ipcMain.handle(IpcChannel.DB_DELETE_HISTORY_ENTRY, wrapIpc(async (_, id: number) => {

@@ -4,6 +4,9 @@ import { Button, Badge, Card } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { useExtensionStore, useUIStore } from '@renderer/shared/model'
 import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
+import animeSources from '@renderer/shared/api/sources/Anime.json'
+
+const ANIME_SOURCE_PKGS = animeSources.map(s => s.pkg)
 
 export default function ExtensionsPage() {
   const { 
@@ -17,13 +20,15 @@ export default function ExtensionsPage() {
   const [activeSubTab, setActiveSubTab] = useState<'sources' | 'search'>('sources')
 
   const sortedExtensions = useMemo(() => {
-    return [...installedExtensions].sort((a, b) => {
-      const aPinned = pinnedExtensions.includes(a.pkg)
-      const bPinned = pinnedExtensions.includes(b.pkg)
-      if (aPinned && !bPinned) return -1
-      if (!aPinned && bPinned) return 1
-      return a.name.localeCompare(b.name)
-    })
+    return [...installedExtensions]
+      .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+      .sort((a, b) => {
+        const aPinned = pinnedExtensions.includes(a.pkg)
+        const bPinned = pinnedExtensions.includes(b.pkg)
+        if (aPinned && !bPinned) return -1
+        if (!aPinned && bPinned) return 1
+        return a.name.localeCompare(b.name)
+      })
   }, [installedExtensions, pinnedExtensions])
 
   return (
@@ -100,7 +105,9 @@ export default function ExtensionsPage() {
                             src={(() => {
                               try {
                                 const pkg = ext.pkg
-                                const localPath = new URL(`../../app/assets/Extensionicon/${pkg}.png`, import.meta.url).href
+                                const isAnime = ANIME_SOURCE_PKGS.includes(pkg)
+                                const folder = isAnime ? 'Animeicon' : 'Extensionicon'
+                                const localPath = new URL(`../../app/assets/${folder}/${pkg}.png`, import.meta.url).href
                                 if (localPath && !localPath.includes('undefined')) return localPath
                               } catch (e) {}
                               return `lmanwa-cache://local-icon/${ext.pkg}.png`

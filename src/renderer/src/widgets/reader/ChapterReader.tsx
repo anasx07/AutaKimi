@@ -283,7 +283,7 @@ export default function ChapterReader() {
     if (activeChapter?.id !== chapter.id) setActiveChapter(chapter)
     if (selectedManga) {
        markChapterRead(selectedManga.id, chapter.id, false)
-       addHistoryEntry({ mangaId: selectedManga.id, mangaTitle: selectedManga.title, chapterId: chapter.id, chapterTitle: chapter.title || undefined, startedAt: new Date().toISOString(), durationSeconds: 0, pkg: activeExtension || undefined })
+       addHistoryEntry({ mangaId: selectedManga.id, mangaTitle: selectedManga.title, chapterId: chapter.id, chapterTitle: chapter.title || undefined, startedAt: new Date().toISOString(), durationSeconds: 0, pkg: activeExtension || undefined, type: 'manga' })
     }
   }
 
