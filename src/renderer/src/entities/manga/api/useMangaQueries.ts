@@ -3,6 +3,7 @@ import { DataService } from '@renderer/shared/api'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { Chapter } from '@renderer/shared/api/sources/types'
 import { NormalizedManga } from '@common/utils/mangaNormalizer'
+import { HistoryEntry } from '@common/types'
 
 export const mangaKeys = {
   all: ['manga'] as const,
@@ -10,7 +11,10 @@ export const mangaKeys = {
   chapters: (id: string) => [...mangaKeys.all, 'chapters', id] as const,
   pages: (chapterId: string) => [...mangaKeys.all, 'pages', chapterId] as const,
   library: (type?: string) => [...mangaKeys.all, 'library', type].filter(Boolean),
+  libraryInfinite: (type?: string) => [...mangaKeys.library(type), 'infinite'] as const,
+  libraryCheck: (id: string) => [...mangaKeys.all, 'library-check', id] as const,
   history: (type?: string) => [...mangaKeys.all, 'history', type].filter(Boolean),
+  historyInfinite: (type?: string) => [...mangaKeys.history(type), 'infinite'] as const,
   progress: (mangaId: string) => [...mangaKeys.all, 'progress', mangaId] as const,
 }
 
@@ -22,19 +26,27 @@ export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: 
     queryKey: mangaKeys.details(mangaId),
     queryFn: async () => {
       // 1. Check DB Cache
-      const cached = await DataService.db.getMangaCache(mangaId)
+      const cached = await DataService.db.getMangaCache(mangaId) as NormalizedManga | null
       
       // 2. Fetch from extension if needed or to refresh
       if (pkg) {
         try {
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
-            const urlToFetch = mangaUrl || (cached as any)?.url || mangaId;
-            const fresh = await runner.fetchMangaDetails({ id: mangaId, url: urlToFetch, title: '' })
+            const urlToFetch = mangaUrl || cached?.url || mangaId;
+            const fresh = await runner.fetchMangaDetails({ id: mangaId, url: urlToFetch, title: cached?.title || '' })
             if (fresh) {
+              // Preserve existing title if fresh one is missing or "Untitled" or purely numeric
+              const hasValidTitle = fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
+              const finalManga = { 
+                ...cached,
+                ...fresh, 
+                title: hasValidTitle ? fresh.title : (cached?.title || fresh.title),
+                pkg 
+              } as NormalizedManga
               // Save to cache asynchronously
-              DataService.db.saveMangaCache({ ...fresh, pkg })
-              return { ...fresh, pkg }
+              DataService.db.saveMangaCache(finalManga)
+              return finalManga
             }
           }
         } catch (e) {
@@ -43,7 +55,7 @@ export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: 
       }
       
       if (!cached) throw new Error('Manga not found and no extension provided')
-      return cached as NormalizedManga
+      return cached
     },
     enabled: !!mangaId,
     staleTime: 1000 * 60 * 60, // 1 hour for details
@@ -51,14 +63,28 @@ export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: 
 }
 
 /**
+ * Hook to check if a manga is in library
+ */
+export function useIsMangaInLibrary(mangaId: string) {
+  return useQuery({
+    queryKey: mangaKeys.libraryCheck(mangaId),
+    queryFn: async () => {
+      try {
+        const library = await DataService.db.getLibrary()
+        return (library as NormalizedManga[]).some(m => m.id === mangaId)
+      } catch {
+        return false
+      }
+    },
+    enabled: !!mangaId,
+    staleTime: 1000 * 60, // 1 minute
+  })
+}
+
+/**
  * Hook to fetch chapters for a manga
  */
 export function useMangaChapters(mangaId: string, pkg: string | null, mangaUrl?: string) {
-  // Live Debug Hook Entry
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('d:\\DEV\\Apps\\LManwa\\tmp\\chapters_debug.txt', `\n[Hook Called] mangaId: \${mangaId}, pkg: \${pkg}, url: \${mangaUrl}\n`);
-  } catch(err) {}
 
   return useQuery({
     queryKey: mangaKeys.chapters(mangaId),
@@ -94,17 +120,23 @@ export function useMangaChapters(mangaId: string, pkg: string | null, mangaUrl?:
 /**
  * Hook to fetch user library (infinite scroll)
  */
-export function useInfiniteLibraryItems(type?: string) {
+export function useInfiniteLibraryItems(type?: 'manga' | 'anime') {
   return useInfiniteQuery({
-    queryKey: mangaKeys.library(type),
-    queryFn: async ({ pageParam = 0 }) => {
-      const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam, type })
-      return (result as NormalizedManga[]) || []
+    queryKey: mangaKeys.libraryInfinite(type),
+    queryFn: async ({ pageParam = 0 }): Promise<NormalizedManga[]> => {
+      try {
+        const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam as number, type })
+        return (result as NormalizedManga[]) || []
+      } catch {
+        return []
+      }
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage || lastPage.length < 50) return undefined
-      return allPages.length * 50
+      if (!lastPage || !Array.isArray(lastPage) || lastPage.length < 50) return undefined
+      if (!allPages || !Array.isArray(allPages)) return undefined
+      const totalItems = allPages.reduce((acc, page) => acc + (page?.length || 0), 0)
+      return totalItems
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -113,12 +145,16 @@ export function useInfiniteLibraryItems(type?: string) {
 /**
  * Hook to fetch user library
  */
-export function useLibraryItems(type?: string) {
+export function useLibraryItems(type?: 'manga' | 'anime') {
   return useQuery({
     queryKey: mangaKeys.library(type),
     queryFn: async () => {
-      const result = await DataService.db.getLibrary({ type })
-      return (result as NormalizedManga[]) || []
+      try {
+        const result = await DataService.db.getLibrary({ type })
+        return (result as NormalizedManga[]) || []
+      } catch {
+        return []
+      }
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -140,14 +176,21 @@ export function useReadingProgress(mangaId: string) {
  */
 export function useInfiniteHistoryEntries(type?: 'manga' | 'anime') {
   return useInfiniteQuery({
-    queryKey: mangaKeys.history(type),
-    queryFn: async ({ pageParam = 0 }) => {
-      return DataService.db.getHistory({ limit: 50, offset: pageParam, type })
+    queryKey: mangaKeys.historyInfinite(type),
+    queryFn: async ({ pageParam = 0 }): Promise<HistoryEntry[]> => {
+      try {
+        const result = await DataService.db.getHistory({ limit: 50, offset: pageParam as number, type })
+        return result || []
+      } catch {
+        return []
+      }
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage || lastPage.length < 50) return undefined
-      return allPages.length * 50
+      if (!lastPage || !Array.isArray(lastPage) || lastPage.length < 50) return undefined
+      if (!allPages || !Array.isArray(allPages)) return undefined
+      const totalItems = allPages.reduce((acc, page) => acc + (page?.length || 0), 0)
+      return totalItems
     },
   })
 }
@@ -158,7 +201,14 @@ export function useInfiniteHistoryEntries(type?: 'manga' | 'anime') {
 export function useHistoryEntries(type?: 'manga' | 'anime', limit = 50, offset = 0) {
   return useQuery({
     queryKey: [...mangaKeys.history(type), { limit, offset }],
-    queryFn: () => DataService.db.getHistory({ limit, offset, type }),
+    queryFn: async () => {
+      try {
+        const result = await DataService.db.getHistory({ limit, offset, type })
+        return result || []
+      } catch {
+        return []
+      }
+    },
   })
 }
 
@@ -200,14 +250,39 @@ export function useChapterPages(mangaId: string, pkg: string, chapter: Chapter |
 }
 
 /**
- * Mutation to toggle library status
+ * Mutation to toggle library status with optimistic updates
  */
 export function useToggleLibrary() {
   const queryClient = useQueryClient()
+  
   return useMutation({
     mutationFn: (manga: NormalizedManga) => DataService.db.toggleLibrary(manga),
-    onSuccess: () => {
+    onMutate: async (manga) => {
+      const checkKey = mangaKeys.libraryCheck(manga.id);
+      
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: checkKey })
+      await queryClient.cancelQueries({ queryKey: mangaKeys.library() })
+
+      // Snapshot the previous value
+      const previousInLibrary = queryClient.getQueryData(checkKey)
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(checkKey, (old: boolean | undefined) => !old)
+
+      return { previousInLibrary }
+    },
+    onError: (err, manga, context) => {
+      // Rollback on error
+      if (context?.previousInLibrary !== undefined) {
+        queryClient.setQueryData(mangaKeys.libraryCheck(manga.id), context.previousInLibrary)
+      }
+      console.error('Library toggle failed', err)
+    },
+    onSettled: (_data, _error, manga) => {
+      // Always refetch after error or success to ensure we represent the server state
       queryClient.invalidateQueries({ queryKey: mangaKeys.library() })
+      queryClient.invalidateQueries({ queryKey: mangaKeys.libraryCheck(manga.id) })
     }
   })
 }

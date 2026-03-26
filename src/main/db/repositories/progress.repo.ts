@@ -1,24 +1,24 @@
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { readingProgress } from '../schema';
+import * as schema from '../schema';
 import { eq } from 'drizzle-orm';
 
 export class ProgressRepository {
-  constructor(private db: BetterSQLite3Database<any>) {}
+  constructor(private db: BetterSQLite3Database<typeof schema>) {}
 
   async getProgress(mangaId: string) {
     return this.db.select({
-      chapterId: readingProgress.chapterId,
-      isRead: readingProgress.isRead,
-      lastPage: readingProgress.lastPage
+      chapterId: schema.readingProgress.chapterId,
+      isRead: schema.readingProgress.isRead,
+      lastPage: schema.readingProgress.lastPage
     })
-    .from(readingProgress)
-    .where(eq(readingProgress.mangaId, mangaId))
+    .from(schema.readingProgress)
+    .where(eq(schema.readingProgress.mangaId, mangaId))
     .all();
   }
 
   async updateProgress(data: { mangaId: string, chapterId: string, isRead: boolean, lastPage?: number }) {
     const now = new Date().toISOString();
-    return this.db.insert(readingProgress)
+    return this.db.insert(schema.readingProgress)
       .values({
         mangaId: data.mangaId,
         chapterId: data.chapterId,
@@ -27,7 +27,7 @@ export class ProgressRepository {
         updatedAt: now
       })
       .onConflictDoUpdate({
-        target: [readingProgress.mangaId, readingProgress.chapterId],
+        target: [schema.readingProgress.mangaId, schema.readingProgress.chapterId],
         set: {
           isRead: data.isRead,
           lastPage: data.lastPage || 0,

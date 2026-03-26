@@ -1,28 +1,28 @@
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { library } from '../schema';
+import * as schema from '../schema';
 import { eq } from 'drizzle-orm';
 import { normalizeManga } from '../../../common/utils/mangaNormalizer';
 
 export class LibraryRepository {
-  constructor(private db: BetterSQLite3Database<any>) {}
+  constructor(private db: BetterSQLite3Database<typeof schema>) {}
 
-  async getAll(limit?: number, offset?: number, type?: string) {
-    const query = this.db.select().from(library);
-    if (type) query.where(eq(library.type, type));
-    if (limit !== undefined) query.limit(limit);
-    if (offset !== undefined) query.offset(offset);
+  async getAll(limit?: number, offset?: number, type?: 'manga' | 'anime') {
+    let query = this.db.select().from(schema.library).$dynamic();
+    if (type) query = query.where(eq(schema.library.type, type));
+    if (limit !== undefined) query = query.limit(limit);
+    if (offset !== undefined) query = query.offset(offset);
     return query.all();
   }
 
   async getById(id: string) {
-    const result = this.db.select().from(library).where(eq(library.id, id)).get();
+    const result = this.db.select().from(schema.library).where(eq(schema.library.id, id)).get();
     return result || null;
   }
 
   async add(manga: any) {
     const normalized = normalizeManga(manga);
 
-    return this.db.insert(library)
+    return this.db.insert(schema.library)
       .values({
         id: normalized.id,
         title: normalized.title,
@@ -34,7 +34,7 @@ export class LibraryRepository {
   }
 
   async remove(id: string) {
-    return this.db.delete(library).where(eq(library.id, id)).run();
+    return this.db.delete(schema.library).where(eq(schema.library.id, id)).run();
   }
 
   async toggle(manga: any) {

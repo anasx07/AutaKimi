@@ -4,6 +4,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
 
 export class IkenSource implements ISourceAdapter {
   public theme: string = 'iken'
+  public mediaType: 'manga' | 'anime' = 'manga'
 
   constructor(
     public id: string,

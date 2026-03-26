@@ -4,6 +4,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
 export class MangaDexSource implements ISourceAdapter {
   id: string = 'official.mangadex'
   name: string = 'MangaDex (Official)'
+  mediaType: 'manga' | 'anime' = 'manga'
   version: string = '1.0.0'
   theme: string = 'official'
   baseUrl: string = 'https://api.mangadex.org'

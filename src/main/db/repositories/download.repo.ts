@@ -61,7 +61,7 @@ export class DownloadRepository {
     return this.db.select().from(schema.downloads).all();
   }
 
-  async getDownloadedManga(type?: string) {
+  async getDownloadedManga(type?: 'manga' | 'anime') {
     const filters = [eq(schema.downloads.status, 'completed')];
     if (type) {
       filters.push(eq(schema.mangaCache.type, type));

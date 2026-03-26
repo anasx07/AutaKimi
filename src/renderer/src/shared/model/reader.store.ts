@@ -97,7 +97,7 @@ export const useReaderStore = create<ReaderState>((set) => ({
 
   _init: (settings) => {
     // Migration logic from old reader_mode/reader_direction
-    let initialMode: ReadingMode = 'webtoon'
+    let initialMode: ReadingMode = 'continuous-vertical'
     
     if (settings.reading_mode_v2) {
       initialMode = settings.reading_mode_v2 as ReadingMode

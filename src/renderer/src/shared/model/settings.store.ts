@@ -42,7 +42,25 @@ interface SettingsState {
   _init: (settings: Record<string, string>) => void
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+/**
+ * Shared utility to apply theme and color theme classes to the document
+ */
+const applyTheme = (theme: ThemeType, colorTheme: ColorThemeType) => {
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  
+  if (isDark) document.documentElement.classList.add('dark')
+  else document.documentElement.classList.remove('dark')
+
+  document.documentElement.classList.forEach(className => {
+    if (className.startsWith('theme-')) document.documentElement.classList.remove(className)
+  })
+  
+  if (colorTheme !== 'default') {
+    document.documentElement.classList.add(`theme-${colorTheme}`)
+  }
+}
+
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   bypassCloudflare: true,
   userAgent: '',
   timeoutInterval: '30000',
@@ -50,7 +68,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   downloadConcurrency: 3,
   minimizeToTray: true,
 
-  
   // UI Settings Defaults
   theme: 'system',
   colorTheme: 'default',
@@ -114,9 +131,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await DataService.db.setSetting('theme', theme)
       set({ theme })
-      const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-      if (isDark) document.documentElement.classList.add('dark')
-      else document.documentElement.classList.remove('dark')
+      applyTheme(theme, get().colorTheme)
     } catch (e) {
       console.error('Failed to save theme:', e)
     }
@@ -126,10 +141,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await DataService.db.setSetting('colorTheme', colorTheme)
       set({ colorTheme })
-      document.documentElement.classList.forEach(className => {
-        if (className.startsWith('theme-')) document.documentElement.classList.remove(className)
-      })
-      if (colorTheme !== 'default') document.documentElement.classList.add(`theme-${colorTheme}`)
+      applyTheme(get().theme, colorTheme)
     } catch (e) {
       console.error('Failed to save color theme:', e)
     }
@@ -181,15 +193,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   _init: (settings) => {
     const theme = (settings.theme as ThemeType) || 'system'
     const colorTheme = (settings.colorTheme as ColorThemeType) || 'default'
-    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-
-    if (isDark) document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-
-    document.documentElement.classList.forEach(className => {
-      if (className.startsWith('theme-')) document.documentElement.classList.remove(className)
-    })
-    if (colorTheme !== 'default') document.documentElement.classList.add(`theme-${colorTheme}`)
+    
+    // Apply theme and color theme logic via extracted utility
+    applyTheme(theme, colorTheme)
 
     set({
       bypassCloudflare: settings.bypass_cloudflare === 'false' ? false : true,

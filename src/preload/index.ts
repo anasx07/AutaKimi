@@ -47,7 +47,7 @@ const api: ElectronApi = {
     cancel: (args) => ipcRenderer.invoke(IpcChannel.CANCEL_DOWNLOAD, args),
     getStatus: (args) => ipcRenderer.invoke(IpcChannel.GET_DOWNLOAD_STATUS, args),
     getMangaDownloads: (mangaId) => ipcRenderer.invoke(IpcChannel.GET_MANGA_DOWNLOADS, mangaId),
-    getAllMangaDownloads: () => ipcRenderer.invoke(IpcChannel.DOWNLOAD_GET_ALL_MANGA),
+    getAllMangaDownloads: (type) => ipcRenderer.invoke(IpcChannel.DOWNLOAD_GET_ALL_MANGA, type),
   },
   onAppUpdate: (callback) => {
     const subscription = (_event: any, data: any) => callback(data)
@@ -64,8 +64,6 @@ const api: ElectronApi = {
   openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
   cfBypass: (url: string) => ipcRenderer.invoke(IpcChannel.CF_BYPASS, url),
   cfFetchHtml: (url: string) => ipcRenderer.invoke(IpcChannel.CF_FETCH_HTML, url),
-  // In sandbox mode, process.platform is not always available or correct.
-  // We can get it from main or use a simplified check if needed.
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }

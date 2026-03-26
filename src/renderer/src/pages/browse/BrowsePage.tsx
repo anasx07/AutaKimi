@@ -4,7 +4,7 @@ import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List } f
 import { useLibraryStore, useExtensionStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
-import { Button, Input, Card, Badge, ErrorState } from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, ErrorState, MediaGrid, MediaGridItem } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 
 export default function BrowsePage() {
@@ -261,51 +261,29 @@ export default function BrowsePage() {
       {mangaList.length > 0 && (
         <div className="space-y-6">
           {displayMode === 'grid' ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 items-start content-start pr-2">
+            <MediaGrid className="pr-2">
               {mangaList.map((manga, idx) => (
-                <Card
+                <MediaGridItem
                   key={manga.id}
+                  title={manga.title}
+                  coverUrl={manga.coverUrl}
+                  mediaType="manga"
+                  description={manga.description}
+                  index={idx}
                   onClick={() => setSelectedManga(manga)}
-                  className={cn(
-                    "group relative cursor-pointer hover:border-primary/40 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-card/40 border-border/40 overflow-hidden",
-                    "animate-in fade-in slide-in-from-bottom-4"
-                  )}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <div className="aspect-[3/4] bg-secondary/30 relative overflow-hidden">
-                    {manga.coverUrl ? (
-                      <img
-                        src={manga.coverUrl}
-                        alt={manga.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="h-12 w-12 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                      <p className="text-[11px] text-white/80 line-clamp-4 leading-relaxed transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                        {manga.description}
-                      </p>
+                  badge={
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
+                      {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
+                      <span dir="auto">{manga.status?.split(' • ')[1]}</span>
                     </div>
-                  </div>
-                  <div className="p-4 space-y-1.5">
-                    <h3 className="font-bold text-sm line-clamp-1 group-hover:text-primary transition-colors">{manga.title}</h3>
-                    <div className="flex items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70 transition-opacity group-hover:opacity-100">
-                        <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
-                        {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
-                        <span dir="auto">{manga.status?.split(' • ')[1]}</span>
-                      </div>
-                      <Badge variant="outline" className="h-4 text-[8px] px-1 border-border/50 uppercase">Manga</Badge>
-                    </div>
-                  </div>
-                </Card>
+                  }
+                  footerBadge={
+                    <Badge variant="outline" className="h-4 text-[8px] px-1 border-border/50 uppercase">Manga</Badge>
+                  }
+                />
               ))}
-            </div>
-          ) : (
+            </MediaGrid>          ) : (
             <div className="space-y-3 pr-2">
               {mangaList.map((manga, idx) => (
                 <Card

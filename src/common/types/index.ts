@@ -4,3 +4,5 @@ export * from './extension';
 export * from './ipc';
 export * from './result';
 export * from './network';
+export * from './download';
+export * from './history';

@@ -19,35 +19,58 @@ export class HistoryRepository {
   constructor(private db: BetterSQLite3Database<typeof schema>) {}
 
   async addEntry(entry: HistoryEntryInput) {
-    return this.db.insert(schema.readingHistory).values({
-      mangaId: entry.mangaId,
-      mangaTitle: entry.mangaTitle || null,
-      mangaCover: entry.mangaCover || null,
-      mangaUrl: entry.mangaUrl || null,
-      chapterId: entry.chapterId,
-      chapterTitle: entry.chapterTitle || null,
-      startedAt: entry.startedAt,
-      durationSeconds: entry.durationSeconds || 0,
-      pkg: entry.pkg || null,
-      type: entry.type || 'manga'
-    }).run();
+    try {
+      const result = this.db.insert(schema.readingHistory).values({
+        mangaId: entry.mangaId,
+        mangaTitle: entry.mangaTitle || null,
+        mangaCover: entry.mangaCover || null,
+        mangaUrl: entry.mangaUrl || null,
+        chapterId: entry.chapterId,
+        chapterTitle: entry.chapterTitle || null,
+        startedAt: entry.startedAt,
+        durationSeconds: entry.durationSeconds || 0,
+        pkg: entry.pkg || null,
+        type: entry.type || 'manga'
+      }).run();
+      return result;
+    } catch (err) {
+      throw err;
+    }
   }
 
   async getHistory(limit = 50, offset = 0, type?: 'manga' | 'anime') {
-    const query = this.db
-      .select()
-      .from(schema.readingHistory);
+    try {
+      let query = this.db
+        .select()
+        .from(schema.readingHistory)
+        .$dynamic();
 
-    if (type) {
-      // @ts-ignore
-      query.where(eq(schema.readingHistory.type, type));
+      if (type) {
+        query = query.where(eq(schema.readingHistory.type, type));
+      }
+
+      const rows = query
+        .orderBy(desc(schema.readingHistory.startedAt))
+        .limit(limit)
+        .offset(offset)
+        .all();
+      
+      return rows;
+    } catch (err) {
+      // Fallback: try without type filter
+      try {
+        const fallbackRows = this.db
+          .select()
+          .from(schema.readingHistory)
+          .orderBy(desc(schema.readingHistory.startedAt))
+          .limit(limit)
+          .offset(offset)
+          .all();
+        return fallbackRows;
+      } catch (fallbackErr) {
+        return [];
+      }
     }
-
-    return query
-      .orderBy(desc(schema.readingHistory.startedAt))
-      .limit(limit)
-      .offset(offset)
-      .all();
   }
 
   async deleteEntry(id: number) {

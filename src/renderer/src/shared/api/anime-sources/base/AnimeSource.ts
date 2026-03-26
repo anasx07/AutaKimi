@@ -8,7 +8,7 @@ import { ISourceAdapter, Manga, Chapter, MangaPage, FetchOptions } from '../../s
  */
 export abstract class AnimeSource implements ISourceAdapter {
   public theme: string = 'anime'
-  public mediaType: string = 'anime'
+  public mediaType: 'manga' | 'anime' = 'anime'
 
   constructor(
     public id: string,

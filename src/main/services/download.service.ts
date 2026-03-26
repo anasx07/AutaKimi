@@ -159,7 +159,7 @@ export class DownloadManager implements AppService {
     return downloadRepo.getByManga(mangaId)
   }
 
-  async getDownloadedManga(type?: string) {
+  async getDownloadedManga(type?: 'manga' | 'anime') {
     return downloadRepo.getDownloadedManga(type)
   }
 }
