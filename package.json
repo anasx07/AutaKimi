@@ -1,5 +1,6 @@
 {
   "name": "autakimi",
+  "productName": "AutaKimi",
   "version": "1.5.51",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
