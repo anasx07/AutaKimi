@@ -4,7 +4,8 @@ import { MadaraSource } from './base/MadaraSource'
 import { IkenSource } from './base/IkenSource'
 import { MangaThemesiaSource } from './base/MangaThemesiaSource'
 import { ZeistMangaSource } from './base/ZeistMangaSource'
-import generatedSourcesJson from './generated.json'
+const metadataModules = import.meta.glob('./catalog/generated/*.json', { eager: true });
+export const generatedSourcesJson = Object.assign({}, ...Object.values(metadataModules).map((m: any) => m.default || m));
 
 export class SourceRegistry {
   private static instances: Map<string, ISourceAdapter> = new Map()

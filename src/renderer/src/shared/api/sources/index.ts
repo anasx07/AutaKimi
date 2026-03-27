@@ -3,8 +3,7 @@ import { MangaLek } from './native/ma.autakimi.extension.ar.mangalek'
 import { MangaSwat } from './native/ma.autakimi.extension.ar.mangaswat'
 import { MangaDexSource } from './official/MangaDexSource'
 import { ISourceAdapter } from './types'
-import generatedSourcesJson from './generated.json'
-import { SourceRegistry } from './SourceRegistry'
+import { SourceRegistry, generatedSourcesJson } from './SourceRegistry'
 
 // Register all manga native sources
 SourceRegistry.register('ma.autakimi.extension.ar.teamx', TeamX)

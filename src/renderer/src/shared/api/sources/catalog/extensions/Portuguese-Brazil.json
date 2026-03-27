@@ -1,0 +1,1592 @@
+[
+  {
+    "name": "Amuy",
+    "pkg": "ma.autakimi.extension.pt.amuy",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Amuy",
+        "lang": "pt-BR",
+        "id": "5257426184455231951",
+        "baseUrl": "https://apenasmaisumyaoi.com"
+      }
+    ]
+  },
+  {
+    "name": "AnimeXNovel",
+    "pkg": "ma.autakimi.extension.pt.animexnovel",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "AnimeXNovel",
+        "lang": "pt-BR",
+        "id": "3639622845750368999",
+        "baseUrl": "https://www.animexnovel.com"
+      }
+    ]
+  },
+  {
+    "name": "Capitoons",
+    "pkg": "ma.autakimi.extension.pt.apecomics",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Capitoons",
+        "lang": "pt-BR",
+        "id": "4475020039832513819",
+        "baseUrl": "https://capitoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Apenas Uma Fã",
+    "pkg": "ma.autakimi.extension.pt.apenasumafa",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Apenas Uma Fã",
+        "lang": "pt-BR",
+        "id": "6897166867127039489",
+        "baseUrl": "https://apenasuma-fa.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Argos Comics",
+    "pkg": "ma.autakimi.extension.pt.argoscomics",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Argos Comics",
+        "lang": "pt-BR",
+        "id": "2731562656488805764",
+        "baseUrl": "https://aniargos.com"
+      }
+    ]
+  },
+  {
+    "name": "Argos Scan",
+    "pkg": "ma.autakimi.extension.pt.argosscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Argos Scan",
+        "lang": "pt-BR",
+        "id": "8713848303046960987",
+        "baseUrl": "https://argoscomics.online"
+      }
+    ]
+  },
+  {
+    "name": "Arthur Scan",
+    "pkg": "ma.autakimi.extension.pt.arthurscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Arthur Scan",
+        "lang": "pt-BR",
+        "id": "1641160681602874924",
+        "baseUrl": "https://arthurscan.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Astratoons",
+    "pkg": "ma.autakimi.extension.pt.astratoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Astratoons",
+        "lang": "pt-BR",
+        "id": "551908063793499841",
+        "baseUrl": "https://new.astratoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Atemporal",
+    "pkg": "ma.autakimi.extension.pt.atemporal",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Atemporal",
+        "lang": "pt-BR",
+        "id": "4457222405258030659",
+        "baseUrl": "https://atemporal.cloud"
+      }
+    ]
+  },
+  {
+    "name": "Azuretoons",
+    "pkg": "ma.autakimi.extension.pt.azuretoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Azuretoons",
+        "lang": "pt-BR",
+        "id": "6272815455807597212",
+        "baseUrl": "https://azuretoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Bakai",
+    "pkg": "ma.autakimi.extension.pt.bakai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Bakai",
+        "lang": "pt-BR",
+        "id": "1652448748031658277",
+        "baseUrl": "https://bakai.org"
+      }
+    ]
+  },
+  {
+    "name": "Blackout Comics",
+    "pkg": "ma.autakimi.extension.pt.blackoutcomics",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Blackout Comics",
+        "lang": "pt-BR",
+        "id": "4905303791571172293",
+        "baseUrl": "https://toptoon.com.co"
+      }
+    ]
+  },
+  {
+    "name": "Bladetoons",
+    "pkg": "ma.autakimi.extension.pt.bladetoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Bladetoons",
+        "lang": "pt-BR",
+        "id": "7671549037049858081",
+        "baseUrl": "https://bladetoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Boruto Explorer",
+    "pkg": "ma.autakimi.extension.pt.borutoexplorer",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Boruto Explorer",
+        "lang": "pt-BR",
+        "id": "2962682340286299668",
+        "baseUrl": "https://leitor.borutoexplorer.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Brasil Hentai",
+    "pkg": "ma.autakimi.extension.pt.brasilhentai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Brasil Hentai",
+        "lang": "pt-BR",
+        "id": "8020430975962445741",
+        "baseUrl": "https://brasilhentai.com"
+      }
+    ]
+  },
+  {
+    "name": "BR Yaoi",
+    "pkg": "ma.autakimi.extension.pt.bryaoi",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "BR Yaoi",
+        "lang": "pt-BR",
+        "id": "3480299458405323329",
+        "baseUrl": "https://bryaoi.com"
+      }
+    ]
+  },
+  {
+    "name": "Café com Yaoi",
+    "pkg": "ma.autakimi.extension.pt.cafecomyaoi",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Café com Yaoi",
+        "lang": "pt-BR",
+        "id": "340055543197648554",
+        "baseUrl": "https://cafecomyaoi.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Cerise Scan",
+    "pkg": "ma.autakimi.extension.pt.cerisescans",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Cerise Scan",
+        "lang": "pt-BR",
+        "id": "6986357795598884919",
+        "baseUrl": "https://loverstoon.com"
+      }
+    ]
+  },
+  {
+    "name": "Coven Scan",
+    "pkg": "ma.autakimi.extension.pt.covenscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Coven Scan",
+        "lang": "pt-BR",
+        "id": "5558728935088189480",
+        "baseUrl": "https://covendasbruxonas.com"
+      }
+    ]
+  },
+  {
+    "name": "Dream Scan",
+    "pkg": "ma.autakimi.extension.pt.dreamscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Dream Scan",
+        "lang": "pt-BR",
+        "id": "2058412298484770949",
+        "baseUrl": "https://fairydream.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Ego Toons",
+    "pkg": "ma.autakimi.extension.pt.egotoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ego Toons",
+        "lang": "pt-BR",
+        "id": "4749792168996703143",
+        "baseUrl": "https://www.egotoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Euphoria Scan",
+    "pkg": "ma.autakimi.extension.pt.euphoriascan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Euphoria Scan",
+        "lang": "pt-BR",
+        "id": "6045078216682014867",
+        "baseUrl": "https://euphoriascan.com"
+      }
+    ]
+  },
+  {
+    "name": "ExHentai.net.br",
+    "pkg": "ma.autakimi.extension.pt.exhentainetbr",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ExHentai.net.br",
+        "lang": "pt-BR",
+        "id": "1408140394859123923",
+        "baseUrl": "https://exhentai.net.br"
+      }
+    ]
+  },
+  {
+    "name": "Fenix Project",
+    "pkg": "ma.autakimi.extension.pt.fenixproject",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Fenix Project",
+        "lang": "pt-BR",
+        "id": "8852449878379679769",
+        "baseUrl": "https://fenixproject.site"
+      }
+    ]
+  },
+  {
+    "name": "Fleur Blanche",
+    "pkg": "ma.autakimi.extension.pt.fleurblanche",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Fleur Blanche",
+        "lang": "pt-BR",
+        "id": "2748000026130339026",
+        "baseUrl": "https://fbsquadx.com"
+      }
+    ]
+  },
+  {
+    "name": "FlowerManga.net",
+    "pkg": "ma.autakimi.extension.pt.flowermanga",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "FlowerManga.net",
+        "lang": "pt-BR",
+        "id": "2421010180391442293",
+        "baseUrl": "https://flowermangas.net"
+      }
+    ]
+  },
+  {
+    "name": "GALAX Scans",
+    "pkg": "ma.autakimi.extension.pt.galaxscanlator",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "GALAX Scans",
+        "lang": "pt-BR",
+        "id": "5553519415877811746",
+        "baseUrl": "https://galaxscanlator.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Geass Comics",
+    "pkg": "ma.autakimi.extension.pt.geasscomics",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Geass Comics",
+        "lang": "pt-BR",
+        "id": "7839519253265657488",
+        "baseUrl": "https://geasscomics.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Ghost Scan",
+    "pkg": "ma.autakimi.extension.pt.ghostscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ghost Scan",
+        "lang": "pt-BR",
+        "id": "2150748053027323425",
+        "baseUrl": "https://ghostscan.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Hanmokku Scan",
+    "pkg": "ma.autakimi.extension.pt.hanmokkuscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hanmokku Scan",
+        "lang": "pt-BR",
+        "id": "2374282752350973310",
+        "baseUrl": "https://hanmokkuscan.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Hentai Season",
+    "pkg": "ma.autakimi.extension.pt.hentaiseason",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hentai Season",
+        "lang": "pt-BR",
+        "id": "28629678708276",
+        "baseUrl": "https://hentaiseason.com"
+      }
+    ]
+  },
+  {
+    "name": "Hentai Tokyo",
+    "pkg": "ma.autakimi.extension.pt.hentaitokyo",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hentai Tokyo",
+        "lang": "pt-BR",
+        "id": "7059984733794571635",
+        "baseUrl": "https://hentaitokyo.net"
+      }
+    ]
+  },
+  {
+    "name": "HipercooL",
+    "pkg": "ma.autakimi.extension.pt.hipercool",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HipercooL",
+        "lang": "pt-BR",
+        "id": "2379514871370953957",
+        "baseUrl": "https://hiper.cool"
+      }
+    ]
+  },
+  {
+    "name": "Hot Cabaret Scan",
+    "pkg": "ma.autakimi.extension.pt.hotcabaretscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hot Cabaret Scan",
+        "lang": "pt-BR",
+        "id": "8778000927023046626",
+        "baseUrl": "https://hotcabaretscan.com"
+      }
+    ]
+  },
+  {
+    "name": "HQ Now!",
+    "pkg": "ma.autakimi.extension.pt.hqnow",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "HQ Now!",
+        "lang": "pt-BR",
+        "id": "1639829368022947378",
+        "baseUrl": "https://www.hq-now.com"
+      }
+    ]
+  },
+  {
+    "name": "Hunters Scans",
+    "pkg": "ma.autakimi.extension.pt.huntersscans",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hunters Scan",
+        "lang": "pt-BR",
+        "id": "7310576253330700902",
+        "baseUrl": "https://readhunters.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Sagrado Império da Britannia",
+    "pkg": "ma.autakimi.extension.pt.imperiodabritannia",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Sagrado Império da Britannia",
+        "lang": "pt-BR",
+        "id": "7355004027880350247",
+        "baseUrl": "https://imperiodabritannia.net"
+      }
+    ]
+  },
+  {
+    "name": "Inkapk",
+    "pkg": "ma.autakimi.extension.pt.inkapk",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Inkapk",
+        "lang": "pt-BR",
+        "id": "8541224312340631016",
+        "baseUrl": "https://inkapk.net"
+      }
+    ]
+  },
+  {
+    "name": "Kairos Toons",
+    "pkg": "ma.autakimi.extension.pt.kairostoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Kairos Toons",
+        "lang": "pt-BR",
+        "id": "3369880498778715870",
+        "baseUrl": "https://kairostoons.net"
+      }
+    ]
+  },
+  {
+    "name": "Kakusei Project",
+    "pkg": "ma.autakimi.extension.pt.kakuseiproject",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Kakusei Project",
+        "lang": "pt-BR",
+        "id": "4352186290154944735",
+        "baseUrl": "https://kakuseiproject.com"
+      }
+    ]
+  },
+  {
+    "name": "Kami Sama Explorer",
+    "pkg": "ma.autakimi.extension.pt.kamisamaexplorer",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Kami Sama Explorer",
+        "lang": "pt-BR",
+        "id": "5221484950287110636",
+        "baseUrl": "https://leitor.kamisama.com.br"
+      }
+    ]
+  },
+  {
+    "name": "KuroMangas",
+    "pkg": "ma.autakimi.extension.pt.kuromangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "KuroMangas",
+        "lang": "pt-BR",
+        "id": "73579729889528478",
+        "baseUrl": "https://beta.kuromangas.com"
+      }
+    ]
+  },
+  {
+    "name": "Leitura Manga",
+    "pkg": "ma.autakimi.extension.pt.leituramanga",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Leitura Mangá",
+        "lang": "pt-BR",
+        "id": "1445343849143422351",
+        "baseUrl": "https://leituramanga.net"
+      }
+    ]
+  },
+  {
+    "name": "Ler 999",
+    "pkg": "ma.autakimi.extension.pt.ler999",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Ler 999",
+        "lang": "pt-BR",
+        "id": "11864058740306611",
+        "baseUrl": "https://ler999.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Ler Mangas",
+    "pkg": "ma.autakimi.extension.pt.lermangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ler Mangas",
+        "lang": "pt-BR",
+        "id": "9215856445653506967",
+        "baseUrl": "https://lermangas.me"
+      }
+    ]
+  },
+  {
+    "name": "Limbo Scan",
+    "pkg": "ma.autakimi.extension.pt.limboscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Limbo Scan",
+        "lang": "pt-BR",
+        "id": "785489692920959121",
+        "baseUrl": "https://limboscan.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Little Tyrant",
+    "pkg": "ma.autakimi.extension.pt.littletyrant",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Little Tyrant",
+        "lang": "pt-BR",
+        "id": "4886334142812146511",
+        "baseUrl": "https://tiraninha.world"
+      }
+    ]
+  },
+  {
+    "name": "Lycan Toons",
+    "pkg": "ma.autakimi.extension.pt.lycantoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Lycan Toons",
+        "lang": "pt-BR",
+        "id": "9117178890425713139",
+        "baseUrl": "https://lycantoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Maid Scan",
+    "pkg": "ma.autakimi.extension.pt.maidscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Maid Scan",
+        "lang": "pt-BR",
+        "id": "7624757094973334315",
+        "baseUrl": "https://empreguetes.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Manga Flix",
+    "pkg": "ma.autakimi.extension.pt.mangaflix",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "MangaFlix",
+        "lang": "pt-BR",
+        "id": "6813136769153267900",
+        "baseUrl": "https://mangaflix.net"
+      }
+    ]
+  },
+  {
+    "name": "Manga Livre",
+    "pkg": "ma.autakimi.extension.pt.mangalivre",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga Livre",
+        "lang": "pt-BR",
+        "id": "2834885536325274328",
+        "baseUrl": "https://mangalivre.tv"
+      }
+    ]
+  },
+  {
+    "name": "Manga Livre Blog",
+    "pkg": "ma.autakimi.extension.pt.mangalivreblog",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga Livre Blog",
+        "lang": "pt-BR",
+        "id": "588678420372440028",
+        "baseUrl": "https://mangalivre.blog"
+      }
+    ]
+  },
+  {
+    "name": "Manga Livre.to",
+    "pkg": "ma.autakimi.extension.pt.mangalivreto",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manga Livre.to",
+        "lang": "pt-BR",
+        "id": "1281902081932329042",
+        "baseUrl": "https://mangalivre.to"
+      }
+    ]
+  },
+  {
+    "name": "Manga Online",
+    "pkg": "ma.autakimi.extension.pt.mangaonline",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga Online",
+        "lang": "pt-BR",
+        "id": "3930085636692943299",
+        "baseUrl": "https://mangaonline.red"
+      }
+    ]
+  },
+  {
+    "name": "Mangas Brasuka",
+    "pkg": "ma.autakimi.extension.pt.mangasbrasuka",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Mangas Brasuka",
+        "lang": "pt-BR",
+        "id": "931953325247032113",
+        "baseUrl": "https://mangasbrasuka.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Manga Stop",
+    "pkg": "ma.autakimi.extension.pt.mangastop",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga Stop",
+        "lang": "pt-BR",
+        "id": "924359643993288771",
+        "baseUrl": "https://mangastop.net"
+      }
+    ]
+  },
+  {
+    "name": "Mango Toons",
+    "pkg": "ma.autakimi.extension.pt.mangotoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mango Toons",
+        "lang": "pt-BR",
+        "id": "8989984812354857153",
+        "baseUrl": "https://mangotoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Manhastro",
+    "pkg": "ma.autakimi.extension.pt.manhastro",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manhastro",
+        "lang": "pt-BR",
+        "id": "5123733616022476906",
+        "baseUrl": "https://manhastro.net"
+      }
+    ]
+  },
+  {
+    "name": "Mediocre Toons",
+    "pkg": "ma.autakimi.extension.pt.mediocretoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Mediocre Toons",
+        "lang": "pt-BR",
+        "id": "6774658952974641159",
+        "baseUrl": "https://mediocrescan.com"
+      }
+    ]
+  },
+  {
+    "name": "MiniTwo Scan",
+    "pkg": "ma.autakimi.extension.pt.minitwoscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "MiniTwo Scan",
+        "lang": "pt-BR",
+        "id": "8959585632192744096",
+        "baseUrl": "https://minitwoscan.com"
+      }
+    ]
+  },
+  {
+    "name": "Monsure",
+    "pkg": "ma.autakimi.extension.pt.monsure",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Monsure",
+        "lang": "pt-BR",
+        "id": "675113259227698778",
+        "baseUrl": "https://monsuresu.com"
+      }
+    ]
+  },
+  {
+    "name": "Monte Tai",
+    "pkg": "ma.autakimi.extension.pt.montetai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Monte Tai",
+        "lang": "pt-BR",
+        "id": "7427054289018024291",
+        "baseUrl": "https://montetaiscanlator.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Mugiwaras Oficial",
+    "pkg": "ma.autakimi.extension.pt.mugiwarasoficial",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mugiwaras Oficial",
+        "lang": "pt-BR",
+        "id": "2079534153507614534",
+        "baseUrl": "https://mugiwarasoficial.com"
+      }
+    ]
+  },
+  {
+    "name": "Muito Hentai",
+    "pkg": "ma.autakimi.extension.pt.muitohentai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Muito Hentai",
+        "lang": "pt-BR",
+        "id": "1062606379654091909",
+        "baseUrl": "https://www.muitohentai.com"
+      }
+    ]
+  },
+  {
+    "name": "Mundo Hentai",
+    "pkg": "ma.autakimi.extension.pt.mundohentai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Mundo Hentai",
+        "lang": "pt-BR",
+        "id": "141171756957474060",
+        "baseUrl": "https://mundohentaioficial.com"
+      }
+    ]
+  },
+  {
+    "name": "Neko Toons",
+    "pkg": "ma.autakimi.extension.pt.nekotoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Neko Toons",
+        "lang": "pt-BR",
+        "id": "9002071416352882483",
+        "baseUrl": "https://nekotoons.site"
+      }
+    ]
+  },
+  {
+    "name": "Ninja Scan",
+    "pkg": "ma.autakimi.extension.pt.ninjascan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Ninja Scan",
+        "lang": "pt-BR",
+        "id": "4392067503694697213",
+        "baseUrl": "https://ninjacomics.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Nocturne Summer",
+    "pkg": "ma.autakimi.extension.pt.nocturnesummer",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Nocturne Summer",
+        "lang": "pt-BR",
+        "id": "5501311187877950699",
+        "baseUrl": "https://nocfsb.com"
+      }
+    ]
+  },
+  {
+    "name": "Hanami Heaven",
+    "pkg": "ma.autakimi.extension.pt.noindexscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hanami Heaven",
+        "lang": "pt-BR",
+        "id": "987786689720213769",
+        "baseUrl": "https://hanamiheaven.org"
+      }
+    ]
+  },
+  {
+    "name": "One Piece TECA",
+    "pkg": "ma.autakimi.extension.pt.onepieceteca",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "One Piece TECA",
+        "lang": "pt-BR",
+        "id": "8410680598481767598",
+        "baseUrl": "https://onepieceteca.com"
+      }
+    ]
+  },
+  {
+    "name": "Origami Orpheans",
+    "pkg": "ma.autakimi.extension.pt.origamiorpheans",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Origami Orpheans",
+        "lang": "pt-BR",
+        "id": "4038055363600290082",
+        "baseUrl": "https://origami-orpheans.com"
+      }
+    ]
+  },
+  {
+    "name": "Osaka Scan",
+    "pkg": "ma.autakimi.extension.pt.osakascan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Osaka Scan",
+        "lang": "pt-BR",
+        "id": "4861854418326997963",
+        "baseUrl": "https://www.osakascan.com"
+      }
+    ]
+  },
+  {
+    "name": "Pink Rosa",
+    "pkg": "ma.autakimi.extension.pt.pinkrosa",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Pink Rosa",
+        "lang": "pt-BR",
+        "id": "8456404960509331854",
+        "baseUrl": "https://scanpinkrosa.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Pink Sea Unicorn",
+    "pkg": "ma.autakimi.extension.pt.pinkseaunicorn",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Pink Sea Unicorn",
+        "lang": "pt-BR",
+        "id": "2541069900188080676",
+        "baseUrl": "https://psunicorn.com"
+      }
+    ]
+  },
+  {
+    "name": "Pirulito Rosa",
+    "pkg": "ma.autakimi.extension.pt.pirulitorosa",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Pirulito Rosa",
+        "lang": "pt-BR",
+        "id": "580774737017310111",
+        "baseUrl": "https://pirulitorosa.site"
+      }
+    ]
+  },
+  {
+    "name": "Pizzaria Scan",
+    "pkg": "ma.autakimi.extension.pt.pizzariascan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Pizzaria Scan",
+        "lang": "pt-BR",
+        "id": "3359822911747375789",
+        "baseUrl": "https://pizzariacomics.com"
+      }
+    ]
+  },
+  {
+    "name": "Pluma Comics",
+    "pkg": "ma.autakimi.extension.pt.plumacomics",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Pluma Comics",
+        "lang": "pt-BR",
+        "id": "3795139541047356251",
+        "baseUrl": "https://plumacomics.cloud"
+      }
+    ]
+  },
+  {
+    "name": "Point Zero Toons",
+    "pkg": "ma.autakimi.extension.pt.pointzerotoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Point Zero Toons",
+        "lang": "pt-BR",
+        "id": "2210021497257492329",
+        "baseUrl": "https://kitsuneyako.com"
+      }
+    ]
+  },
+  {
+    "name": "Portal Yaoi",
+    "pkg": "ma.autakimi.extension.pt.portalyaoi",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Portal Yaoi",
+        "lang": "pt-BR",
+        "id": "3275945866985875190",
+        "baseUrl": "https://lerboyslove.com"
+      }
+    ]
+  },
+  {
+    "name": "Lura Toon",
+    "pkg": "ma.autakimi.extension.pt.randomscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Lura Toon",
+        "lang": "pt-BR",
+        "id": "1108163814448330624",
+        "baseUrl": "https://luratoons.net"
+      }
+    ]
+  },
+  {
+    "name": "Remangas",
+    "pkg": "ma.autakimi.extension.pt.remangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Remangas",
+        "lang": "pt-BR",
+        "id": "7462657023971681136",
+        "baseUrl": "https://remangas.net"
+      }
+    ]
+  },
+  {
+    "name": "RF Dragon Scan",
+    "pkg": "ma.autakimi.extension.pt.rfdragonscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "RF Dragon Scan",
+        "lang": "pt-BR",
+        "id": "3492404357721425345",
+        "baseUrl": "https://rfdragonscan.com"
+      }
+    ]
+  },
+  {
+    "name": "Risentoons",
+    "pkg": "ma.autakimi.extension.pt.risentoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Risentoons",
+        "lang": "pt-BR",
+        "id": "4905131080278546043",
+        "baseUrl": "https://risentoons.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Saikai Scan",
+    "pkg": "ma.autakimi.extension.pt.saikaiscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Saikai Scan",
+        "lang": "pt-BR",
+        "id": "273341846992513187",
+        "baseUrl": "https://housesaikai.net"
+      }
+    ]
+  },
+  {
+    "name": "Sakura Mangás",
+    "pkg": "ma.autakimi.extension.pt.sakuramangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Sakura Mangás",
+        "lang": "pt-BR",
+        "id": "5312747352055987615",
+        "baseUrl": "https://sakuramangas.org"
+      }
+    ]
+  },
+  {
+    "name": "Nexus Scan",
+    "pkg": "ma.autakimi.extension.pt.spectralscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Nexus Scan",
+        "lang": "pt-BR",
+        "id": "5304928452449566995",
+        "baseUrl": "https://nexustoons.com"
+      }
+    ]
+  },
+  {
+    "name": "Yomu Comics",
+    "pkg": "ma.autakimi.extension.pt.sssscanlator",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Yomu Comics",
+        "lang": "pt-BR",
+        "id": "1497838059713668619",
+        "baseUrl": "https://yomu.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Starlight Scan",
+    "pkg": "ma.autakimi.extension.pt.starlightscan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Starlight Scan",
+        "lang": "pt-BR",
+        "id": "7977736050206547443",
+        "baseUrl": "https://starligthscan.com"
+      }
+    ]
+  },
+  {
+    "name": "Taiyō",
+    "pkg": "ma.autakimi.extension.pt.taiyo",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Taiyō",
+        "lang": "pt-BR",
+        "id": "7387610647818309943",
+        "baseUrl": "https://taiyo.moe"
+      }
+    ]
+  },
+  {
+    "name": "Tankou Hentai",
+    "pkg": "ma.autakimi.extension.pt.tankouhentai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Tankou Hentai",
+        "lang": "pt-BR",
+        "id": "9200419821846585447",
+        "baseUrl": "https://tankouhentai.com"
+      }
+    ]
+  },
+  {
+    "name": "Tatakae Scan",
+    "pkg": "ma.autakimi.extension.pt.tatakaescan",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Tatakae Scan",
+        "lang": "pt-BR",
+        "id": "7640190247679480703",
+        "baseUrl": "https://tatakaescan.com"
+      }
+    ]
+  },
+  {
+    "name": "Temaki mangás",
+    "pkg": "ma.autakimi.extension.pt.temakimangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Temaki mangás",
+        "lang": "pt-BR",
+        "id": "677370205708439700",
+        "baseUrl": "https://temakimangas.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Tia Manhwa",
+    "pkg": "ma.autakimi.extension.pt.tiamanhwa",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Tia Manhwa",
+        "lang": "pt-BR",
+        "id": "8823653003339002799",
+        "baseUrl": "https://tiamanhwa.com"
+      }
+    ]
+  },
+  {
+    "name": "ToonBr",
+    "pkg": "ma.autakimi.extension.pt.toonbr",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "ToonBr",
+        "lang": "pt-BR",
+        "id": "534693024654050396",
+        "baseUrl": "https://beta.toonbr.com"
+      }
+    ]
+  },
+  {
+    "name": "Traduções do Lipe",
+    "pkg": "ma.autakimi.extension.pt.traducoesdolipe",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Traduções do Lipe",
+        "lang": "pt-BR",
+        "id": "3650511144741653873",
+        "baseUrl": "https://traducoesdolipe.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Tsundoku Traduções",
+    "pkg": "ma.autakimi.extension.pt.tsundokutraducoes",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Tsundoku Traduções",
+        "lang": "pt-BR",
+        "id": "2091088265283814173",
+        "baseUrl": "https://tsundoku.com.br"
+      }
+    ]
+  },
+  {
+    "name": "Universo Hentai",
+    "pkg": "ma.autakimi.extension.pt.universohentai",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Universo Hentai",
+        "lang": "pt-BR",
+        "id": "4207492914234184899",
+        "baseUrl": "https://universohentai.com"
+      }
+    ]
+  },
+  {
+    "name": "Vegitoons",
+    "pkg": "ma.autakimi.extension.pt.vegitoons",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Vegitoons",
+        "lang": "pt-BR",
+        "id": "7104462396017692362",
+        "baseUrl": "https://vegitoons.black"
+      }
+    ]
+  },
+  {
+    "name": "Verdinha",
+    "pkg": "ma.autakimi.extension.pt.verdinha",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Verdinha",
+        "lang": "pt-BR",
+        "id": "3410911112857734134",
+        "baseUrl": "https://verdinha.wtf"
+      }
+    ]
+  },
+  {
+    "name": "Wolftoon",
+    "pkg": "ma.autakimi.extension.pt.wolftoon",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Wolftoon",
+        "lang": "pt-BR",
+        "id": "2666797837434784507",
+        "baseUrl": "https://wolftoon.lovable.app"
+      }
+    ]
+  },
+  {
+    "name": "XXX Yaoi",
+    "pkg": "ma.autakimi.extension.pt.xxxyaoi",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "XXX Yaoi",
+        "lang": "pt-BR",
+        "id": "2490962516027621137",
+        "baseUrl": "https://3xyaoi.com"
+      }
+    ]
+  },
+  {
+    "name": "Yaoi Fan Club",
+    "pkg": "ma.autakimi.extension.pt.yaoifanclub",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Yaoi Fan Club",
+        "lang": "pt-BR",
+        "id": "3609380518472019202",
+        "baseUrl": "https://www.yaoifanclub.com"
+      }
+    ]
+  },
+  {
+    "name": "Yomu Mangás",
+    "pkg": "ma.autakimi.extension.pt.yomumangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Yomu Mangás",
+        "lang": "pt-BR",
+        "id": "1636954121036022614",
+        "baseUrl": "https://yomumangas.com"
+      }
+    ]
+  },
+  {
+    "name": "Yugen Mangás",
+    "pkg": "ma.autakimi.extension.pt.yugenmangas",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Yugen Mangás",
+        "lang": "pt-BR",
+        "id": "8900485893586998299",
+        "baseUrl": "https://yugenmangasbr.dxtg.online"
+      }
+    ]
+  },
+  {
+    "name": "Yuri Verso",
+    "pkg": "ma.autakimi.extension.pt.yuriverso",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Yuri Verso",
+        "lang": "pt-BR",
+        "id": "4476506734614164770",
+        "baseUrl": "https://yuri.live"
+      }
+    ]
+  },
+  {
+    "name": "ZettaHQ",
+    "pkg": "ma.autakimi.extension.pt.zettahq",
+    "lang": "pt-BR",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ZettaHQ",
+        "lang": "pt-BR",
+        "id": "4655858297496198897",
+        "baseUrl": "https://zettahq.com"
+      }
+    ]
+  }
+]

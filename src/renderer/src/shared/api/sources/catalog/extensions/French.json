@@ -1,0 +1,752 @@
+[
+  {
+    "name": "AnimeSama",
+    "pkg": "ma.autakimi.extension.fr.animesama",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "AnimeSama",
+        "lang": "fr",
+        "id": "5104384223103778991",
+        "baseUrl": "https://anime-sama.pw"
+      }
+    ]
+  },
+  {
+    "name": "AralosBD",
+    "pkg": "ma.autakimi.extension.fr.aralosbd",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "AralosBD",
+        "lang": "fr",
+        "id": "7086384324753337104",
+        "baseUrl": "https://aralosbd.fr"
+      }
+    ]
+  },
+  {
+    "name": "Astral-Manga",
+    "pkg": "ma.autakimi.extension.fr.astralmanga",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "AstralManga",
+        "lang": "fr",
+        "id": "8815089098147858609",
+        "baseUrl": "https://astral-manga.fr"
+      }
+    ]
+  },
+  {
+    "name": "Harmony-Scan",
+    "pkg": "ma.autakimi.extension.fr.bananascan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Harmony-Scan",
+        "lang": "fr",
+        "id": "3121632933690925888",
+        "baseUrl": "https://harmony-scan.fr"
+      }
+    ]
+  },
+  {
+    "name": "BigSolo",
+    "pkg": "ma.autakimi.extension.fr.bigsolo",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "BigSolo",
+        "lang": "fr",
+        "id": "4410528266393104437",
+        "baseUrl": "https://bigsolo.org"
+      }
+    ]
+  },
+  {
+    "name": "Blue Solo",
+    "pkg": "ma.autakimi.extension.fr.bluesolo",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Blue Solo",
+        "lang": "fr",
+        "id": "2095949455655924623",
+        "baseUrl": "https://bluesolo.org"
+      }
+    ]
+  },
+  {
+    "name": "ChaosTrad",
+    "pkg": "ma.autakimi.extension.fr.chaostrad",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "ChaosTrad",
+        "lang": "fr",
+        "id": "7263540291758019148",
+        "baseUrl": "https://chaostrad.fr"
+      }
+    ]
+  },
+  {
+    "name": "Dassou Scan",
+    "pkg": "ma.autakimi.extension.fr.dassouscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Dassou Scan",
+        "lang": "fr",
+        "id": "4208001786388644499",
+        "baseUrl": "https://dassouscan.com"
+      }
+    ]
+  },
+  {
+    "name": "Epsilon Scan",
+    "pkg": "ma.autakimi.extension.fr.epsilonscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Epsilon Scan",
+        "lang": "fr",
+        "id": "2577248042661857530",
+        "baseUrl": "https://epsilonscan.to"
+      }
+    ]
+  },
+  {
+    "name": "FMTEAM",
+    "pkg": "ma.autakimi.extension.fr.fmteam",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "FMTEAM",
+        "lang": "fr",
+        "id": "7699632518084274667",
+        "baseUrl": "https://fmteam.fr"
+      }
+    ]
+  },
+  {
+    "name": "FuryoSquad",
+    "pkg": "ma.autakimi.extension.fr.furyosquad",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "FuryoSquad",
+        "lang": "fr",
+        "id": "267710359229814456",
+        "baseUrl": "https://www.furyosociety.com/"
+      }
+    ]
+  },
+  {
+    "name": "Hentai Origines",
+    "pkg": "ma.autakimi.extension.fr.hentaiorigines",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hentai Origines",
+        "lang": "fr",
+        "id": "3875672872924535086",
+        "baseUrl": "https://hentai-origines.fr"
+      }
+    ]
+  },
+  {
+    "name": "Hentai-Scantrad",
+    "pkg": "ma.autakimi.extension.fr.hentaiscantrad",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hentai-Scantrad",
+        "lang": "fr",
+        "id": "6747208512135394944",
+        "baseUrl": "https://hentai.scantrad-vf.cc"
+      }
+    ]
+  },
+  {
+    "name": "HentaiZone",
+    "pkg": "ma.autakimi.extension.fr.hentaizone",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiZone",
+        "lang": "fr",
+        "id": "4897336575284771091",
+        "baseUrl": "https://hentaizone.xyz"
+      }
+    ]
+  },
+  {
+    "name": "HistoireDHentai",
+    "pkg": "ma.autakimi.extension.fr.histoiredhentai",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HistoireDHentai",
+        "lang": "fr",
+        "id": "6899189456839494153",
+        "baseUrl": "https://hhentai.fr"
+      }
+    ]
+  },
+  {
+    "name": "Japscan",
+    "pkg": "ma.autakimi.extension.fr.japscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Japscan",
+        "lang": "fr",
+        "id": "11",
+        "baseUrl": "https://www.japscan.foo/mangas/?sort=popular&p=1"
+      }
+    ]
+  },
+  {
+    "name": "Kiwiya Scans",
+    "pkg": "ma.autakimi.extension.fr.kiwiyascans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Kiwiya Scans",
+        "lang": "fr",
+        "id": "8654267899929745421",
+        "baseUrl": "https://kiwiyascans.com"
+      }
+    ]
+  },
+  {
+    "name": "LanorTrad",
+    "pkg": "ma.autakimi.extension.fr.lanortrad",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "LanorTrad",
+        "lang": "fr",
+        "id": "6624592926208705847",
+        "baseUrl": "https://lanortrad.netlify.app"
+      }
+    ]
+  },
+  {
+    "name": "Lelmanga",
+    "pkg": "ma.autakimi.extension.fr.lelmanga",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Lelmanga",
+        "lang": "fr",
+        "id": "8647761747185981431",
+        "baseUrl": "https://www.lelmanga.com"
+      }
+    ]
+  },
+  {
+    "name": "Lelscan-VF",
+    "pkg": "ma.autakimi.extension.fr.lelscanvf",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Lelscan-VF",
+        "lang": "fr",
+        "id": "4874205281198767614",
+        "baseUrl": "https://lelscanfr.com"
+      }
+    ]
+  },
+  {
+    "name": "Les Poroiniens",
+    "pkg": "ma.autakimi.extension.fr.lesporoiniens",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Les Poroiniens",
+        "lang": "fr",
+        "id": "7783284177278678538",
+        "baseUrl": "https://lesporoiniens.org"
+      }
+    ]
+  },
+  {
+    "name": "Manga-Corporation",
+    "pkg": "ma.autakimi.extension.fr.mangacorporation",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga-Corporation",
+        "lang": "fr",
+        "id": "1528177119657303302",
+        "baseUrl": "https://manga-corporation.com"
+      }
+    ]
+  },
+  {
+    "name": "MangaHub.fr",
+    "pkg": "ma.autakimi.extension.fr.mangahubfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "MangaHub.fr",
+        "lang": "fr",
+        "id": "3294884430139323314",
+        "baseUrl": "https://mangahub.fr"
+      }
+    ]
+  },
+  {
+    "name": "Mangakawaii",
+    "pkg": "ma.autakimi.extension.fr.mangakawaii",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mangakawaii",
+        "lang": "fr",
+        "id": "1384625280015637699",
+        "baseUrl": "https://www.mangakawaii.io"
+      }
+    ]
+  },
+  {
+    "name": "MangaMoins",
+    "pkg": "ma.autakimi.extension.fr.mangamoins",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MangaMoins",
+        "lang": "fr",
+        "id": "6508647660473520087",
+        "baseUrl": "https://mangamoins.com"
+      }
+    ]
+  },
+  {
+    "name": "MangaNova",
+    "pkg": "ma.autakimi.extension.fr.manganova",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MangaNova",
+        "lang": "fr",
+        "id": "514127183927359583",
+        "baseUrl": "https://www.manga-nova.com"
+      }
+    ]
+  },
+  {
+    "name": "Manga-Scantrad",
+    "pkg": "ma.autakimi.extension.fr.mangascantrad",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manga-Scantrad",
+        "lang": "fr",
+        "id": "540252682818453285",
+        "baseUrl": "https://manga-scantrad.io"
+      }
+    ]
+  },
+  {
+    "name": "Mangas-Origines.fr",
+    "pkg": "ma.autakimi.extension.fr.mangasoriginesfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mangas-Origines.fr",
+        "lang": "fr",
+        "id": "4803238581797687746",
+        "baseUrl": "https://mangas-origines.fr"
+      }
+    ]
+  },
+  {
+    "name": "Mangas Scans",
+    "pkg": "ma.autakimi.extension.fr.mangasscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mangas Scans",
+        "lang": "fr",
+        "id": "8284543629565327451",
+        "baseUrl": "https://mangas-scans.com"
+      }
+    ]
+  },
+  {
+    "name": "Ortega Scans",
+    "pkg": "ma.autakimi.extension.fr.ortegascans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ortega Scans",
+        "lang": "fr",
+        "id": "8598370605081191622",
+        "baseUrl": "https://ortegascans.fr"
+      }
+    ]
+  },
+  {
+    "name": "Pantheon Scan",
+    "pkg": "ma.autakimi.extension.fr.pantheonscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Pantheon Scan",
+        "lang": "fr",
+        "id": "1615599506055429686",
+        "baseUrl": "https://pantheon-scan.com"
+      }
+    ]
+  },
+  {
+    "name": "Perf Scan",
+    "pkg": "ma.autakimi.extension.fr.perfscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Perf Scan",
+        "lang": "fr",
+        "id": "4533007917829146766",
+        "baseUrl": "https://perf-scan.xyz"
+      }
+    ]
+  },
+  {
+    "name": "PhenixScans",
+    "pkg": "ma.autakimi.extension.fr.phenixscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Phenix Scans",
+        "lang": "fr",
+        "id": "3854605086026361521",
+        "baseUrl": "https://phenix-scans.com"
+      }
+    ]
+  },
+  {
+    "name": "Pornhwa.io",
+    "pkg": "ma.autakimi.extension.fr.pornhwaio",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Pornhwa.io",
+        "lang": "fr",
+        "id": "2312454299295279659",
+        "baseUrl": "https://pornhwa.io"
+      }
+    ]
+  },
+  {
+    "name": "Poseidon Scans",
+    "pkg": "ma.autakimi.extension.fr.poseidonscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Poseidon Scans",
+        "lang": "fr",
+        "id": "8936307069044646761",
+        "baseUrl": "https://poseidon-scans.co"
+      }
+    ]
+  },
+  {
+    "name": "Raijin Scans",
+    "pkg": "ma.autakimi.extension.fr.raijinscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Raijin Scans",
+        "lang": "fr",
+        "id": "8373267671495516033",
+        "baseUrl": "https://raijin-scans.fr"
+      }
+    ]
+  },
+  {
+    "name": "Reaper Scans",
+    "pkg": "ma.autakimi.extension.fr.reaperscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Reaper Scans",
+        "lang": "fr",
+        "id": "8021882997341141274",
+        "baseUrl": "https://reaper-scans.fr"
+      }
+    ]
+  },
+  {
+    "name": "Rimu Scans",
+    "pkg": "ma.autakimi.extension.fr.rimuscans",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Rimu Scans",
+        "lang": "fr",
+        "id": "203984087587807085",
+        "baseUrl": "https://rimu-scans.fr"
+      }
+    ]
+  },
+  {
+    "name": "X-Manga",
+    "pkg": "ma.autakimi.extension.fr.scanhentaimenu",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "X-Manga",
+        "lang": "fr",
+        "id": "4153742697148883998",
+        "baseUrl": "https://x-manga.org"
+      }
+    ]
+  },
+  {
+    "name": "Scan-Manga",
+    "pkg": "ma.autakimi.extension.fr.scanmanga",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Scan-Manga",
+        "lang": "fr",
+        "id": "2062108502806113139",
+        "baseUrl": "https://m.scan-manga.com"
+      }
+    ]
+  },
+  {
+    "name": "ScanR",
+    "pkg": "ma.autakimi.extension.fr.scanr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ScanR",
+        "lang": "fr",
+        "id": "5710047468564158686",
+        "baseUrl": "https://teamscanr.fr"
+      }
+    ]
+  },
+  {
+    "name": "ScansFR",
+    "pkg": "ma.autakimi.extension.fr.scansfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ScansFR",
+        "lang": "fr",
+        "id": "2639384491930845930",
+        "baseUrl": "https://scansfr.com"
+      }
+    ]
+  },
+  {
+    "name": "Scantrad Union",
+    "pkg": "ma.autakimi.extension.fr.scantradunion",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Scantrad Union",
+        "lang": "fr",
+        "id": "155525085323453412",
+        "baseUrl": "https://scantrad-union.com"
+      }
+    ]
+  },
+  {
+    "name": "Scan VF",
+    "pkg": "ma.autakimi.extension.fr.scanvf",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Scan VF",
+        "lang": "fr",
+        "id": "2455131357585282669",
+        "baseUrl": "https://www.scan-vf.net"
+      }
+    ]
+  },
+  {
+    "name": "Siren Scans FR",
+    "pkg": "ma.autakimi.extension.fr.sirenscansfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Siren Scans FR",
+        "lang": "fr",
+        "id": "9130638185861146476",
+        "baseUrl": "https://sirenscans.fr"
+      }
+    ]
+  },
+  {
+    "name": "Soft Epsilon Scan",
+    "pkg": "ma.autakimi.extension.fr.softepsilonscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Soft Epsilon Scan",
+        "lang": "fr",
+        "id": "4969929389259348100",
+        "baseUrl": "https://epsilonsoft.to"
+      }
+    ]
+  },
+  {
+    "name": "Sushi-Scan",
+    "pkg": "ma.autakimi.extension.fr.sushiscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Sushi-Scan",
+        "lang": "fr",
+        "id": "6516188872647980679",
+        "baseUrl": "https://sushiscan.net"
+      }
+    ]
+  },
+  {
+    "name": "Sushiscan.fr",
+    "pkg": "ma.autakimi.extension.fr.sushiscanfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Sushiscan.fr",
+        "lang": "fr",
+        "id": "3196884165456788667",
+        "baseUrl": "https://sushiscan.fr"
+      }
+    ]
+  },
+  {
+    "name": "Toon FR",
+    "pkg": "ma.autakimi.extension.fr.toonfr",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Toon FR",
+        "lang": "fr",
+        "id": "3235818654344600611",
+        "baseUrl": "https://toonfr.com"
+      }
+    ]
+  },
+  {
+    "name": "YaoiScan",
+    "pkg": "ma.autakimi.extension.fr.yaoiscan",
+    "lang": "fr",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "YaoiScan",
+        "lang": "fr",
+        "id": "7333825394865171341",
+        "baseUrl": "https://yaoiscan.fr"
+      }
+    ]
+  }
+]
