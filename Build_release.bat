@@ -1,7 +1,7 @@
 @echo off
 setlocal
 echo ========================================
-echo LManwa Release Builder (Windows)
+echo AutaKimi Release Builder (Windows)
 echo ========================================
 
 

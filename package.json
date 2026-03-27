@@ -62,12 +62,12 @@
     "vite": "^7.2.6"
   },
   "build": {
-    "appId": "com.anasx07.lmanwa",
+    "appId": "com.anasx07.autakimi",
     "publish": [
       {
         "provider": "github",
         "owner": "anasx07",
-        "repo": "LManwa-Release",
+        "repo": "AutaKimi-Release",
         "private": false,
         "releaseType": "release"
       }

@@ -57,13 +57,13 @@ export default function AnimePage() {
       }),
     [installedExtensions, pinnedAnimeSources]
   )
-  
-  const activeSource = useMemo(() => 
+
+  const activeSource = useMemo(() =>
     activeAnimePkg ? getAnimeSource(activeAnimePkg) : null,
     [activeAnimePkg]
   )
 
-  const feedLabels = useMemo(() => 
+  const feedLabels = useMemo(() =>
     activeSource?.getFeedLabels?.() || {
       popular: 'Popular',
       latest: 'Latest',
@@ -123,18 +123,18 @@ export default function AnimePage() {
                 className="group p-5 bg-card/40 border-border/40 hover:border-primary/30 transition-all duration-300"
               >
                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/10 overflow-hidden">
-                      <img
-                        src={new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url).href}
-                        className="w-full h-full object-contain p-1"
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                      />
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm truncate">{ext.name}</h3>
-                      <p className="text-[10px] text-muted-foreground uppercase">{ext.lang}</p>
-                   </div>
-                   <Button
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/10 overflow-hidden">
+                    <img
+                      src={new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url).href}
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-sm truncate">{ext.name}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase">{ext.lang}</p>
+                  </div>
+                  <Button
                     size="sm"
                     className="bg-primary hover:bg-primary/90 h-8 px-4"
                     onClick={async () => {
@@ -146,9 +146,9 @@ export default function AnimePage() {
                         console.error('Failed to install anime extension:', e)
                       }
                     }}
-                   >
+                  >
                     Install
-                   </Button>
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -201,7 +201,7 @@ export default function AnimePage() {
                   <div className="fb-icon hidden w-full h-full items-center justify-center">
                     <Play className="h-6 w-6 text-primary" />
                   </div>
-                  
+
                   {/* Pin Toggle Overlay */}
                   <Button
                     variant="ghost"
@@ -345,7 +345,7 @@ export default function AnimePage() {
           message={error}
           onRetry={refresh}
           onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-          onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues/new')}
+          onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')}
           details={{ source: metadata?.name || activeAnimePkg, ext: activeAnimePkg, err: error }}
         />
       )}
@@ -460,7 +460,7 @@ export default function AnimePage() {
                 message={paginationError}
                 onRetry={retryPagination}
                 onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-                onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues')}
+                onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')}
               />
             )}
             {!hasMore && !paginationError && mangaList.length > 0 && (

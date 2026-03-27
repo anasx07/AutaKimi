@@ -143,7 +143,7 @@ export class ExtensionOrchestrator {
     }
 
     // Use a clean local-only URL format
-    const iconUrl = `lmanwa-cache://local-icon/${ext.pkg}.png`;
+    const iconUrl = `autakimi-cache://local-icon/${ext.pkg}.png`;
 
     await extensionRepo.upsert({
       pkg: ext.pkg,

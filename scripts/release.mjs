@@ -122,7 +122,7 @@ async function main() {
         execSync(`git push origin v${newVersion}`);
 
         console.log(`\n${C.green}${C.bright}Release v${newVersion} Successfully Pushed! 🚀${C.reset}`);
-        console.log(`${C.dim}Keep an eye on LManwa-Release for the finished build.${C.reset}\n`);
+        console.log(`${C.dim}Keep an eye on AutaKimi-Release for the finished build.${C.reset}\n`);
 
         break; // Success! Exit loop.
       } catch (error) {

@@ -31,7 +31,7 @@ jobs:
             dist/*.exe \
             dist/*.blockmap \
             dist/latest.yml \
-            --repo anasx07/LManwa-Release \
+            --repo anasx07/AutaKimi-Release \
             --target main \
             --title "Release ${{ github.ref_name }}" \
             --notes "Automated release from private repository."

@@ -175,7 +175,7 @@ export class CloudflareService {
 
     const cleanUA = win.webContents.getUserAgent()
       .replace(/\s*Electron\/\S+/g, '')
-      .replace(/\s*LManwa\/\S+/g, '')
+      .replace(/\s*AutaKimi\/\S+/g, '')
     
     this.activeWindows.set(win.webContents.id, cleanUA)
     this.activeWindows.set(-1, cleanUA) // Global fallback

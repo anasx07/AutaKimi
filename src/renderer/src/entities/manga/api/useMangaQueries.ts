@@ -231,7 +231,7 @@ export function useChapterPages(mangaId: string, pkg: string, chapter: Chapter |
         if (download && download.status === 'completed' && download.pageUrls) {
           const cachedUrls = JSON.parse(download.pageUrls)
           if (cachedUrls && cachedUrls.length > 0) {
-            return cachedUrls.map((u: string) => u.replace(/^https?:\/\//, 'lmanwa-cache://'))
+            return cachedUrls.map((u: string) => u.replace(/^https?:\/\//, 'autakimi-cache://'))
           }
         }
       } catch (e) {
@@ -242,7 +242,7 @@ export function useChapterPages(mangaId: string, pkg: string, chapter: Chapter |
       const runner = await ExtensionResolver.resolve(pkg)
       if (!runner) throw new Error('Extension not found')
       const pages = await runner.fetchPages(chapter.url)
-      return pages.map((u: string) => u.replace(/^https?:\/\//, 'lmanwa-cache://'))
+      return pages.map((u: string) => u.replace(/^https?:\/\//, 'autakimi-cache://'))
     },
     enabled: !!chapter && !!pkg,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours

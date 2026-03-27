@@ -3,10 +3,10 @@ import { app } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
-// Force userData path to be exactly what was requested (AppData/Roaming/LManwa on Windows)
+// Force userData path to be exactly what was requested (AppData/Roaming/AutaKimi on Windows)
 try {
   const appData = app.getPath('appData')
-  const targetPath = path.join(appData, 'LManwa')
+  const targetPath = path.join(appData, 'AutaKimi')
   app.setPath('userData', targetPath)
 } catch (e) {
   console.error('Failed to set userData path:', e)
@@ -28,7 +28,7 @@ if (!fs.existsSync(userDataPath)) {
   fs.mkdirSync(userDataPath, { recursive: true })
 }
 
-const dbPath = path.join(userDataPath, 'lmanwa.db')
+const dbPath = path.join(userDataPath, 'autakimi.db')
 const sqlite = new Database(dbPath)
 sqlite.pragma('journal_mode = WAL')
 

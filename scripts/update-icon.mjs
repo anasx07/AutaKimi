@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LManwa Icon Manager — Interactive CLI
+ * AutaKimi Icon Manager — Interactive CLI
  * Run: node scripts/update-icon.mjs
  */
 
@@ -35,7 +35,7 @@ function banner() {
   console.clear()
   console.log(`${c.bold}${c.cyan}`)
   console.log('  ╔══════════════════════════════════════════╗')
-  console.log('  ║      LManwa  ·  Icon Manager  v2.0      ║')
+  console.log('  ║      AutaKimi  ·  Icon Manager  v2.0      ║')
   console.log('  ╚══════════════════════════════════════════╝')
   console.log(c.reset)
   console.log(`  ${c.dim}This wizard will help you update the app icons.${c.reset}\n`)
