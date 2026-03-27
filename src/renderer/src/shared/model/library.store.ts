@@ -2,10 +2,7 @@ import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
 import { NormalizedManga } from '@common/utils/mangaNormalizer'
 import { Chapter } from '@renderer/shared/api/sources/types'
-import { useExtensionStore, ExtensionMetadata } from './extension.store'
-import { useReaderStore } from './reader.store'
-import { useHistoryStore } from './history.store'
-import { useSettingsStore } from './settings.store'
+import { useExtensionStore } from './extension.store'
 
 interface LibraryState {
   library: NormalizedManga[]
@@ -13,6 +10,7 @@ interface LibraryState {
   activeChapter: Chapter | null
   
   // Actions
+  _init: (library: NormalizedManga[]) => void
   loadFromDb: () => Promise<void>
   toggleLibrary: (manga: NormalizedManga) => Promise<void>
   setSelectedManga: (manga: NormalizedManga | null) => void
@@ -24,27 +22,16 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   selectedManga: null,
   activeChapter: null,
 
+  _init: (library) => {
+    set({ library: library || [] })
+  },
+
   loadFromDb: async () => {
     try {
-      const [installed, libraryItems, settingsMap] = await Promise.all([
-        DataService.db.getExtensions(),
-        DataService.db.getLibrary(),
-        DataService.db.getSettings()
-      ])
-
-      set({
-        library: (libraryItems as NormalizedManga[]) || [],
-      })
-
-      // Initialize specialized stores
-      useExtensionStore.getState()._init(installed as ExtensionMetadata[], settingsMap as Record<string, string>)
-      useReaderStore.getState()._init(settingsMap as Record<string, string>)
-      useSettingsStore.getState()._init(settingsMap as Record<string, string>)
-      
-      // Load history
-      useHistoryStore.getState().loadHistory()
-    } catch (error) {
-      console.error('Failed to load DB:', error)
+      const items = await DataService.db.getLibrary()
+      set({ library: (items as NormalizedManga[]) || [] })
+    } catch (e) {
+      console.error('Failed to reload library:', e)
     }
   },
 
@@ -73,4 +60,3 @@ export const useLibraryStore = create<LibraryState>((set) => ({
 
   setActiveChapter: (chapter: Chapter | null) => set({ activeChapter: chapter }),
 }))
-

@@ -23,7 +23,7 @@ export class MangaCacheRepository {
           status: manga.status || null,
           genres: genres,
           url: manga.url || null,
-          type: type,
+          mediaType: type,
           updatedAt: new Date().toISOString()
         })
         .where(eq(schema.mangaCache.id, manga.id))
@@ -40,7 +40,7 @@ export class MangaCacheRepository {
           status: manga.status || null,
           genres: genres,
           url: manga.url || null,
-          type: type,
+          mediaType: type,
           updatedAt: new Date().toISOString()
         })
         .run();

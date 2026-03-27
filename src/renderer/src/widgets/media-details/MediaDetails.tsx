@@ -9,7 +9,7 @@ import {
 } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { DownloadEntry } from '@common/types'
-import { Button } from '@renderer/shared/ui'
+import { Button, HeroSkeleton } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 import { 
@@ -261,17 +261,21 @@ export default function MediaDetails({ mediaType }: MediaDetailsProps) {
         </div>
       </div>
 
-      <HeroSection 
-        manga={normalized} 
-        mediaType={mediaType}
-        extension={extension}
-        isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
-        extLang={extLang}
-        onBrowseSource={() => {
-          setActiveTab('browse')
-          setSelectedManga(null)
-        }}
-      />
+      {detailQuery.isLoading ? (
+        <HeroSkeleton />
+      ) : (
+        <HeroSection 
+          manga={normalized} 
+          mediaType={mediaType}
+          extension={extension}
+          isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+          extLang={extLang}
+          onBrowseSource={() => {
+            setActiveTab('browse')
+            setSelectedManga(null)
+          }}
+        />
+      )}
 
       <ActionBar 
         isInLibrary={isInLibrary}

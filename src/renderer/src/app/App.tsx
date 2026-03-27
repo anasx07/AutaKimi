@@ -15,6 +15,7 @@ import { TitleBar } from '@renderer/widgets/title-bar'
 import Toast from '@renderer/shared/ui/Toast'
 import { UpdaterToast } from '@renderer/shared/ui/UpdaterToast'
 import { DataService } from '@renderer/shared/api'
+import { StoreInitializer } from './StoreInitializer'
 
 // Lazy load page components
 const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))
@@ -71,7 +72,7 @@ function TabPanel({
 
 function App(): React.JSX.Element {
   const { activeTab, setActiveTab } = useUIStore()
-  const { selectedManga, setSelectedManga, activeChapter, loadFromDb } = useLibraryStore()
+  const { selectedManga, setSelectedManga, activeChapter } = useLibraryStore()
   const { activeExtension } = useExtensionStore()
   const { setUpdateStatus, setUpdateProgress, setUpdateError } = useUIStore()
 
@@ -79,8 +80,6 @@ function App(): React.JSX.Element {
   const [visited, setVisited] = useState<Set<string>>(new Set([activeTab]))
 
   useEffect(() => {
-    loadFromDb()
-
     // Listen for app updates
     const unsubscribe = DataService.onAppUpdate((data: any) => {
       if (data.status) {
@@ -116,7 +115,8 @@ function App(): React.JSX.Element {
   )
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-background overflow-hidden selection:bg-primary/20">
+    <StoreInitializer>
+      <div className="flex flex-col h-screen w-screen bg-background overflow-hidden selection:bg-primary/20">
       <DownloadQueueProcessor />
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
@@ -241,6 +241,7 @@ function App(): React.JSX.Element {
       <Toast />
       <UpdaterToast />
     </div>
+    </StoreInitializer>
   )
 }
 

@@ -30,7 +30,7 @@ export class HistoryRepository {
         startedAt: entry.startedAt,
         durationSeconds: entry.durationSeconds || 0,
         pkg: entry.pkg || null,
-        type: entry.type || 'manga'
+        mediaType: entry.type || 'manga'
       }).run();
       return result;
     } catch (err) {
@@ -46,7 +46,7 @@ export class HistoryRepository {
         .$dynamic();
 
       if (type) {
-        query = query.where(eq(schema.readingHistory.type, type));
+        query = query.where(eq(schema.readingHistory.mediaType, type));
       }
 
       const rows = query

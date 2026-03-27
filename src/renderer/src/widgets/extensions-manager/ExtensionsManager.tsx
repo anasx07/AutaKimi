@@ -1,5 +1,5 @@
 import { DataService } from '@renderer/shared/api'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings, Globe } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 import { useLibraryStore, useExtensionStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
@@ -54,7 +54,8 @@ export default function ExtensionsManager() {
   const {
     installedExtensions, uninstallExtension, setActiveExtension,
     extensionSortBy, extensionSortOrder,
-    setExtensionSortBy, setExtensionSortOrder
+    setExtensionSortBy, setExtensionSortOrder,
+    loadInstalled
   } = useExtensionStore()
   const { setActiveTab: setGlobalActiveTab } = useUIStore()
   const [extensions] = useState<Extension[]>(localExtensions as Extension[])
@@ -62,6 +63,13 @@ export default function ExtensionsManager() {
   const [activeTab, setActiveTab] = useState<'installed' | 'all'>('installed')
   const [installStatuses, setInstallStatuses] = useState<Record<string, 'loading' | 'success' | 'error' | null>>({})
   const [editingExt, setEditingExt] = useState<Extension | null>(null)
+  const [bulkInstallStatus, setBulkInstallStatus] = useState<{ isInstalling: boolean, current: number, total: number } | null>(null)
+
+  // O(1) lookup map for installed extensions to avoid O(n^2) in render/sort loops
+  const { installedPkgSet, installedMap } = useMemo(() => ({
+    installedPkgSet: new Set(installedExtensions.map(e => e.pkg)),
+    installedMap: new Map(installedExtensions.map(e => [e.pkg, e]))
+  }), [installedExtensions])
 
   const uniqueLangs = [...new Set(extensions.map(ext => ext.lang).filter(l => l && l.toLowerCase() !== 'all'))].sort()
   const languages = ['all', ...uniqueLangs]
@@ -69,7 +77,7 @@ export default function ExtensionsManager() {
   const filteredExtensions = extensions.filter(ext => {
     const matchesSearch = ext.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ext.pkg.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTab = activeTab === 'all' || installedExtensions.some(e => e.pkg === ext.pkg)
+    const matchesTab = activeTab === 'all' || installedPkgSet.has(ext.pkg)
     const matchesLang = selectedLangs.includes('all') || selectedLangs.length === 0 || selectedLangs.includes(ext.lang)
     const matchesNsfw = showNsfw || !ext.nsfw
 
@@ -88,8 +96,8 @@ export default function ExtensionsManager() {
       return extensionSortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     }
     if (extensionSortBy === 'installed') {
-      const aInst = installedExtensions.some(e => e.pkg === a.pkg) ? 1 : 0
-      const bInst = installedExtensions.some(e => e.pkg === b.pkg) ? 1 : 0
+      const aInst = installedPkgSet.has(a.pkg) ? 1 : 0
+      const bInst = installedPkgSet.has(b.pkg) ? 1 : 0
       if (aInst !== bInst) {
         return extensionSortOrder === 'asc' ? bInst - aInst : aInst - bInst
       }
@@ -97,7 +105,7 @@ export default function ExtensionsManager() {
     }
     if (extensionSortBy === 'update') {
       const hasUpdate = (ext: Extension) => {
-        const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+        const inst = installedMap.get(ext.pkg)
         return (inst && inst.version !== ext.version) ? 1 : 0
       }
       const aUpd = hasUpdate(a)
@@ -123,11 +131,57 @@ export default function ExtensionsManager() {
     return `autakimi-cache://local-icon/${pkg}.png`
   }
 
+  const handleBulkInstall = async () => {
+    if (bulkInstallStatus?.isInstalling) return
+
+    const toInstall = filteredExtensions.filter(ext => !installedPkgSet.has(ext.pkg))
+    if (toInstall.length === 0) return
+
+    if (toInstall.length > 5 && !confirm(`This will install ${toInstall.length} extensions. Continue?`)) {
+      return
+    }
+
+    setBulkInstallStatus({ isInstalling: true, current: 0, total: toInstall.length })
+
+    for (let i = 0; i < toInstall.length; i++) {
+      const ext = toInstall[i]
+      setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'loading' }))
+      
+      try {
+        await DataService.installExtension(ext, 'local')
+        setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'success' }))
+      } catch (err) {
+        console.error(`[ExtensionsManager] Bulk install failed for ${ext.pkg}:`, err)
+        setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+      }
+
+      setBulkInstallStatus(prev => prev ? { ...prev, current: i + 1 } : null)
+    }
+
+    // Refresh everything once at the end
+    await Promise.all([
+      loadFromDb(),
+      loadInstalled()
+    ])
+
+    setTimeout(() => {
+      setBulkInstallStatus(null)
+      // Clear success statuses after 3s
+      setInstallStatuses(prev => {
+        const next = { ...prev }
+        toInstall.forEach(ext => {
+          if (next[ext.pkg] === 'success') next[ext.pkg] = null
+        })
+        return next
+      })
+    }, 3000)
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Extension Catalog</h1>
-        <p className="text-muted-foreground">Discover and install new sources to expand your library.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Manga Extension</h1>
+        <p className="text-muted-foreground">Discover and install new sources to expand your Manga library.</p>
       </div>
 
       {/* Tabs */}
@@ -243,7 +297,40 @@ export default function ExtensionsManager() {
             Updates
           </Button>
         </div>
+
+        {activeTab === 'all' && filteredExtensions.some(e => !installedPkgSet.has(e.pkg)) && (
+          <div className="flex items-center ml-auto">
+            <Button
+              onClick={handleBulkInstall}
+              disabled={bulkInstallStatus?.isInstalling}
+              className="h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 gap-2"
+            >
+              {bulkInstallStatus?.isInstalling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <PackageCheck className="h-4 w-4" />
+              )}
+              {bulkInstallStatus?.isInstalling 
+                ? `Installing (${bulkInstallStatus.current}/${bulkInstallStatus.total})` 
+                : `Install ${filteredExtensions.filter(e => !installedPkgSet.has(e.pkg)).length} Filtered`}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {bulkInstallStatus && (
+        <div className="max-w-2xl mx-auto space-y-2 animate-in fade-in slide-in-from-top-4">
+          <div className="h-1.5 w-full bg-secondary/30 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-500 ease-out"
+              style={{ width: `${(bulkInstallStatus.current / bulkInstallStatus.total) * 100}%` }}
+            />
+          </div>
+          <p className="text-[10px] uppercase tracking-widest font-black text-center text-muted-foreground">
+            Bulk Installation Progress: {Math.round((bulkInstallStatus.current / bulkInstallStatus.total) * 100)}%
+          </p>
+        </div>
+      )}
 
       {activeTab === 'all' && searchQuery === '' && (
         <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 flex gap-4 items-start animate-in slide-in-from-top-4 duration-500">
@@ -292,7 +379,7 @@ export default function ExtensionsManager() {
                   </div>
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+                      const inst = installedMap.get(ext.pkg)
                       if (inst && inst.version !== ext.version) {
                         return (
                           <Badge className="bg-blue-500 hover:bg-blue-600 text-[10px] h-5 px-1.5 animate-pulse">
@@ -344,7 +431,7 @@ export default function ExtensionsManager() {
                       size="sm"
                       onClick={async (e) => {
                         e.stopPropagation()
-                        const instExt = installedExtensions.find(e => e.pkg === ext.pkg)
+                        const instExt = installedMap.get(ext.pkg)
                         const isInstalled = !!instExt
                         const hasUpdate = isInstalled && ext.version !== instExt.version
 
@@ -356,7 +443,10 @@ export default function ExtensionsManager() {
                           try {
                             await DataService.installExtension(ext, 'local')
 
-                            await loadFromDb()
+                            await Promise.all([
+                              loadFromDb(),
+                              loadInstalled()
+                            ])
                             setInstallStatuses(prev => ({ ...prev, [ext.pkg]: 'success' }))
                             setTimeout(() => {
                               setInstallStatuses(prev => ({ ...prev, [ext.pkg]: null }))
@@ -372,7 +462,7 @@ export default function ExtensionsManager() {
                       }}
                       className={cn(
                         "h-8 px-2 text-xs font-medium",
-                        installedExtensions.some(e => e.pkg === ext.pkg) ? "text-red-400 hover:text-red-300" : "text-primary hover:underline hover:bg-transparent"
+                        installedPkgSet.has(ext.pkg) ? "text-red-400 hover:text-red-300" : "text-primary hover:underline hover:bg-transparent"
                       )}
                     >
                       {installStatuses[ext.pkg] === 'loading' && <Loader2 className="animate-spin h-3 w-3 mr-1" />}
@@ -383,14 +473,14 @@ export default function ExtensionsManager() {
                       {installStatuses[ext.pkg] === 'error' && 'Failed!'}
                       {!installStatuses[ext.pkg] && (
                         (() => {
-                          const inst = installedExtensions.find(e => e.pkg === ext.pkg)
+                          const inst = installedMap.get(ext.pkg)
                           if (!inst) return 'Install'
                           if (inst.version !== ext.version) return 'Update'
                           return 'Uninstall'
                         })()
                       )}
                     </Button>
-                    {installedExtensions.some(e => e.pkg === ext.pkg) && (
+                    {installedPkgSet.has(ext.pkg) && (
                       <>
                         <Button
                           variant="ghost"

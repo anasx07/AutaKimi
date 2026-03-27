@@ -17,7 +17,7 @@ export const library = sqliteTable('library', {
   coverUrl: text('cover_url'),
   status: text('status'),
   metadata: text('metadata'), // JSON string
-  type: text('type').$type<'manga' | 'anime'>().default('manga'),
+  mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
 });
 
 export const settings = sqliteTable('settings', {
@@ -49,7 +49,7 @@ export const readingHistory = sqliteTable('reading_history', {
   startedAt: text('started_at').notNull(), // ISO timestamp
   durationSeconds: integer('duration_seconds').default(0),
   pkg: text('pkg'),
-  type: text('type').$type<'manga' | 'anime'>().default('manga'),
+  mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
 }, (table) => {
   return [
     index('idx_history_manga').on(table.mangaId),
@@ -66,7 +66,7 @@ export const downloads = sqliteTable('downloads', {
   pageUrls: text('page_urls'), // JSON string
   error: text('error_message'),
   updatedAt: text('updated_at'),
-  type: text('type').$type<'manga' | 'anime'>().default('manga'),
+  mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
 }, (table) => {
   return [
     primaryKey({ columns: [table.mangaId, table.chapterId] }),
@@ -99,6 +99,6 @@ export const mangaCache = sqliteTable('manga_cache', {
   status: text('status'),
   genres: text('genres'), // JSON array string
   url: text('url'),
-  type: text('type').$type<'manga' | 'anime'>().default('manga'),
+  mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
   updatedAt: text('updated_at')
 });

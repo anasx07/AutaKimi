@@ -25,7 +25,7 @@ interface ExtensionState {
   setExtensionSortBy: (val: 'name' | 'installed' | 'update' | 'supported') => Promise<void>
   setExtensionSortOrder: (val: 'asc' | 'desc') => Promise<void>
   setDomainOverride: (pkg: string, domain: string | null) => Promise<void>
-  installExtension: (pkg: string) => Promise<void>
+  loadInstalled: () => Promise<void>
   uninstallExtension: (pkg: string) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
   
@@ -62,7 +62,7 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
     }))
   },
 
-  installExtension: async () => {
+  loadInstalled: async () => {
     const installed = await DataService.db.getExtensions()
     set({ installedExtensions: (installed as ExtensionMetadata[]) || [] })
   },

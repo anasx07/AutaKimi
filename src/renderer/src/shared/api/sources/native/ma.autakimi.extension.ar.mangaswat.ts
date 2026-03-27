@@ -2,7 +2,7 @@ import { DataService } from '@renderer/shared/api'
 import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
 
 export class MangaSwat implements ISourceAdapter {
-  public id = 'ma.lmanwa.extension.ar.mangaswat'
+  public id = 'ma.autakimi.extension.ar.mangaswat'
   public name = 'MangaSwat'
   public mediaType: 'manga' | 'anime' = 'manga'
   public version = '0.0.1'
@@ -16,7 +16,7 @@ export class MangaSwat implements ISourceAdapter {
     return 'https://appswat.com/v2/api/v2'
   }
   public lang = 'ar'
-  public icon = 'ma.lmanwa.extension.ar.mangaswat'
+  public icon = 'ma.autakimi.extension.ar.mangaswat'
   public nsfw = false
 
   private async fetchApi(endpoint: string): Promise<any> {

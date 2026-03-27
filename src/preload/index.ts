@@ -70,18 +70,7 @@ const api: ElectronApi = {
 
 // Expose APIs to the renderer via contextBridge.
 try {
-  // Manual expose for basic electron functionality if needed by toolkit components
-  contextBridge.exposeInMainWorld('electron', {
-    ipcRenderer: {
-      send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
-      on: (channel: string, func: (...args: any[]) => void) => {
-        const subscription = (_event: any, ...args: any[]) => func(...args)
-        ipcRenderer.on(channel, subscription)
-        return () => ipcRenderer.removeListener(channel, subscription)
-      },
-      invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args)
-    }
-  })
+
   contextBridge.exposeInMainWorld('api', api)
 } catch (error) {
   console.error('[Preload] Failed to expose API via contextBridge:', error)

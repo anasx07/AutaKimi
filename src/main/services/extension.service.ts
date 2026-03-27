@@ -1,7 +1,6 @@
 import { net } from 'electron'
 import { Worker } from 'worker_threads'
 import path from 'path'
-import { is } from '@electron-toolkit/utils'
 import { extensionRepo, settingsRepo } from '../db'
 import { getTemplate } from '../templates'
 import { NetworkService } from '../../common/services/network'
@@ -30,9 +29,7 @@ export class ExtensionOrchestrator {
    * Executes dynamic Javascript code inside an isolated Worker Thread + Sandbox
    */
   async runInSandbox(code: string, params: Record<string, any> = {}): Promise<any> {
-    const workerPath = is.dev 
-        ? path.join(__dirname, 'extension-worker.js')
-        : path.join(__dirname, 'extension-worker.js');
+    const workerPath = path.join(__dirname, 'extension-worker.js');
         
     console.log(`[ExtensionOrchestrator] Spawning sandbox for code execution.`);
 

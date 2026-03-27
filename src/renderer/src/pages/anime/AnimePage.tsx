@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { ExternalLink, Play, ArrowLeft, Search, Loader2, LayoutGrid, List, Pin, PinOff } from 'lucide-react'
-import { Button, Badge, Card, Input, ErrorState } from '@renderer/shared/ui'
+import { Button, Badge, Card, Input, ErrorState, MediaCardSkeleton, MediaGrid } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { useExtensionStore } from '@renderer/shared/model'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
@@ -141,7 +141,7 @@ export default function AnimePage() {
                       try {
                         await DataService.installExtension(ext, 'local')
                         // Trigger a refresh of the store list
-                        await useExtensionStore.getState().installExtension(ext.pkg)
+                        await useExtensionStore.getState().loadInstalled()
                       } catch (e) {
                         console.error('Failed to install anime extension:', e)
                       }
@@ -332,10 +332,11 @@ export default function AnimePage() {
 
       {/* Loading */}
       {loading && mangaList.length === 0 && (
-        <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground space-y-4 animate-pulse">
-          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-70" />
-          <p className="text-sm font-medium tracking-wide">Loading anime...</p>
-        </div>
+        <MediaGrid className="pr-2">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <MediaCardSkeleton key={i} />
+          ))}
+        </MediaGrid>
       )}
 
       {/* Error */}

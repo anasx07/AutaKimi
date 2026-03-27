@@ -5,12 +5,12 @@ import * as cheerio from 'cheerio'
 export class TeamX extends MadaraSource {
   constructor() {
     super(
-      'ma.lmanwa.extension.ar.teamx',
+      'ma.autakimi.extension.ar.teamx',
       'Team X',
       '0.0.1',
       'https://olympustaff.com',
       'ar',
-      'ma.lmanwa.extension.ar.teamx',
+      'ma.autakimi.extension.ar.teamx',
       false
     )
   }

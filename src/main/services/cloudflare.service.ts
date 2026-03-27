@@ -167,7 +167,7 @@ export class CloudflareService {
       title: 'Cloudflare Verification',
       webPreferences: {
         nodeIntegration: false,
-        contextIsolation: false, // Required for effective navigator spoofing
+        contextIsolation: true, // Restored for security principle
         sandbox: false,          // Allow deeper patching if needed
         session: this.cfSession
       }
