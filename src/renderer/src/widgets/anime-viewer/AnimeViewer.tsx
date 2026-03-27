@@ -120,7 +120,7 @@ export default function AnimeViewer() {
           setServers(urls)
 
           // Server Preference: Try to find the last used server
-          const lastServer = localStorage.getItem('lmanwa-anime-preferred-server')
+          const lastServer = localStorage.getItem('autakimi-anime-preferred-server')
           let targetIdx = 0
           if (lastServer) {
             const prefIdx = urls.findIndex((s: any) => (typeof s === 'object' ? s.name : s) === lastServer)
@@ -235,7 +235,7 @@ export default function AnimeViewer() {
                     const server = servers[idx]
                     const sName = typeof server === 'object' ? (server as any).name : server
                     if (sName) {
-                      localStorage.setItem('lmanwa-anime-preferred-server', sName)
+                      localStorage.setItem('autakimi-anime-preferred-server', sName)
                     }
                   }}
                   className="bg-transparent text-xs text-primary font-bold outline-none cursor-pointer min-w-[80px]"
@@ -343,8 +343,8 @@ export default function AnimeViewer() {
             </div>
             <div className="space-y-2">
               <p className="text-xl font-bold text-neutral-200">
-                {error.includes('No streaming servers') || error.includes('failed to respond') 
-                  ? 'This Video is not available on this Server at this time.' 
+                {error.includes('No streaming servers') || error.includes('failed to respond')
+                  ? 'This Video is not available on this Server at this time.'
                   : error}
               </p>
               <p className="text-sm text-white/40 max-w-md mx-auto italic">

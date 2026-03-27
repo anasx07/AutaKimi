@@ -43,7 +43,7 @@ import { registerDownloadHandlers } from './ipc/downloads'
 import { IpcChannel } from './types/ipc'
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'lmanwa-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
+  { scheme: 'autakimi-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
 ])
 
 const MAX_CACHE_SIZE = 500 * 1024 * 1024 // 500MB
@@ -185,9 +185,9 @@ app.whenReady().then(async () => {
   ipcMain.on('ping', () => console.log('pong'))
 
   // === Cache Protocol Handler ===
-  protocol.handle('lmanwa-cache', async (request) => {
+  protocol.handle('autakimi-cache', async (request) => {
     try {
-      const url = request.url.replace('lmanwa-cache://', 'https://')
+      const url = request.url.replace('autakimi-cache://', 'https://')
       
       // Prioritize local extension icons (match /icon/, /icons/, or /local-icon/)
       if ((url.includes('/icons/') || url.includes('/icon/') || url.includes('/local-icon/')) && url.endsWith('.png')) {
@@ -242,7 +242,7 @@ app.whenReady().then(async () => {
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'anasx07',
-    repo: 'LManwa-Release',
+    repo: 'AutaKimi-Release',
     private: false
   })
   autoUpdater.autoDownload = true

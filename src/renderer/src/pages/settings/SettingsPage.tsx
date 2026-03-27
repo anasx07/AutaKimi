@@ -449,7 +449,7 @@ export default function SettingsPage() {
                   </SettingsRow>
                   <div className="mt-8 pt-8 border-t border-border flex items-center justify-between">
                     <p className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-[0.2em]">Build Engineering: Deepmind Advanced Agentic Coding</p>
-                    <a href="https://github.com/anasr/LManwa" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px] hover:scale-110 active:scale-95 transition-all">
+                    <a href="https://github.com/anasr/AutaKimi" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px] hover:scale-110 active:scale-95 transition-all">
                       GitHub Repo <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>

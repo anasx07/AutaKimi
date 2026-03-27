@@ -94,7 +94,7 @@ export class MangaDexSource implements ISourceAdapter {
 
     const cleanHost = host.replace(/^https?:\/\//, '')
     return files.map((file: string) => 
-      `lmanwa-cache://${cleanHost}/data/${hash}/${file}`
+      `autakimi-cache://${cleanHost}/data/${hash}/${file}`
     )
   }
 }

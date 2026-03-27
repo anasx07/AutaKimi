@@ -232,8 +232,8 @@ export default function BrowsePage() {
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <p className={cn("text-sm font-medium tracking-wide", isCfBypassing && "text-amber-500/90")}>
-              {isCfBypassing 
-                ? `Bypassing Cloudflare protection${cfDomain ? ` for ${cfDomain}` : ''}...` 
+              {isCfBypassing
+                ? `Bypassing Cloudflare protection${cfDomain ? ` for ${cfDomain}` : ''}...`
                 : 'Syncing with source...'}
             </p>
             {isCfBypassing && (
@@ -249,7 +249,7 @@ export default function BrowsePage() {
           message={error}
           onRetry={refresh}
           onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-          onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues/new')}
+          onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')}
           details={{
             source: metadata?.name || activeExtension,
             ext: activeExtension,
@@ -283,7 +283,7 @@ export default function BrowsePage() {
                   }
                 />
               ))}
-            </MediaGrid>          ) : (
+            </MediaGrid>) : (
             <div className="space-y-3 pr-2">
               {mangaList.map((manga, idx) => (
                 <Card
@@ -342,7 +342,7 @@ export default function BrowsePage() {
                 message={paginationError}
                 onRetry={retryPagination}
                 onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-                onReport={() => window.api.openExternal('https://github.com/anasx07/LManwa-Release/issues')}
+                onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')}
               />
             )}
 
