@@ -29,6 +29,11 @@ const AnimePage = lazy(() => import('@renderer/pages/anime/AnimePage'))
 /**
  * TabPanel: Only mounts children once visited, then keeps them alive but hidden.
  */
+import appIcon from './assets/app-icon/64x64.png'
+
+/**
+ * TabPanel: Only mounts children once visited, then keeps them alive but hidden.
+ */
 function TabPanel({
   id,
   activeTab,
@@ -156,8 +161,8 @@ function App(): React.JSX.Element {
           </nav>
 
           <div className="p-4 border-t border-border mt-auto flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-              LM
+            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+              <img src={appIcon} className="w-6 h-6 object-contain" alt="Logo" />
             </div>
             <div className="flex-1">
               <p className="text-xs font-medium text-foreground">Local User</p>
