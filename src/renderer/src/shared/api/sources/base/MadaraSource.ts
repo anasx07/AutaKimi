@@ -84,20 +84,22 @@ export class MadaraSource implements ISourceAdapter {
       `${this.baseUrl}/manga/page/${page}/?m_orderby=trending`
     ]
     
-    // Sort so working patterns are tried first
-    const urls = [...new Set([...this.workingUrlPatterns, ...defaultUrls])]
+    const urls = [...new Set([...this.workingUrlPatterns.map(p => p.replace('{page}', String(page))), ...defaultUrls])]
 
-    for (const url of urls) {
-      const res = await this.parseMangaList(url, { page })
-      if (res.manga.length > 0) {
-        // Cache the underlying template pattern (not the specific page URL)
-        const pattern = url.replace(`/page/${page}/`, '/page/{page}/').replace(`page=${page}`, 'page={page}')
-        if (!this.workingUrlPatterns.includes(pattern)) this.workingUrlPatterns.unshift(pattern)
-        return res
-      }
+    const promises = urls.map(async (url) => {
+      const res = await this.parseMangaList(url, { page, silent: true })
+      if (res.manga && res.manga.length > 0) return { res, url }
+      throw new Error(`Empty result for ${url}`)
+    })
+
+    try {
+      const { res, url } = await Promise.any(promises)
+      const pattern = url.replace(`/page/${page}/`, '/page/{page}/').replace(`page=${page}`, 'page={page}')
+      if (!this.workingUrlPatterns.includes(pattern)) this.workingUrlPatterns.unshift(pattern)
+      return res
+    } catch (e) {
+      throw new Error('No items found. This might be due to a change in site structure or persistent Cloudflare protection.')
     }
-    
-    throw new Error('No items found. This might be due to a change in site structure or persistent Cloudflare protection.')
   }
 
   async fetchLatest(page: number, _extraArgs?: FetchOptions): Promise<MangaPage> {
@@ -109,18 +111,22 @@ export class MadaraSource implements ISourceAdapter {
       `${this.baseUrl}/manga/page/${page}/?m_orderby=new-manga`
     ]
 
-    const urls = [...new Set([...this.workingUrlPatterns, ...defaultUrls])]
+    const urls = [...new Set([...this.workingUrlPatterns.map(p => p.replace('{page}', String(page))), ...defaultUrls])]
 
-    for (const url of urls) {
-      const res = await this.parseMangaList(url, { page })
-      if (res.manga.length > 0) {
-        const pattern = url.replace(`/page/${page}/`, '/page/{page}/').replace(`page=${page}`, 'page={page}')
-        if (!this.workingUrlPatterns.includes(pattern)) this.workingUrlPatterns.unshift(pattern)
-        return res
-      }
+    const promises = urls.map(async (url) => {
+      const res = await this.parseMangaList(url, { page, silent: true })
+      if (res.manga && res.manga.length > 0) return { res, url }
+      throw new Error(`Empty result for ${url}`)
+    })
+
+    try {
+      const { res, url } = await Promise.any(promises)
+      const pattern = url.replace(`/page/${page}/`, '/page/{page}/').replace(`page=${page}`, 'page={page}')
+      if (!this.workingUrlPatterns.includes(pattern)) this.workingUrlPatterns.unshift(pattern)
+      return res
+    } catch (e) {
+      throw new Error('No items found.')
     }
-    
-    throw new Error('No items found.')
   }
 
   async searchManga(query: string, page: number, _extraArgs?: FetchOptions): Promise<MangaPage> {
@@ -366,7 +372,7 @@ export class MadaraSource implements ISourceAdapter {
     return pages
   }
 
-  protected async fetchAjaxPagination(page: number, extraArgs: FetchOptions = {}): Promise<MangaPage> {
+  public async fetchAjaxPagination(page: number, extraArgs: FetchOptions = {}): Promise<MangaPage> {
     const body = new URLSearchParams()
     body.append('action', 'madara_load_more')
     body.append('page', (page - 1).toString()) // Madara AJAX usually expects 0-indexed or previous page

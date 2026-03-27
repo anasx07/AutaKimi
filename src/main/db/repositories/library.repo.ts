@@ -8,7 +8,7 @@ export class LibraryRepository {
 
   async getAll(limit?: number, offset?: number, type?: 'manga' | 'anime') {
     let query = this.db.select().from(schema.library).$dynamic();
-    if (type) query = query.where(eq(schema.library.type, type));
+    if (type) query = query.where(eq(schema.library.mediaType, type));
     if (limit !== undefined) query = query.limit(limit);
     if (offset !== undefined) query = query.offset(offset);
     return query.all();
@@ -29,7 +29,7 @@ export class LibraryRepository {
         coverUrl: normalized.coverUrl,
         status: normalized.status,
         metadata: JSON.stringify(manga),
-        type: normalized.mediaType || 'manga'
+        mediaType: normalized.mediaType || 'manga'
       }).run();
   }
 

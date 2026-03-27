@@ -5,6 +5,8 @@ import { useExtensionStore, useLibraryStore, useUIStore } from '@renderer/shared
 import { ExtensionMetadata } from '@renderer/shared/model/extension.store'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { cn } from '@renderer/shared/lib/utils'
+import { MediaCardSkeleton } from '@renderer/shared/ui'
+import { RotateCcw } from 'lucide-react'
 
 interface SearchResult {
   manga: any
@@ -37,41 +39,78 @@ export default function GlobalSearch() {
       : installedExtensions
 
     const initialStatuses = targets.reduce((acc, ext) => {
-      acc[ext.pkg] = 'searching'
+      acc[ext.pkg] = 'pending'
       return acc
     }, {} as Record<string, 'pending' | 'searching' | 'done' | 'error'>)
     setStatuses(initialStatuses)
 
-    const searchPromises = targets.map(async (ext) => {
-      try {
-        const runner = await ExtensionResolver.resolve(ext.pkg)
-        if (!runner) throw new Error(`Extension ${ext.name} not found`)
+    // Concurrency pooling (limit 3 simultaneous searches)
+    let index = 0
+    const worker = async () => {
+      while (index < targets.length) {
+        if (searchId !== searchIdRef.current) return
+        const ext = targets[index++]
+        
+        setStatuses(prev => ({ ...prev, [ext.pkg]: 'searching' }))
+        
+        try {
+          const runner = await ExtensionResolver.resolve(ext.pkg)
+          if (!runner) throw new Error(`Extension ${ext.name} not found`)
 
-        const mangaPage = await runner.searchManga(query, 1)
+          const mangaPage = await runner.searchManga(query, 1)
 
-        if (searchId === searchIdRef.current) {
-          if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
-            const wrappedResults = mangaPage.manga.map(m => ({ manga: m, extension: ext }))
-            setResults(prev => [...prev, ...wrappedResults])
+          if (searchId === searchIdRef.current) {
+            if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
+              const wrappedResults = mangaPage.manga.map(m => ({ manga: m, extension: ext }))
+              setResults(prev => [...prev, ...wrappedResults])
+            }
+            setStatuses(prev => ({ ...prev, [ext.pkg]: 'done' }))
           }
-          setStatuses(prev => ({ ...prev, [ext.pkg]: 'done' }))
-        }
-      } catch (err: any) {
-        console.error(`[GlobalSearch] Error searching ${ext.name}:`, err)
-        if (searchId === searchIdRef.current) {
-          setStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+        } catch (err: any) {
+          console.error(`[GlobalSearch] Error searching ${ext.name}:`, err)
+          if (searchId === searchIdRef.current) {
+            setStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+          }
         }
       }
-    })
+    }
 
-    await Promise.all(searchPromises)
+    await Promise.all(Array.from({ length: Math.min(3, targets.length) }, worker))
     if (searchId === searchIdRef.current) {
       setSearching(false)
     }
   }
 
+  const retrySource = async (ext: ExtensionMetadata) => {
+    if (!query.trim()) return
+    const searchId = searchIdRef.current
+    
+    setStatuses(prev => ({ ...prev, [ext.pkg]: 'searching' }))
+    setResults(prev => prev.filter(r => r.extension.pkg !== ext.pkg))
+    
+    try {
+      const runner = await ExtensionResolver.resolve(ext.pkg)
+      if (!runner) throw new Error(`Extension ${ext.name} not found`)
+
+      const mangaPage = await runner.searchManga(query, 1)
+
+      if (searchId === searchIdRef.current) {
+        if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
+          const wrappedResults = mangaPage.manga.map(m => ({ manga: m, extension: ext }))
+          setResults(prev => [...prev, ...wrappedResults])
+        }
+        setStatuses(prev => ({ ...prev, [ext.pkg]: 'done' }))
+      }
+    } catch (err: any) {
+      console.error(`[GlobalSearch] Error retrying ${ext.name}:`, err)
+      if (searchId === searchIdRef.current) {
+        setStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+      }
+    }
+  }
+
   const doneCount = Object.values(statuses).filter(s => s === 'done' || s === 'error').length
-  const totalCount = installedExtensions.length
+  const totalCount = Object.keys(statuses).length
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10">
@@ -226,16 +265,31 @@ export default function GlobalSearch() {
                     <p className="text-xs text-muted-foreground italic">No results found in this source</p>
                   </div>
                 ) : status === 'error' ? (
-                  <div className="py-8 text-center bg-destructive/5 rounded-xl border border-dashed border-destructive/20">
-                    <p className="text-xs text-destructive flex items-center justify-center gap-2 font-medium">
-                      <AlertCircle className="h-3 w-3" />
-                      Error fetching results
-                    </p>
+                  <div className="py-12 flex flex-col items-center justify-center gap-6 bg-destructive/5 rounded-2xl border border-dashed border-destructive/20 animate-in zoom-in duration-300">
+                    <div className="space-y-2 text-center">
+                      <p className="text-sm font-bold text-destructive flex items-center justify-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Search Failed
+                      </p>
+                      <p className="text-[10px] text-destructive/60 font-medium max-w-[200px] mx-auto px-4 leading-relaxed">
+                        Something went wrong while connecting to this source.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => retrySource(ext)}
+                      className="h-8 gap-2 border-destructive/20 hover:bg-destructive hover:text-white transition-all active:scale-95"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Retry Search
+                    </Button>
                   </div>
                 ) : (
-                  <div className="py-12 flex flex-col items-center justify-center gap-3 animate-pulse text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin opacity-20" />
-                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">Searching...</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <MediaCardSkeleton key={i} />
+                    ))}
                   </div>
                 )}
               </div>

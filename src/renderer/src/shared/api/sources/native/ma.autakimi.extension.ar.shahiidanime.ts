@@ -16,12 +16,12 @@ import * as cheerio from 'cheerio'
 export class ShahiidAnimeSource extends AnimeSource {
   constructor() {
     super(
-      'ma.lmanwa.extension.ar.shahiidanime',
+      'ma.autakimi.extension.ar.shahiidanime',
       'Shahiid Anime',
       '0.0.1',
       'https://shahiid-anime.net',
       'ar',
-      'ma.lmanwa.extension.ar.shahiidanime',
+      'ma.autakimi.extension.ar.shahiidanime',
       false
     )
   }

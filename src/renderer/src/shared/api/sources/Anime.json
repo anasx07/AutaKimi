@@ -1,7 +1,7 @@
 [
   {
     "name": "Shahiid Anime",
-    "pkg": "ma.lmanwa.extension.ar.shahiidanime",
+    "pkg": "ma.autakimi.extension.ar.shahiidanime",
     "lang": "ar",
     "version": "0.0.1",
     "nsfw": 0,
@@ -10,7 +10,7 @@
       {
         "name": "Shahiid Anime",
         "lang": "ar",
-        "id": "ma.lmanwa.extension.ar.shahiidanime",
+        "id": "ma.autakimi.extension.ar.shahiidanime",
         "baseUrl": "https://shahiid-anime.net"
       }
     ]

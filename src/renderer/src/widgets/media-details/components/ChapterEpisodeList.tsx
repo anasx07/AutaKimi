@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
 import { 
   Search, RefreshCw, Play, Download, 
-  CheckCircle, Loader2, Trash2 
+  CheckCircle, Loader2, Trash2
 } from 'lucide-react'
-import { Button, Input, Badge } from '@renderer/shared/ui'
+import { Button, Input, ErrorState, ChapterItemSkeleton } from '@renderer/shared/ui'
+import { DataService } from '@renderer/shared/api'
 import { cn } from '@renderer/shared/lib/utils'
 import { Chapter } from '@renderer/shared/api/sources/types'
 
@@ -99,16 +100,21 @@ export const ChapterEpisodeList = ({
       )}
 
       {isLoading && (!items || items.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-primary opacity-60" />
-          <span className="text-sm font-medium">Loading items...</span>
+        <div className="divide-y divide-border/10 border border-border/10 rounded-xl bg-card/40 overflow-hidden">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <ChapterItemSkeleton key={i} />
+          ))}
         </div>
       )}
 
       {error && (!items || !items.length) && (
-        <Badge variant="destructive" className="w-full justify-start p-4 text-sm font-normal">
-          {error}
-        </Badge>
+        <ErrorState 
+          title="Failed to fetch items"
+          message={error}
+          onRetry={onRefresh}
+          onWebView={() => DataService.openInternalBrowser('https://google.com')} // Fallback, will be improved in MediaDetails
+          className="bg-card/40 rounded-xl border border-border/10"
+        />
       )}
 
       <div className="divide-y divide-border/10 border border-border/10 rounded-xl bg-card/40 overflow-hidden max-h-[600px] overflow-y-auto shadow-none scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">

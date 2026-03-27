@@ -1,7 +1,7 @@
 [
   {
     "name": "Shahiid Anime",
-    "pkg": "ma.lmanwa.extension.ar.shahiidanime",
+    "pkg": "ma.autakimi.extension.ar.shahiidanime",
     "lang": "ar",
     "version": "0.0.1",
     "nsfw": 0,
@@ -10,14 +10,14 @@
       {
         "name": "Shahiid Anime",
         "lang": "ar",
-        "id": "ma.lmanwa.extension.ar.shahiidanime",
+        "id": "ma.autakimi.extension.ar.shahiidanime",
         "baseUrl": "https://shahiid-anime.net"
       }
     ]
   },
   {
     "name": "RistoAnime",
-    "pkg": "ma.lmanwa.extension.ar.ristoanime",
+    "pkg": "ma.autakimi.extension.ar.ristoanime",
     "lang": "ar",
     "version": "0.0.1",
     "nsfw": 0,
@@ -27,7 +27,7 @@
       {
         "name": "RistoAnime",
         "lang": "ar",
-        "id": "ma.lmanwa.extension.ar.ristoanime",
+        "id": "ma.autakimi.extension.ar.ristoanime",
         "baseUrl": "https://ristoanime.co"
       }
     ]

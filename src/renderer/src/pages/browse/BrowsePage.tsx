@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
 import { DataService } from '@renderer/shared/api'
 import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List } from 'lucide-react'
-import { useLibraryStore, useExtensionStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
+import { useLibraryStore, useExtensionStore, useSettingsStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
-import { Button, Input, Card, Badge, ErrorState, MediaGrid, MediaGridItem } from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, ErrorState, MediaGrid, MediaGridItem, MediaCardSkeleton } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 
 export default function BrowsePage() {
@@ -14,7 +14,6 @@ export default function BrowsePage() {
 
   const { setSelectedManga } = useLibraryStore()
   const { activeExtension, setActiveExtension } = useExtensionStore()
-  const { isCfBypassing, cfDomain } = useUIStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
@@ -223,24 +222,11 @@ export default function BrowsePage() {
       </div>
 
       {loading && mangaList.length === 0 && (
-        <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground space-y-4 animate-pulse">
-          <div className="relative">
-            <Loader2 className={cn("h-10 w-10 animate-spin text-primary opacity-50", isCfBypassing && "text-amber-500 opacity-80")} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className={cn("h-2 w-2 bg-primary rounded-full animate-ping", isCfBypassing && "bg-amber-500")} />
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-1.5">
-            <p className={cn("text-sm font-medium tracking-wide", isCfBypassing && "text-amber-500/90")}>
-              {isCfBypassing
-                ? `Bypassing Cloudflare protection${cfDomain ? ` for ${cfDomain}` : ''}...`
-                : 'Syncing with source...'}
-            </p>
-            {isCfBypassing && (
-              <p className="text-[10px] uppercase tracking-widest opacity-50 font-bold">Please wait a moment</p>
-            )}
-          </div>
-        </div>
+        <MediaGrid className="pr-2">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <MediaCardSkeleton key={i} />
+          ))}
+        </MediaGrid>
       )}
 
       {error && mangaList.length === 0 && (

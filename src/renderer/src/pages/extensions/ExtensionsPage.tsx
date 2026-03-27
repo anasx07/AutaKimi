@@ -35,7 +35,7 @@ export default function ExtensionsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="flex flex-col space-y-1.5">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Browse</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Manga Browse</h1>
           <p className="text-muted-foreground text-sm">
             {activeSubTab === 'sources'
               ? "Manage your installed sources and explore their contents."

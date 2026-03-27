@@ -8,12 +8,12 @@ import * as cheerio from 'cheerio'
 export class RistoAnimeSource extends AnimeSource {
   constructor() {
     super(
-      'ma.lmanwa.extension.ar.ristoanime',
+      'ma.autakimi.extension.ar.ristoanime',
       'RistoAnime',
       '0.0.1',
       'https://ristoanime.co',
       'ar',
-      'ma.lmanwa.extension.ar.ristoanime',
+      'ma.autakimi.extension.ar.ristoanime',
       false
     )
   }

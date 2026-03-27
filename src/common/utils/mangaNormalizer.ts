@@ -12,7 +12,7 @@ export interface Chapter {
   };
 }
 
-export const normalizeManga = (manga: any, preferredLang?: string): Manga => {
+export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = true): Manga => {
   if (!manga) {
     return { id: '', title: 'Unknown', coverUrl: null, description: 'No description', status: 'Unknown' };
   }
@@ -100,6 +100,6 @@ export const normalizeManga = (manga: any, preferredLang?: string): Manga => {
     url: manga.url || manga.manga_url || undefined,
     pkg: manga.pkg || undefined,
     mediaType: manga.mediaType || manga.attributes?.mediaType || undefined,
-    _raw: manga
+    _raw: includeRaw ? manga : undefined
   };
 }

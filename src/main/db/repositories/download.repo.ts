@@ -64,7 +64,7 @@ export class DownloadRepository {
   async getDownloadedManga(type?: 'manga' | 'anime') {
     const filters = [eq(schema.downloads.status, 'completed')];
     if (type) {
-      filters.push(eq(schema.mangaCache.type, type));
+      filters.push(eq(schema.mangaCache.mediaType, type));
     }
 
     return this.db
@@ -73,7 +73,7 @@ export class DownloadRepository {
         title: schema.mangaCache.title,
         coverUrl: schema.mangaCache.coverUrl,
         url: schema.mangaCache.url,
-        mediaType: schema.mangaCache.type,
+        mediaType: schema.mangaCache.mediaType,
       })
       .from(schema.downloads)
       .innerJoin(schema.mangaCache, eq(schema.downloads.mangaId, schema.mangaCache.id))

@@ -1,15 +1,16 @@
 import { MadaraSource } from '../base/MadaraSource'
 import { MangaPage, Manga, Chapter } from '../types'
+import * as cheerio from 'cheerio'
 
 export class MangaLek extends MadaraSource {
   constructor() {
     super(
-      'ma.lmanwa.extension.ar.mangalek',
+      'ma.autakimi.extension.ar.mangalek',
       'Manga Lek',
       '0.0.1',
       'https://lekmanga.online', // Updated to latest working mirror
       'ar',
-      'ma.lmanwa.extension.ar.mangalek',
+      'ma.autakimi.extension.ar.mangalek',
       false
     )
   }
@@ -65,9 +66,37 @@ export class MangaLek extends MadaraSource {
       if (chapters.length > 0) return chapters
       throw new Error('No chapters found in HTML')
     } catch (e: any) {
-      console.log(`[MangaLek] fetchChapters failed or empty, trying AJAX fallback: ${e.message}`)
-      // Try to find post ID from slug
-      return [] 
+      console.log(`[MangaLek] fetchChapters failed, trying extended ID recovery: ${e.message}`)
+      const html = await this.fetchHtml(mangaUrl, { silent: true })
+      const idMatch = html.match(/manga-id-(\d+)/) || html.match(/id="manga-id" value="(\d+)"/) || html.match(/"post_id":"?(\d+)"?/)
+      
+      if (idMatch && idMatch[1]) {
+        const mangaId = idMatch[1]
+        const ajaxUrl = `${this.baseUrl}/wp-admin/admin-ajax.php`
+        const body = `action=manga_get_chapters&manga=${mangaId}`
+        
+        try {
+          const ajaxRes = await this.fetchHtml(ajaxUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+          })
+          
+          if (ajaxRes && ajaxRes.length > 50) {
+             const $ = cheerio.load(ajaxRes)
+             const rows = $('.wp-manga-chapter a')
+             const chapters: Chapter[] = []
+             rows.each((i, el) => {
+               const a = $(el)
+               const url = a.attr('href') || ''
+               const title = a.text().trim()
+               if (url) chapters.push({ id: url, title, url, number: rows.length - i })
+             })
+             if (chapters.length > 0) return chapters
+          }
+        } catch (err) {}
+      }
+      return []
     }
   }
 }

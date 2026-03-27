@@ -58,11 +58,16 @@ export default function AboutPage() {
         </p>
 
         <div className="flex gap-4 pt-4">
-          <Button className="gap-2.5 rounded-2xl px-8 h-12 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/10 font-bold">
+          <Button
+            className="gap-2.5 rounded-2xl px-8 h-12 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/10 font-bold"
+            onClick={() => DataService.openExternal('https://github.com/anasx07/AutaKimi')}>
             <Github className="h-5 w-5" />
             Source Code
           </Button>
-          <Button variant="outline" className="gap-2.5 rounded-2xl px-8 h-12 border-neutral-800 bg-white/5 backdrop-blur-sm hover:bg-white/10 font-bold transition-all">
+          <Button
+            variant="outline"
+            className="gap-2.5 rounded-2xl px-8 h-12 border-neutral-800 bg-white/5 backdrop-blur-sm hover:bg-white/10 font-bold transition-all"
+            onClick={() => DataService.openExternal('https://anasx07.github.io/AutaKimi-Release/')}>
             <ExternalLink className="h-5 w-5" />
             Official Site
           </Button>

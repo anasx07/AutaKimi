@@ -1,3 +1,4 @@
+import { net } from 'electron'
 import crypto from 'crypto'
 import { downloadRepo, settingsRepo } from '../db'
 import { imageCache } from '../index'
@@ -101,7 +102,7 @@ export class DownloadManager implements AppService {
                 'User-Agent': NetworkConfig.DEFAULT_UA,
                 'Referer': new URL(url).origin + '/'
               }
-            }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, fetch);
+            }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, net.fetch);
 
             const resBuffer = Buffer.from(await response.arrayBuffer());
             await imageCache.set(hash, resBuffer);
