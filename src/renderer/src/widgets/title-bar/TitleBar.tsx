@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useSettingsStore } from '@renderer/shared/model'
+import appIcon from '../../app/assets/app-icon/64x64.png'
 
 export default function TitleBar() {
   // Use window.api.platform safely
@@ -46,9 +47,7 @@ export default function TitleBar() {
       style={{ WebkitAppRegion: 'drag' } as any}
     >
       <div className="flex items-center gap-2">
-        <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-          LM
-        </div>
+        <img src={appIcon} className="w-6 h-6 object-contain" alt="Logo" />
         <span className="text-xs font-semibold text-foreground/80 tracking-wide">AutaKimi</span>
       </div>
 

@@ -1,6 +1,7 @@
 import { Info, Github, ExternalLink, Shield, Code, Heart } from 'lucide-react'
 import { Card, Button, Badge } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
+import appIcon from '../../app/assets/app-icon/256x256.png'
 
 export default function AboutPage() {
   const version = DataService.version
@@ -31,9 +32,9 @@ export default function AboutPage() {
         {/* Decorative background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
-        <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 flex items-center justify-center p-0.5 shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-500 cursor-default">
-          <div className="w-full h-full bg-background rounded-[22px] flex items-center justify-center">
-            <span className="text-5xl font-black bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent">LM</span>
+        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-500 cursor-default">
+          <div className="w-full h-full rounded-[22px] flex items-center justify-center ">
+            <img src={appIcon} className="w-full h-full object-cover p-1" alt="AutaKimi" />
           </div>
         </div>
 
