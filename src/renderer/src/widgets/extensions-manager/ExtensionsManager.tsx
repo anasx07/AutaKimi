@@ -3,9 +3,10 @@ import { useState, useMemo } from 'react'
 import { Search, Package, ExternalLink, Loader2, Check, X, ArrowUpAZ, ArrowDownAZ, ArrowUpDown, Sparkles, PackageCheck, ShieldCheck, Settings, Globe } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 import { useLibraryStore, useExtensionStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
-import { Button, Input, Card, Badge, Select } from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, Select, Dialog } from '@renderer/shared/ui'
 
-import localExtensions from '@renderer/shared/api/sources/Extensions.json'
+const catalogModules = import.meta.glob('../../shared/api/sources/catalog/extensions/*.json', { eager: true });
+const localExtensions = Object.values(catalogModules).flatMap((m: any) => m.default || m);
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
 
@@ -64,6 +65,8 @@ export default function ExtensionsManager() {
   const [installStatuses, setInstallStatuses] = useState<Record<string, 'loading' | 'success' | 'error' | null>>({})
   const [editingExt, setEditingExt] = useState<Extension | null>(null)
   const [bulkInstallStatus, setBulkInstallStatus] = useState<{ isInstalling: boolean, current: number, total: number } | null>(null)
+  const [isConfirmInstallOpen, setIsConfirmInstallOpen] = useState(false)
+  const [pendingInstallCount, setPendingInstallCount] = useState(0)
 
   // O(1) lookup map for installed extensions to avoid O(n^2) in render/sort loops
   const { installedPkgSet, installedMap } = useMemo(() => ({
@@ -137,10 +140,15 @@ export default function ExtensionsManager() {
     const toInstall = filteredExtensions.filter(ext => !installedPkgSet.has(ext.pkg))
     if (toInstall.length === 0) return
 
-    if (toInstall.length > 5 && !confirm(`This will install ${toInstall.length} extensions. Continue?`)) {
-      return
+    if (toInstall.length > 5) {
+      setPendingInstallCount(toInstall.length)
+      setIsConfirmInstallOpen(true)
+    } else {
+      executeBulkInstall(toInstall)
     }
+  }
 
+  const executeBulkInstall = async (toInstall: Extension[]) => {
     setBulkInstallStatus({ isInstalling: true, current: 0, total: toInstall.length })
 
     for (let i = 0; i < toInstall.length; i++) {
@@ -543,6 +551,39 @@ export default function ExtensionsManager() {
             </Button>
           )}
         </div>
+      )}
+      {isConfirmInstallOpen && (
+        <Dialog
+          isOpen={isConfirmInstallOpen}
+          onClose={() => setIsConfirmInstallOpen(false)}
+          title="Bulk Installation"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This will install <span className="font-bold text-foreground">{pendingInstallCount}</span> extensions. 
+              Are you sure you want to continue?
+            </p>
+            <div className="flex gap-3 justify-end mt-2">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsConfirmInstallOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                className="text-primary-foreground"
+                onClick={() => {
+                  setIsConfirmInstallOpen(false)
+                  const toInstall = filteredExtensions.filter(ext => !installedPkgSet.has(ext.pkg))
+                  executeBulkInstall(toInstall)
+                }}
+              >
+                Install {pendingInstallCount}
+              </Button>
+            </div>
+          </div>
+        </Dialog>
       )}
     </div>
   )

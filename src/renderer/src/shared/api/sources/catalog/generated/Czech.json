@@ -1,0 +1,11 @@
+{
+  "ma.autakimi.extension.cs.evilproduction": {
+    "id": "ma.autakimi.extension.cs.evilproduction",
+    "name": "Evil production",
+    "version": "0.0.1",
+    "baseUrl": "https://evil-manga.eu",
+    "apiUrl": "https://evil-manga.eu",
+    "lang": "cs",
+    "baseClass": "MangaThemesia"
+  }
+}

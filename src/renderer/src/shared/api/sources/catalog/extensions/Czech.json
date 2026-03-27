@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Evil production",
+    "pkg": "ma.autakimi.extension.cs.evilproduction",
+    "lang": "cs",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Evil production",
+        "lang": "cs",
+        "id": "1108925046016173676",
+        "baseUrl": "https://evil-manga.eu"
+      }
+    ]
+  }
+]
