@@ -128,6 +128,21 @@ export default function AnimeViewer() {
           }
 
           setActiveServerIdx(targetIdx)
+          
+          // Added: Trigger history immediately when servers are ready
+          if (selectedManga && activeChapter) {
+            markChapterRead(selectedManga.id, activeChapter.id, true)
+            addHistoryEntry({
+              mangaId: selectedManga.id,
+              mangaTitle: selectedManga.title,
+              chapterId: activeChapter.id,
+              chapterTitle: activeChapter.title || undefined,
+              startedAt: new Date().toISOString(),
+              durationSeconds: 0,
+              pkg: activeExtension || undefined,
+              type: 'anime'
+            })
+          }
         } else {
           setError('No streaming servers found for this episode.')
         }
@@ -156,22 +171,7 @@ export default function AnimeViewer() {
     return undefined
   }, [error, autoSwitchServer, servers.length, activeServerIdx])
 
-  // History and Progress logic
-  useEffect(() => {
-    if (selectedManga && activeChapter) {
-      markChapterRead(selectedManga.id, activeChapter.id, true)
-      addHistoryEntry({
-        mangaId: selectedManga.id,
-        mangaTitle: selectedManga.title,
-        chapterId: activeChapter.id,
-        chapterTitle: activeChapter.title || undefined,
-        startedAt: new Date().toISOString(),
-        durationSeconds: 0,
-        pkg: activeExtension || undefined,
-        type: 'anime'
-      })
-    }
-  }, [activeChapter?.id, selectedManga?.id])
+
 
   if (!activeChapter || !selectedManga) return null
 

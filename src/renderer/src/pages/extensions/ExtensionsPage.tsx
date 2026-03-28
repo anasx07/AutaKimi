@@ -5,6 +5,7 @@ import { cn } from '@renderer/shared/lib/utils'
 import { useExtensionStore, useUIStore } from '@renderer/shared/model'
 import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
 import animeSources from '@renderer/shared/api/sources/Anime.json'
+import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
 
 const ANIME_SOURCE_PKGS = animeSources.map(s => s.pkg)
 
@@ -18,10 +19,12 @@ export default function ExtensionsPage() {
   } = useExtensionStore()
   const { setActiveTab } = useUIStore()
   const [activeSubTab, setActiveSubTab] = useState<'sources' | 'search'>('sources')
+  const [selectedLang, setSelectedLang] = useState('all')
 
   const sortedExtensions = useMemo(() => {
     return [...installedExtensions]
       .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+      .filter(ext => selectedLang === 'all' || ext.lang === selectedLang)
       .sort((a, b) => {
         const aPinned = pinnedExtensions.includes(a.pkg)
         const bPinned = pinnedExtensions.includes(b.pkg)
@@ -29,7 +32,18 @@ export default function ExtensionsPage() {
         if (!aPinned && bPinned) return 1
         return a.name.localeCompare(b.name)
       })
-  }, [installedExtensions, pinnedExtensions])
+  }, [installedExtensions, pinnedExtensions, selectedLang])
+
+  const availableLangs = useMemo(() => {
+    const langs = new Set([...installedExtensions]
+      .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+      .map(ext => ext.lang))
+    return ['all', ...Array.from(langs).sort((a, b) => {
+      const nameA = LANGUAGE_NAMES[a.toLowerCase()] || a
+      const nameB = LANGUAGE_NAMES[b.toLowerCase()] || b
+      return nameA.localeCompare(nameB)
+    })]
+  }, [installedExtensions])
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -70,6 +84,25 @@ export default function ExtensionsPage() {
           </button>
         </div>
       </div>
+
+      {activeSubTab === 'sources' && installedExtensions.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+          {availableLangs.map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setSelectedLang(lang)}
+              className={cn(
+                "px-4 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap",
+                selectedLang === lang
+                  ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
+                  : "bg-secondary/20 border-border/50 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border"
+              )}
+            >
+              {lang === 'all' ? 'All' : (LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase())}
+            </button>
+          ))}
+        </div>
+      )}
 
       {activeSubTab === 'search' ? (
         <GlobalSearch />
@@ -135,7 +168,7 @@ export default function ExtensionsPage() {
                           <div className="flex items-center gap-2 shrink-0">
                             {isPinned && <Pin className="h-3 w-3 text-primary fill-primary animate-in zoom-in" />}
                             <Badge variant="secondary" className="shrink-0 flex items-center gap-1.5 px-2 py-0 border-primary/20 bg-primary/10 text-primary uppercase font-bold text-[10px]">
-                              {ext.lang}
+                              {LANGUAGE_NAMES[ext.lang.toLowerCase()] || ext.lang.toUpperCase()}
                             </Badge>
                           </div>
                         </div>

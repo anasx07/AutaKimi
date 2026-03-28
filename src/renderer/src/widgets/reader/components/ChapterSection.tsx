@@ -49,8 +49,12 @@ export const ChapterSection = memo(({
   const isHorizontal = readingMode.startsWith('continuous-') && !isVertical
 
   useEffect(() => {
-    if (pages.length > 0) onLoaded(pages.length)
-  }, [pages.length, onLoaded])
+    if (pages.length > 0) {
+      onLoaded(pages.length)
+      // Trigger visit immediately when pages are ready
+      onVisible(chapter)
+    }
+  }, [pages.length, onLoaded, onVisible, chapter])
 
   // --- Halfway & section visibility observers ---
   useEffect(() => {
