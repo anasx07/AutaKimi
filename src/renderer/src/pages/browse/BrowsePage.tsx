@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { DataService } from '@renderer/shared/api'
-import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List } from 'lucide-react'
+import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List, X, Filter } from 'lucide-react'
 import { useLibraryStore, useExtensionStore, useSettingsStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
@@ -14,6 +14,8 @@ export default function BrowsePage() {
 
   const { setSelectedManga } = useLibraryStore()
   const { activeExtension, setActiveExtension } = useExtensionStore()
+  
+  // State definitions
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
@@ -23,6 +25,10 @@ export default function BrowsePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const { metadata } = useExtensionMetadata(activeExtension)
+
+  const activeFilterCount = useMemo(() => {
+    return selectedDemographics.length + selectedStatus.length + selectedTags.length
+  }, [selectedDemographics, selectedStatus, selectedTags])
 
   const filters = useMemo(() => ({
     selectedDemographics,
@@ -137,87 +143,139 @@ export default function BrowsePage() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <div className="relative flex-1 group">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Search className={cn(
+              "absolute left-3 top-3.5 h-4 w-4 transition-colors",
+              searchQuery ? "text-primary" : "text-muted-foreground group-focus-within:text-primary"
+            )} />
             <Input
-              className="pl-9 bg-card/50 border-border/50 focus:border-primary/50 transition-all"
+              className="pl-9 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl"
               placeholder="Search manga in this source..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <Button
             variant={showFilters ? 'secondary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
-            className="gap-2 px-4 border-border/50"
+            className={cn(
+              "h-11 px-6 rounded-xl border-border/40 transition-all flex items-center gap-2",
+              activeFilterCount > 0 && "border-primary/50 bg-primary/5"
+            )}
           >
-            <span>Filters</span>
-            <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", showFilters && "rotate-180")} />
+            <Filter className={cn("h-4 w-4", activeFilterCount > 0 && "text-primary")} />
+            <span className="font-semibold text-xs">Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 h-5 min-w-[20px] px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full border-none">
+                {activeFilterCount}
+              </Badge>
+            )}
           </Button>
         </div>
 
+        {/* Floating Side Filter Drawer */}
         {showFilters && (
-          <Card className="p-5 bg-card/50 backdrop-blur-sm space-y-5 animate-in slide-in-from-top-2 duration-300 border-border/40">
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Demographic</h4>
-              <div className="flex flex-wrap gap-2">
-                {['shounen', 'shoujo', 'seinen', 'josei'].map(demo => (
-                  <Badge
-                    key={demo}
-                    variant={selectedDemographics.includes(demo) ? 'default' : 'outline'}
-                    className="cursor-pointer capitalize px-3 py-1 text-xs transition-all hover:scale-105 active:scale-95"
-                    onClick={() => toggleItem(selectedDemographics, setSelectedDemographics, demo)}
-                  >
-                    {demo}
-                  </Badge>
-                ))}
+          <>
+            <div 
+              className="fixed inset-0 bg-background/40 backdrop-blur-[2px] z-[60] animate-in fade-in duration-300"
+              onClick={() => setShowFilters(false)}
+            />
+            <div className="fixed right-0 top-0 bottom-0 w-80 bg-card border-l border-border z-[70] p-6 shadow-2xl animate-in slide-in-from-right duration-500 overflow-y-auto no-scrollbar">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold tracking-tight">Advanced Filters</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowFilters(false)} className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Demographic</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['shounen', 'shoujo', 'seinen', 'josei'].map(demo => (
+                      <Badge
+                        key={demo}
+                        variant={selectedDemographics.includes(demo) ? 'default' : 'outline'}
+                        className={cn(
+                          "cursor-pointer capitalize py-2 flex justify-center text-xs transition-all border-border/40",
+                          selectedDemographics.includes(demo) ? "shadow-md shadow-primary/20" : "hover:bg-secondary/50"
+                        )}
+                        onClick={() => toggleItem(selectedDemographics, setSelectedDemographics, demo)}
+                      >
+                        {demo}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Status</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {['ongoing', 'completed', 'hiatus', 'cancelled'].map(stat => (
+                      <Badge
+                        key={stat}
+                        variant={selectedStatus.includes(stat) ? 'default' : 'outline'}
+                        className={cn(
+                          "cursor-pointer capitalize px-3 py-1.5 text-xs transition-all border-border/40",
+                          selectedStatus.includes(stat) ? "shadow-md shadow-primary/20" : "hover:bg-secondary/50 font-medium"
+                        )}
+                        onClick={() => toggleItem(selectedStatus, setSelectedStatus, stat)}
+                      >
+                        {stat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Popular Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {POPULAR_TAGS.map(tag => (
+                      <Badge
+                        key={tag.id}
+                        variant={selectedTags.includes(tag.id) ? 'default' : 'outline'}
+                        className={cn(
+                          "cursor-pointer px-3 py-1.5 text-xs transition-all border-border/40",
+                          selectedTags.includes(tag.id) ? "shadow-md shadow-primary/20" : "hover:bg-secondary/50 font-medium"
+                        )}
+                        onClick={() => toggleItem(selectedTags, setSelectedTags, tag.id)}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-12 pt-6 border-t border-border/50 flex flex-col gap-3">
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 shadow-lg shadow-primary/20"
+                  onClick={() => setShowFilters(false)}
+                >
+                  Apply Filters
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full text-xs font-semibold tracking-wide transition-colors rounded-xl h-11",
+                    activeFilterCount > 0 ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground opacity-50 pointer-events-none"
+                  )}
+                  onClick={() => { setSelectedDemographics([]); setSelectedStatus([]); setSelectedTags([]); }}
+                >
+                  Reset All Filters
+                </Button>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Status</h4>
-              <div className="flex flex-wrap gap-2">
-                {['ongoing', 'completed', 'hiatus', 'cancelled'].map(stat => (
-                  <Badge
-                    key={stat}
-                    variant={selectedStatus.includes(stat) ? 'default' : 'outline'}
-                    className="cursor-pointer capitalize px-3 py-1 text-xs transition-all hover:scale-105 active:scale-95"
-                    onClick={() => toggleItem(selectedStatus, setSelectedStatus, stat)}
-                  >
-                    {stat}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Popular Tags</h4>
-              <div className="flex flex-wrap gap-2">
-                {POPULAR_TAGS.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    variant={selectedTags.includes(tag.id) ? 'default' : 'outline'}
-                    className="cursor-pointer px-3 py-1 text-xs transition-all hover:scale-105 active:scale-95"
-                    onClick={() => toggleItem(selectedTags, setSelectedTags, tag.id)}
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-border/30">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setSelectedDemographics([]); setSelectedStatus([]); setSelectedTags([]); setSearchQuery('') }}
-                className="text-xs text-muted-foreground hover:text-destructive"
-              >
-                Reset All Filters
-              </Button>
-            </div>
-          </Card>
+          </>
         )}
       </div>
 

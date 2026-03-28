@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
-import { BookOpen, Compass, Settings, Package, Info, Clock, Download, ChartBarIncreasing } from 'lucide-react'
+import { BookOpen, Compass, Settings, Package, Info, Clock, Download, ChartBarIncreasing, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ExtensionsManager } from '@renderer/widgets/extensions-manager'
 import { MangaDetails } from '@renderer/widgets/manga-details'
 import { AnimeDetails } from '@renderer/widgets/anime-details'
@@ -76,6 +76,9 @@ function App(): React.JSX.Element {
   const { activeExtension } = useExtensionStore()
   const { setUpdateStatus, setUpdateProgress, setUpdateError } = useUIStore()
 
+  // Sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
   // Track visited tabs to implement lazy-mount + keep-alive
   const [visited, setVisited] = useState<Set<string>>(new Set([activeTab]))
 
@@ -121,14 +124,27 @@ function App(): React.JSX.Element {
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 border-r border-border bg-card flex flex-col">
-          <div className="p-6">
-            <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-              AutaKimi
-            </h2>
+        <aside 
+          className={cn(
+            "border-r border-border bg-card flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            isSidebarCollapsed ? "w-20" : "w-64"
+          )}
+        >
+          <div className={cn("p-6 flex items-center justify-between", isSidebarCollapsed && "px-4")}>
+            {!isSidebarCollapsed && (
+              <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent animate-in fade-in duration-500">
+                AutaKimi
+              </h2>
+            )}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1.5 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors ml-auto"
+            >
+              {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
           </div>
 
-          <nav className="flex-1 px-3 space-y-1">
+          <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto no-scrollbar">
             {sidebarItems.map((item) => {
               const Icon = item.icon
               const isActive = activeTab === item.id
@@ -139,35 +155,46 @@ function App(): React.JSX.Element {
                     setActiveTab(item.id as any)
                     setSelectedManga(null)
                   }}
+                  title={isSidebarCollapsed ? item.label : undefined}
                   className={cn(
-                    'flex items-center gap-3 w-full px-4 py-2.5 rounded-md text-sm font-medium transition-all group',
+                    'flex items-center w-full rounded-xl text-sm font-medium transition-all group relative',
+                    isSidebarCollapsed ? 'justify-center py-3' : 'px-4 py-2.5 gap-3',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground hover:translate-x-1'
                   )}
                 >
                   <Icon
                     className={cn(
-                      'h-5 w-5',
+                      'h-5 w-5 transition-transform duration-300 group-hover:scale-110',
                       isActive
                         ? 'text-primary-foreground'
                         : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
-                  {item.label}
+                  {!isSidebarCollapsed && (
+                    <span className="truncate animate-in fade-in slide-in-from-left-2 duration-300">
+                      {item.label}
+                    </span>
+                  )}
+                  {isActive && !isSidebarCollapsed && (
+                    <div className="absolute left-0 w-1 h-5 bg-primary-foreground rounded-r-full" />
+                  )}
                 </button>
               )
             })}
           </nav>
 
-          <div className="p-4 border-t border-border mt-auto flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-              <img src={appIcon} className="w-6 h-6 object-contain" alt="Logo" />
+          <div className={cn("p-4 border-t border-border mt-auto flex items-center gap-3", isSidebarCollapsed && "justify-center px-2")}>
+            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-secondary/40 shrink-0 group hover:ring-2 ring-primary/20 transition-all cursor-pointer">
+              <img src={appIcon} className="w-6 h-6 object-contain group-hover:scale-110 transition-transform" alt="Logo" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs font-medium text-foreground">Local User</p>
-              <p className="text-[10px] text-muted-foreground">v{DataService.version}</p>
-            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0 animate-in fade-in duration-500">
+                <p className="text-xs font-bold text-foreground truncate">Local User</p>
+                <p className="text-[10px] text-muted-foreground font-medium">v{DataService.version}</p>
+              </div>
+            )}
           </div>
         </aside>
 
