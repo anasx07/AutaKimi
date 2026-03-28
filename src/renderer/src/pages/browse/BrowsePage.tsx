@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { DataService } from '@renderer/shared/api'
-import { ArrowLeft, Search, BookOpen, Loader2, ChevronDown, LayoutGrid, List, X, Filter } from 'lucide-react'
+import { ArrowLeft, Search, BookOpen, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
 import { useLibraryStore, useExtensionStore, useSettingsStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
