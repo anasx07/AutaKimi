@@ -9,32 +9,7 @@ const catalogModules = import.meta.glob('../../shared/api/sources/catalog/extens
 const localExtensions = Object.values(catalogModules).flatMap((m: any) => m.default || m);
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
-
-const LANGUAGE_NAMES: Record<string, string> = {
-  all: 'Global',
-  ar: 'العربية',
-  bg: 'Български',
-  ca: 'Català',
-  cs: 'Čeština',
-  de: 'Deutsch',
-  en: 'English',
-  es: 'Español',
-  fr: 'Français',
-  id: 'Bahasa Indonesia',
-  it: 'Italiano',
-  ja: '日本語',
-  ko: '한국어',
-  pl: 'Polski',
-  'pt-br': 'Português (Brasil)',
-  ru: 'Русский',
-  th: 'ไทย',
-  tr: 'Türkçe',
-  uk: 'Українська',
-  vi: 'Tiếng Việt',
-  zh: '中文',
-  'zh-hans': '简体中文',
-  'zh-hant': '繁體中文'
-}
+import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
 
 interface Extension {
   name: string
@@ -398,7 +373,7 @@ export default function ExtensionsManager() {
                       return null
                     })()}
                     <Badge variant={ext.nsfw ? 'destructive' : 'secondary'} className="text-[9px] h-5">
-                      {ext.lang.toUpperCase()}
+                      {LANGUAGE_NAMES[ext.lang.toLowerCase()] || ext.lang.toUpperCase()}
                     </Badge>
                   </div>
                 </div>
