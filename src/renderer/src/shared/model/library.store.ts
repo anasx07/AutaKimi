@@ -6,7 +6,13 @@ import { useExtensionStore } from './extension.store'
 
 interface LibraryState {
   library: NormalizedManga[]
+  /** 
+   * The manga or anime currently selected for viewing. 
+   * This is used as the 'Selection Intent' and initial metadata source. 
+   * Detailed info should be fetched and managed via React Query (useMangaDetails).
+   */
   selectedManga: NormalizedManga | null
+  /** The chapter or episode currently being read/watched. */
   activeChapter: Chapter | null
   
   // Actions

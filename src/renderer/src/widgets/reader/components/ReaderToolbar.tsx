@@ -1,5 +1,6 @@
 import { ArrowLeft, ExternalLink, Play, Pause, Hand } from 'lucide-react'
-import { Button } from '@renderer/shared/ui'
+import { Button, Select } from '@renderer/shared/ui'
+import { ReadingMode } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import { memo } from 'react'
 
@@ -15,6 +16,9 @@ interface ReaderToolbarProps {
   autoScrollSpeed: number
   isKbdPaused: boolean
   dragToScroll: boolean
+  readingMode: ReadingMode
+  readerTheme?: string
+  onReadingModeChange: (mode: ReadingMode) => void
   onClose: () => void
   onOpenInBrowser: () => void
   onToggleAutoScroll: () => void
@@ -33,24 +37,34 @@ export const ReaderToolbar = memo(({
   autoScrollSpeed,
   isKbdPaused,
   dragToScroll,
+  readingMode,
+  readerTheme,
+  onReadingModeChange,
   onClose,
   onOpenInBrowser,
   onToggleAutoScroll,
   onChangeAutoScrollSpeed
 }: ReaderToolbarProps) => {
+  const toolbarBg = readerTheme === 'match-app' ? "bg-background/90 border-border" :
+    readerTheme === 'light' ? "bg-white/90 border-slate-200" :
+    "bg-neutral-900/90 border-neutral-800/50"
+
+  const textTitle = readerTheme === 'light' ? "text-slate-900" : readerTheme === 'match-app' ? "text-foreground" : "text-neutral-100"
+  const textSub = readerTheme === 'light' ? "text-slate-500" : "text-neutral-500"
+
   return (
-    <div className="h-14 bg-neutral-900/90 backdrop-blur-xl border-b border-neutral-800/50 px-4 flex items-center justify-between flex-shrink-0 z-20 relative">
+    <div className={cn("h-14 backdrop-blur-xl border-b px-4 flex items-center justify-between flex-shrink-0 z-20 relative transition-colors", toolbarBg)}>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 text-neutral-400">
+        <Button variant="ghost" size="icon" onClick={onClose} className={cn("h-9 w-9", textSub, "hover:bg-black/5")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-neutral-100 truncate max-w-[200px] sm:max-w-md">
+          <span className={cn("text-sm font-bold truncate max-w-[200px] sm:max-w-md", textTitle)}>
             Chapter {chapterNumber} {chapterTitle ? `• ${chapterTitle}` : ''}
           </span>
           <button 
             onClick={onOpenInBrowser} 
-            className="text-[10px] text-neutral-500 font-mono tracking-wider uppercase flex items-center gap-2 hover:text-primary transition-colors group truncate max-w-[200px] sm:max-w-md" 
+            className={cn("text-[10px] font-mono tracking-wider uppercase flex items-center gap-2 transition-colors group truncate max-w-[200px] sm:max-w-md", textSub, "hover:text-primary")} 
             title={chapterUrl}
           >
             {extensionName} • {chapterUrl} 
@@ -61,7 +75,7 @@ export const ReaderToolbar = memo(({
 
       {/* ── Center: Chapter & Page indicator ── */}
       <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center select-none pointer-events-none">
-        <span className="text-[11px] font-black text-neutral-100 tracking-widest uppercase">
+        <span className={cn("text-[11px] font-black tracking-widest uppercase", textTitle)}>
           Ch.&nbsp;{chapterNumber}
         </span>
         {totalPages > 0 ? (
@@ -107,6 +121,24 @@ export const ReaderToolbar = memo(({
             <Hand className="h-3.5 w-3.5" /> Drag On
           </div>
         )}
+        <div className="ml-1 w-44">
+          <Select 
+            options={[
+              { value: 'continuous-vertical', label: 'Continuous Vertical' },
+              { value: 'webtoon', label: 'Webtoon' },
+              { value: 'paged-ltr', label: 'Paged LTR' },
+              { value: 'paged-rtl', label: 'Paged RTL' },
+              { value: 'paged-vertical', label: 'Paged Vertical' },
+              { value: 'continuous-ltr', label: 'Continuous LTR' },
+              { value: 'continuous-rtl', label: 'Continuous RTL' }
+            ]}
+            value={readingMode}
+            onValueChange={(val) => onReadingModeChange(val as ReadingMode)}
+            className={cn("h-8 text-[10px] uppercase font-bold tracking-wider rounded-full pl-3 pr-2 shadow-inner border border-black/5 hover:bg-black/5",
+              readerTheme === 'light' ? 'bg-slate-100/50 text-slate-700' : 'bg-neutral-800/50 hover:bg-neutral-800 text-neutral-300'
+            )}
+          />
+        </div>
       </div>
     </div>
   )

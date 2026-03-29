@@ -79,7 +79,8 @@ export default function SettingsPage() {
     autoMarkRead, setAutoMarkRead,
     preloadPages, setPreloadPages,
     dragToScroll, setDragToScroll,
-    autoScrollShortcuts, setShortcut
+    autoScrollShortcuts, setShortcut,
+    readerTheme, setReaderTheme
   } = useReaderStore()
 
   const {
@@ -274,6 +275,22 @@ export default function SettingsPage() {
                   >
                     <div className="w-40">
                       <Select value={defaultChapterSort} onValueChange={(val) => setDefaultChapterSort(val as 'asc' | 'desc')} options={[{ value: 'asc', label: 'Oldest First' }, { value: 'desc', label: 'Newest First' }]} />
+                    </div>
+                  </SettingsRow>
+                  <SettingsRow
+                    title="Reader Theme"
+                    description="Visual theme overlay specifically for the reading interface."
+                  >
+                    <div className="w-52">
+                      <Select 
+                        value={readerTheme} 
+                        onValueChange={(val) => setReaderTheme(val as 'match-app' | 'dark' | 'light' | 'system')} 
+                        options={[
+                          { value: 'match-app', label: 'Match App Theme' }, 
+                          { value: 'dark', label: 'Always Dark Mode' }, 
+                          { value: 'light', label: 'Always Light Mode' }
+                        ]} 
+                      />
                     </div>
                   </SettingsRow>
                   <div className="p-6 space-y-6">

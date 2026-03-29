@@ -1,6 +1,6 @@
-import { BookOpen, Loader2, Play } from 'lucide-react'
+import { BookOpen, Play, Loader2 } from 'lucide-react'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
-import { MediaTabSwitcher, MediaGrid, MediaGridItem } from '@renderer/shared/ui'
+import { MediaTabSwitcher, MediaGrid, MediaGridItem, EmptyState, MediaCardSkeleton } from '@renderer/shared/ui'
 import { useLibraryStore } from '@renderer/shared/model'
 import { useState } from 'react'
 import { useInfiniteScroll } from '@renderer/shared/lib'
@@ -26,14 +26,6 @@ export default function LibraryPage() {
 
   const allManga = data?.pages?.flat() || []
 
-  if (isLoading && allManga.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
-      </div>
-    )
-  }
-
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 flex-1 flex flex-col h-full animate-in fade-in duration-500">
       <div className="flex flex-col space-y-3">
@@ -46,18 +38,23 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      {allManga.length === 0 && !isLoading && (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-20 space-y-2 opacity-60">
-          {activeTab === 'anime' ? (
-            <Play className="h-12 w-12 stroke-[1.5]" />
-          ) : (
-            <BookOpen className="h-12 w-12 stroke-[1.5]" />
-          )}
-          <p>Your {activeTab} library is empty. Browse sources to add titles.</p>
+      {isLoading && allManga.length === 0 ? (
+        <div className="overflow-y-auto pr-2 pb-6 flex-1">
+          <MediaGrid>
+            {Array.from({ length: 15 }).map((_, i) => (
+              <MediaCardSkeleton key={i} />
+            ))}
+          </MediaGrid>
         </div>
-      )}
-
-      {allManga.length > 0 && (
+      ) : allManga.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-20 pb-40">
+          <EmptyState 
+            icon={activeTab === 'anime' ? <Play className="h-8 w-8 text-primary ml-1" /> : <BookOpen className="h-8 w-8 text-primary" />}
+            title={`No ${activeTab} saved`}
+            description={`Your ${activeTab} library is empty. Browse sources to discover and add titles to your collection.`}
+          />
+        </div>
+      ) : (
         <div className="overflow-y-auto pr-2 pb-6 flex-1">
           <MediaGrid>
             {allManga.map((manga, idx) => {

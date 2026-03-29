@@ -28,7 +28,7 @@ export const ContinueBanner = ({
   const progText = (() => {
     const page = pageProgress[mediaId]?.[nextToRead.id]
     const isRead = readChapterIds.includes(nextToRead.id)
-    if (page && page > 1 && !isRead) return 'Resume'
+    if (page && page > 1 && !isRead) return isAnime ? `Resume at ${Math.floor(page / 60)}m` : `Resume at Page ${page}`
     if (isRead) return 'Re-read'
     return isAnime ? 'Start Watching' : 'Start Reading'
   })()

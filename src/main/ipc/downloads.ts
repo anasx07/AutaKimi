@@ -13,6 +13,11 @@ export function registerDownloadHandlers() {
     downloadManager.cancelDownload(mangaId, chapterId)
     return true
   }))
+  
+  ipcMain.handle(IpcChannel.REMOVE_DOWNLOAD, wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => {
+    await downloadManager.deleteDownload(mangaId, chapterId)
+    return true
+  }))
 
   ipcMain.handle(IpcChannel.GET_DOWNLOAD_STATUS, wrapIpc((_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => downloadManager.getStatus(mangaId, chapterId)))
 

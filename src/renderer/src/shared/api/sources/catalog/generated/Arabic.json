@@ -293,5 +293,32 @@
     "apiUrl": "https://yurimoonsub.blogspot.com",
     "lang": "ar",
     "baseClass": "ZeistManga"
+  },
+  "ma.autakimi.extension.ar.mangasid": {
+    "id": "ma.autakimi.extension.ar.mangasid",
+    "name": "MangaSid",
+    "version": "0.0.1",
+    "baseUrl": "https://mangasid.com",
+    "apiUrl": "https://mangasid.com",
+    "lang": "ar",
+    "baseClass": "Native"
+  },
+  "ma.autakimi.extension.ar.eshadow": {
+    "id": "ma.autakimi.extension.ar.eshadow",
+    "name": "Eshadow",
+    "version": "0.0.1",
+    "baseUrl": "https://www.eshadow.net",
+    "apiUrl": "https://www.eshadow.net",
+    "lang": "ar",
+    "baseClass": "Madara"
+  },
+  "ma.autakimi.extension.ar.mangalek": {
+    "id": "ma.autakimi.extension.ar.mangalek",
+    "name": "Mangalek",
+    "version": "0.0.1",
+    "baseUrl": "https://lek-manga.net",
+    "apiUrl": "https://lek-manga.net",
+    "lang": "ar",
+    "baseClass": "Madara"
   }
 }

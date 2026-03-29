@@ -27,6 +27,7 @@ interface ReaderState {
   autoScrollEnabled: boolean
   autoScrollSpeed: number
   autoScrollShortcuts: ReaderShortcuts
+  readerTheme: 'match-app' | 'light' | 'dark' | 'system'
 
   // Actions
   setDefaultChapterSort: (val: 'asc' | 'desc') => Promise<void>
@@ -37,6 +38,7 @@ interface ReaderState {
   setAutoScrollEnabled: (val: boolean) => void
   setAutoScrollSpeed: (val: number) => void
   setShortcut: (action: keyof ReaderShortcuts, key: string) => Promise<void>
+  setReaderTheme: (val: 'match-app' | 'light' | 'dark' | 'system') => Promise<void>
   
   // Init
   _init: (settings: Record<string, string>) => void
@@ -50,6 +52,7 @@ export const useReaderStore = create<ReaderState>((set) => ({
   dragToScroll: true,
   autoScrollEnabled: false,
   autoScrollSpeed: 2,
+  readerTheme: 'dark', // traditionally the reader has been dark
   autoScrollShortcuts: {
     pause: 'Space',
     toggle: 'Enter',
@@ -95,6 +98,11 @@ export const useReaderStore = create<ReaderState>((set) => ({
     })
   },
 
+  setReaderTheme: async (val) => {
+    await DataService.db.setSetting('reader_theme', val)
+    set({ readerTheme: val })
+  },
+
   _init: (settings) => {
     // Migration logic from old reader_mode/reader_direction
     let initialMode: ReadingMode = 'continuous-vertical'
@@ -122,10 +130,11 @@ export const useReaderStore = create<ReaderState>((set) => ({
     set({
       defaultChapterSort: (settings.default_chapter_sort as 'asc' | 'desc') || 'asc',
       readingMode: initialMode,
-      autoMarkRead: settings.auto_mark_read === 'true',
+      autoMarkRead: settings.auto_mark_read !== 'false',
       preloadPages: parseInt(settings.preload_pages || '3'),
-      dragToScroll: settings.drag_to_scroll === 'true',
-      autoScrollShortcuts: shortcuts
+      dragToScroll: settings.drag_to_scroll !== 'false',
+      autoScrollShortcuts: shortcuts,
+      readerTheme: (settings.reader_theme as 'match-app' | 'light' | 'dark' | 'system') || 'dark'
     })
   }
 }))

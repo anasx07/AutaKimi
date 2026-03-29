@@ -60,7 +60,8 @@ export const DataService = {
     cancel: (args: { mangaId: string; chapterId: string }) => callIpc(() => getApi().download.cancel(args)),
     getStatus: (args: { mangaId: string; chapterId: string }) => callIpc(() => getApi().download.getStatus(args)),
     getMangaDownloads: (mangaId: string) => callIpc(() => getApi().download.getMangaDownloads(mangaId)),
-    getAllMangaDownloads: (type?: 'manga' | 'anime') => callIpc(() => getApi().download.getAllMangaDownloads(type))
+    getAllMangaDownloads: (type?: 'manga' | 'anime') => callIpc(() => getApi().download.getAllMangaDownloads(type)),
+    remove: (args: { mangaId: string; chapterId: string }) => callIpc(() => getApi().download.remove(args))
   },
   get version() { return getApi()?.version || '0.0.0' },
   checkForUpdates: () => getApi()?.checkForUpdates(),

@@ -9,15 +9,21 @@ export const useAutoScroll = (
   isKbdPaused: boolean,
   isKbdReversing: boolean,
   isKbdBoosted: boolean,
-  isKbdSlowed: boolean
+  isKbdSlowed: boolean,
+  isHorizontal: boolean,
+  isRtl: boolean
 ) => {
   const autoScrollRef = useRef<number | null>(null)
   const preciseScrollTop = useRef(0)
+  const preciseScrollLeft = useRef(0)
 
   // Sync preciseScrollTop with actual scrollTop on manual scroll
   useEffect(() => {
     const handleScroll = () => {
-      if (scrollRef.current) preciseScrollTop.current = scrollRef.current.scrollTop
+      if (scrollRef.current) {
+        preciseScrollTop.current = scrollRef.current.scrollTop
+        preciseScrollLeft.current = scrollRef.current.scrollLeft
+      }
     }
     const ref = scrollRef.current
     ref?.addEventListener('scroll', handleScroll, { passive: true })
@@ -37,8 +43,13 @@ export const useAutoScroll = (
           if (isKbdSlowed) finalStep *= 0.3
           if (isKbdReversing) finalStep *= -2
           
-          preciseScrollTop.current += finalStep
-          scrollRef.current.scrollTop = preciseScrollTop.current
+          if (isHorizontal) {
+            preciseScrollLeft.current += isRtl ? -finalStep : finalStep
+            scrollRef.current.scrollLeft = preciseScrollLeft.current
+          } else {
+            preciseScrollTop.current += finalStep
+            scrollRef.current.scrollTop = preciseScrollTop.current
+          }
        }
        autoScrollRef.current = requestAnimationFrame(scroll)
     }
@@ -50,10 +61,11 @@ export const useAutoScroll = (
   }, [
     autoScrollEnabled, autoScrollSpeed, isInfiniteScroll, 
     isDragging, isKbdPaused, isKbdReversing, 
-    isKbdBoosted, isKbdSlowed, scrollRef
+    isKbdBoosted, isKbdSlowed, scrollRef, isHorizontal, isRtl
   ])
 
   return {
-    preciseScrollTop
+    preciseScrollTop,
+    preciseScrollLeft
   }
 }

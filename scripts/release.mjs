@@ -25,10 +25,10 @@ const C = {
 const printHeader = () => {
   console.clear();
   console.log(`${C.magenta}${C.bright}
-  █   █▀▄▀█ ▄▀█ █▄  █ █   █ ▄▀█
-  █▄▄ █ ▀ █ █▀█ █ █ █ ▀▄▀▄▀ █▀█  vRELEASE
+  ▄▀█ █ █ ▀█▀ ▄▀█ █▄▀ █ █▀▄▀█ █
+  █▀█ █▄█  █  █▀█ █ ▀ █ █ ▀ █ █  vRELEASE
   ${C.reset}`);
-  console.log(`${C.dim}─────────────────────────────────────────────────${C.reset}\n`);
+  console.log(`${C.dim}───────────────────────────────────────────${C.reset}\n`);
 };
 
 async function main() {

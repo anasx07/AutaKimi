@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Package, ExternalLink, Trash2, Search as SearchIcon, Pin } from 'lucide-react'
-import { Button, Badge, Card } from '@renderer/shared/ui'
+import { Button, Badge, Card, Input } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { useExtensionStore, useUIStore } from '@renderer/shared/model'
 import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
@@ -20,11 +20,17 @@ export default function ExtensionsPage() {
   const { setActiveTab } = useUIStore()
   const [activeSubTab, setActiveSubTab] = useState<'sources' | 'search'>('sources')
   const [selectedLang, setSelectedLang] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const sortedExtensions = useMemo(() => {
     return [...installedExtensions]
       .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
       .filter(ext => selectedLang === 'all' || ext.lang === selectedLang)
+      .filter(ext => {
+        if (!searchQuery) return true
+        const lowQuery = searchQuery.toLowerCase()
+        return ext.name.toLowerCase().includes(lowQuery) || ext.pkg.toLowerCase().includes(lowQuery)
+      })
       .sort((a, b) => {
         const aPinned = pinnedExtensions.includes(a.pkg)
         const bPinned = pinnedExtensions.includes(b.pkg)
@@ -32,7 +38,7 @@ export default function ExtensionsPage() {
         if (!aPinned && bPinned) return 1
         return a.name.localeCompare(b.name)
       })
-  }, [installedExtensions, pinnedExtensions, selectedLang])
+  }, [installedExtensions, pinnedExtensions, selectedLang, searchQuery])
 
   const availableLangs = useMemo(() => {
     const langs = new Set([...installedExtensions]
@@ -57,14 +63,20 @@ export default function ExtensionsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-secondary/20 p-1 rounded-lg border border-border/50 self-start sm:self-auto">
+        <div className="relative flex items-center bg-secondary/60 p-1 rounded-xl w-fit border border-white/5 self-start sm:self-auto">
+          <div 
+            className={cn(
+              "absolute top-1 bottom-1 w-[130px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none",
+              activeSubTab === 'search' ? "translate-x-full" : "translate-x-0"
+            )}
+          />
           <button
             onClick={() => setActiveSubTab('sources')}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+              "relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none",
               activeSubTab === 'sources'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Package className="h-3.5 w-3.5" />
@@ -73,10 +85,10 @@ export default function ExtensionsPage() {
           <button
             onClick={() => setActiveSubTab('search')}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+              "relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none",
               activeSubTab === 'search'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <SearchIcon className="h-3.5 w-3.5" />
@@ -86,21 +98,33 @@ export default function ExtensionsPage() {
       </div>
 
       {activeSubTab === 'sources' && installedExtensions.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
-          {availableLangs.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setSelectedLang(lang)}
-              className={cn(
-                "px-4 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap",
-                selectedLang === lang
-                  ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
-                  : "bg-secondary/20 border-border/50 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border"
-              )}
-            >
-              {lang === 'all' ? 'All' : (LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase())}
-            </button>
-          ))}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-1">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none no-scrollbar flex-1">
+            {availableLangs.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setSelectedLang(lang)}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap",
+                  selectedLang === lang
+                    ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
+                    : "bg-secondary/20 border-border/50 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border"
+                )}
+              >
+                {lang === 'all' ? 'All' : (LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase())}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full md:w-64">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+            <Input
+              placeholder="Search sources..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-secondary/20 border-border/50 focus:bg-secondary/30 transition-all rounded-xl"
+            />
+          </div>
         </div>
       )}
 
