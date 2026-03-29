@@ -1,13 +1,16 @@
 import { Clock, Trash2, BookOpen, Play, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLibraryStore, useHistoryStore, useExtensionStore, HistoryEntry, Manga, Chapter } from '@renderer/shared/model'
-import { Button, MediaTabSwitcher } from '@renderer/shared/ui'
+import { Button, MediaTabSwitcher, Dialog, EmptyState, HistoryItemSkeleton } from '@renderer/shared/ui'
 import { useInfiniteScroll } from '@renderer/shared/lib'
 import { cn } from '@renderer/shared/lib/utils'
-import { useInfiniteHistoryEntries } from '@renderer/entities/manga/api/useMangaQueries'
+import { useInfiniteHistoryEntries, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function HistoryPage() {
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
   const { setSelectedManga, setActiveChapter } = useLibraryStore()
   const { setActiveExtension } = useExtensionStore()
   const {
@@ -123,57 +126,65 @@ export default function HistoryPage() {
     new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
   )
 
-  if (isLoading && allEntries.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
-      </div>
-    )
-  }
-
   return (
-    <div className="p-4 space-y-5 max-w-3xl mx-auto border-0 flex flex-col h-full">
-      <div className="flex items-center justify-between pb-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight">History</h1>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 flex-1 flex flex-col h-full animate-in fade-in duration-500">
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-1.5">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight">History</h1>
+              {allEntries.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full mt-1"
+                  onClick={() => setIsConfirmClearOpen(true)}
+                  title="Clear All"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-muted-foreground whitespace-nowrap">Your recently {activeTab === 'anime' ? 'watched anime' : 'read manga'}.</p>
+          </div>
           <MediaTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
-
-        {allEntries.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-destructive gap-1 px-2 h-8 self-start mt-1"
-            onClick={clearHistory}
-            title="Clear All"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
       </div>
 
-      {sortedGroupedHistory.length === 0 && !isLoading ? (
-        <div className="flex flex-col items-center justify-center py-32 text-muted-foreground space-y-3">
-          <Clock className="h-14 w-14 stroke-[1.25] text-muted-foreground/30" />
-          <p className="text-sm font-medium">No {activeTab} history</p>
+      {isLoading && allEntries.length === 0 ? (
+        <div className="flex-1 overflow-y-auto pr-2">
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <HistoryItemSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      ) : sortedGroupedHistory.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-20 pb-40">
+          <EmptyState 
+            icon={<Clock className="h-8 w-8 text-primary" />}
+            title={`No ${activeTab} history`}
+            description={`Your recently ${activeTab === 'anime' ? 'watched anime' : 'read manga'} will appear here.`}
+          />
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto pr-2">
           <div className="flex flex-col gap-4">
-            {sortedGroupedHistory.map((entry) => (
+            {sortedGroupedHistory.map((entry, idx) => (
               <div
                 key={entry.mangaId}
                 className={cn(
-                  "flex items-start rounded-md gap-4 p-4 bg-card hover:bg-secondary/30 transition-all duration-200 hover:shadow-md border border-border/40 cursor-pointer group relative",
+                  "flex items-start rounded-md gap-4 p-4 bg-card/40 backdrop-blur-sm hover:bg-secondary/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-border/40 cursor-pointer group relative",
                   "animate-in fade-in slide-in-from-bottom-4"
                 )}
+                style={{ animationDelay: `${Math.min(idx * 30, 500)}ms` }}
                 onClick={() => handleEntryClick(entry)}
               >
                 {entry.mangaCover ? (
                   <img
                     src={entry.mangaCover}
                     alt={entry.mangaTitle}
-                    className="w-24 h-30 object-cover rounded shadow-sm bg-secondary flex-shrink-0"
+                    className="w-24 h-32 object-cover rounded shadow-sm bg-secondary flex-shrink-0 group-hover:scale-[1.02] transition-transform duration-300"
                     loading="lazy"
                   />
                 ) : (
@@ -231,9 +242,10 @@ export default function HistoryPage() {
                     variant="ghost"
                     size="sm"
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 rounded-full transition-all"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation()
-                      deleteHistoryByManga(entry.mangaId)
+                      await deleteHistoryByManga(entry.mangaId)
+                      queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -254,6 +266,36 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      <Dialog 
+        isOpen={isConfirmClearOpen} 
+        onClose={() => setIsConfirmClearOpen(false)}
+        title="Clear History"
+      >
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to clear your entire {activeTab} history? This action cannot be undone.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsConfirmClearOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={async () => {
+                await clearHistory()
+                queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
+                setIsConfirmClearOpen(false)
+              }}
+            >
+              Clear All
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   )
 }

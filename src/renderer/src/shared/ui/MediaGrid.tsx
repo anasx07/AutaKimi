@@ -50,7 +50,7 @@ export function MediaGridItem({
     <Card
       onClick={onClick}
       className={cn(
-        "group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-card/40",
+        "group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card/40 backdrop-blur-sm",
         "animate-in fade-in slide-in-from-bottom-4",
         className
       )}

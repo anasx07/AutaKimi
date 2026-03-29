@@ -59,7 +59,8 @@
     "react-dom": "^19.2.1",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vite-plugin-javascript-obfuscator": "^3.1.0"
   },
   "build": {
     "appId": "com.anasx07.autakimi",

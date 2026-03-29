@@ -60,6 +60,7 @@ export enum IpcChannel {
   GET_DOWNLOAD_STATUS = 'download:status',
   GET_MANGA_DOWNLOADS = 'download:manga-list',
   DOWNLOAD_GET_ALL_MANGA = 'download:get-all-manga',
+  REMOVE_DOWNLOAD = 'download:remove',
 
   // App Updates
   APP_UPDATE = 'app:update',
@@ -113,6 +114,7 @@ export interface ElectronApi {
     getStatus: (args: { mangaId: string; chapterId: string }) => Promise<IpcResult<DownloadEntry | undefined>>;
     getMangaDownloads: (mangaId: string) => Promise<IpcResult<DownloadEntry[]>>;
     getAllMangaDownloads: (type?: string) => Promise<IpcResult<DownloadEntry[]>>;
+    remove: (args: { mangaId: string; chapterId: string }) => Promise<IpcResult<boolean>>;
   };
   window: {
     minimize: () => Promise<void>;

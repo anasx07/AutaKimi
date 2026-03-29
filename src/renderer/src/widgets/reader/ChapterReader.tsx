@@ -22,31 +22,40 @@ import { ChapterSection } from './components/ChapterSection'
 import { useKeyboardControls } from './hooks/useKeyboardControls'
 import { useAutoScroll } from './hooks/useAutoScroll'
 import { useDragToScroll } from './hooks/useDragToScroll'
+import { useZoom } from './hooks/useZoom'
 
 export default function ChapterReader() {
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { addHistoryEntry } = useHistoryStore()
-  const { markChapterRead } = useProgressStore()
+  const { markChapterRead, pageProgress, readingProgress } = useProgressStore()
   const queryClient = useQueryClient()
   
   const { 
     readingMode, dragToScroll, 
     autoScrollEnabled, setAutoScrollEnabled, 
     autoScrollSpeed, setAutoScrollSpeed,
-    autoScrollShortcuts
+    autoScrollShortcuts,
+    setReadingMode,
+    readerTheme
   } = useReaderStore()
 
   // --- State & Refs ---
   const [loadedChapters, setLoadedChapters] = useState<Chapter[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
+  const [chapterPageCounts, setChapterPageCounts] = useState<Record<string, number>>({})
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const pendingScrollPage = useRef<number | null>(null)
   const lastSyncId = useRef<string | null>(null)
+  const visiblePagesRef = useRef<Record<string, number>>({})
+
+  const resolvedPkg = selectedManga?.pkg || activeExtension || ''
 
   const { data: chapters = [] } = useMangaChapters(
     selectedManga?.id || '', 
-    activeExtension || '', 
+    resolvedPkg, 
     selectedManga?.url
   )
 
@@ -74,35 +83,96 @@ export default function ChapterReader() {
     isKbdPaused,
     isKbdReversing,
     isKbdBoosted,
-    isKbdSlowed
+    isKbdSlowed,
+    isHorizontalContinuous,
+    readingMode === 'continuous-rtl'
   )
+
+  const { zoomLevel } = useZoom(scrollRef)
 
   // --- Helpers ---
   const extensionName = useMemo(() => {
-    const ext = installedExtensions.find(e => e.pkg === activeExtension)
-    return ext?.name || activeExtension || 'Source'
-  }, [activeExtension, installedExtensions])
+    const ext = installedExtensions.find(e => e.pkg === resolvedPkg)
+    return ext?.name || resolvedPkg || 'Source'
+  }, [resolvedPkg, installedExtensions])
 
   const openInBrowser = useCallback(() => {
     if (activeChapter?.url) DataService.openExternal(activeChapter.url)
   }, [activeChapter?.url])
 
-  const handlePageVisible = useCallback((page: number) => {
-    setCurrentPage(page)
-  }, [])
+  const savePageProgress = useCallback((chapterId: string, page: number) => {
+    if (!selectedManga) return
+    const isReadAlready = readingProgress[selectedManga.id]?.includes(chapterId) || false
+    markChapterRead(selectedManga.id, chapterId, isReadAlready, page)
+  }, [selectedManga?.id, readingProgress, markChapterRead])
+
+  const handlePageVisible = useCallback((chapterId: string, page: number) => {
+    visiblePagesRef.current[chapterId] = page
+
+    if (activeChapter?.id === chapterId || lastSyncId.current === chapterId) {
+      setCurrentPage((prev) => {
+        if (prev !== page) {
+          savePageProgress(chapterId, page)
+          return page
+        }
+        return prev
+      })
+    }
+  }, [activeChapter?.id, savePageProgress])
+
+  const handleLoaded = useCallback((chapterId: string, count: number) => {
+    setChapterPageCounts(prev => {
+      if (prev[chapterId] === count) return prev
+      return { ...prev, [chapterId]: count }
+    })
+    if (activeChapter?.id === chapterId) {
+      setTotalPages(count)
+      if (pendingScrollPage.current) {
+        const targetPage = pendingScrollPage.current
+        pendingScrollPage.current = null
+        setTimeout(() => {
+          if (isVertical || isHorizontalContinuous) {
+            const pageEl = scrollRef.current?.querySelector(`[data-page-index="${targetPage - 1}"]`)
+            if (pageEl) {
+               pageEl.scrollIntoView({ behavior: 'auto', block: 'start' })
+            }
+          }
+        }, 150)
+      }
+    }
+  }, [activeChapter?.id, isVertical, isHorizontalContinuous])
 
   useEffect(() => {
     if (activeChapter && !loadedChapters.find(c => c.id === activeChapter.id)) {
       setLoadedChapters([activeChapter])
-      setCurrentPage(1)
-      if (scrollRef.current) scrollRef.current.scrollTop = 0
+      
+      const savedPage = (selectedManga && pageProgress[selectedManga.id]?.[activeChapter.id]) || 1
+      setCurrentPage(savedPage)
+      
+      if (savedPage > 1) {
+        pendingScrollPage.current = savedPage
+      } else {
+        if (scrollRef.current) scrollRef.current.scrollTop = 0
+      }
     }
   }, [activeChapter?.id])
+
+  useEffect(() => {
+    if (activeChapter?.id) {
+      const count = chapterPageCounts[activeChapter.id] || 0
+      setTotalPages(count)
+    }
+  }, [activeChapter?.id, chapterPageCounts])
 
   const findNextChapter = (current: Chapter) => {
     if (chapters.length === 0) return null
     const sorted = [...chapters].sort((a, b) => {
-      const getNum = (c: any) => typeof c.number === 'string' ? parseFloat(c.number) : (c.number || 0)
+      const getNum = (c: any) => {
+        if (typeof c.number === 'number') return c.number
+        const str = String(c.number || '').replace(/[^0-9.]/g, '')
+        const parsed = parseFloat(str)
+        return isNaN(parsed) ? 0 : parsed
+      }
       return getNum(a) - getNum(b)
     })
     const idx = sorted.findIndex(c => c.id === current.id)
@@ -120,9 +190,20 @@ export default function ChapterReader() {
   const handleVisible = (chapter: Chapter) => {
     if (lastSyncId.current === chapter.id) return
     lastSyncId.current = chapter.id
-    if (activeChapter?.id !== chapter.id) setActiveChapter(chapter)
+    if (activeChapter?.id !== chapter.id) {
+      setActiveChapter(chapter)
+    }
+
+    const queuedPage = visiblePagesRef.current[chapter.id]
+    if (queuedPage) {
+      setCurrentPage(queuedPage)
+      savePageProgress(chapter.id, queuedPage)
+    }
+
     if (selectedManga) {
-       markChapterRead(selectedManga.id, chapter.id, false)
+       const savedPage = pageProgress[selectedManga.id]?.[chapter.id] || 1
+       const isReadAlready = readingProgress[selectedManga.id]?.includes(chapter.id) || false
+       markChapterRead(selectedManga.id, chapter.id, isReadAlready, savedPage)
        addHistoryEntry({ 
          mangaId: selectedManga.id, 
          mangaTitle: selectedManga.title, 
@@ -132,7 +213,7 @@ export default function ChapterReader() {
          chapterTitle: chapter.title || undefined, 
          startedAt: new Date().toISOString(), 
          durationSeconds: 0, 
-         pkg: activeExtension || undefined, 
+         pkg: resolvedPkg || undefined, 
          type: 'manga' 
        }).then(() => {
          queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
@@ -140,13 +221,32 @@ export default function ChapterReader() {
     }
   }
 
-  const pagedNext = () => setCurrentPage(prev => Math.min(totalPages, prev + 1))
-  const pagedPrev = () => setCurrentPage(prev => Math.max(1, prev - 1))
+  const pagedNext = () => {
+    if (!activeChapter) return
+    setCurrentPage(prev => {
+      const next = Math.min(totalPages, prev + 1)
+      if (next !== prev) savePageProgress(activeChapter.id, next)
+      return next
+    })
+  }
 
-  if (!activeChapter || !selectedManga || !activeExtension) return null
+  const pagedPrev = () => {
+    if (!activeChapter) return
+    setCurrentPage(prev => {
+      const next = Math.max(1, prev - 1)
+      if (next !== prev) savePageProgress(activeChapter.id, next)
+      return next
+    })
+  }
+
+  if (!activeChapter || !selectedManga || !resolvedPkg) return null
+
+  const readerBg = readerTheme === 'match-app' ? "bg-background text-foreground" :
+    readerTheme === 'light' ? "bg-[#f8f9fa] text-slate-900" :
+    "bg-neutral-950 text-neutral-300"
 
   return (
-    <div className="fixed inset-0 bg-neutral-950 z-[100] flex flex-col overflow-hidden animate-in fade-in duration-300">
+    <div className={cn("fixed inset-0 z-[100] flex flex-col overflow-hidden animate-in fade-in duration-300", readerBg)}>
       <TitleBar />
       
       <ReaderToolbar 
@@ -161,6 +261,9 @@ export default function ChapterReader() {
         autoScrollSpeed={autoScrollSpeed}
         isKbdPaused={isKbdPaused}
         dragToScroll={dragToScroll}
+        readingMode={readingMode}
+        onReadingModeChange={setReadingMode}
+        readerTheme={readerTheme}
         onClose={() => setActiveChapter(null)}
         onOpenInBrowser={openInBrowser}
         onToggleAutoScroll={() => setAutoScrollEnabled(!autoScrollEnabled)}
@@ -168,35 +271,42 @@ export default function ChapterReader() {
       />
 
       <div 
-        ref={scrollRef} 
+        ref={(el) => {
+          // @ts-ignore - assigned to both ref and state
+          scrollRef.current = el
+          setScrollEl(el)
+        }} 
         tabIndex={0} 
         {...dragHandlers}
         className={cn(
-          "flex-1 bg-neutral-950 relative outline-none overscroll-contain no-scrollbar", 
+          "flex-1 relative outline-none overscroll-contain no-scrollbar", 
           isVertical ? "overflow-y-auto" : "overflow-hidden", 
+
           isHorizontalContinuous && "overflow-x-auto overflow-y-hidden flex flex-row", 
           dragToScroll && (isDragging ? "cursor-grabbing" : "cursor-grab"), 
           dragToScroll && "select-none"
         )}
       >
-        <div className="flex flex-col w-full">
+        <div className={cn("flex", isHorizontalContinuous ? (readingMode === 'continuous-rtl' ? "flex-row-reverse w-max h-full" : "flex-row w-max h-full") : "flex-col w-full")}>
           {loadedChapters.map((chapter) => (
             <ChapterSection 
               key={chapter.id} 
               chapter={chapter} 
               mangaId={selectedManga.id} 
-              pkg={activeExtension} 
+              pkg={resolvedPkg} 
               readingMode={readingMode} 
+              readerTheme={readerTheme}
               onHalfway={handleHalfway} 
               onVisible={handleVisible} 
-              onLoaded={(count) => setTotalPages(count)} 
+              onLoaded={handleLoaded} 
               onPageVisible={handlePageVisible} 
               currentPage={currentPage} 
               onNextPage={pagedNext} 
               onPrevPage={pagedPrev} 
               isDragging={isDragging} 
               dragMoved={dragMoved.current} 
-              scrollRoot={scrollRef.current} 
+              scrollRoot={scrollEl} 
+              zoomLevel={zoomLevel} 
             />
           ))}
           
@@ -214,11 +324,37 @@ export default function ChapterReader() {
       </div>
 
       {totalPages > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 h-1 bg-neutral-900/50 z-[110]">
+        <div 
+          className="fixed bottom-0 left-0 right-0 h-1 hover:h-1.5 bg-neutral-900/50 z-[110] cursor-pointer group transition-all"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl'
+            const ratio = isRtl ? (1 - (x / rect.width)) : (x / rect.width)
+            const targetPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
+            
+            if (isVertical || isHorizontalContinuous) {
+              const pageEl = scrollRef.current?.querySelector(`[data-page-index="${targetPage - 1}"]`)
+              if (pageEl) {
+                pageEl.scrollIntoView({ behavior: 'smooth' })
+              }
+            } else {
+              setCurrentPage(targetPage)
+            }
+          }}
+          title="Seek Page"
+        >
           <div 
-            className="h-full bg-primary transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary),0.6)]" 
+            className={cn(
+              "absolute top-0 bottom-0 bg-primary transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary),0.6)]",
+              (readingMode === 'paged-rtl' || readingMode === 'continuous-rtl') ? "right-0" : "left-0"
+            )}
             style={{ width: `${(currentPage / totalPages) * 100}%` }} 
-          />
+          >
+            <div className="absolute right-0 bottom-full mb-1.5 opacity-0 group-hover:opacity-100 bg-neutral-800 border border-neutral-700 text-[10px] px-2 py-1 rounded shadow-xl pointer-events-none transition-opacity text-white font-mono whitespace-nowrap translate-x-1/2 tracking-wider font-bold">
+               PAGE {currentPage} / {totalPages}
+            </div>
+          </div>
         </div>
       )}
     </div>

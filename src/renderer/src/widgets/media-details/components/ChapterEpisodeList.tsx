@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { 
-  Search, RefreshCw, Play, Download, 
-  CheckCircle, Loader2, Trash2
+import {
+  Search, RefreshCw, Play, Download,
+  CheckCircle, Loader2, Trash2, CalendarDays
 } from 'lucide-react'
 import { Button, Input, ErrorState, ChapterItemSkeleton } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
@@ -11,6 +11,7 @@ import { Chapter } from '@renderer/shared/api/sources/types'
 interface ChapterEpisodeListProps {
   items: Chapter[]
   readChapterIds: string[]
+  pageProgress?: Record<string, number>
   downloadStatuses: Record<string, 'pending' | 'downloading' | 'completed' | 'error' | 'paused' | 'none'>
   mediaType: 'manga' | 'anime'
   isLoading?: boolean
@@ -25,6 +26,7 @@ interface ChapterEpisodeListProps {
 export const ChapterEpisodeList = ({
   items,
   readChapterIds,
+  pageProgress = {},
   downloadStatuses,
   mediaType,
   isLoading,
@@ -41,12 +43,12 @@ export const ChapterEpisodeList = ({
 
   const isAnime = mediaType === 'anime'
   const prefix = isAnime ? (extLang === 'ar' ? 'الحلقة' : 'Episode') : (extLang === 'ar' ? 'الفصل' : 'Chapter')
-  
+
   const filteredItems = useMemo(() => {
     const safeItems = Array.isArray(items) ? items : []
     let result = [...safeItems]
     if (search) {
-      result = result.filter(item => 
+      result = result.filter(item =>
         item.number?.toString().toLowerCase().includes(search.toLowerCase()) ||
         item.title?.toLowerCase().includes(search.toLowerCase())
       )
@@ -108,7 +110,7 @@ export const ChapterEpisodeList = ({
       )}
 
       {error && (!items || !items.length) && (
-        <ErrorState 
+        <ErrorState
           title="Failed to fetch items"
           message={error}
           onRetry={onRefresh}
@@ -121,7 +123,7 @@ export const ChapterEpisodeList = ({
         {filteredItems.map((item) => {
           const isRead = readChapterIds.includes(item.id)
           const downloadStatus = downloadStatuses[item.id] || 'none'
-          
+
           return (
             <div
               key={item.id}
@@ -139,12 +141,32 @@ export const ChapterEpisodeList = ({
                   )}>
                     {prefix} {item.number}
                   </span>
-                  {isRead && <CheckCircle className="h-3 w-3 text-primary fill-primary/10" />}
+                  {isRead && <CheckCircle className="h-3 w-3 text-primary fill-primary/10 flex-shrink-0" />}
+
+                  {/* Partial Progress */}
+                  {pageProgress[item.id] > 1 && !isRead && (
+                    <span className="text-[9px] uppercase font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded ml-1 whitespace-nowrap flex-shrink-0">
+                      {isAnime ? `${Math.floor(pageProgress[item.id] / 60)}m` : `Page ${pageProgress[item.id]}`}
+                    </span>
+                  )}
+
+                  {/* Most Recently Read */}
+                  {isRead && readChapterIds[readChapterIds.length - 1] === item.id && (
+                    <span className="text-[9px] uppercase font-bold bg-secondary/80 text-secondary-foreground px-1.5 py-0.5 rounded ml-1 whitespace-nowrap flex-shrink-0">
+                      Last Read
+                    </span>
+                  )}
                 </div>
                 {item.title && (
                   <p className="text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
                     {item.title}
                   </p>
+                )}
+                {item.date && (
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium">
+                    <CalendarDays className="h-3 w-3" />
+                    <span dir='auto'>{item.date}</span>
+                  </div>
                 )}
               </div>
 

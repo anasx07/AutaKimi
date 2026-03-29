@@ -43,11 +43,20 @@ export const useKeyboardControls = (
       if (e.code === autoScrollShortcuts.slow) setIsKbdSlowed(false)
     }
 
+    const handleBlur = () => {
+      setIsKbdPaused(false)
+      setIsKbdReversing(false)
+      setIsKbdBoosted(false)
+      setIsKbdSlowed(false)
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
     }
   }, [autoScrollEnabled, autoScrollShortcuts, setAutoScrollEnabled])
 

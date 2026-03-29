@@ -8,6 +8,7 @@ import { Button, Input, Card, Badge, Select, Dialog } from '@renderer/shared/ui'
 const catalogModules = import.meta.glob('../../shared/api/sources/catalog/extensions/*.json', { eager: true });
 const localExtensions = Object.values(catalogModules).flatMap((m: any) => m.default || m);
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
+import { generatedSourcesJson } from '@renderer/shared/api/sources/SourceRegistry'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
 import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
 
@@ -383,6 +384,7 @@ export default function ExtensionsManager() {
                     const fullySupported = isFullySupported(ext.pkg)
 
                     if (native) {
+                      const isHandwritten = !(generatedSourcesJson as any)[ext.pkg] || (generatedSourcesJson as any)[ext.pkg].baseClass === 'Native'
                       return (
                         <div className="flex flex-wrap gap-1 items-center">
                           {fullySupported ? (
@@ -394,11 +396,13 @@ export default function ExtensionsManager() {
                               NOT YET SUPPORTED
                             </Badge>
                           )}
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 font-medium whitespace-nowrap">
-                            Native ⚡
-                          </Badge>
+                          {isHandwritten && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 font-medium whitespace-nowrap">
+                              Native ⚡
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-500 border-blue-500/20 uppercase font-medium truncate max-w-[60px]">
-                            {native.theme}
+                            {native.theme || (generatedSourcesJson as any)[ext.pkg]?.baseClass || 'CUSTOM-API'}
                           </Badge>
                         </div>
                       )

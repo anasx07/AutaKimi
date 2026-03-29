@@ -1,10 +1,13 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import obfuscator from 'vite-plugin-javascript-obfuscator'
 
 export default defineConfig({
   main: {
     build: {
+      bytecode: true,
+      sourcemap: false,
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
@@ -13,7 +16,12 @@ export default defineConfig({
       }
     }
   },
-  preload: {},
+  preload: {
+    build: {
+      bytecode: true,
+      sourcemap: false
+    }
+  },
   renderer: {
     resolve: {
       alias: {
@@ -21,6 +29,27 @@ export default defineConfig({
         '@common': resolve('src/common')
       }
     },
-    plugins: [react()]
+    build: {
+      sourcemap: false
+    },
+    plugins: [
+      react(),
+      obfuscator({
+        options: {
+          compact: true,
+          controlFlowFlattening: true,
+          controlFlowFlatteningThreshold: 0.75,
+          numbersToExpressions: true,
+          simplify: true,
+          stringArray: true,
+          stringArrayCallsTransform: true,
+          stringArrayThreshold: 0.75,
+          splitStrings: true,
+          splitStringsChunkLength: 10,
+          unicodeEscapeSequence: true,
+          reservedStrings: ['@renderer/pages/.*']
+        }
+      })
+    ]
   }
 })

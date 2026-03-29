@@ -152,6 +152,11 @@ export class DownloadManager implements AppService {
     this.activeDownloads.set(key, false)
   }
 
+  async deleteDownload(mangaId: string, chapterId: string) {
+    this.cancelDownload(mangaId, chapterId)
+    return downloadRepo.remove(mangaId, chapterId)
+  }
+
   async getStatus(mangaId: string, chapterId: string) {
     return downloadRepo.get(mangaId, chapterId)
   }

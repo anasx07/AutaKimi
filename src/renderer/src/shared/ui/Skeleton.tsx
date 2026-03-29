@@ -61,3 +61,22 @@ export function HeroSkeleton() {
     </div>
   )
 }
+
+export function HistoryItemSkeleton() {
+  return (
+    <div className="flex items-start rounded-md gap-4 p-4 bg-card border border-border/40">
+      <Skeleton className="w-24 h-32 rounded flex-shrink-0" />
+      <div className="flex-1 min-w-0 flex flex-col justify-center space-y-3 pt-1">
+        <Skeleton variant="text" className="w-3/4 h-4" />
+        <Skeleton variant="text" className="w-1/3 h-3 opacity-70" />
+        <div className="flex flex-col pt-2 space-y-2">
+          <Skeleton variant="text" className="w-1/4 h-2 opacity-50" />
+          <Skeleton variant="text" className="w-1/5 h-2 opacity-50" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pt-1">
+        <Skeleton variant="circular" className="w-8 h-8 opacity-40" />
+      </div>
+    </div>
+  )
+}

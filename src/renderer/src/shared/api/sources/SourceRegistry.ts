@@ -23,7 +23,7 @@ export class SourceRegistry {
     // 1. Check generated sources (Manga base classes)
     const meta = (generatedSourcesJson as any)[pkg]
     if (meta) {
-      let instance: ISourceAdapter
+      let instance: ISourceAdapter | undefined
       if (meta.baseClass === 'Madara') {
         instance = new MadaraSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id, false, meta.customSelectors)
       } else if (meta.baseClass === 'Iken') {
@@ -32,13 +32,13 @@ export class SourceRegistry {
         instance = new MangaThemesiaSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, '', false, meta.customSelectors)
       } else if (meta.baseClass === 'ZeistManga') {
         instance = new ZeistMangaSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id)
-      } else {
-        return null
       }
 
-      this.applyDomainOverride(pkg, instance)
-      this.instances.set(pkg, instance)
-      return instance
+      if (instance) {
+        this.applyDomainOverride(pkg, instance)
+        this.instances.set(pkg, instance)
+        return instance
+      }
     }
 
     // 2. Check native registry (Handwritten sources)

@@ -48,6 +48,7 @@ const api: ElectronApi = {
     getStatus: (args) => ipcRenderer.invoke(IpcChannel.GET_DOWNLOAD_STATUS, args),
     getMangaDownloads: (mangaId) => ipcRenderer.invoke(IpcChannel.GET_MANGA_DOWNLOADS, mangaId),
     getAllMangaDownloads: (type) => ipcRenderer.invoke(IpcChannel.DOWNLOAD_GET_ALL_MANGA, type),
+    remove: (args) => ipcRenderer.invoke(IpcChannel.REMOVE_DOWNLOAD, args),
   },
   onAppUpdate: (callback) => {
     const subscription = (_event: any, data: any) => callback(data)

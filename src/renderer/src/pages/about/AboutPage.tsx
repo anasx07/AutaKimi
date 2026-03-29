@@ -39,20 +39,20 @@ export default function AboutPage() {
         </div>
 
         <div className="space-y-4">
-          <h1 className="text-7xl font-black tracking-tighter bg-gradient-to-r from-neutral-100 via-neutral-400 to-neutral-200 bg-clip-text text-transparent">
+          <h1 className="text-7xl font-black tracking-tighter bg-gradient-to-r from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent">
             AutaKimi
           </h1>
           <div className="flex items-center justify-center gap-3">
             <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30 rounded-full px-4 py-1 text-xs font-black tracking-widest shadow-lg animate-in zoom-in-50 duration-500">
               v{version}
             </Badge>
-            <Badge variant="outline" className="text-[10px] uppercase tracking-[0.3em] font-bold border-white/5 opacity-50 px-3 py-1 rounded-full">
+            <Badge variant="outline" className="text-[10px] uppercase tracking-[0.3em] font-bold border-border/50 opacity-70 px-3 py-1 rounded-full">
               Stable Build
             </Badge>
           </div>
         </div>
 
-        <p className="text-xl text-neutral-400 max-w-2xl leading-relaxed italic font-medium">
+        <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed italic font-medium">
           The ultimate open-source manga & anime experience for desktop.
           Built for speed, designed for stability, and powered by you.
         </p>
@@ -66,7 +66,7 @@ export default function AboutPage() {
           </Button>
           <Button
             variant="outline"
-            className="gap-2.5 rounded-2xl px-8 h-12 border-neutral-800 bg-white/5 backdrop-blur-sm hover:bg-white/10 font-bold transition-all"
+            className="gap-2.5 rounded-2xl px-8 h-12 border-border/50 bg-secondary/50 backdrop-blur-sm hover:bg-secondary font-bold transition-all"
             onClick={() => DataService.openExternal('https://anasx07.github.io/AutaKimi-Release/')}>
             <ExternalLink className="h-5 w-5" />
             Official Site
@@ -81,16 +81,16 @@ export default function AboutPage() {
           return (
             <Card
               key={idx}
-              className="p-8 bg-neutral-900/40 backdrop-blur-xl border-white/5 space-y-5 hover:border-primary/40 hover:bg-neutral-900/60 transition-all duration-500 group shadow-2xl hover:shadow-primary/5"
+              className="p-8 bg-card backdrop-blur-xl border-border/50 space-y-5 hover:border-primary/40 hover:bg-secondary/50 transition-all duration-500 group shadow-2xl hover:shadow-primary/5"
             >
-              <div className="w-14 h-14 rounded-2xl bg-neutral-800 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500 border border-white/5 group-hover:border-primary/20">
+              <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500 border border-border/50 group-hover:border-primary/20">
                 <Icon className="h-7 w-7" />
               </div>
               <div className="space-y-2">
-                <h3 className="font-black text-xl uppercase tracking-tighter italic text-neutral-100">
+                <h3 className="font-black text-xl uppercase tracking-tighter italic text-foreground">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-neutral-500 leading-relaxed font-medium">
+                <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                   {feature.description}
                 </p>
               </div>
@@ -104,22 +104,22 @@ export default function AboutPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center gap-3">
             <Badge className="bg-primary/10 text-primary p-1.5 rounded-lg border-primary/20"><Info className="h-5 w-5" /></Badge>
-            <h2 className="text-xl font-black uppercase tracking-tighter italic text-neutral-100">
+            <h2 className="text-xl font-black uppercase tracking-tighter italic text-foreground">
               Project Brief
             </h2>
           </div>
-          <Card className="p-8 border-white/5 bg-neutral-900/40 backdrop-blur-sm space-y-6">
-            <p className="text-neutral-400 leading-relaxed font-medium">
+          <Card className="p-8 border-border/50 bg-card backdrop-blur-sm space-y-6">
+            <p className="text-muted-foreground leading-relaxed font-medium">
               AutaKimi is a community-driven project dedicated to creating the most stable and performant platform for digital media consumption. We focus on lightweight architecture and extensible design to support a diverse range of sources while respecting user privacy.
             </p>
-            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between pt-4 border-t border-border/50">
               <div className="space-y-1">
-                <p className="text-sm font-bold text-neutral-100">Development Team</p>
-                <p className="text-xs text-neutral-500">Codixy Contributors Leaded by @anasx07</p>
+                <p className="text-sm font-bold text-foreground">Development Team</p>
+                <p className="text-xs text-muted-foreground">Codixy Contributors Leaded by @anasx07</p>
               </div>
               <div className="flex -space-x-3">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-neutral-900 bg-neutral-800 flex items-center justify-center text-xs font-black text-neutral-400 shadow-xl">
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-xs font-black text-muted-foreground shadow-xl">
                     {i === 1 ? 'AN' : i === 2 ? 'GR' : 'AV'}
                   </div>
                 ))}
@@ -131,13 +131,13 @@ export default function AboutPage() {
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <Badge className="bg-primary/10 text-primary p-1.5 rounded-lg border-primary/20"><Shield className="h-5 w-5" /></Badge>
-            <h2 className="text-xl font-black uppercase tracking-tighter italic text-neutral-100">
+            <h2 className="text-xl font-black uppercase tracking-tighter italic text-foreground">
               Licensing
             </h2>
           </div>
-          <Card className="p-8 border-white/5 bg-neutral-900/40 flex flex-col items-center text-center justify-center space-y-4">
-            <Badge className="bg-neutral-800 text-neutral-400 font-mono text-[10px] tracking-widest border-white/5">MIT LICENSE</Badge>
-            <p className="text-xs text-neutral-500 leading-relaxed font-medium">
+          <Card className="p-8 border-border/50 bg-card flex flex-col items-center text-center justify-center space-y-4">
+            <Badge className="bg-secondary text-muted-foreground font-mono text-[10px] tracking-widest border-border/50">MIT LICENSE</Badge>
+            <p className="text-xs text-muted-foreground leading-relaxed font-medium">
               Copyright © 2026 AutaKimi Contributors. Free to use, fork, and adapt.
             </p>
             <Button variant="ghost" size="sm" className="text-primary text-[10px] font-black uppercase tracking-widest gap-2">
@@ -149,8 +149,8 @@ export default function AboutPage() {
 
       {/* Footer */}
       <div className="pt-20 pb-12 text-center space-y-4">
-        <div className="h-px w-32 bg-gradient-to-r from-transparent via-neutral-800 to-transparent mx-auto" />
-        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-700 animate-pulse">
+        <div className="h-px w-32 bg-gradient-to-r from-transparent via-border to-transparent mx-auto" />
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/40 animate-pulse">
           Crafted with passion for the manga community
         </p>
       </div>
