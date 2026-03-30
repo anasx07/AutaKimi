@@ -1,7 +1,7 @@
 {
   "name": "autakimi",
   "productName": "AutaKimi",
-  "version": "1.0.54",
+  "version": "1.0.55",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
