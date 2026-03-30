@@ -6,6 +6,7 @@ export type ToastType = 'error' | 'success' | 'warn' | 'info'
 
 export interface Toast {
   id: string
+  title?: string
   message: string
   type: ToastType
   duration?: number
@@ -29,7 +30,7 @@ export interface UIState {
   setUpdateError: (error: string | null) => void
   setIsCfBypassing: (val: boolean, domain?: string | null) => void
   setViewMode: (mode: ViewMode) => void
-  _init: (settings: SettingsSchema) => void
+  _init: (settings: SettingsSchema['ui']) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -74,7 +75,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   _init: (settings) => {
     set({
-      viewMode: settings.ui?.viewMode || 'grid'
+      viewMode: settings?.viewMode || 'grid'
     })
   }
 }))

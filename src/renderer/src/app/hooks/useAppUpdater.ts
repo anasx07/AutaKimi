@@ -4,7 +4,7 @@ import { DataService } from '@renderer/shared/api'
 
 interface AppUpdateData {
   status?: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error'
-  progress?: object | null
+  progress?: { percent: number } | null
   error?: string | null
 }
 
