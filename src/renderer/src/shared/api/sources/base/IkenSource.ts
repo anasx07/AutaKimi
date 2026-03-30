@@ -20,8 +20,8 @@ export class IkenSource implements ISourceAdapter {
   protected async fetchApi(endpoint: string): Promise<any> {
     const url = endpoint.startsWith('http') ? endpoint : `${this.apiUrl}${endpoint}`
     const headers: Record<string, string> = {
-      'Referer': `${this.baseUrl}/`,
-      'Accept': 'application/json, text/plain, */*',
+      Referer: `${this.baseUrl}/`,
+      Accept: 'application/json, text/plain, */*'
     }
 
     const res: any = await DataService.fetchText(url, { headers })
@@ -35,17 +35,23 @@ export class IkenSource implements ISourceAdapter {
   }
 
   async fetchPopular(page: number): Promise<MangaPage> {
-    const data = await this.fetchApi(`/api/query?page=${page}&perPage=18&searchTerm=&seriesStatus=&seriesType=&orderBy=totalViews&orderDirection=desc`)
+    const data = await this.fetchApi(
+      `/api/query?page=${page}&perPage=18&searchTerm=&seriesStatus=&seriesType=&orderBy=totalViews&orderDirection=desc`
+    )
     return this.parseMangaPage(data)
   }
 
   async fetchLatest(page: number): Promise<MangaPage> {
-    const data = await this.fetchApi(`/api/query?page=${page}&perPage=18&searchTerm=&seriesStatus=&seriesType=&orderBy=lastChapterAddedAt&orderDirection=desc`)
+    const data = await this.fetchApi(
+      `/api/query?page=${page}&perPage=18&searchTerm=&seriesStatus=&seriesType=&orderBy=lastChapterAddedAt&orderDirection=desc`
+    )
     return this.parseMangaPage(data)
   }
 
   async searchManga(query: string, page: number): Promise<MangaPage> {
-    const data = await this.fetchApi(`/api/query?page=${page}&perPage=18&searchTerm=${encodeURIComponent(query)}&seriesStatus=&seriesType=&orderBy=lastChapterAddedAt&orderDirection=desc`)
+    const data = await this.fetchApi(
+      `/api/query?page=${page}&perPage=18&searchTerm=${encodeURIComponent(query)}&seriesStatus=&seriesType=&orderBy=lastChapterAddedAt&orderDirection=desc`
+    )
     return this.parseMangaPage(data)
   }
 
@@ -62,7 +68,7 @@ export class IkenSource implements ISourceAdapter {
         status: p.seriesStatus || 'Unknown'
       }))
 
-    const hasNextPage = data.totalCount > (data.posts.length + (data.page ? (data.page - 1) * 18 : 0))
+    const hasNextPage = data.totalCount > data.posts.length + (data.page ? (data.page - 1) * 18 : 0)
     return { manga, hasNextPage: !!hasNextPage }
   }
 
@@ -83,7 +89,8 @@ export class IkenSource implements ISourceAdapter {
         return {
           ...manga,
           id: String(mangaData.id || manga.id),
-          description: mangaData.postContent?.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, "") || '',
+          description:
+            mangaData.postContent?.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, '') || '',
           genres: mangaData.genres?.map((g: any) => g.name || '').filter(Boolean) || [],
           status: mangaData.seriesStatus || manga.status,
           author: mangaData.author || undefined,
@@ -111,13 +118,13 @@ export class IkenSource implements ISourceAdapter {
       const chapters = props?.post?.chapters || props?.chapters
 
       if (chapters && Array.isArray(chapters)) {
-         return chapters.map((c: any) => ({
-             id: String(c.id),
-             title: `Chapter ${c.number}`,
-             url: `${this.baseUrl}/series/${props?.post?.slug || c.slug}/${c.slug}#${c.id}`,
-             number: parseFloat(c.number) || 0,
-             date: c.createdAt
-         }))
+        return chapters.map((c: any) => ({
+          id: String(c.id),
+          title: `Chapter ${c.number}`,
+          url: `${this.baseUrl}/series/${props?.post?.slug || c.slug}/${c.slug}#${c.id}`,
+          number: parseFloat(c.number) || 0,
+          date: c.createdAt
+        }))
       }
     } catch (e) {}
 
@@ -138,7 +145,7 @@ export class IkenSource implements ISourceAdapter {
       const images = props?.data?.images || props?.images?.images
 
       if (images && Array.isArray(images)) {
-          return images.map((img: any) => img.url?.replace(/ /g, '%20')).filter(Boolean)
+        return images.map((img: any) => img.url?.replace(/ /g, '%20')).filter(Boolean)
       }
     } catch (e) {}
 

@@ -7,7 +7,7 @@ import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
 import animeSources from '@renderer/shared/api/sources/Anime.json'
 import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
 
-const ANIME_SOURCE_PKGS = animeSources.map(s => s.pkg)
+const ANIME_SOURCE_PKGS = animeSources.map((s) => s.pkg)
 
 export default function ExtensionsPage() {
   const {
@@ -24,9 +24,9 @@ export default function ExtensionsPage() {
 
   const sortedExtensions = useMemo(() => {
     return [...installedExtensions]
-      .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
-      .filter(ext => selectedLang === 'all' || ext.lang === selectedLang)
-      .filter(ext => {
+      .filter((ext) => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+      .filter((ext) => selectedLang === 'all' || ext.lang === selectedLang)
+      .filter((ext) => {
         if (!searchQuery) return true
         const lowQuery = searchQuery.toLowerCase()
         return ext.name.toLowerCase().includes(lowQuery) || ext.pkg.toLowerCase().includes(lowQuery)
@@ -41,42 +41,49 @@ export default function ExtensionsPage() {
   }, [installedExtensions, pinnedExtensions, selectedLang, searchQuery])
 
   const availableLangs = useMemo(() => {
-    const langs = new Set([...installedExtensions]
-      .filter(ext => !ANIME_SOURCE_PKGS.includes(ext.pkg))
-      .map(ext => ext.lang))
-    return ['all', ...Array.from(langs).sort((a, b) => {
-      const nameA = LANGUAGE_NAMES[a.toLowerCase()] || a
-      const nameB = LANGUAGE_NAMES[b.toLowerCase()] || b
-      return nameA.localeCompare(nameB)
-    })]
+    const langs = new Set(
+      [...installedExtensions]
+        .filter((ext) => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+        .map((ext) => ext.lang)
+    )
+    return [
+      'all',
+      ...Array.from(langs).sort((a, b) => {
+        const nameA = LANGUAGE_NAMES[a.toLowerCase()] || a
+        const nameB = LANGUAGE_NAMES[b.toLowerCase()] || b
+        return nameA.localeCompare(nameB)
+      })
+    ]
   }, [installedExtensions])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="flex flex-col h-full w-full max-w-7xl mx-auto p-6 space-y-6 animate-in fade-in duration-500 overflow-hidden">
+      {/* Header and Filter Controls */}
+      <div className="flex flex-col space-y-6 shrink-0">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="flex flex-col space-y-1.5">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Manga Browse</h1>
           <p className="text-muted-foreground text-sm">
             {activeSubTab === 'sources'
-              ? "Manage your installed sources and explore their contents."
-              : "Search for manga across all your installed extensions."}
+              ? 'Manage your installed sources and explore their contents.'
+              : 'Search for manga across all your installed extensions.'}
           </p>
         </div>
 
         <div className="relative flex items-center bg-secondary/60 p-1 rounded-xl w-fit border border-white/5 self-start sm:self-auto">
-          <div 
+          <div
             className={cn(
-              "absolute top-1 bottom-1 w-[130px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none",
-              activeSubTab === 'search' ? "translate-x-full" : "translate-x-0"
+              'absolute top-1 bottom-1 w-[130px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none',
+              activeSubTab === 'search' ? 'translate-x-full' : 'translate-x-0'
             )}
           />
           <button
             onClick={() => setActiveSubTab('sources')}
             className={cn(
-              "relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none",
+              'relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
               activeSubTab === 'sources'
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <Package className="h-3.5 w-3.5" />
@@ -85,10 +92,10 @@ export default function ExtensionsPage() {
           <button
             onClick={() => setActiveSubTab('search')}
             className={cn(
-              "relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none",
+              'relative z-10 flex items-center justify-center gap-2 h-9 w-[130px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
               activeSubTab === 'search'
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <SearchIcon className="h-3.5 w-3.5" />
@@ -105,13 +112,13 @@ export default function ExtensionsPage() {
                 key={lang}
                 onClick={() => setSelectedLang(lang)}
                 className={cn(
-                  "px-4 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap",
+                  'px-4 py-1.5 text-xs font-semibold rounded-full border transition-all whitespace-nowrap',
                   selectedLang === lang
-                    ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
-                    : "bg-secondary/20 border-border/50 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border"
+                    ? 'bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20'
+                    : 'bg-secondary/20 border-border/50 text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:border-border'
                 )}
               >
-                {lang === 'all' ? 'All' : (LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase())}
+                {lang === 'all' ? 'All' : LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase()}
               </button>
             ))}
           </div>
@@ -127,6 +134,11 @@ export default function ExtensionsPage() {
           </div>
         </div>
       )}
+      </div>
+
+      {/* Extensions - Scrollable Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-2 scroll-smooth">
+        <div className="space-y-6 pb-20">
 
       {activeSubTab === 'search' ? (
         <GlobalSearch />
@@ -137,7 +149,10 @@ export default function ExtensionsPage() {
               <Package className="h-16 w-16 stroke-[1] text-muted-foreground/30" />
               <div className="text-center space-y-1">
                 <p className="text-lg font-medium text-foreground">No extensions installed yet</p>
-                <p className="text-sm">Go to the <span className="text-primary font-semibold">Extensions</span> tab to discover and install new sources.</p>
+                <p className="text-sm">
+                  Go to the <span className="text-primary font-semibold">Extensions</span> tab to
+                  discover and install new sources.
+                </p>
               </div>
             </div>
           ) : (
@@ -148,9 +163,10 @@ export default function ExtensionsPage() {
                   <Card
                     key={ext.pkg}
                     className={cn(
-                      "group p-5 bg-card/50 backdrop-blur-sm hover:bg-secondary/30 transition-all duration-300 hover:shadow-xl border-border/40",
-                      "animate-in fade-in slide-in-from-bottom-4",
-                      isPinned && "border-primary/30 ring-1 ring-primary/10 shadow-lg shadow-primary/5 bg-primary/[0.02]"
+                      'group p-5 bg-card/50 backdrop-blur-sm hover:bg-secondary/30 transition-all duration-300 hover:shadow-xl border-border/40',
+                      'animate-in fade-in slide-in-from-bottom-4',
+                      isPinned &&
+                        'border-primary/30 ring-1 ring-primary/10 shadow-lg shadow-primary/5 bg-primary/[0.02]'
                     )}
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
@@ -164,17 +180,22 @@ export default function ExtensionsPage() {
                                   const pkg = ext.pkg
                                   const isAnime = ANIME_SOURCE_PKGS.includes(pkg)
                                   const folder = isAnime ? 'Animeicon' : 'Extensionicon'
-                                  const localPath = new URL(`../../app/assets/${folder}/${pkg}.png`, import.meta.url).href
-                                  if (localPath && !localPath.includes('undefined')) return localPath
-                                } catch (e) { }
+                                  const localPath = new URL(
+                                    `../../app/assets/${folder}/${pkg}.png`,
+                                    import.meta.url
+                                  ).href
+                                  if (localPath && !localPath.includes('undefined'))
+                                    return localPath
+                                } catch (e) {}
                                 return `autakimi-cache://local-icon/${ext.pkg}.png`
                               })()}
                               alt={ext.name}
                               className="w-full h-full object-contain"
                               onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
-                                if (fallback) fallback.classList.remove('hidden');
+                                e.currentTarget.style.display = 'none'
+                                const fallback =
+                                  e.currentTarget.parentElement?.querySelector('.fallback-icon')
+                                if (fallback) fallback.classList.remove('hidden')
                               }}
                             />
                             <Package className="w-8 h-8 text-muted-foreground/50 fallback-icon hidden" />
@@ -190,8 +211,13 @@ export default function ExtensionsPage() {
                             {ext.name}
                           </h3>
                           <div className="flex items-center gap-2 shrink-0">
-                            {isPinned && <Pin className="h-3 w-3 text-primary fill-primary animate-in zoom-in" />}
-                            <Badge variant="secondary" className="shrink-0 flex items-center gap-1.5 px-2 py-0 border-primary/20 bg-primary/10 text-primary uppercase font-bold text-[10px]">
+                            {isPinned && (
+                              <Pin className="h-3 w-3 text-primary fill-primary animate-in zoom-in" />
+                            )}
+                            <Badge
+                              variant="secondary"
+                              className="shrink-0 flex items-center gap-1.5 px-2 py-0 border-primary/20 bg-primary/10 text-primary uppercase font-bold text-[10px]"
+                            >
                               {LANGUAGE_NAMES[ext.lang.toLowerCase()] || ext.lang.toUpperCase()}
                             </Badge>
                           </div>
@@ -219,14 +245,14 @@ export default function ExtensionsPage() {
                               size="icon"
                               onClick={() => togglePin(ext.pkg)}
                               className={cn(
-                                "h-9 w-9 shrink-0 transition-all border-transparent",
+                                'h-9 w-9 shrink-0 transition-all border-transparent',
                                 isPinned
-                                  ? "text-primary bg-primary/10 hover:bg-primary/20 hover:text-primary border-primary/20"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                                  ? 'text-primary bg-primary/10 hover:bg-primary/20 hover:text-primary border-primary/20'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                               )}
-                              title={isPinned ? "Unpin" : "Pin"}
+                              title={isPinned ? 'Unpin' : 'Pin'}
                             >
-                              <Pin className={cn("h-4 w-4", isPinned && "fill-current")} />
+                              <Pin className={cn('h-4 w-4', isPinned && 'fill-current')} />
                             </Button>
 
                             <Button
@@ -259,6 +285,8 @@ export default function ExtensionsPage() {
           )}
         </>
       )}
+        </div>
+      </div>
     </div>
   )
 }

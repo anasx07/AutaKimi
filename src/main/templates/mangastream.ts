@@ -1,10 +1,10 @@
-import { NetworkConfig } from '../../common/config/network';
-import { ScrapingTemplate } from './index';
+import { NetworkConfig } from '../../common/config/network'
+import { ScrapingTemplate } from './index'
 
 export const MangaStreamTemplate: ScrapingTemplate = {
   name: 'mangastream',
   generate: (baseUrl: string) => {
-    const ua = NetworkConfig.DEFAULT_UA;
+    const ua = NetworkConfig.DEFAULT_UA
     return `
 const baseUrl = ${JSON.stringify(baseUrl)};
 
@@ -106,6 +106,6 @@ $(selectors.join(', ')).each((i, el) => {
 });
 
 return { data: items };
-`;
+`
   }
-};
+}

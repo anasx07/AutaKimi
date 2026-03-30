@@ -4,8 +4,11 @@ import { MadaraSource } from './base/MadaraSource'
 import { IkenSource } from './base/IkenSource'
 import { MangaThemesiaSource } from './base/MangaThemesiaSource'
 import { ZeistMangaSource } from './base/ZeistMangaSource'
-const metadataModules = import.meta.glob('./catalog/generated/*.json', { eager: true });
-export const generatedSourcesJson = Object.assign({}, ...Object.values(metadataModules).map((m: any) => m.default || m));
+const metadataModules = import.meta.glob('./catalog/generated/*.json', { eager: true })
+export const generatedSourcesJson = Object.assign(
+  {},
+  ...Object.values(metadataModules).map((m: any) => m.default || m)
+)
 
 export class SourceRegistry {
   private static instances: Map<string, ISourceAdapter> = new Map()
@@ -25,13 +28,46 @@ export class SourceRegistry {
     if (meta) {
       let instance: ISourceAdapter | undefined
       if (meta.baseClass === 'Madara') {
-        instance = new MadaraSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id, false, meta.customSelectors)
+        instance = new MadaraSource(
+          meta.id,
+          meta.name,
+          meta.version,
+          meta.baseUrl,
+          meta.lang,
+          meta.id,
+          false,
+          meta.customSelectors
+        )
       } else if (meta.baseClass === 'Iken') {
-        instance = new IkenSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.apiUrl || meta.baseUrl, meta.lang, meta.id)
+        instance = new IkenSource(
+          meta.id,
+          meta.name,
+          meta.version,
+          meta.baseUrl,
+          meta.apiUrl || meta.baseUrl,
+          meta.lang,
+          meta.id
+        )
       } else if (meta.baseClass === 'MangaThemesia') {
-        instance = new MangaThemesiaSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, '', false, meta.customSelectors)
+        instance = new MangaThemesiaSource(
+          meta.id,
+          meta.name,
+          meta.version,
+          meta.baseUrl,
+          meta.lang,
+          '',
+          false,
+          meta.customSelectors
+        )
       } else if (meta.baseClass === 'ZeistManga') {
-        instance = new ZeistMangaSource(meta.id, meta.name, meta.version, meta.baseUrl, meta.lang, meta.id)
+        instance = new ZeistMangaSource(
+          meta.id,
+          meta.name,
+          meta.version,
+          meta.baseUrl,
+          meta.lang,
+          meta.id
+        )
       }
 
       if (instance) {

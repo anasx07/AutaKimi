@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
-    showStack: false,
+    showStack: false
   }
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
@@ -122,4 +122,3 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary
-

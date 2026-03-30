@@ -16,23 +16,23 @@ export class TrayManager {
 
   public createTray(mainWindow: BrowserWindow, iconPath: string): void {
     this.mainWindow = mainWindow
-    
+
     // Create native image for tray
     const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
     this.tray = new Tray(icon)
-    
+
     const contextMenu = Menu.buildFromTemplate([
-      { 
-        label: 'Show App', 
-        click: () => this.showWindow() 
+      {
+        label: 'Show App',
+        click: () => this.showWindow()
       },
       { type: 'separator' },
-      { 
-        label: 'Quit AutaKimi', 
+      {
+        label: 'Quit AutaKimi',
         click: () => {
           ;(app as any).isQuitting = true
           app.quit()
-        } 
+        }
       }
     ])
 

@@ -33,26 +33,26 @@ function ToastItem({ toast }: { toast: ToastType }) {
   }
 
   const styles = {
-    error: "border-destructive/20 bg-destructive/10 text-destructive-foreground",
-    success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-50 text-foreground",
-    warn: "border-amber-500/20 bg-amber-500/10 text-amber-50 text-foreground",
-    info: "border-blue-500/20 bg-blue-500/10 text-blue-50 text-foreground"
+    error: 'border-destructive/20 bg-destructive/10 text-destructive-foreground',
+    success: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-50 text-foreground',
+    warn: 'border-amber-500/20 bg-amber-500/10 text-amber-50 text-foreground',
+    info: 'border-blue-500/20 bg-blue-500/10 text-blue-50 text-foreground'
   }
 
   return (
-    <div className={cn(
-      "pointer-events-auto flex items-start gap-3 px-4 py-3 min-w-[300px] max-w-md rounded-xl border backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-right-10 duration-300",
-      styles[toast.type]
-    )}>
-      <div className="mt-0.5">
-        {icons[toast.type]}
-      </div>
+    <div
+      className={cn(
+        'pointer-events-auto flex items-start gap-3 px-4 py-3 min-w-[300px] max-w-md rounded-xl border backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-right-10 duration-300',
+        styles[toast.type]
+      )}
+    >
+      <div className="mt-0.5">{icons[toast.type]}</div>
       <div className="flex-1 flex flex-col gap-0.5">
         {toast.title && <h4 className="text-sm font-bold leading-none">{toast.title}</h4>}
         <p className="text-sm font-medium leading-relaxed opacity-90">{toast.message}</p>
       </div>
-      <button 
-        onClick={() => removeToast(toast.id)} 
+      <button
+        onClick={() => removeToast(toast.id)}
         className="ml-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-1 transition-colors self-start"
       >
         <X className="h-4 w-4" />

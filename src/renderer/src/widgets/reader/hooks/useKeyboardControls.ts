@@ -24,11 +24,15 @@ export const useKeyboardControls = (
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return
 
       // Prevent repeat firing for toggle/pause keys
-      if (e.repeat && (e.code === autoScrollShortcuts.pause || e.code === autoScrollShortcuts.toggle)) return
-      
+      if (
+        e.repeat &&
+        (e.code === autoScrollShortcuts.pause || e.code === autoScrollShortcuts.toggle)
+      )
+        return
+
       if (e.code === autoScrollShortcuts.pause) {
-         e.preventDefault()
-         setIsKbdPaused(true)
+        e.preventDefault()
+        setIsKbdPaused(true)
       }
       if (e.code === autoScrollShortcuts.reverse) setIsKbdReversing(true)
       if (e.code === autoScrollShortcuts.boost) setIsKbdBoosted(true)

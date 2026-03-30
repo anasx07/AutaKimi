@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
+import { SettingsSchema } from '@common/types'
 
 export interface ExtensionMetadata {
   pkg: string
@@ -10,13 +11,9 @@ export interface ExtensionMetadata {
   version: string
 }
 
-interface ExtensionState {
+type ExtensionState = SettingsSchema['extensions'] & {
   installedExtensions: ExtensionMetadata[]
-  pinnedExtensions: string[]
   activeExtension: string | null
-  extensionSortBy: 'name' | 'installed' | 'update' | 'supported'
-  extensionSortOrder: 'asc' | 'desc'
-  domainOverrides: Record<string, string>
 
   // Actions
   setInstalledExtensions: (exts: ExtensionMetadata[]) => void
@@ -28,14 +25,15 @@ interface ExtensionState {
   loadInstalled: () => Promise<void>
   uninstallExtension: (pkg: string) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
-  
+
   // Init
-  _init: (installed: ExtensionMetadata[], settings: Record<string, string>) => void
+  _init: (installed: ExtensionMetadata[], settings: SettingsSchema['extensions']) => void
 }
 
 export const useExtensionStore = create<ExtensionState>((set) => ({
   installedExtensions: [],
   pinnedExtensions: [],
+  pinnedAnimeSources: [],
   activeExtension: null,
   extensionSortBy: 'supported',
   extensionSortOrder: 'asc',
@@ -69,44 +67,30 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
 
   uninstallExtension: async (pkg) => {
     await DataService.db.removeExtension(pkg)
-    set((state) => ({ 
+    set((state) => ({
       installedExtensions: state.installedExtensions.filter((e) => e.pkg !== pkg),
-      pinnedExtensions: state.pinnedExtensions.filter(p => p !== pkg)
+      pinnedExtensions: state.pinnedExtensions.filter((p) => p !== pkg)
     }))
   },
 
   togglePin: async (pkg) => {
     set((state) => {
       const isPinned = state.pinnedExtensions.includes(pkg)
-      const nextPinned = isPinned 
-        ? state.pinnedExtensions.filter(p => p !== pkg)
+      const nextPinned = isPinned
+        ? state.pinnedExtensions.filter((p) => p !== pkg)
         : [...state.pinnedExtensions, pkg]
-      
+
       // Persist
       DataService.db.setSetting('pinned_extensions', nextPinned.join(','))
-      
+
       return { pinnedExtensions: nextPinned }
     })
   },
 
   _init: (installed, settings) => {
-    const overrides: Record<string, string> = {}
-    if (installed) {
-      for (const ext of installed) {
-        const domain = settings[`domain_override_${ext.pkg}`]
-        if (domain) overrides[ext.pkg] = domain
-      }
-    }
-
-    const pinnedStr = settings.pinned_extensions || ''
-    const pinned = pinnedStr ? pinnedStr.split(',') : []
-
     set({
-      installedExtensions: installed || [],
-      pinnedExtensions: pinned,
-      domainOverrides: overrides,
-      extensionSortBy: (settings.extension_sort_by as any) || 'supported',
-      extensionSortOrder: (settings.extension_sort_order as any) || 'asc',
+      ...settings,
+      installedExtensions: installed || []
     })
   }
 }))

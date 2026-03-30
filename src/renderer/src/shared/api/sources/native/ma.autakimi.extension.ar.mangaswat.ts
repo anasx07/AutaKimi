@@ -23,9 +23,9 @@ export class MangaSwat implements ISourceAdapter {
     const url = endpoint.startsWith('http') ? endpoint : `${this.apiUrl}${endpoint}`
     const headers: Record<string, string> = {
       'User-Agent': 'ktor-client',
-      'Accept': 'application/json, text/plain, */*',
-      'Origin': this.baseUrl,
-      'Referer': `${this.baseUrl}/`
+      Accept: 'application/json, text/plain, */*',
+      Origin: this.baseUrl,
+      Referer: `${this.baseUrl}/`
     }
 
     const res: any = await DataService.fetchText(url, { headers })
@@ -61,7 +61,7 @@ export class MangaSwat implements ISourceAdapter {
         seen.add(String(s.id))
         const statStr = this.extractName(s.status) || 'Ongoing'
         const dateStr = item.created_at_humanized || ''
-        
+
         manga.push({
           id: String(s.id),
           title: s.title,
@@ -88,7 +88,7 @@ export class MangaSwat implements ISourceAdapter {
         seen.add(String(s.id))
         const statStr = this.extractName(s.status) || 'Ongoing'
         const dateStr = item.created_at_humanized || ''
-        
+
         manga.push({
           id: String(s.id),
           title: s.title,
@@ -126,7 +126,9 @@ export class MangaSwat implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const id = /^\d+$/.test(manga.id) ? manga.id : (manga.url || '').split('/').filter(Boolean).pop()
+    const id = /^\d+$/.test(manga.id)
+      ? manga.id
+      : (manga.url || '').split('/').filter(Boolean).pop()
     const data = await this.fetchApi(`/series/${id}/`)
     if (!data) return manga
 
@@ -185,13 +187,15 @@ export class MangaSwat implements ISourceAdapter {
 
     // 1. Try 'images' field (most common in this API)
     if (data.images && Array.isArray(data.images)) {
-      return data.images.map((img: any) => img.image || img.url || (typeof img === 'string' ? img : ''))
+      return data.images
+        .map((img: any) => img.image || img.url || (typeof img === 'string' ? img : ''))
         .filter(Boolean)
     }
 
     // 2. Try 'pages' field (alternative)
     if (data.pages && Array.isArray(data.pages)) {
-      return data.pages.map((p: any) => p.image || p.url || (typeof p === 'string' ? p : ''))
+      return data.pages
+        .map((p: any) => p.image || p.url || (typeof p === 'string' ? p : ''))
         .filter(Boolean)
     }
 

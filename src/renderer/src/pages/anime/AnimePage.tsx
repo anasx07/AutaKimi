@@ -1,16 +1,31 @@
 import { useState, useMemo } from 'react'
-import { ExternalLink, Play, ArrowLeft, Search, Loader2, LayoutGrid, List, Pin, PinOff } from 'lucide-react'
-import { Button, Badge, Card, Input, ErrorState, MediaCardSkeleton, MediaGrid } from '@renderer/shared/ui'
+import {
+  ExternalLink,
+  Play,
+  ArrowLeft,
+  Search,
+  Loader2,
+  LayoutGrid,
+  List,
+  Pin,
+  PinOff
+} from 'lucide-react'
+import {
+  Button,
+  Badge,
+  Card,
+  Input,
+  ErrorState,
+  MediaCardSkeleton,
+  MediaGrid
+} from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { useExtensionStore } from '@renderer/shared/model'
+import { useExtensionStore, useUIStore, useLibraryStore } from '@renderer/shared/model'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
-import { useLibraryStore, useSettingsStore } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import animeExtensions from '@renderer/shared/api/anime-sources/Anime.json'
 import { getAnimeSource } from '@renderer/shared/api/anime-sources'
-
-
 
 interface AnimeExtensionJSON {
   pkg: string
@@ -22,8 +37,8 @@ interface AnimeExtensionJSON {
 }
 
 export default function AnimePage() {
-  const { installedExtensions } = useExtensionStore()
-  const { displayMode, setDisplayMode, pinnedAnimeSources, togglePinnedAnimeSource } = useSettingsStore()
+  const { installedExtensions, pinnedAnimeSources, togglePin } = useExtensionStore()
+  const { viewMode, setViewMode } = useUIStore()
   const { setSelectedManga } = useLibraryStore()
 
   const [activeAnimePkg, setActiveAnimePkg] = useState<string | null>(null)
@@ -32,61 +47,74 @@ export default function AnimePage() {
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
 
   // Display all anime extensions defined in our metadata
-  const displayExtensions = useMemo(() =>
-    (animeExtensions as AnimeExtensionJSON[])
-      .map(ae => {
-        const installed = installedExtensions.find(ie => ie.pkg === ae.pkg)
-        return {
-          ...(installed || {
-            pkg: ae.pkg,
-            name: ae.name,
-            lang: ae.lang,
-            baseUrl: ae.sources[0]?.baseUrl || '',
-            version: ae.version,
-            icon: ae.pkg
-          }),
-          isSupported: ae.isSupported
-        }
-      })
-      .sort((a, b) => {
-        const aPinned = pinnedAnimeSources.includes(a.pkg)
-        const bPinned = pinnedAnimeSources.includes(b.pkg)
-        if (aPinned && !bPinned) return -1
-        if (!aPinned && bPinned) return 1
-        return 0
-      }),
+  const displayExtensions = useMemo(
+    () =>
+      (animeExtensions as AnimeExtensionJSON[])
+        .map((ae) => {
+          const installed = installedExtensions.find((ie) => ie.pkg === ae.pkg)
+          return {
+            ...(installed || {
+              pkg: ae.pkg,
+              name: ae.name,
+              lang: ae.lang,
+              baseUrl: ae.sources[0]?.baseUrl || '',
+              version: ae.version,
+              icon: ae.pkg
+            }),
+            isSupported: ae.isSupported
+          }
+        })
+        .sort((a, b) => {
+          const aPinned = pinnedAnimeSources.includes(a.pkg)
+          const bPinned = pinnedAnimeSources.includes(b.pkg)
+          if (aPinned && !bPinned) return -1
+          if (!aPinned && bPinned) return 1
+          return 0
+        }),
     [installedExtensions, pinnedAnimeSources]
   )
 
-  const activeSource = useMemo(() =>
-    activeAnimePkg ? getAnimeSource(activeAnimePkg) : null,
+  const activeSource = useMemo(
+    () => (activeAnimePkg ? getAnimeSource(activeAnimePkg) : null),
     [activeAnimePkg]
   )
 
-  const feedLabels = useMemo(() =>
-    activeSource?.getFeedLabels?.() || {
-      popular: 'Popular',
-      latest: 'Latest',
-      search: 'Search'
-    },
+  const feedLabels = useMemo(
+    () =>
+      activeSource?.getFeedLabels?.() || {
+        popular: 'Popular',
+        latest: 'Latest',
+        search: 'Search'
+      },
     [activeSource]
   )
 
   const { metadata } = useExtensionMetadata(activeAnimePkg)
 
-  const filters = useMemo(() => ({
-    selectedDemographics: [] as string[],
-    selectedStatus: [] as string[],
-    selectedTags: [] as string[],
-  }), [])
+  const filters = useMemo(
+    () => ({
+      selectedDemographics: [] as string[],
+      selectedStatus: [] as string[],
+      selectedTags: [] as string[]
+    }),
+    []
+  )
 
-  const { mangaList, loading, error, paginationError, hasMore, lastElementRef, refresh, retryPagination } =
-    useMangaPagination({
-      activeExtension: activeAnimePkg,
-      activeFeed,
-      debouncedSearch,
-      filters,
-    })
+  const {
+    mangaList,
+    loading,
+    error,
+    paginationError,
+    hasMore,
+    lastElementRef,
+    refresh,
+    retryPagination
+  } = useMangaPagination({
+    activeExtension: activeAnimePkg,
+    activeFeed,
+    debouncedSearch,
+    filters
+  })
 
   // Debounce search
   const handleSearch = (v: string) => {
@@ -115,7 +143,9 @@ export default function AnimePage() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50 ml-1">Available Sources</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50 ml-1">
+            Available Sources
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {displayExtensions.map((ext) => (
               <Card
@@ -125,7 +155,9 @@ export default function AnimePage() {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/10 overflow-hidden">
                     <img
-                      src={new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url).href}
+                      src={
+                        new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url).href
+                      }
                       className="w-full h-full object-contain p-1"
                       onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
@@ -185,7 +217,8 @@ export default function AnimePage() {
                   <img
                     src={(() => {
                       try {
-                        return new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url).href
+                        return new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url)
+                          .href
                       } catch {
                         return ''
                       }
@@ -207,12 +240,13 @@ export default function AnimePage() {
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "absolute top-0 right-0 h-6 w-6 rounded-bl-xl rounded-tr-none bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/80 hover:text-white z-10",
-                      pinnedAnimeSources.includes(ext.pkg) && "opacity-100 text-primary bg-primary/20"
+                      'absolute top-0 right-0 h-6 w-6 rounded-bl-xl rounded-tr-none bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/80 hover:text-white z-10',
+                      pinnedAnimeSources.includes(ext.pkg) &&
+                        'opacity-100 text-primary bg-primary/20'
                     )}
                     onClick={(e) => {
                       e.stopPropagation()
-                      togglePinnedAnimeSource(ext.pkg)
+                      togglePin(ext.pkg)
                     }}
                   >
                     {pinnedAnimeSources.includes(ext.pkg) ? (
@@ -224,19 +258,29 @@ export default function AnimePage() {
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">{ext.name}</h3>
+                    <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">
+                      {ext.name}
+                    </h3>
                     <div className="flex items-center gap-1.5 shrink-0">
                       {ext.isSupported && (
-                        <Badge variant="secondary" className="text-[9px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter">
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter"
+                        >
                           Supported
                         </Badge>
                       )}
-                      <Badge variant="secondary" className="text-[10px] px-2 h-4 bg-primary/10 text-primary border-primary/20 uppercase font-bold">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-2 h-4 bg-primary/10 text-primary border-primary/20 uppercase font-bold"
+                      >
                         {ext.lang}
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono mt-0.5 opacity-50 truncate">{ext.pkg}</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5 opacity-50 truncate">
+                    {ext.pkg}
+                  </p>
                   <Button
                     className="mt-3 h-8 text-xs gap-1.5 w-full bg-primary hover:bg-primary/90"
                     onClick={(e) => {
@@ -262,12 +306,16 @@ export default function AnimePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => {
-            setActiveAnimePkg(null)
-            setSearchQuery('')
-            setDebouncedSearch('')
-            setActiveFeed('popular')
-          }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setActiveAnimePkg(null)
+              setSearchQuery('')
+              setDebouncedSearch('')
+              setActiveFeed('popular')
+            }}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -276,7 +324,9 @@ export default function AnimePage() {
             </h1>
             {metadata?.baseUrl && (
               <p className="text-xs text-primary font-medium hover:underline cursor-pointer">
-                <a href={metadata.baseUrl} target="_blank" rel="noreferrer">{metadata.baseUrl}</a>
+                <a href={metadata.baseUrl} target="_blank" rel="noreferrer">
+                  {metadata.baseUrl}
+                </a>
               </p>
             )}
           </div>
@@ -285,10 +335,13 @@ export default function AnimePage() {
         <div className="flex items-center gap-3">
           {/* Feed tabs */}
           <div className="flex bg-secondary/30 p-1 rounded-lg border border-border overflow-hidden">
-            {(['popular', 'latest', 'search'] as const).map(feed => (
+            {(['popular', 'latest', 'search'] as const).map((feed) => (
               <button
                 key={feed}
-                onClick={() => { setActiveFeed(feed); if (feed !== 'search') setSearchQuery('') }}
+                onClick={() => {
+                  setActiveFeed(feed)
+                  if (feed !== 'search') setSearchQuery('')
+                }}
                 className={cn(
                   'px-4 py-1.5 rounded-md text-sm font-medium transition-all capitalize',
                   activeFeed === feed
@@ -303,15 +356,29 @@ export default function AnimePage() {
 
           {/* Display mode toggle */}
           <div className="flex bg-secondary/30 p-1 rounded-lg border border-border">
-            <Button variant="ghost" size="sm"
-              onClick={() => setDisplayMode('grid')}
-              className={cn('p-1.5 h-8 w-8 rounded-md transition-all', displayMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'p-1.5 h-8 w-8 rounded-md transition-all',
+                viewMode === 'grid'
+                  ? 'bg-background shadow-sm text-primary'
+                  : 'text-muted-foreground'
+              )}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm"
-              onClick={() => setDisplayMode('list')}
-              className={cn('p-1.5 h-8 w-8 rounded-md transition-all', displayMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={cn(
+                'p-1.5 h-8 w-8 rounded-md transition-all',
+                viewMode === 'list'
+                  ? 'bg-background shadow-sm text-primary'
+                  : 'text-muted-foreground'
+              )}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -346,7 +413,9 @@ export default function AnimePage() {
           message={error}
           onRetry={refresh}
           onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-          onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')}
+          onReport={() =>
+            window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
+          }
           details={{ source: metadata?.name || activeAnimePkg, ext: activeAnimePkg, err: error }}
         />
       )}
@@ -354,7 +423,7 @@ export default function AnimePage() {
       {/* Grid / List */}
       {mangaList.length > 0 && (
         <div className="space-y-6">
-          {displayMode === 'grid' ? (
+          {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 items-start content-start">
               {mangaList.map((anime, idx) => (
                 <Card
@@ -380,7 +449,9 @@ export default function AnimePage() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                      <p className="text-[11px] text-white/80 line-clamp-3 leading-relaxed">{anime.description}</p>
+                      <p className="text-[11px] text-white/80 line-clamp-3 leading-relaxed">
+                        {anime.description}
+                      </p>
                     </div>
                     {/* Play overlay button */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -390,15 +461,24 @@ export default function AnimePage() {
                     </div>
                   </div>
                   <div className="p-3 space-y-1">
-                    <h3 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug" dir="auto">
+                    <h3
+                      className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug"
+                      dir="auto"
+                    >
                       {anime.title}
                     </h3>
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] text-muted-foreground opacity-70 truncate" dir="auto">
+                      <span
+                        className="text-[10px] text-muted-foreground opacity-70 truncate"
+                        dir="auto"
+                      >
                         {anime.status?.split(' • ')[0]}
                       </span>
                       {anime.status?.includes(' • ') && (
-                        <Badge variant="outline" className="h-4 text-[8px] px-1 border-primary/30 text-primary shrink-0">
+                        <Badge
+                          variant="outline"
+                          className="h-4 text-[8px] px-1 border-primary/30 text-primary shrink-0"
+                        >
                           {anime.status.split(' • ')[1]}
                         </Badge>
                       )}
@@ -421,7 +501,12 @@ export default function AnimePage() {
                 >
                   <div className="w-16 h-24 shrink-0 bg-secondary/30 rounded-lg overflow-hidden border border-border/50 shadow-sm relative">
                     {anime.coverUrl ? (
-                      <img src={anime.coverUrl} alt={anime.title} className="w-full h-full object-cover" loading="lazy" />
+                      <img
+                        src={anime.coverUrl}
+                        alt={anime.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Play className="h-5 w-5 text-primary/30" />
@@ -430,14 +515,23 @@ export default function AnimePage() {
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center py-1 gap-1">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-base line-clamp-1 group-hover:text-primary transition-colors" dir="auto">
+                      <h3
+                        className="font-bold text-base line-clamp-1 group-hover:text-primary transition-colors"
+                        dir="auto"
+                      >
                         {anime.title}
                       </h3>
-                      <Badge variant="secondary" className="shrink-0 text-[10px] h-5 px-2 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 text-[10px] h-5 px-2 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider"
+                      >
                         {anime.status?.[0] || 'TV'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-80" dir="auto">
+                    <p
+                      className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-80"
+                      dir="auto"
+                    >
                       {anime.description || anime.status}
                     </p>
                   </div>
@@ -451,7 +545,9 @@ export default function AnimePage() {
             {loading && hasMore && (
               <div className="flex flex-col items-center gap-3 py-10">
                 <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold animate-pulse">Loading More</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold animate-pulse">
+                  Loading More
+                </span>
               </div>
             )}
             {paginationError && (
@@ -460,14 +556,20 @@ export default function AnimePage() {
                 title="Pagination Failed"
                 message={paginationError}
                 onRetry={retryPagination}
-                onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
-                onReport={() => window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')}
+                onWebView={() =>
+                  metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
+                }
+                onReport={() =>
+                  window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
+                }
               />
             )}
             {!hasMore && !paginationError && mangaList.length > 0 && (
               <div className="flex items-center gap-4 w-full py-10">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent to-border/50" />
-                <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-[0.3em]">End of results</p>
+                <p className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-[0.3em]">
+                  End of results
+                </p>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent to-border/50" />
               </div>
             )}

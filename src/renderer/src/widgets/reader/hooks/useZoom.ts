@@ -15,7 +15,7 @@ export const useZoom = (
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault()
-        setZoomLevel(prev => {
+        setZoomLevel((prev) => {
           // e.deltaY > 0 means scroll down -> zoom out
           const newZoom = prev + (e.deltaY > 0 ? -step : step)
           return Math.max(minZoom, Math.min(newZoom, maxZoom))

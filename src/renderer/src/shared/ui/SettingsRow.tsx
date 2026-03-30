@@ -9,13 +9,19 @@ interface SettingsRowProps {
   onClick?: () => void
 }
 
-export const SettingsRow = ({ title, description, children, className, onClick }: SettingsRowProps) => {
+export const SettingsRow = ({
+  title,
+  description,
+  children,
+  className,
+  onClick
+}: SettingsRowProps) => {
   return (
-    <div 
+    <div
       onClick={onClick}
       className={cn(
-        "p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors",
-        onClick && "cursor-pointer active:bg-secondary/40",
+        'p-5 flex items-center justify-between group hover:bg-secondary/20 transition-colors',
+        onClick && 'cursor-pointer active:bg-secondary/40',
         className
       )}
     >

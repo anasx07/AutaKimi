@@ -7,7 +7,12 @@ interface ProgressState {
 
   // Actions
   loadProgress: (mangaId: string) => Promise<void>
-  markChapterRead: (mangaId: string, chapterId: string, isRead: boolean, lastPage?: number) => Promise<void>
+  markChapterRead: (
+    mangaId: string,
+    chapterId: string,
+    isRead: boolean,
+    lastPage?: number
+  ) => Promise<void>
 }
 
 export const useProgressStore = create<ProgressState>((set) => ({
@@ -17,9 +22,11 @@ export const useProgressStore = create<ProgressState>((set) => ({
   loadProgress: async (mangaId) => {
     try {
       const rows = await DataService.db.getProgress(mangaId)
-      const readIds = rows.filter(r => !!r.isRead).map(r => r.chapterId)
+      const readIds = rows.filter((r) => !!r.isRead).map((r) => r.chapterId)
       const pagesMap: Record<string, number> = {}
-      rows.forEach(r => { if (r.lastPage > 0) pagesMap[r.chapterId] = r.lastPage })
+      rows.forEach((r) => {
+        if (r.lastPage > 0) pagesMap[r.chapterId] = r.lastPage
+      })
 
       set((state) => ({
         readingProgress: { ...state.readingProgress, [mangaId]: readIds },
@@ -37,7 +44,7 @@ export const useProgressStore = create<ProgressState>((set) => ({
         const current = state.readingProgress[mangaId] || []
         const next = isRead
           ? [...new Set([...current, chapterId])]
-          : current.filter(id => id !== chapterId)
+          : current.filter((id) => id !== chapterId)
 
         const currentPageMap = state.pageProgress[mangaId] || {}
         const nextPageMap = { ...currentPageMap }
@@ -51,5 +58,5 @@ export const useProgressStore = create<ProgressState>((set) => ({
     } catch (error) {
       console.error('Failed to update progress:', error)
     }
-  },
+  }
 }))

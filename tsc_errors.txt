@@ -1,4 +1,0 @@
-
-> autakimi@1.0.54 typecheck:web
-> tsc --noEmit -p tsconfig.web.json --composite false
-

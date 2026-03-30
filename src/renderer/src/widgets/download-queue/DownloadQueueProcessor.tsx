@@ -3,13 +3,21 @@ import { useDownloadStore } from '@renderer/shared/model'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { DataService } from '@renderer/shared/api'
 
-export default function DownloadQueueProcessor() {
-  const { downloadQueue, isFetchingPages, removeFromDownloadQueue, setIsFetchingPages } = useDownloadStore()
+export default function DownloadQueueProcessor(): null {
+  const { downloadQueue, isFetchingPages, removeFromDownloadQueue, setIsFetchingPages } =
+    useDownloadStore()
 
-  useEffect(() => {
-    let mounted = true;
+  // Maintenance: Reset isFetchingPages on mount if queue is empty
+  useEffect((): void => {
+    if (downloadQueue.length === 0) {
+      setIsFetchingPages(false)
+    }
+  }, [downloadQueue.length, setIsFetchingPages])
 
-    const processQueue = async () => {
+  useEffect((): (() => void) => {
+    let mounted = true
+
+    const processQueue = async (): Promise<void> => {
       if (downloadQueue.length === 0 || isFetchingPages) return
 
       const nextItem = downloadQueue[0]
@@ -20,7 +28,7 @@ export default function DownloadQueueProcessor() {
       try {
         const runner = await ExtensionResolver.resolve(nextItem.extension)
         if (!runner) throw new Error('Extension not found')
-        
+
         const pages = await runner.fetchPages(nextItem.chapter.url || nextItem.chapter.id)
         if (!pages || pages.length === 0) throw new Error('No pages found')
 
@@ -29,24 +37,34 @@ export default function DownloadQueueProcessor() {
           await DataService.download.start({
             mangaId: nextItem.mangaId,
             chapterId: nextItem.chapter.id,
-            pageUrls: pages
+            pageUrls: pages,
+            type: nextItem.type,
+            mangaTitle: nextItem.mangaTitle,
+            extensionName: nextItem.extensionName || nextItem.extension,
+            chapterTitle: nextItem.chapter.title || `Chapter ${nextItem.chapter.number}`
           })
-          console.log(`[Queue Processor] Handed off chapter ${nextItem.chapter.id} to main process download manager.`)
+          console.log(
+            `[Queue Processor] Handed off chapter ${nextItem.chapter.id} to main process download manager.`
+          )
         }
-      } catch (e: any) {
-        console.error(`[Queue Processor] Failed to process queued chapter ${nextItem.chapter.id}:`, e)
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error(
+          `[Queue Processor] Failed to process queued chapter ${nextItem.chapter.id}: ${msg}`
+        )
       } finally {
-        if (mounted) {
-          removeFromDownloadQueue(nextItem.chapter.id)
-          // Add a small 1000ms delay to prevent rate limiting before finishing this fetch job
-          setTimeout(() => setIsFetchingPages(false), 1000)
-        }
+        // ALWAYS clean up state even if unmounted, as the store is global
+        removeFromDownloadQueue(nextItem.chapter.id)
+        // Add a small 1000ms delay to prevent rate limiting
+        setTimeout(() => setIsFetchingPages(false), 1000)
       }
     }
 
     processQueue()
 
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [downloadQueue, isFetchingPages, removeFromDownloadQueue, setIsFetchingPages])
 
   return null // Invisible utility component

@@ -1,12 +1,9 @@
 import { useMemo, useEffect } from 'react'
-import { 
-  useExtensionStore, 
-  useProgressStore 
-} from '@renderer/shared/model'
-import { 
-  useMediaDetails, 
-  useMediaItems, 
-  useIsMediaInLibrary, 
+import { useExtensionStore, useProgressStore } from '@renderer/shared/model'
+import {
+  useMediaDetails,
+  useMediaItems,
+  useIsMediaInLibrary,
   useToggleMediaLibrary,
   MediaType
 } from '@renderer/entities/media/api/useMediaQueries'
@@ -16,9 +13,9 @@ export function useMediaData(type: MediaType, initialMedia: Media | null) {
   const { activeExtension } = useExtensionStore()
   const { loadProgress } = useProgressStore()
 
-  const pkgToUse = initialMedia?.pkg || activeExtension;
-  const mediaId = initialMedia?.id || '';
-  const mediaUrl = initialMedia?.url;
+  const pkgToUse = initialMedia?.pkg || activeExtension
+  const mediaId = initialMedia?.id || ''
+  const mediaUrl = initialMedia?.url
 
   // Queries
   const detailQuery = useMediaDetails(type, mediaId, pkgToUse, mediaUrl)
@@ -35,9 +32,10 @@ export function useMediaData(type: MediaType, initialMedia: Media | null) {
     return {
       ...initialMedia,
       ...fresh,
-      title: (fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title))
-        ? fresh.title
-        : (initialMedia.title || fresh.title)
+      title:
+        fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
+          ? fresh.title
+          : initialMedia.title || fresh.title
     }
   }, [initialMedia, detailQuery.data])
 
@@ -55,8 +53,8 @@ export function useMediaData(type: MediaType, initialMedia: Media | null) {
     toggleLibrary: () => mergedMedia && toggleLibraryMutation.mutate(mergedMedia),
     isToggling: toggleLibraryMutation.isPending,
     refetch: () => {
-       detailQuery.refetch();
-       itemsQuery.refetch();
+      detailQuery.refetch()
+      itemsQuery.refetch()
     }
   }
 }

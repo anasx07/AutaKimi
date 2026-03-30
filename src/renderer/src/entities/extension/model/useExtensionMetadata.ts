@@ -22,14 +22,14 @@ export function useExtensionMetadata(pkg: string | null) {
       try {
         const res = await DataService.db.getExtension(pkg)
         if (res) {
-          setMetadata({ 
-            name: res.name || 'Unknown Source', 
+          setMetadata({
+            name: res.name || 'Unknown Source',
             baseUrl: res.baseUrl || '',
             icon: res.icon
           })
         } else {
           // Check native anime sources
-          const anime = animeExtensions.find(a => a.pkg === pkg)
+          const anime = animeExtensions.find((a) => a.pkg === pkg)
           if (anime) {
             setMetadata({
               name: anime.name,

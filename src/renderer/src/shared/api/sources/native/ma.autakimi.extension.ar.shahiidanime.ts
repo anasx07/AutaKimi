@@ -59,52 +59,55 @@ export class ShahiidAnimeSource extends AnimeSource {
     const manga: Manga[] = []
 
     // Primary: .one-poster (Custom theme), .listupd .bs (Madara fallback), .box-item
-    $('.one-poster, .listupd .bs, .listupd .bsx, article.box-item, .item.anime, .item.series').each((_, el) => {
-      const node = $(el)
-      const a = node.find('a').first()
-      const href = a.attr('href')
-      if (!href) return
+    $('.one-poster, .listupd .bs, .listupd .bsx, article.box-item, .item.anime, .item.series').each(
+      (_, el) => {
+        const node = $(el)
+        const a = node.find('a').first()
+        const href = a.attr('href')
+        if (!href) return
 
-      // Resolve to absolute URL
-      const seriesUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`
-      const title = (
-        node.find('h2 a, .tt, .title, a[title], h3').first().text().trim() ||
-        a.attr('title') ||
-        ''
-      ).replace(/\s+/g, ' ')
-      if (!title) return
+        // Resolve to absolute URL
+        const seriesUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`
+        const title = (
+          node.find('h2 a, .tt, .title, a[title], h3').first().text().trim() ||
+          a.attr('title') ||
+          ''
+        ).replace(/\s+/g, ' ')
+        if (!title) return
 
-      const imgEl = node.find('img').first()
-      const cover = (
-        imgEl.attr('src') ||
-        imgEl.attr('data-src') ||
-        imgEl.attr('data-lazy-src') ||
-        ''
-      )
+        const imgEl = node.find('img').first()
+        const cover =
+          imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || ''
 
-      // Type badge or Rating
-      const typeBadge = (node.find('.typez, .type, span.Type, .rated-poster, .status-poster').first().text().trim() || 'TV').replace(/\s+/g, ' ')
-      const score = node.find('.numscore, .rate, .rating, .rated-poster').first().text().trim()
-      
-      manga.push({
-        id: seriesUrl,
-        title,
-        coverUrl: cover,
-        url: seriesUrl,
-        status: score ? `${typeBadge} • ${score}`.replace(' •  • ', ' • ') : typeBadge,
-        author: '',
-        artist: '',
-        description: '',
-        genres: [],
-        mediaType: 'anime'
-      })
-    })
+        // Type badge or Rating
+        const typeBadge = (
+          node
+            .find('.typez, .type, span.Type, .rated-poster, .status-poster')
+            .first()
+            .text()
+            .trim() || 'TV'
+        ).replace(/\s+/g, ' ')
+        const score = node.find('.numscore, .rate, .rating, .rated-poster').first().text().trim()
+
+        manga.push({
+          id: seriesUrl,
+          title,
+          coverUrl: cover,
+          url: seriesUrl,
+          status: score ? `${typeBadge} • ${score}`.replace(' •  • ', ' • ') : typeBadge,
+          author: '',
+          artist: '',
+          description: '',
+          genres: [],
+          mediaType: 'anime'
+        })
+      }
+    )
 
     // Detect next page
-    const hasNextPage = (
+    const hasNextPage =
       $('.nextpostslink, a.next, .next.page-numbers, .nav-next a').length > 0 ||
       (manga.length > 0 && $('.pages .current').length > 0)
-    )
 
     return { manga, hasNextPage }
   }
@@ -118,10 +121,8 @@ export class ShahiidAnimeSource extends AnimeSource {
     const $ = cheerio.load(html)
 
     // Title
-    const title = (
-      $('h1.entry-title, h1.seriestitle, .head-info h1, h1').first().text().trim() ||
-      manga.title
-    )
+    const title =
+      $('h1.entry-title, h1.seriestitle, .head-info h1, h1').first().text().trim() || manga.title
 
     // Cover — prefer the large image in series header
     let coverUrl = manga.coverUrl
@@ -130,25 +131,27 @@ export class ShahiidAnimeSource extends AnimeSource {
     if (newCover) coverUrl = newCover
 
     // Description
-    const description = (
+    const description =
       $('.entry-content p, .desc p, .synops p, .SeriesInfo p').first().text().trim() ||
       $('.entry-content, .desc, .synops').first().text().trim() ||
       ''
-    )
 
     // Genres
     const genres: string[] = []
-    $('a[href*="/series-cats/"], a[href*="/genre/"], .gen-links a, .seriestugenre a').each((_, el) => {
-      const g = $(el).text().trim()
-      if (g && !genres.includes(g)) genres.push(g)
-    })
+    $('a[href*="/series-cats/"], a[href*="/genre/"], .gen-links a, .seriestugenre a').each(
+      (_, el) => {
+        const g = $(el).text().trim()
+        if (g && !genres.includes(g)) genres.push(g)
+      }
+    )
 
     // Status
     let status = manga.status || ''
     $('div, span').each((_, el) => {
       const text = $(el).text()
       if (text.includes('حالة الأنيمي') || text.includes('حالة الانمي')) {
-        const val = $(el).find('a, span').first().text().trim() ||
+        const val =
+          $(el).find('a, span').first().text().trim() ||
           text.replace(/حالة الأنيمي|حالة الانمي|:/g, '').trim()
         if (val) status = val
       }
@@ -194,12 +197,11 @@ export class ShahiidAnimeSource extends AnimeSource {
        .seasons-list a, 
        .mseason a, 
        .series-seasons a,
-       a:contains("الموسم")`
-    ).each((_, el) => {
+       a:contains("الموسم")`).each((_, el) => {
       const href = $(el).attr('href') || ''
       if (!href) return
       const seasonUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`
-      
+
       // Filter out utility links like ?serie= or search links
       if (seasonUrl.includes('?serie=') || seasonUrl.includes('?s=')) return
 
@@ -226,10 +228,13 @@ export class ShahiidAnimeSource extends AnimeSource {
     $(`a[href*="/episodes/"], 
        a[href*="/episodesDubbed/"],
        .episodelist a,
-       .eplister a`
-    ).each((_, el) => {
+       .eplister a`).each((_, el) => {
       const href = $(el).attr('href') || ''
-      if (href && !directEpisodeLinks.includes(href) && (href.includes('/episodes/') || href.includes('/episodesDubbed/'))) {
+      if (
+        href &&
+        !directEpisodeLinks.includes(href) &&
+        (href.includes('/episodes/') || href.includes('/episodesDubbed/'))
+      ) {
         directEpisodeLinks.push(href)
       }
     })
@@ -260,13 +265,13 @@ export class ShahiidAnimeSource extends AnimeSource {
           id: epUrl,
           title,
           url: epUrl,
-          number: parseFloat(numStr) || (i + 1)
+          number: parseFloat(numStr) || i + 1
         })
       })
     }
 
     // Final deduplication and sort
-    const finalChapters = Array.from(new Map(allChapters.map(c => [c.id, c])).values())
+    const finalChapters = Array.from(new Map(allChapters.map((c) => [c.id, c])).values())
     finalChapters.sort((a, b) => b.number - a.number) // Default to Newest first
     return finalChapters
   }
@@ -290,8 +295,7 @@ export class ShahiidAnimeSource extends AnimeSource {
        .bs a,
        li a[href*="/episodes/"],
        li a[href*="/episodesDubbed/"],
-       .episodelist-series a`
-    ).each((i, el) => {
+       .episodelist-series a`).each((i, el) => {
       const href = $(el).attr('href') || ''
       if (!href || (!href.includes('/episodes/') && !href.includes('/episodesDubbed/'))) return
 
@@ -301,27 +305,31 @@ export class ShahiidAnimeSource extends AnimeSource {
       const epUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`
 
       // Episode title: try title attribute, then text, then generate
-      const rawTitle = (
+      const rawTitle =
         $(el).attr('title') ||
         $(el).find('.epl-title, .epl-num').text().trim() ||
         $(el).text().trim() ||
         ''
-      )
 
       // Try to extract episode number from title or URL slug
       const urlSlug = href.split('/').filter(Boolean).pop() || ''
-      const numMatch = rawTitle.match(/(?:الحلقة|حلقة|ep|episode)\s*(\d+)/i) ||
+      const numMatch =
+        rawTitle.match(/(?:الحلقة|حلقة|ep|episode)\s*(\d+)/i) ||
         rawTitle.match(/(\d+)/) ||
         urlSlug.match(/(\d+)/)
-      const num = numMatch ? parseFloat(numMatch[1]) : (startIndex + i + 1)
+      const num = numMatch ? parseFloat(numMatch[1]) : startIndex + i + 1
 
       // Include season name in title for clarity
       const title = rawTitle || (seasonTitle ? `${seasonTitle} - الحلقة ${num}` : `Episode ${num}`)
 
       // Date
-      const dateStr = $(el).closest('li, article, .epRow').find('.date, .epl-date, time').text().trim()
+      const dateStr = $(el)
+        .closest('li, article, .epRow')
+        .find('.date, .epl-date, time')
+        .text()
+        .trim()
 
-      if (!chapters.find(c => c.url === epUrl)) {
+      if (!chapters.find((c) => c.url === epUrl)) {
         chapters.push({
           id: epUrl,
           title,
@@ -345,16 +353,16 @@ export class ShahiidAnimeSource extends AnimeSource {
    */
   async fetchPages(episodeUrl: string): Promise<any> {
     const html = await this.fetchHtml(episodeUrl)
-    
+
     const debugInfo = {
-        url: episodeUrl,
-        htmlLength: html?.length || 0,
-        isBlocked: this.isCfChallengePage(html),
-        snippet: html ? html.substring(0, 500) : 'EMPTY'
+      url: episodeUrl,
+      htmlLength: html?.length || 0,
+      isBlocked: this.isCfChallengePage(html),
+      snippet: html ? html.substring(0, 500) : 'EMPTY'
     }
 
     if (!html) {
-        return { urls: [episodeUrl], debug: debugInfo }
+      return { urls: [episodeUrl], debug: debugInfo }
     }
 
     const $ = cheerio.load(html)
@@ -387,7 +395,12 @@ export class ShahiidAnimeSource extends AnimeSource {
     // Fallback: look for server tab buttons that hold the embed URL
     if (streamUrls.length === 0) {
       $('.buttosn, .ServerAll a, .ServerLinksTop a, [data-src], [data-embed]').each((_, el) => {
-        const src = ($(el).attr('data-src') || $(el).attr('data-embed') || $(el).attr('href') || '').trim()
+        const src = (
+          $(el).attr('data-src') ||
+          $(el).attr('data-embed') ||
+          $(el).attr('href') ||
+          ''
+        ).trim()
         if (src && src.startsWith('http') && !streamUrls.includes(src)) {
           streamUrls.push(src)
         }
@@ -400,8 +413,8 @@ export class ShahiidAnimeSource extends AnimeSource {
     }
 
     return {
-        urls: streamUrls,
-        debug: debugInfo
+      urls: streamUrls,
+      debug: debugInfo
     }
   }
 }

@@ -15,15 +15,21 @@ interface UseMangaPaginationProps {
   }
 }
 
-export function useMangaPagination({ 
-  activeExtension, 
-  activeFeed, 
+export function useMangaPagination({
+  activeExtension,
+  activeFeed,
   debouncedSearch,
   filters
 }: UseMangaPaginationProps) {
-  const { 
-    listCache, offsetCache, hasMoreCache, batchCountCache,
-    setListCache, setOffsetCache, setHasMoreCache, setBatchCountCache,
+  const {
+    listCache,
+    offsetCache,
+    hasMoreCache,
+    batchCountCache,
+    setListCache,
+    setOffsetCache,
+    setHasMoreCache,
+    setBatchCountCache,
     clearFeedCache
   } = useBrowseCacheStore()
 
@@ -33,15 +39,17 @@ export function useMangaPagination({
   const [refreshKey, setRefreshKey] = useState(0)
   const searchToWatch = activeFeed === 'search' ? debouncedSearch : ''
 
-  // Derived state
-  const mangaList = listCache[activeFeed] || []
+  // Derived state — listCache is a Map, must use .get() not bracket notation
+  const mangaList = listCache.get(activeFeed)?.data || []
   const offset = offsetCache[activeFeed] || 0
   const hasMore = hasMoreCache[activeFeed] !== false
   const lastBatchCount = batchCountCache[activeFeed] || 0
 
   // Helper setters that transparently update the current feed cache
-  const setMangaList = (val: NormalizedManga[] | ((prev: NormalizedManga[]) => NormalizedManga[])) => {
-    const current = listCache[activeFeed] || []
+  const setMangaList = (
+    val: NormalizedManga[] | ((prev: NormalizedManga[]) => NormalizedManga[])
+  ) => {
+    const current = listCache.get(activeFeed)?.data || []
     const next = typeof val === 'function' ? val(current) : val
     setListCache(activeFeed, next)
   }
@@ -65,7 +73,7 @@ export function useMangaPagination({
     hasNextPage: hasMore,
     isFetchingNextPage: loading,
     fetchNextPage: () => {
-      setOffset(prev => prev + (lastBatchCount || (prev === 0 ? 15 : 10)))
+      setOffset((prev) => prev + (lastBatchCount || (prev === 0 ? 15 : 10)))
     }
   })
 
@@ -82,21 +90,25 @@ export function useMangaPagination({
         setLoading(false)
         return
       }
-      
+
       setLoading(true)
       setError(null)
       setPaginationError(null)
       try {
         const limit = offset === 0 ? 15 : 10
         const pkgParts = activeExtension.split('.')
-        const extLang = pkgParts.length >= 5 ? pkgParts[4] : (pkgParts.length >= 3 ? pkgParts[2] : 'all')
-        
+        const extLang =
+          pkgParts.length >= 5 ? pkgParts[4] : pkgParts.length >= 3 ? pkgParts[2] : 'all'
+
+        console.log(`[Browse] Resolving extension: ${activeExtension}, feed: ${activeFeed}, offset: ${offset}`)
         const runner = await ExtensionResolver.resolve(activeExtension)
         if (!runner) {
+          console.warn(`[Browse] Runner not found for pkg: ${activeExtension}`)
           setError('Extension not found')
           setLoading(false)
           return
         }
+        console.log(`[Browse] Runner resolved: ${runner.constructor.name}, baseUrl: ${runner.baseUrl}`)
 
         const page = Math.floor(offset / limit) + 1
         let res: any
@@ -109,21 +121,24 @@ export function useMangaPagination({
           res = await runner.searchManga(searchToWatch, page, { ...filters })
         }
 
-          if (res && res.error && (res.error.includes('403') || res.error.includes('Forbidden'))) {
-            const cfMsg = 'Cloudflare block detected. Please use the Shield icon to solve the challenge.'
-            if (offset === 0) setError(cfMsg)
-            else setPaginationError(cfMsg)
-            return
-          }
-          
-          if (res && res.manga) {
+        console.log(`[Browse] Result for ${activeExtension}: manga=${res?.manga?.length ?? 'N/A'}, hasNextPage=${res?.hasNextPage}, error=${res?.error ?? 'none'}`)
+
+        if (res && res.error && (res.error.includes('403') || res.error.includes('Forbidden'))) {
+          const cfMsg =
+            'Cloudflare block detected. Please use the Shield icon to solve the challenge.'
+          if (offset === 0) setError(cfMsg)
+          else setPaginationError(cfMsg)
+          return
+        }
+
+        if (res && res.manga) {
           const normalized = res.manga.map((m: any) => ({
             ...normalizeManga(m, extLang),
             pkg: activeExtension
           }))
-          setMangaList(prev => {
+          setMangaList((prev) => {
             if (offset === 0) return normalized
-            const existingIds = new Set(prev.map(item => item.id))
+            const existingIds = new Set(prev.map((item) => item.id))
             const newItems = normalized.filter((item: any) => !existingIds.has(item.id))
             return [...prev, ...newItems]
           })
@@ -141,7 +156,7 @@ export function useMangaPagination({
         if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
           msg = 'Access Blocked (403). Try solving the Cloudflare challenge in Web View.'
         }
-        
+
         if (offset === 0) {
           setError(msg)
         } else {
@@ -160,13 +175,22 @@ export function useMangaPagination({
     setOffset(0)
     setError(null)
     setPaginationError(null)
-    setRefreshKey(prev => prev + 1)
+    setRefreshKey((prev) => prev + 1)
   }, [clearFeedCache, activeFeed])
 
   const retryPagination = useCallback(async () => {
     setPaginationError(null)
-    setRefreshKey(prev => prev + 1)
+    setRefreshKey((prev) => prev + 1)
   }, [])
 
-  return { mangaList, loading, error, paginationError, hasMore, lastElementRef, refresh, retryPagination }
+  return {
+    mangaList,
+    loading,
+    error,
+    paginationError,
+    hasMore,
+    lastElementRef,
+    refresh,
+    retryPagination
+  }
 }

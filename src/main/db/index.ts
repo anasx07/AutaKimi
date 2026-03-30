@@ -12,16 +12,16 @@ try {
   console.error('Failed to set userData path:', e)
 }
 
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import * as schema from './schema';
-import { ExtensionRepository } from './repositories/extension.repo';
-import { LibraryRepository } from './repositories/library.repo';
-import { SettingsRepository } from './repositories/settings.repo';
-import { ProgressRepository } from './repositories/progress.repo';
-import { HistoryRepository } from './repositories/history.repo';
-import { DownloadRepository } from './repositories/download.repo';
-import { ChapterRepository } from './repositories/chapter.repo';
-import { MangaCacheRepository } from './repositories/manga_cache.repo';
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import * as schema from './schema'
+import { ExtensionRepository } from './repositories/extension.repo'
+import { LibraryRepository } from './repositories/library.repo'
+import { SettingsRepository } from './repositories/settings.repo'
+import { ProgressRepository } from './repositories/progress.repo'
+import { HistoryRepository } from './repositories/history.repo'
+import { DownloadRepository } from './repositories/download.repo'
+import { ChapterRepository } from './repositories/chapter.repo'
+import { MangaCacheRepository } from './repositories/manga_cache.repo'
 
 const userDataPath = app.getPath('userData')
 if (!fs.existsSync(userDataPath)) {
@@ -57,7 +57,7 @@ const migrate = () => {
       );
     `)
     sqlite.pragma('user_version = 1')
-    currentVersion = 1;
+    currentVersion = 1
   }
 
   // Hotfix: If user_version was prematurely set to 12 or 13, but older tables are missing
@@ -65,18 +65,26 @@ const migrate = () => {
     try {
       sqlite.prepare('SELECT 1 FROM downloads LIMIT 1').get()
     } catch {
-      console.log('[DB] Detected prematurely set user_version. Resetting migration pipeline to v1 to create missing tables.')
-      currentVersion = 1;
+      console.log(
+        '[DB] Detected prematurely set user_version. Resetting migration pipeline to v1 to create missing tables.'
+      )
+      currentVersion = 1
     }
   }
 
   // Migration 2: Fix extension columns (already in initial schema but for legacy v1 users)
   if (currentVersion < 2) {
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN code TEXT;`) } catch (e) {}
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN name TEXT;`) } catch (e) {}
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN baseUrl TEXT;`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN code TEXT;`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN name TEXT;`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN baseUrl TEXT;`)
+    } catch (e) {}
     sqlite.pragma('user_version = 2')
-    currentVersion = 2;
+    currentVersion = 2
   }
 
   if (currentVersion < 3) {
@@ -91,20 +99,26 @@ const migrate = () => {
       );
     `)
     sqlite.pragma('user_version = 3')
-    currentVersion = 3;
+    currentVersion = 3
   }
 
   if (currentVersion < 4) {
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN lang TEXT;`) } catch (e) {}
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN icon TEXT;`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN lang TEXT;`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN icon TEXT;`)
+    } catch (e) {}
     sqlite.pragma('user_version = 4')
-    currentVersion = 4;
+    currentVersion = 4
   }
 
   if (currentVersion < 6) {
-    try { sqlite.exec(`ALTER TABLE extensions ADD COLUMN version TEXT;`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE extensions ADD COLUMN version TEXT;`)
+    } catch (e) {}
     sqlite.pragma('user_version = 6')
-    currentVersion = 6;
+    currentVersion = 6
   }
 
   if (currentVersion < 7) {
@@ -122,21 +136,31 @@ const migrate = () => {
       );
     `)
     sqlite.pragma('user_version = 7')
-    currentVersion = 7;
+    currentVersion = 7
   }
 
   if (currentVersion < 8) {
-    try { sqlite.exec(`ALTER TABLE reading_history ADD COLUMN manga_url TEXT;`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE reading_history ADD COLUMN manga_url TEXT;`)
+    } catch (e) {}
     sqlite.pragma('user_version = 8')
-    currentVersion = 8;
+    currentVersion = 8
   }
 
   if (currentVersion < 9) {
-    try { sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_progress_manga ON reading_progress(manga_id);`) } catch (e) {}
-    try { sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_history_manga ON reading_history(manga_id);`) } catch (e) {}
-    try { sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_history_started ON reading_history(started_at DESC);`) } catch (e) {}
+    try {
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_progress_manga ON reading_progress(manga_id);`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_history_manga ON reading_history(manga_id);`)
+    } catch (e) {}
+    try {
+      sqlite.exec(
+        `CREATE INDEX IF NOT EXISTS idx_history_started ON reading_history(started_at DESC);`
+      )
+    } catch (e) {}
     sqlite.pragma('user_version = 9')
-    currentVersion = 9;
+    currentVersion = 9
   }
 
   if (currentVersion < 10) {
@@ -154,13 +178,15 @@ const migrate = () => {
       CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
     `)
     sqlite.pragma('user_version = 10')
-    currentVersion = 10;
+    currentVersion = 10
   }
 
   if (currentVersion < 11) {
-    try { sqlite.exec(`ALTER TABLE downloads ADD COLUMN page_urls TEXT;`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE downloads ADD COLUMN page_urls TEXT;`)
+    } catch (e) {}
     sqlite.pragma('user_version = 11')
-    currentVersion = 11;
+    currentVersion = 11
   }
 
   if (currentVersion < 12) {
@@ -178,7 +204,7 @@ const migrate = () => {
       CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id);
     `)
     sqlite.pragma('user_version = 12')
-    currentVersion = 12;
+    currentVersion = 12
   }
 
   if (currentVersion < 13) {
@@ -197,47 +223,63 @@ const migrate = () => {
       );
     `)
     sqlite.pragma('user_version = 13')
-    currentVersion = 13;
+    currentVersion = 13
   }
 
   if (currentVersion < 14) {
     sqlite.pragma('user_version = 14')
-    currentVersion = 14;
+    currentVersion = 14
   }
 
   if (currentVersion < 15) {
-    try { sqlite.exec(`ALTER TABLE library ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
-    try { sqlite.exec(`ALTER TABLE downloads ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
-    try { sqlite.exec(`ALTER TABLE manga_cache ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE library ADD COLUMN type TEXT DEFAULT 'manga';`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE downloads ADD COLUMN type TEXT DEFAULT 'manga';`)
+    } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE manga_cache ADD COLUMN type TEXT DEFAULT 'manga';`)
+    } catch (e) {}
     sqlite.pragma('user_version = 15')
-    currentVersion = 15;
+    currentVersion = 15
   }
 
   if (currentVersion < 16) {
-    try { sqlite.exec(`ALTER TABLE reading_history ADD COLUMN type TEXT DEFAULT 'manga';`) } catch (e) {}
+    try {
+      sqlite.exec(`ALTER TABLE reading_history ADD COLUMN type TEXT DEFAULT 'manga';`)
+    } catch (e) {}
     sqlite.pragma('user_version = 16')
-    currentVersion = 16;
+    currentVersion = 16
+  }
+
+  if (currentVersion < 17) {
+    try {
+      sqlite.exec(`ALTER TABLE manga_cache ADD COLUMN expires_at TEXT;`)
+    } catch (e) {}
+    sqlite.pragma('user_version = 17')
+    currentVersion = 17
   }
 }
 
 migrate()
 
 // Initialize Drizzle
-export const ddb = drizzle(sqlite, { schema });
+export const ddb = drizzle(sqlite, { schema })
 
 // Export Repositories
-export const extensionRepo = new ExtensionRepository(ddb);
-export const libraryRepo = new LibraryRepository(ddb);
-export const settingsRepo = new SettingsRepository(ddb);
-export const progressRepo = new ProgressRepository(ddb);
-export const historyRepo = new HistoryRepository(ddb);
-export const downloadRepo = new DownloadRepository(ddb);
-export const chapterRepo = new ChapterRepository(ddb);
-export const mangaCacheRepo = new MangaCacheRepository(ddb);
+export const extensionRepo = new ExtensionRepository(ddb)
+export const libraryRepo = new LibraryRepository(ddb)
+export const settingsRepo = new SettingsRepository(ddb)
+export const progressRepo = new ProgressRepository(ddb)
+export const historyRepo = new HistoryRepository(ddb)
+export const downloadRepo = new DownloadRepository(ddb)
+export const chapterRepo = new ChapterRepository(ddb)
+export const mangaCacheRepo = new MangaCacheRepository(ddb)
 
 // === Startup Cleanup Routine ===
 export const runCleanupRoutine = () => {
-  console.log('[DB] Running startup cleanup routine...');
+  console.log('[DB] Running startup cleanup routine...')
   try {
     // Delete chapters for manga that are NOT in library, history, or downloads
     sqlite.exec(`
@@ -249,7 +291,7 @@ export const runCleanupRoutine = () => {
         UNION
         SELECT manga_id FROM downloads
       )
-    `);
+    `)
 
     // Delete manga_cache for manga that are NOT in library, history, or downloads
     sqlite.exec(`
@@ -261,13 +303,13 @@ export const runCleanupRoutine = () => {
         UNION
         SELECT manga_id FROM downloads
       )
-    `);
-    console.log('[DB] Cleanup finished.');
+    `)
+    console.log('[DB] Cleanup finished.')
   } catch (err) {
-    console.error('[DB] Cleanup failed:', err);
+    console.error('[DB] Cleanup failed:', err)
   }
-};
+}
 
 // Cleanup is now called from main index.ts after window is ready-to-show
 
-export default sqlite;
+export default sqlite

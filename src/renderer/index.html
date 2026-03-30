@@ -1,48 +1,50 @@
 <!doctype html>
 <html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>AutaKimi</title>
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: * autakimi-cache:; frame-src *;"
+    />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <title>AutaKimi</title>
-  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'sha256-zEhl6X6dSNbNBP0iUZ4hioRAHezj5jzeNYcvws6gpSI=' 'sha256-Iny+eh3YweUguXM4c7e6+Ca0tCGbGGUWNVJUp6ItnWE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: * autakimi-cache:; frame-src *;" />
-</head>
+  <body>
+    <script>
+      ;(function () {
+        try {
+          var appState = localStorage.getItem('app-storage')
+          var theme = 'system'
+          var colorTheme = 'default'
 
-<body>
-  <script>
-    (function () {
-      try {
-        var appState = localStorage.getItem('app-storage');
-        var theme = 'system';
-        var colorTheme = 'default';
-
-        if (appState) {
-          var parsed = JSON.parse(appState);
-          if (parsed && parsed.state) {
-            theme = parsed.state.theme || 'system';
-            colorTheme = parsed.state.colorTheme || 'default';
+          if (appState) {
+            var parsed = JSON.parse(appState)
+            if (parsed && parsed.state) {
+              theme = parsed.state.theme || 'system'
+              colorTheme = parsed.state.colorTheme || 'default'
+            }
           }
-        }
 
-        var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        var html = document.documentElement;
+          var isDark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          var html = document.documentElement
 
-        if (isDark) {
-          html.classList.add('dark');
-        } else {
-          html.classList.remove('dark');
-        }
+          if (isDark) {
+            html.classList.add('dark')
+          } else {
+            html.classList.remove('dark')
+          }
 
-        html.classList.remove('theme-solo-leveling', 'theme-my-hero-academia');
-        if (colorTheme !== 'default') {
-          html.classList.add('theme-' + colorTheme);
-        }
-      } catch (e) { }
-    })();
-  </script>
-  <div id="root"></div>
-  <script type="module" src="/src/app/main.tsx"></script>
-</body>
-
+          html.classList.remove('theme-solo-leveling', 'theme-my-hero-academia')
+          if (colorTheme !== 'default') {
+            html.classList.add('theme-' + colorTheme)
+          }
+        } catch (e) {}
+      })()
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/app/main.tsx"></script>
+  </body>
 </html>

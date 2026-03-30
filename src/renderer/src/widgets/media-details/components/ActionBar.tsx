@@ -10,11 +10,11 @@ interface ActionBarProps {
   mediaUrl?: string
 }
 
-export const ActionBar = ({ 
-  isInLibrary, 
-  isPending, 
-  onToggleLibrary, 
-  mediaUrl 
+export const ActionBar = ({
+  isInLibrary,
+  isPending,
+  onToggleLibrary,
+  mediaUrl
 }: ActionBarProps) => {
   return (
     <div className="grid grid-cols-3 gap-3 py-4 px-6 max-w-7xl mx-auto w-full border-b border-border/10">
@@ -23,11 +23,13 @@ export const ActionBar = ({
         onClick={onToggleLibrary}
         disabled={isPending}
         className={cn(
-          "h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold",
-          isInLibrary ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-foreground"
+          'h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold',
+          isInLibrary
+            ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
+            : 'text-muted-foreground hover:text-foreground'
         )}
       >
-        <Heart className={cn("h-5 w-5", isInLibrary && "fill-current")} />
+        <Heart className={cn('h-5 w-5', isInLibrary && 'fill-current')} />
         <span className="text-[11px]">{isInLibrary ? 'In Library' : 'Add to Library'}</span>
       </Button>
 

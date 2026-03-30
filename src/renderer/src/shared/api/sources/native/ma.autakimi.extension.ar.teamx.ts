@@ -26,7 +26,9 @@ export class TeamX extends MadaraSource {
   }
 
   async searchManga(query: string, page: number): Promise<MangaPage> {
-    const url = query ? `${this.baseUrl}/series?search=${encodeURIComponent(query)}&page=${page}` : `${this.baseUrl}/series?page=${page}`
+    const url = query
+      ? `${this.baseUrl}/series?search=${encodeURIComponent(query)}&page=${page}`
+      : `${this.baseUrl}/series?page=${page}`
     return this.parseOlympusMangaList(url)
   }
 
@@ -45,7 +47,7 @@ export class TeamX extends MadaraSource {
         const title = a.find('.tt').text().trim() || a.attr('title') || ''
         const cover = $(el).find('img').attr('src') || ''
         const statusStr = $(el).find('.status').text().trim() || 'Ongoing'
-        
+
         let status = 'Ongoing'
         if (statusStr.includes('مكتمل')) status = 'Completed'
         else if (statusStr.includes('متوقف')) status = 'On Hiatus'
@@ -64,7 +66,9 @@ export class TeamX extends MadaraSource {
       }
     })
 
-    const hasNextPage = $('.pagination .page-link[rel="next"]').length > 0 || $('.pagination .disabled:contains("»")').length === 0
+    const hasNextPage =
+      $('.pagination .page-link[rel="next"]').length > 0 ||
+      $('.pagination .disabled:contains("»")').length === 0
 
     return { manga, hasNextPage }
   }
@@ -74,7 +78,7 @@ export class TeamX extends MadaraSource {
     if (!html) throw new Error(`[TeamX] Failed to fetch details for ${manga.url}`)
 
     const $ = cheerio.load(html)
-    
+
     // Find highest rez cover in the post
     let coverUrl = manga.coverUrl
     $('img').each((_, el) => {
@@ -84,13 +88,13 @@ export class TeamX extends MadaraSource {
       }
     })
 
-    const description = 
-      $('.manga-excerpt').text().trim() || 
+    const description =
+      $('.manga-excerpt').text().trim() ||
       $('.review-content').text().trim() ||
-      $('.mt-5.text-gray-400').text().trim() || 
+      $('.mt-5.text-gray-400').text().trim() ||
       $('.description-content').text().trim() ||
-      $('.mb-6 p').text().trim() || 
-      $('.prose').text().trim() || 
+      $('.mb-6 p').text().trim() ||
+      $('.prose').text().trim() ||
       $('#synopsis').text().trim() ||
       ''
 
@@ -102,15 +106,15 @@ export class TeamX extends MadaraSource {
 
     let author = ''
     let artist = ''
-    
+
     // Attempt to find metadata by searching for Arabic labels
     $('div, span, p').each((_, el) => {
       const t = $(el).text()
       if (t.includes('المؤلف:')) {
-         author = $(el).parent().find('a, span').last().text().trim()
+        author = $(el).parent().find('a, span').last().text().trim()
       }
       if (t.includes('الرسام:')) {
-         artist = $(el).parent().find('a, span').last().text().trim()
+        artist = $(el).parent().find('a, span').last().text().trim()
       }
     })
 
@@ -139,11 +143,11 @@ export class TeamX extends MadaraSource {
         let title = $(el).find('.chapter-number').text().trim()
         const sub = $(el).find('.chapter-title').text().trim()
         if (sub) {
-            title += ` - ${sub}`
+          title += ` - ${sub}`
         }
-        
+
         const dateStr = $(el).find('.chapter-date').text().trim()
-        
+
         chapters.push({
           id: href,
           title: title || `Chapter ${numStr}`,
@@ -157,16 +161,21 @@ export class TeamX extends MadaraSource {
     // Fallback if they change to standard list
     if (chapters.length === 0) {
       $('a[href*="/chapter/"], a[href*="/series/"]').each((i, el) => {
-         const href = $(el).attr('href')
-         if (href && href !== mangaUrl && $(el).text().trim().length < 100 && href.split('/').length > 5) {
-            const numStr = $(el).text().trim().match(/\d+/)?.[0] || '0'
-            chapters.push({
-               id: href,
-               title: $(el).text().trim() || `Chapter ${numStr}`,
-               url: href,
-               number: parseFloat(numStr) || i + 1
-            })
-         }
+        const href = $(el).attr('href')
+        if (
+          href &&
+          href !== mangaUrl &&
+          $(el).text().trim().length < 100 &&
+          href.split('/').length > 5
+        ) {
+          const numStr = $(el).text().trim().match(/\d+/)?.[0] || '0'
+          chapters.push({
+            id: href,
+            title: $(el).text().trim() || `Chapter ${numStr}`,
+            url: href,
+            number: parseFloat(numStr) || i + 1
+          })
+        }
       })
     }
 
@@ -189,12 +198,15 @@ export class TeamX extends MadaraSource {
 
     // Fallback if class changes
     if (pages.length === 0) {
-        $('img').each((_, el) => {
-            const src = $(el).attr('src')
-            if (src && (src.includes('uploads/manga') || src.includes('chapter') || src.includes('pages/'))) {
-                pages.push(src.trim())
-            }
-        })
+      $('img').each((_, el) => {
+        const src = $(el).attr('src')
+        if (
+          src &&
+          (src.includes('uploads/manga') || src.includes('chapter') || src.includes('pages/'))
+        ) {
+          pages.push(src.trim())
+        }
+      })
     }
 
     return pages

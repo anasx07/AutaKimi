@@ -12,7 +12,13 @@ interface DomainOverrideModalProps {
   defaultDomain: string
 }
 
-export function DomainOverrideModal({ isOpen, onClose, pkg, name, defaultDomain }: DomainOverrideModalProps) {
+export function DomainOverrideModal({
+  isOpen,
+  onClose,
+  pkg,
+  name,
+  defaultDomain
+}: DomainOverrideModalProps) {
   const { domainOverrides, setDomainOverride } = useExtensionStore()
   const [newDomain, setNewDomain] = useState('')
 
@@ -28,7 +34,7 @@ export function DomainOverrideModal({ isOpen, onClose, pkg, name, defaultDomain 
     if (domain && !domain.startsWith('http')) {
       domain = `https://${domain}`
     }
-    
+
     // Remove trailing slash
     domain = domain.replace(/\/+$/, '')
 
@@ -55,8 +61,10 @@ export function DomainOverrideModal({ isOpen, onClose, pkg, name, defaultDomain 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground px-1">Base URL (Domain)</label>
-          <Input 
+          <label className="text-xs font-medium text-muted-foreground px-1">
+            Base URL (Domain)
+          </label>
+          <Input
             value={newDomain}
             onChange={(e) => setNewDomain(e.target.value)}
             placeholder="https://example.com"
@@ -68,18 +76,11 @@ export function DomainOverrideModal({ isOpen, onClose, pkg, name, defaultDomain 
         </div>
 
         <div className="flex items-center gap-2 pt-2">
-          <Button 
-            variant="ghost" 
-            className="flex-1 gap-2 text-xs h-9" 
-            onClick={handleReset}
-          >
+          <Button variant="ghost" className="flex-1 gap-2 text-xs h-9" onClick={handleReset}>
             <RotateCcw className="h-3.5 w-3.5" />
             Reset
           </Button>
-          <Button 
-            className="flex-1 gap-2 text-xs h-9" 
-            onClick={handleSave}
-          >
+          <Button className="flex-1 gap-2 text-xs h-9" onClick={handleSave}>
             <Save className="h-3.5 w-3.5" />
             Save Changes
           </Button>

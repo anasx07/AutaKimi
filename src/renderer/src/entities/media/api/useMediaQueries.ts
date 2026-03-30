@@ -11,7 +11,8 @@ export const mediaKeys = {
   all: ['media'] as const,
   details: (type: MediaType, id: string) => [...mediaKeys.all, type, 'details', id] as const,
   items: (type: MediaType, id: string) => [...mediaKeys.all, type, 'items', id] as const,
-  libraryCheck: (type: MediaType, id: string) => [...mediaKeys.all, type, 'library-check', id] as const,
+  libraryCheck: (type: MediaType, id: string) =>
+    [...mediaKeys.all, type, 'library-check', id] as const
 }
 
 /**
@@ -22,21 +23,26 @@ export function useMediaDetails(type: MediaType, id: string, pkg: string | null,
     queryKey: mediaKeys.details(type, id),
     queryFn: async () => {
       // 1. Check DB Cache (Shared between types in our DB schema)
-      const cached = await DataService.db.getMangaCache(id) as Media | null
-      
+      const cached = (await DataService.db.getMangaCache(id)) as Media | null
+
       // 2. Fetch from extension if needed or to refresh
       if (pkg) {
         try {
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
-            const urlToFetch = url || cached?.url || id;
-            const fresh = await runner.fetchMangaDetails({ id, url: urlToFetch, title: cached?.title || '' })
+            const urlToFetch = url || cached?.url || id
+            const fresh = await runner.fetchMangaDetails({
+              id,
+              url: urlToFetch,
+              title: cached?.title || ''
+            })
             if (fresh) {
-              const hasValidTitle = fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
-              const finalMedia = { 
+              const hasValidTitle =
+                fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
+              const finalMedia = {
                 ...cached,
-                ...fresh, 
-                title: hasValidTitle ? fresh.title : (cached?.title || fresh.title),
+                ...fresh,
+                title: hasValidTitle ? fresh.title : cached?.title || fresh.title,
                 pkg,
                 mediaType: type
               } as Media
@@ -49,12 +55,15 @@ export function useMediaDetails(type: MediaType, id: string, pkg: string | null,
           console.error(`Failed to fetch fresh ${type} details`, e)
         }
       }
-      
-      if (!cached) throw new Error(`${type === 'anime' ? 'Anime' : 'Manga'} not found and no extension provided`)
+
+      if (!cached)
+        throw new Error(
+          `${type === 'anime' ? 'Anime' : 'Manga'} not found and no extension provided`
+        )
       return cached
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 60, // 1 hour for details
+    staleTime: 1000 * 60 * 60 // 1 hour for details
   })
 }
 
@@ -67,14 +76,14 @@ export function useMediaItems(type: MediaType, id: string, pkg: string | null, u
     queryFn: async () => {
       // 1. Get from DB
       const cached = await DataService.db.getChapters(id)
-      
+
       // 2. Refresh from extension if pkg provided
       if (pkg) {
         try {
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
             const media = await DataService.db.getMangaCache(id)
-            const urlToFetch = url || (media as any)?.url || id;
+            const urlToFetch = url || (media as any)?.url || id
             const fresh = await runner.fetchChapters(urlToFetch)
             if (fresh && fresh.length > 0) {
               await DataService.db.saveChapters({ mangaId: id, chapters: fresh })
@@ -88,7 +97,7 @@ export function useMediaItems(type: MediaType, id: string, pkg: string | null, u
       return (cached as Chapter[]) || []
     },
     enabled: !!id,
-    staleTime: 1000 * 60 * 15, // 15 minutes for items
+    staleTime: 1000 * 60 * 15 // 15 minutes for items
   })
 }
 
@@ -101,13 +110,13 @@ export function useIsMediaInLibrary(type: MediaType, id: string) {
     queryFn: async () => {
       try {
         const library = await DataService.db.getLibrary({ type })
-        return (library as Media[]).some(m => m.id === id)
+        return (library as Media[]).some((m) => m.id === id)
       } catch {
         return false
       }
     },
     enabled: !!id,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 // 1 minute
   })
 }
 
@@ -116,11 +125,11 @@ export function useIsMediaInLibrary(type: MediaType, id: string) {
  */
 export function useToggleMediaLibrary(type: MediaType) {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (media: Media) => DataService.db.toggleLibrary({ ...media, mediaType: type }),
     onMutate: async (media) => {
-      const checkKey = mediaKeys.libraryCheck(type, media.id);
+      const checkKey = mediaKeys.libraryCheck(type, media.id)
       await queryClient.cancelQueries({ queryKey: checkKey })
       // Generic library key to invalidate global views
       await queryClient.cancelQueries({ queryKey: ['manga', 'library'] })
@@ -138,7 +147,7 @@ export function useToggleMediaLibrary(type: MediaType) {
     onSettled: (_data, _error, media) => {
       queryClient.invalidateQueries({ queryKey: ['manga', 'library'] })
       queryClient.invalidateQueries({ queryKey: mediaKeys.libraryCheck(type, media.id) })
-      
+
       const isInLibrary = queryClient.getQueryData(mediaKeys.libraryCheck(type, media.id))
       useUIStore.getState().addToast({
         type: 'success',

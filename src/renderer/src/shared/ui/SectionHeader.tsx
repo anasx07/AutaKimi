@@ -9,16 +9,27 @@ interface SectionHeaderProps {
   variant?: 'primary' | 'destructive' | 'yellow'
 }
 
-export const SectionHeader = ({ title, icon: Icon, children, className, variant = 'primary' }: SectionHeaderProps) => {
+export const SectionHeader = ({
+  title,
+  icon: Icon,
+  children,
+  className,
+  variant = 'primary'
+}: SectionHeaderProps) => {
   const variantClasses = {
-    primary: "text-primary",
-    destructive: "text-destructive",
-    yellow: "text-yellow-500"
+    primary: 'text-primary',
+    destructive: 'text-destructive',
+    yellow: 'text-yellow-500'
   }
 
   return (
-    <div className={cn("flex items-center justify-between px-1", className)}>
-      <div className={cn("flex items-center gap-3 font-black text-xl uppercase tracking-tighter italic", variantClasses[variant])}>
+    <div className={cn('flex items-center justify-between px-1', className)}>
+      <div
+        className={cn(
+          'flex items-center gap-3 font-black text-xl uppercase tracking-tighter italic',
+          variantClasses[variant]
+        )}
+      >
         <Icon className="h-6 w-6" />
         {title}
       </div>
