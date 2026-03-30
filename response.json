@@ -1,1 +1,316 @@
-{"success":true,"data":{"id":1457,"title":"Rise of the Devourer King","alternative_titles":"Rise of the Devourer, Rising Devourer King","description":"نوح براون، الذي لم تكن الملاكمة تؤمن له لقمة العيش، يجد نفسه بعد موته في عالمٍ غريب بعد أن اختطفته طائفة دموية عبر طقوس محرّمة. في هذا العالم الجديد لا يملك سوى القميص الذي يرتديه وقطعة غامضة ذات طاقة غريبة لا يعرفها. مع اندفاعة الوحوش، ونزاع القوى القديمة، يجب على نوح أن يكتشف هذه القوة ويمحو الفجوة بين الإنسان والوحش ليصل في النهاية إلى أن يصبح *ملك الآكلين* بحق.","cover_image":"covers/cover-1770684199864-444211224.webp","status":"ongoing","publication_year":2025,"views":855,"rating":3.7,"author":"KrazeKode & Kisai Entertainment","slug":"rise-of-the-devourer-king","created_at":"2026-02-10T00:43:19.000Z","updated_at":"2026-03-29T09:05:28.000Z","MangaChapters":[{"id":183555,"chapter_number":"1","title":"Chapter 1","release_date":"2026-02-10","visible":1},{"id":183592,"chapter_number":"10","title":"Chapter 10","release_date":"2026-02-10","visible":1},{"id":183597,"chapter_number":"11","title":"Chapter 11","release_date":"2026-02-10","visible":1},{"id":183599,"chapter_number":"12","title":"Chapter 12","release_date":"2026-02-10","visible":1},{"id":183601,"chapter_number":"13","title":"Chapter 13","release_date":"2026-02-10","visible":1},{"id":183605,"chapter_number":"14","title":"Chapter 14","release_date":"2026-02-10","visible":1},{"id":183606,"chapter_number":"15","title":"Chapter 15","release_date":"2026-02-10","visible":1},{"id":183607,"chapter_number":"16","title":"Chapter 16","release_date":"2026-02-10","visible":1},{"id":183608,"chapter_number":"17","title":"Chapter 17","release_date":"2026-02-10","visible":1},{"id":183612,"chapter_number":"18","title":"Chapter 18","release_date":"2026-02-10","visible":1},{"id":183614,"chapter_number":"19","title":"Chapter 19","release_date":"2026-02-10","visible":1},{"id":183558,"chapter_number":"2","title":"Chapter 2","release_date":"2026-02-10","visible":1},{"id":183617,"chapter_number":"20","title":"Chapter 20","release_date":"2026-02-10","visible":1},{"id":183619,"chapter_number":"21","title":"Chapter 21","release_date":"2026-02-10","visible":1},{"id":183622,"chapter_number":"22","title":"Chapter 22","release_date":"2026-02-10","visible":1},{"id":183628,"chapter_number":"23","title":"Chapter 23","release_date":"2026-02-10","visible":1},{"id":184079,"chapter_number":"24","title":"Chapter 24","release_date":"2026-02-12","visible":1},{"id":183630,"chapter_number":"25","title":"Chapter 25","release_date":"2026-02-10","visible":1},{"id":183633,"chapter_number":"26","title":"Chapter 26","release_date":"2026-02-10","visible":1},{"id":183635,"chapter_number":"27","title":"Chapter 27","release_date":"2026-02-10","visible":1},{"id":183638,"chapter_number":"28","title":"Chapter 28","release_date":"2026-02-10","visible":1},{"id":184085,"chapter_number":"29","title":"Chapter 29","release_date":"2026-02-12","visible":1},{"id":183566,"chapter_number":"3","title":"Chapter 3","release_date":"2026-02-10","visible":1},{"id":184086,"chapter_number":"30","title":"Chapter 30","release_date":"2026-02-12","visible":1},{"id":185925,"chapter_number":"31","title":"Chapter 31","release_date":"2026-02-22","visible":1},{"id":187118,"chapter_number":"32","title":"Chapter 32","release_date":"2026-03-01","visible":1},{"id":189338,"chapter_number":"33","title":"Chapter 33","release_date":"2026-03-22","visible":1},{"id":189339,"chapter_number":"34","title":"Chapter 34","release_date":"2026-03-22","visible":1},{"id":189340,"chapter_number":"35","title":"Chapter 35","release_date":"2026-03-22","visible":1},{"id":190034,"chapter_number":"36","title":"Chapter 36","release_date":"2026-03-29","visible":1},{"id":183572,"chapter_number":"4","title":"Chapter 4","release_date":"2026-02-10","visible":1},{"id":183575,"chapter_number":"5","title":"Chapter 5","release_date":"2026-02-10","visible":1},{"id":183578,"chapter_number":"6","title":"Chapter 6","release_date":"2026-02-10","visible":1},{"id":183581,"chapter_number":"7","title":"Chapter 7","release_date":"2026-02-10","visible":1},{"id":183587,"chapter_number":"8","title":"Chapter 8","release_date":"2026-02-10","visible":1},{"id":183589,"chapter_number":"9","title":"Chapter 9","release_date":"2026-02-10","visible":1}],"Tags":[{"id":1215,"name":"أكشن","slug":"أكشن","alternative_titles":"اكشن,أكشن, اكشن","created_at":"2025-03-07T20:49:47.000Z"},{"id":1216,"name":"إثارة","slug":"إثارة","alternative_titles":"اثاره,إثارة, اثاره","created_at":"2025-03-07T20:49:47.000Z"},{"id":1107,"name":"سحر","slug":"سحر","alternative_titles":",سحر","created_at":"2025-03-01T00:56:40.000Z"},{"id":1110,"name":"غموض","slug":"غموض","alternative_titles":",غموض","created_at":"2025-03-01T01:02:11.000Z"},{"id":1116,"name":"فانتازيا","slug":"فانتازيا","alternative_titles":"فانتازا, فانتسي, فنتازيا,فانتازيا, فانتازا","created_at":"2025-03-01T01:04:38.000Z"},{"id":1101,"name":"وحوش","slug":"وحوش","alternative_titles":",وحوش","created_at":"2025-03-01T00:52:29.000Z"}]}}
+{
+  "success": true,
+  "data": {
+    "id": 1457,
+    "title": "Rise of the Devourer King",
+    "alternative_titles": "Rise of the Devourer, Rising Devourer King",
+    "description": "نوح براون، الذي لم تكن الملاكمة تؤمن له لقمة العيش، يجد نفسه بعد موته في عالمٍ غريب بعد أن اختطفته طائفة دموية عبر طقوس محرّمة. في هذا العالم الجديد لا يملك سوى القميص الذي يرتديه وقطعة غامضة ذات طاقة غريبة لا يعرفها. مع اندفاعة الوحوش، ونزاع القوى القديمة، يجب على نوح أن يكتشف هذه القوة ويمحو الفجوة بين الإنسان والوحش ليصل في النهاية إلى أن يصبح *ملك الآكلين* بحق.",
+    "cover_image": "covers/cover-1770684199864-444211224.webp",
+    "status": "ongoing",
+    "publication_year": 2025,
+    "views": 855,
+    "rating": 3.7,
+    "author": "KrazeKode & Kisai Entertainment",
+    "slug": "rise-of-the-devourer-king",
+    "created_at": "2026-02-10T00:43:19.000Z",
+    "updated_at": "2026-03-29T09:05:28.000Z",
+    "MangaChapters": [
+      {
+        "id": 183555,
+        "chapter_number": "1",
+        "title": "Chapter 1",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183592,
+        "chapter_number": "10",
+        "title": "Chapter 10",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183597,
+        "chapter_number": "11",
+        "title": "Chapter 11",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183599,
+        "chapter_number": "12",
+        "title": "Chapter 12",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183601,
+        "chapter_number": "13",
+        "title": "Chapter 13",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183605,
+        "chapter_number": "14",
+        "title": "Chapter 14",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183606,
+        "chapter_number": "15",
+        "title": "Chapter 15",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183607,
+        "chapter_number": "16",
+        "title": "Chapter 16",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183608,
+        "chapter_number": "17",
+        "title": "Chapter 17",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183612,
+        "chapter_number": "18",
+        "title": "Chapter 18",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183614,
+        "chapter_number": "19",
+        "title": "Chapter 19",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183558,
+        "chapter_number": "2",
+        "title": "Chapter 2",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183617,
+        "chapter_number": "20",
+        "title": "Chapter 20",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183619,
+        "chapter_number": "21",
+        "title": "Chapter 21",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183622,
+        "chapter_number": "22",
+        "title": "Chapter 22",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183628,
+        "chapter_number": "23",
+        "title": "Chapter 23",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 184079,
+        "chapter_number": "24",
+        "title": "Chapter 24",
+        "release_date": "2026-02-12",
+        "visible": 1
+      },
+      {
+        "id": 183630,
+        "chapter_number": "25",
+        "title": "Chapter 25",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183633,
+        "chapter_number": "26",
+        "title": "Chapter 26",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183635,
+        "chapter_number": "27",
+        "title": "Chapter 27",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183638,
+        "chapter_number": "28",
+        "title": "Chapter 28",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 184085,
+        "chapter_number": "29",
+        "title": "Chapter 29",
+        "release_date": "2026-02-12",
+        "visible": 1
+      },
+      {
+        "id": 183566,
+        "chapter_number": "3",
+        "title": "Chapter 3",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 184086,
+        "chapter_number": "30",
+        "title": "Chapter 30",
+        "release_date": "2026-02-12",
+        "visible": 1
+      },
+      {
+        "id": 185925,
+        "chapter_number": "31",
+        "title": "Chapter 31",
+        "release_date": "2026-02-22",
+        "visible": 1
+      },
+      {
+        "id": 187118,
+        "chapter_number": "32",
+        "title": "Chapter 32",
+        "release_date": "2026-03-01",
+        "visible": 1
+      },
+      {
+        "id": 189338,
+        "chapter_number": "33",
+        "title": "Chapter 33",
+        "release_date": "2026-03-22",
+        "visible": 1
+      },
+      {
+        "id": 189339,
+        "chapter_number": "34",
+        "title": "Chapter 34",
+        "release_date": "2026-03-22",
+        "visible": 1
+      },
+      {
+        "id": 189340,
+        "chapter_number": "35",
+        "title": "Chapter 35",
+        "release_date": "2026-03-22",
+        "visible": 1
+      },
+      {
+        "id": 190034,
+        "chapter_number": "36",
+        "title": "Chapter 36",
+        "release_date": "2026-03-29",
+        "visible": 1
+      },
+      {
+        "id": 183572,
+        "chapter_number": "4",
+        "title": "Chapter 4",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183575,
+        "chapter_number": "5",
+        "title": "Chapter 5",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183578,
+        "chapter_number": "6",
+        "title": "Chapter 6",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183581,
+        "chapter_number": "7",
+        "title": "Chapter 7",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183587,
+        "chapter_number": "8",
+        "title": "Chapter 8",
+        "release_date": "2026-02-10",
+        "visible": 1
+      },
+      {
+        "id": 183589,
+        "chapter_number": "9",
+        "title": "Chapter 9",
+        "release_date": "2026-02-10",
+        "visible": 1
+      }
+    ],
+    "Tags": [
+      {
+        "id": 1215,
+        "name": "أكشن",
+        "slug": "أكشن",
+        "alternative_titles": "اكشن,أكشن, اكشن",
+        "created_at": "2025-03-07T20:49:47.000Z"
+      },
+      {
+        "id": 1216,
+        "name": "إثارة",
+        "slug": "إثارة",
+        "alternative_titles": "اثاره,إثارة, اثاره",
+        "created_at": "2025-03-07T20:49:47.000Z"
+      },
+      {
+        "id": 1107,
+        "name": "سحر",
+        "slug": "سحر",
+        "alternative_titles": ",سحر",
+        "created_at": "2025-03-01T00:56:40.000Z"
+      },
+      {
+        "id": 1110,
+        "name": "غموض",
+        "slug": "غموض",
+        "alternative_titles": ",غموض",
+        "created_at": "2025-03-01T01:02:11.000Z"
+      },
+      {
+        "id": 1116,
+        "name": "فانتازيا",
+        "slug": "فانتازيا",
+        "alternative_titles": "فانتازا, فانتسي, فنتازيا,فانتازيا, فانتازا",
+        "created_at": "2025-03-01T01:04:38.000Z"
+      },
+      {
+        "id": 1101,
+        "name": "وحوش",
+        "slug": "وحوش",
+        "alternative_titles": ",وحوش",
+        "created_at": "2025-03-01T00:52:29.000Z"
+      }
+    ]
+  }
+}

@@ -23,13 +23,15 @@ export abstract class AnimeSource implements ISourceAdapter {
   protected isCfChallengePage(html: string): boolean {
     if (typeof html !== 'string' || !html) return false
     const lower = html.toLowerCase()
-    return (lower.includes('cf_chl') ||
-      lower.includes('challenges.cloudflare.com') ||
-      lower.includes('verifying you are human') ||
-      lower.includes('jschl') ||
-      lower.includes('__cf_chl')) &&
+    return (
+      (lower.includes('cf_chl') ||
+        lower.includes('challenges.cloudflare.com') ||
+        lower.includes('verifying you are human') ||
+        lower.includes('jschl') ||
+        lower.includes('__cf_chl')) &&
       !lower.includes('success!') &&
       !lower.includes('verified!')
+    )
   }
 
   protected async fetchHtml(url: string, options: FetchOptions = {}): Promise<string> {
@@ -41,10 +43,11 @@ export abstract class AnimeSource implements ISourceAdapter {
     const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || '130'
     const defaultHeaders = {
       'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion}.0.0.0 Safari/537.36`,
-      'Referer': this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      Referer: this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache'
     }
 
     const res: any = await DataService.fetchText(url, {
@@ -53,17 +56,20 @@ export abstract class AnimeSource implements ISourceAdapter {
       headers: { ...defaultHeaders, ...options.headers }
     })
 
-    let html = (res && typeof res.data === 'string') ? res.data : ''
+    let html = res && typeof res.data === 'string' ? res.data : ''
 
-    const isBlocked = !res || res.status === 403 || res.status === 503 || this.isCfChallengePage(html)
-    
+    const isBlocked =
+      !res || res.status === 403 || res.status === 503 || this.isCfChallengePage(html)
+
     if (isBlocked) {
-      console.warn(`[${this.name}] Blocked (Status: ${res?.status || 'Unknown'}). HTML Length: ${html?.length || 0}. Trying browser fetch for ${url}...`)
+      console.warn(
+        `[${this.name}] Blocked (Status: ${res?.status || 'Unknown'}). HTML Length: ${html?.length || 0}. Trying browser fetch for ${url}...`
+      )
       try {
         const browserHtml = await DataService.cfFetchHtml(url)
         if (browserHtml && !this.isCfChallengePage(browserHtml)) {
-            console.log(`[${this.name}] Browser fetch SUCCESS for ${url}`)
-            return browserHtml
+          console.log(`[${this.name}] Browser fetch SUCCESS for ${url}`)
+          return browserHtml
         }
       } catch (e) {
         console.warn(`[${this.name}] cfFetchHtml failed for ${url}:`, e)
@@ -73,7 +79,9 @@ export abstract class AnimeSource implements ISourceAdapter {
     if (!html && !options.silent) {
       console.warn(`[${this.name}] Fetch FAILED (Status: ${res?.status || 'Error'}) for ${url}`)
     } else if (html.length < 500 && !options.silent) {
-      console.warn(`[${this.name}] Fetch returned suspicious small HTML (${html.length} bytes) for ${url}`)
+      console.warn(
+        `[${this.name}] Fetch returned suspicious small HTML (${html.length} bytes) for ${url}`
+      )
     }
 
     return html

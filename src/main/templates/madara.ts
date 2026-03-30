@@ -1,10 +1,10 @@
-import { NetworkConfig } from '../../common/config/network';
-import { ScrapingTemplate } from './index';
+import { NetworkConfig } from '../../common/config/network'
+import { ScrapingTemplate } from './index'
 
 export const MadaraTemplate: ScrapingTemplate = {
   name: 'madara',
   generate: (baseUrl: string) => {
-    const ua = NetworkConfig.DEFAULT_UA;
+    const ua = NetworkConfig.DEFAULT_UA
     return `
 const baseUrl = ${JSON.stringify(baseUrl)};
 
@@ -87,16 +87,17 @@ if (html.includes('page-item-detail') === false && html.includes('manga-item') =
 
 const $ = cheerio.load(html);
 const items = [];
-$('.manga-item, .page-item-detail, .c-tabs-item__content').each((i, el) => {
+$('.manga-item, .page-item-detail, .c-tabs-item__content, .popular-item, .widget-content .page-item-detail').each((i, el) => {
   const node = $(el);
-  const titleNode = node.find('.post-title a, h3 a, h4 a');
+  const titleNode = node.find('.post-title a, h3 a, h4 a, .post-title h3 a');
   const title = titleNode.text().trim() || 'Unknown';
   const url = titleNode.attr('href') || '';
-  const cover = node.find('img').attr('src') || node.find('img').attr('data-src') || node.find('img').attr('data-lazy-src') || '';
+  const imgNode = node.find('img');
+  const cover = imgNode.attr('data-src') || imgNode.attr('data-lazy-src') || imgNode.attr('data-cdn') || imgNode.attr('src') || '';
   if (url && !items.find(it => it.id === url)) items.push({ id: url, title, cover, url, status: 'Ongoing' });
 });
 
 return { data: items };
-`;
+`
   }
-};
+}

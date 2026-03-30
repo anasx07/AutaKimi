@@ -9,10 +9,10 @@ export function Skeleton({ className, variant = 'rectangular' }: SkeletonProps) 
   return (
     <div
       className={cn(
-        "animate-pulse bg-muted/40",
-        variant === 'rectangular' && "rounded-lg",
-        variant === 'circular' && "rounded-full",
-        variant === 'text' && "rounded h-4 w-full",
+        'animate-pulse bg-muted/40',
+        variant === 'rectangular' && 'rounded-lg',
+        variant === 'circular' && 'rounded-full',
+        variant === 'text' && 'rounded h-4 w-full',
         className
       )}
     />
@@ -51,12 +51,12 @@ export function HeroSkeleton() {
     <div className="relative h-[450px] w-full bg-card overflow-hidden">
       <Skeleton className="absolute inset-0 h-full w-full" />
       <div className="absolute inset-x-0 bottom-0 p-8 space-y-4 max-w-7xl mx-auto">
-         <Skeleton variant="text" className="w-1/3 h-8" />
-         <div className="flex gap-2">
-           <Skeleton variant="rectangular" className="w-20 h-6" />
-           <Skeleton variant="rectangular" className="w-24 h-6 opacity-60" />
-         </div>
-         <Skeleton variant="text" className="w-1/2 h-4 opacity-40" />
+        <Skeleton variant="text" className="w-1/3 h-8" />
+        <div className="flex gap-2">
+          <Skeleton variant="rectangular" className="w-20 h-6" />
+          <Skeleton variant="rectangular" className="w-24 h-6 opacity-60" />
+        </div>
+        <Skeleton variant="text" className="w-1/2 h-4 opacity-40" />
       </div>
     </div>
   )

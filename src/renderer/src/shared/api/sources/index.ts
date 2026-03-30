@@ -16,10 +16,10 @@ SourceRegistry.register('official.mangadex', MangaDexSource)
 export { MangaDexSource }
 
 export function isFullySupported(pkg: string): boolean {
-  return [
-    'ma.autakimi.extension.ar.mangaswat',
-    'ma.autakimi.extension.ar.teamx'
-  ].includes(pkg) || !!(generatedSourcesJson as any)[pkg]
+  return (
+    ['ma.autakimi.extension.ar.mangaswat', 'ma.autakimi.extension.ar.teamx'].includes(pkg) ||
+    !!(generatedSourcesJson as any)[pkg]
+  )
 }
 
 /** @deprecated Use SourceRegistry.resolveNative instead */

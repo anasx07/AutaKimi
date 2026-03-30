@@ -3,43 +3,51 @@ export type { Manga as NormalizedManga }
 export type { Manga }
 
 export interface Chapter {
-  id: string;
+  id: string
   attributes: {
-    chapter: string;
-    title: string;
-    createdAt: string;
-    description?: string;
-  };
+    chapter: string
+    title: string
+    createdAt: string
+    description?: string
+  }
 }
 
 export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = true): Manga => {
   if (!manga) {
-    return { id: '', title: 'Unknown', coverUrl: null, description: 'No description', status: 'Unknown' };
+    return {
+      id: '',
+      title: 'Unknown',
+      coverUrl: null,
+      description: 'No description',
+      status: 'Unknown'
+    }
   }
 
   // 1. Extract Title — guard against empty string sources
-  let title = '';
+  let title = ''
   // Check common title fields (Madara, MangaDex, etc.)
-  const possibleTitle = 
-    manga.title || 
-    manga.name || 
-    manga.manga_name || 
+  const possibleTitle =
+    manga.title ||
+    manga.name ||
+    manga.manga_name ||
     manga.mangaTitle ||
     manga.series_title ||
-    manga.label || 
+    manga.label ||
     manga.alt_title ||
     manga.title_en ||
-    manga.title_ar;
-  
+    manga.title_ar
+
   if (possibleTitle && String(possibleTitle).trim()) {
-    title = String(possibleTitle).trim();
+    title = String(possibleTitle).trim()
   } else if (manga.attributes?.title) {
     if (typeof manga.attributes.title === 'string') {
-      title = manga.attributes.title;
+      title = manga.attributes.title
     } else {
-      title = (preferredLang && manga.attributes.title[preferredLang]) || 
-              manga.attributes.title.en || 
-              Object.values(manga.attributes.title)[0] as string || '';
+      title =
+        (preferredLang && manga.attributes.title[preferredLang]) ||
+        manga.attributes.title.en ||
+        (Object.values(manga.attributes.title)[0] as string) ||
+        ''
     }
   }
 
@@ -49,13 +57,16 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
     try {
       const source = String(manga.url || manga.manga_url || manga.id || '')
       const slug = source.split('/').filter(Boolean).pop() || ''
-      
+
       // If slug is purely numeric or looks like a short-ish hash (e.g. numeric or hex), use 'Untitled'
-      const isNumeric = /^\d+$/.test(slug);
-      const isHash = /^[a-zA-Z0-9]{8,16}$/.test(slug) && !slug.includes('-') && !slug.includes('_');
+      const isNumeric = /^\d+$/.test(slug)
+      const isHash = /^[a-zA-Z0-9]{8,16}$/.test(slug) && !slug.includes('-') && !slug.includes('_')
 
       if (slug && !isNumeric && !isHash) {
-        title = slug.replace(/-/g, ' ').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+        title = slug
+          .replace(/-/g, ' ')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase())
       } else {
         title = 'Untitled'
       }
@@ -65,28 +76,30 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
   }
 
   // 2. Extract Cover
-  let coverUrl = manga.coverUrl || manga.cover_url || manga.thumbnail_url || manga.cover || null;
+  let coverUrl = manga.coverUrl || manga.cover_url || manga.thumbnail_url || manga.cover || null
   if (!coverUrl && manga.relationships) {
-    const coverRel = manga.relationships.find((r: any) => r.type === 'cover_art');
+    const coverRel = manga.relationships.find((r: any) => r.type === 'cover_art')
     if (coverRel && coverRel.attributes?.fileName) {
-      coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`;
+      coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes.fileName}.256.jpg`
     }
   }
 
   // 3. Extract Description
-  let description = manga.description || manga.attributes?.description || "No description available.";
+  let description =
+    manga.description || manga.attributes?.description || 'No description available.'
   if (typeof description === 'object' && description !== null) {
-    description = (preferredLang && description[preferredLang]) || 
-                  description.en || 
-                  Object.values(description)[0] || 
-                  "No description available.";
+    description =
+      (preferredLang && description[preferredLang]) ||
+      description.en ||
+      Object.values(description)[0] ||
+      'No description available.'
   }
 
   // 4. Extract Status, Author, Artist, Genres
-  const status = manga.status || manga.attributes?.status || 'Unknown';
-  const author = manga.author || manga.author_name || manga.attributes?.author || undefined;
-  const artist = manga.artist || manga.artist_name || manga.attributes?.artist || undefined;
-  const genres = manga.genres || manga.attributes?.genres || undefined;
+  const status = manga.status || manga.attributes?.status || 'Unknown'
+  const author = manga.author || manga.author_name || manga.attributes?.author || undefined
+  const artist = manga.artist || manga.artist_name || manga.attributes?.artist || undefined
+  const genres = manga.genres || manga.attributes?.genres || undefined
 
   return {
     id: manga.id,
@@ -101,5 +114,5 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
     pkg: manga.pkg || undefined,
     mediaType: manga.mediaType || manga.attributes?.mediaType || undefined,
     _raw: includeRaw ? manga : undefined
-  };
+  }
 }

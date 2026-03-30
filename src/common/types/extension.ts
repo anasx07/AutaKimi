@@ -1,8 +1,8 @@
 export interface Extension {
-  pkg: string;
-  name: string;
-  lang: string;
-  icon: string;
-  baseUrl: string;
-  version: string;
+  pkg: string
+  name: string
+  lang: string
+  icon: string
+  baseUrl: string
+  version: string
 }

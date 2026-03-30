@@ -15,15 +15,19 @@ export class MangaDexSource implements ISourceAdapter {
   async fetchPopular(page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(`${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`)
-    
+    const res = await DataService.fetchRepo(
+      `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`
+    )
+
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
       const fileName = coverRel?.attributes?.fileName
       return {
         id: m.id,
         title: m.attributes.title.en || Object.values(m.attributes.title)[0],
-        coverUrl: fileName ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : undefined,
+        coverUrl: fileName
+          ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`
+          : undefined,
         url: `${this.baseUrl}/manga/${m.id}`,
         status: m.attributes.status,
         description: m.attributes.description.en || Object.values(m.attributes.description)[0]
@@ -36,15 +40,19 @@ export class MangaDexSource implements ISourceAdapter {
   async fetchLatest(page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(`${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[latestUploadedChapter]=desc`)
-    
+    const res = await DataService.fetchRepo(
+      `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[latestUploadedChapter]=desc`
+    )
+
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
       const fileName = coverRel?.attributes?.fileName
       return {
         id: m.id,
         title: m.attributes.title.en || Object.values(m.attributes.title)[0],
-        coverUrl: fileName ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : undefined,
+        coverUrl: fileName
+          ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`
+          : undefined,
         url: `${this.baseUrl}/manga/${m.id}`,
         status: m.attributes.status,
         description: m.attributes.description.en || Object.values(m.attributes.description)[0]
@@ -57,15 +65,19 @@ export class MangaDexSource implements ISourceAdapter {
   async searchManga(query: string, page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(`${this.baseUrl}/manga?title=${encodeURIComponent(query)}&limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`)
-    
+    const res = await DataService.fetchRepo(
+      `${this.baseUrl}/manga?title=${encodeURIComponent(query)}&limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`
+    )
+
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
       const fileName = coverRel?.attributes?.fileName
       return {
         id: m.id,
         title: m.attributes.title.en || Object.values(m.attributes.title)[0],
-        coverUrl: fileName ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : undefined,
+        coverUrl: fileName
+          ? `autakimi-cache://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`
+          : undefined,
         url: `${this.baseUrl}/manga/${m.id}`,
         status: m.attributes.status,
         description: m.attributes.description.en || Object.values(m.attributes.description)[0]
@@ -76,7 +88,9 @@ export class MangaDexSource implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const res = await DataService.fetchRepo(`${this.baseUrl}/manga/${manga.id}?includes[]=cover_art`)
+    const res = await DataService.fetchRepo(
+      `${this.baseUrl}/manga/${manga.id}?includes[]=cover_art`
+    )
     const m = res.data
     if (!m) return manga
 
@@ -87,13 +101,17 @@ export class MangaDexSource implements ISourceAdapter {
       ...manga,
       description: m.attributes.description.en || Object.values(m.attributes.description)[0],
       status: m.attributes.status,
-      coverUrl: fileName ? `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg` : manga.coverUrl
+      coverUrl: fileName
+        ? `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`
+        : manga.coverUrl
     }
   }
 
   async fetchChapters(mangaId: string): Promise<Chapter[]> {
     // Note: mangaId here is expected to be a UUID for MangaDex
-    const res = await DataService.fetchRepo(`${this.baseUrl}/manga/${mangaId}/feed?limit=500&translatedLanguage[]=en&order[chapter]=desc`)
+    const res = await DataService.fetchRepo(
+      `${this.baseUrl}/manga/${mangaId}/feed?limit=500&translatedLanguage[]=en&order[chapter]=desc`
+    )
     if (!res || !res.data) return []
 
     return res.data.map((c: any) => ({
@@ -114,8 +132,6 @@ export class MangaDexSource implements ISourceAdapter {
     const files = res.chapter.data
 
     const cleanHost = host.replace(/^https?:\/\//, '')
-    return files.map((file: string) => 
-      `autakimi-cache://${cleanHost}/data/${hash}/${file}`
-    )
+    return files.map((file: string) => `autakimi-cache://${cleanHost}/data/${hash}/${file}`)
   }
 }

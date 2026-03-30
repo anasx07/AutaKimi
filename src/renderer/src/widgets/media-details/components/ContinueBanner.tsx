@@ -12,23 +12,24 @@ interface ContinueBannerProps {
   onContinue: (item: Chapter) => void
 }
 
-export const ContinueBanner = ({ 
-  nextToRead, 
-  mediaId, 
-  pageProgress, 
-  readChapterIds, 
+export const ContinueBanner = ({
+  nextToRead,
+  mediaId,
+  pageProgress,
+  readChapterIds,
   mediaType,
-  onContinue 
+  onContinue
 }: ContinueBannerProps) => {
   if (!nextToRead) return null
 
   const isAnime = mediaType === 'anime'
   const itemType = isAnime ? 'Episode' : 'Chapter'
-  
+
   const progText = (() => {
     const page = pageProgress[mediaId]?.[nextToRead.id]
     const isRead = readChapterIds.includes(nextToRead.id)
-    if (page && page > 1 && !isRead) return isAnime ? `Resume at ${Math.floor(page / 60)}m` : `Resume at Page ${page}`
+    if (page && page > 1 && !isRead)
+      return isAnime ? `Resume at ${Math.floor(page / 60)}m` : `Resume at Page ${page}`
     if (isRead) return 'Re-read'
     return isAnime ? 'Start Watching' : 'Start Reading'
   })()
@@ -36,8 +37,10 @@ export const ContinueBanner = ({
   return (
     <Button
       className={cn(
-        "w-full h-14 text-white shadow-lg flex items-center justify-center gap-3 rounded-xl transition-all active:scale-[0.99] group overflow-hidden relative",
-        isAnime ? "bg-primary hover:bg-primary/90 shadow-primary/20" : "bg-primary hover:bg-primary/90 shadow-primary/20"
+        'w-full h-14 text-white shadow-lg flex items-center justify-center gap-3 rounded-xl transition-all active:scale-[0.99] group overflow-hidden relative',
+        isAnime
+          ? 'bg-primary hover:bg-primary/90 shadow-primary/20'
+          : 'bg-primary hover:bg-primary/90 shadow-primary/20'
       )}
       onClick={() => onContinue(nextToRead)}
     >

@@ -40,7 +40,10 @@ export class RistoAnimeSource extends AnimeSource {
 
   async searchManga(query: string, page: number): Promise<MangaPage> {
     if (!query) return this.fetchPopular(page)
-    const url = page === 1 ? `${this.baseUrl}/?s=${encodeURIComponent(query)}` : `${this.baseUrl}/?s=${encodeURIComponent(query)}&offset=${page}`
+    const url =
+      page === 1
+        ? `${this.baseUrl}/?s=${encodeURIComponent(query)}`
+        : `${this.baseUrl}/?s=${encodeURIComponent(query)}&offset=${page}`
     return this._parseAnimeList(url)
   }
 
@@ -55,9 +58,16 @@ export class RistoAnimeSource extends AnimeSource {
     $('.MovieItem a, a:has(h4), a:has(.title)').each((_, el) => {
       const node = $(el)
       const href = node.attr('href') || ''
-      if (!href || href.length < 5 || href === this.baseUrl || 
-          href === `${this.baseUrl}/` || href.includes('/genre/') || 
-          href.includes('/year/') || href.includes('/watch/')) return
+      if (
+        !href ||
+        href.length < 5 ||
+        href === this.baseUrl ||
+        href === `${this.baseUrl}/` ||
+        href.includes('/genre/') ||
+        href.includes('/year/') ||
+        href.includes('/watch/')
+      )
+        return
 
       let seriesUrl = href
       if (!href.startsWith('http')) {
@@ -67,21 +77,20 @@ export class RistoAnimeSource extends AnimeSource {
       // Target h4 specifically inside the title div to avoid placeholder <p>
       const titleElem = node.find('.title h4, h4, .title').first()
       let title = titleElem.is('h4') ? titleElem.text().trim() : titleElem.find('h4').text().trim()
-      
+
       // Fallback to div text if still empty
       if (!title) title = node.find('.title').text().trim()
 
       // Clean up common Arabic suffixes/prefixes often found in titles
       title = title
-          .replace(/مترجمة اون لاين/g, '')
-          .replace(/مترجم اونلاين/g, '')
-          .replace(/مترجم اون لاين/g, '')
-          .replace(/جميع حلقات انمي/g, '')
-          .replace(/انمي/g, '')
-          .replace(/\s+/g, ' ')
-          .trim()
-   
-        
+        .replace(/مترجمة اون لاين/g, '')
+        .replace(/مترجم اونلاين/g, '')
+        .replace(/مترجم اون لاين/g, '')
+        .replace(/جميع حلقات انمي/g, '')
+        .replace(/انمي/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+
       if (!title || title.length < 2) return
 
       // Cover from any element with background-image style (usually div.poster)
@@ -90,7 +99,10 @@ export class RistoAnimeSource extends AnimeSource {
       const style = coverElem.attr('style') || ''
       const bgMatch = style.match(/background-image:\s*url\((.*?)\)/)
       if (bgMatch) {
-         cover = bgMatch[1].replace(/&quot;/g, '').replace(/['"]/g, '').trim()
+        cover = bgMatch[1]
+          .replace(/&quot;/g, '')
+          .replace(/['"]/g, '')
+          .trim()
       }
 
       if (!cover) {
@@ -100,7 +112,7 @@ export class RistoAnimeSource extends AnimeSource {
 
       const status = node.find('.status, .type, .quality').first().text().trim()
 
-      if (!manga.find(m => m.id === seriesUrl)) {
+      if (!manga.find((m) => m.id === seriesUrl)) {
         manga.push({
           id: seriesUrl,
           title,
@@ -116,7 +128,9 @@ export class RistoAnimeSource extends AnimeSource {
       }
     })
 
-    const hasNextPage = $('.next, a.next, .pagination .next, .page-numbers.next, a.next.page-numbers, .nav-next a').length > 0
+    const hasNextPage =
+      $('.next, a.next, .pagination .next, .page-numbers.next, a.next.page-numbers, .nav-next a')
+        .length > 0
     return { manga, hasNextPage }
   }
 
@@ -129,41 +143,43 @@ export class RistoAnimeSource extends AnimeSource {
     const $ = cheerio.load(html)
 
     // Try to get specific title container first
-    let title = $('.PostTitle').first().text().trim() || 
-                $('.SeriesSide h1').first().text().trim() || 
-                $('.anime-title').first().text().trim()
+    let title =
+      $('.PostTitle').first().text().trim() ||
+      $('.SeriesSide h1').first().text().trim() ||
+      $('.anime-title').first().text().trim()
 
     // If still empty or just the site name, look for any H1 that isn't for the logo
     if (!title || title.toLowerCase() === 'risto' || title.toLowerCase() === 'ristoanime') {
-        $('h1').each((_, el) => {
-            const t = $(el).text().trim()
-            if (t && t.toLowerCase() !== 'risto' && t.toLowerCase() !== 'ristoanime') {
-                title = t
-                return false // break
-            }
-            return true
-        })
+      $('h1').each((_, el) => {
+        const t = $(el).text().trim()
+        if (t && t.toLowerCase() !== 'risto' && t.toLowerCase() !== 'ristoanime') {
+          title = t
+          return false // break
+        }
+        return true
+      })
     }
 
     if (title) {
-        // Remove 'انمي' prefix if it exists at the start
-        if (title.startsWith('انمي ')) {
-            title = title.substring(5).trim()
-        }
-        
-        title = title
-          .replace(/مترجمة اون لاين/g, '')
-          .replace(/مترجم اونلاين/g, '')
-          .replace(/مترجم اون لاين/g, '')
-          .replace(/جميع حلقات انمي/g, '')
-          .replace(/انمي/g, '')
-          .replace(/\s+/g, ' ')
-          .trim()
+      // Remove 'انمي' prefix if it exists at the start
+      if (title.startsWith('انمي ')) {
+        title = title.substring(5).trim()
+      }
+
+      title = title
+        .replace(/مترجمة اون لاين/g, '')
+        .replace(/مترجم اونلاين/g, '')
+        .replace(/مترجم اون لاين/g, '')
+        .replace(/جميع حلقات انمي/g, '')
+        .replace(/انمي/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
     }
     title = title || manga.title
-    const description = $('.StoryLine, .entry-content p, .anime-story, .description').text().trim() || 
-                        $('.SeriesSide p').first().text().trim()
-    
+    const description =
+      $('.StoryLine, .entry-content p, .anime-story, .description').text().trim() ||
+      $('.SeriesSide p').first().text().trim()
+
     const genres: string[] = []
     $('a[href*="/genre/"], .gen-links a').each((_, el) => {
       const g = $(el).text().trim()
@@ -201,9 +217,12 @@ export class RistoAnimeSource extends AnimeSource {
       if (!href) return
 
       const epUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`
-      const numStr = $(el).find('em, span, b').text().trim() || $(el).text().trim().match(/\d+/)?.[0] || String(i + 1)
-      const num = parseFloat(numStr) || (i + 1)
-      
+      const numStr =
+        $(el).find('em, span, b').text().trim() ||
+        $(el).text().trim().match(/\d+/)?.[0] ||
+        String(i + 1)
+      const num = parseFloat(numStr) || i + 1
+
       chapters.push({
         id: epUrl,
         title: `Episode ${num}`,
@@ -225,29 +244,29 @@ export class RistoAnimeSource extends AnimeSource {
     // Some sites require the episode page as Referer to allow access to /watch/
     const html = await this.fetchHtml(watchUrl, {
       headers: {
-        'Referer': episodeUrl
+        Referer: episodeUrl
       }
     })
 
     const debugInfo = {
-        version: '1.0.3-v2',
-        url: watchUrl,
-        htmlLength: html?.length || 0,
-        isBlocked: this.isCfChallengePage(html),
-        snippet: html ? html.substring(0, 500) : 'EMPTY'
+      version: '1.0.3-v2',
+      url: watchUrl,
+      htmlLength: html?.length || 0,
+      isBlocked: this.isCfChallengePage(html),
+      snippet: html ? html.substring(0, 500) : 'EMPTY'
     }
 
     if (!html) {
       const epHtml = await this.fetchHtml(episodeUrl)
-      return { 
+      return {
         urls: epHtml ? this._extractIframes(epHtml) : [],
         debug: { ...debugInfo, fallbackUrl: episodeUrl, fallbackHtmlLength: epHtml?.length || 0 }
       }
     }
 
     return {
-        urls: this._extractIframes(html),
-        debug: { ...debugInfo, allIframes: this._getAllIframes(html) }
+      urls: this._extractIframes(html),
+      debug: { ...debugInfo, allIframes: this._getAllIframes(html) }
     }
   }
 
@@ -282,31 +301,40 @@ export class RistoAnimeSource extends AnimeSource {
       if (lUrl.includes('google') || lUrl.includes('drive')) return 'G-Drive'
       if (lUrl.includes('shared')) return 'Shared'
       if (lUrl.includes('youdrive')) return 'YouDrive'
-      
+
       if (label && label.length > 1 && !label.includes('<')) return label
       return 'Server'
     }
-    
+
     // 1. Primary: RistoAnime uses li[data-watch]
     $('#watch li[data-watch], .ServersList li[data-watch], [data-watch]').each((_, el) => {
       let src = $(el).attr('data-watch')
       if (src) {
         if (src.startsWith('//')) src = `https:${src}`
-        
+
         // Auto-play support for common providers
-        if (src.includes('vidmoly') || src.includes('sibnet') || src.includes('uqload') || src.includes('mp4upload') || src.includes('listeamed')) {
+        if (
+          src.includes('vidmoly') ||
+          src.includes('sibnet') ||
+          src.includes('uqload') ||
+          src.includes('mp4upload') ||
+          src.includes('listeamed')
+        ) {
           src = src.includes('?') ? `${src}&autoplay=1` : `${src}?autoplay=1`
         }
 
         if (!seenUrls.has(src)) {
           seenUrls.add(src)
           // Only get direct text nodes, ignore children like <noscript>
-          const label = $(el).contents().filter((_, node) => node.nodeType === 3).text()
+          const label = $(el)
+            .contents()
+            .filter((_, node) => node.nodeType === 3)
+            .text()
             .replace(/\s+/g, ' ')
             .replace(/\d+/g, '')
             .replace(/سيرفر/g, '')
             .trim()
-          
+
           servers.push({ name: getProvider(src, label), url: src })
         }
       }
@@ -319,7 +347,13 @@ export class RistoAnimeSource extends AnimeSource {
         if (src.startsWith('//')) src = `https:${src}`
 
         // Auto-play support for common providers
-        if (src.includes('vidmoly') || src.includes('sibnet') || src.includes('uqload') || src.includes('mp4upload') || src.includes('listeamed')) {
+        if (
+          src.includes('vidmoly') ||
+          src.includes('sibnet') ||
+          src.includes('uqload') ||
+          src.includes('mp4upload') ||
+          src.includes('listeamed')
+        ) {
           src = src.includes('?') ? `${src}&autoplay=1` : `${src}?autoplay=1`
         }
 

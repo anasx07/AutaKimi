@@ -6,15 +6,15 @@ import { useExtensionStore } from './extension.store'
 
 interface LibraryState {
   library: NormalizedManga[]
-  /** 
-   * The manga or anime currently selected for viewing. 
-   * This is used as the 'Selection Intent' and initial metadata source. 
+  /**
+   * The manga or anime currently selected for viewing.
+   * This is used as the 'Selection Intent' and initial metadata source.
    * Detailed info should be fetched and managed via React Query (useMangaDetails).
    */
   selectedManga: NormalizedManga | null
   /** The chapter or episode currently being read/watched. */
   activeChapter: Chapter | null
-  
+
   // Actions
   _init: (library: NormalizedManga[]) => void
   loadFromDb: () => Promise<void>
@@ -56,13 +56,14 @@ export const useLibraryStore = create<LibraryState>((set) => ({
     }
   },
 
-  setSelectedManga: (manga: NormalizedManga | null) => set(() => {
-    const next: Partial<LibraryState> = { selectedManga: manga }
-    if (manga && manga.pkg) {
-      useExtensionStore.getState().setActiveExtension(manga.pkg)
-    }
-    return next
-  }),
+  setSelectedManga: (manga: NormalizedManga | null) =>
+    set(() => {
+      const next: Partial<LibraryState> = { selectedManga: manga }
+      if (manga && manga.pkg) {
+        useExtensionStore.getState().setActiveExtension(manga.pkg)
+      }
+      return next
+    }),
 
-  setActiveChapter: (chapter: Chapter | null) => set({ activeChapter: chapter }),
+  setActiveChapter: (chapter: Chapter | null) => set({ activeChapter: chapter })
 }))

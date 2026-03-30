@@ -35,126 +35,137 @@ export class ZeistMangaSource implements ISourceAdapter {
     const manga: Manga[] = []
 
     $('div.PopularPosts div.grid > figure').each((_, el) => {
-       const img = $(el).find('img').attr('src')
-       const a = $(el).find('figcaption > a')
-       const url = a.attr('href') || ''
+      const img = $(el).find('img').attr('src')
+      const a = $(el).find('figcaption > a')
+      const url = a.attr('href') || ''
 
-       if (url) {
-           manga.push({
-               id: url.split('/').filter(Boolean).pop()?.replace('.html', '') || url,
-               title: a.text().trim(),
-               url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
-               coverUrl: img || ''
-           })
-       }
+      if (url) {
+        manga.push({
+          id: url.split('/').filter(Boolean).pop()?.replace('.html', '') || url,
+          title: a.text().trim(),
+          url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
+          coverUrl: img || ''
+        })
+      }
     })
 
     return { manga, hasNextPage: false }
   }
 
   async fetchLatest(page: number): Promise<MangaPage> {
-     const startIndex = 20 * (page - 1) + 1
-     const data = await this.fetchApi(`/feeds/posts/default/-/Series?alt=json&orderby=published&start-index=${startIndex}&max-results=21`)
-     return this.parseBloggerFeed(data)
+    const startIndex = 20 * (page - 1) + 1
+    const data = await this.fetchApi(
+      `/feeds/posts/default/-/Series?alt=json&orderby=published&start-index=${startIndex}&max-results=21`
+    )
+    return this.parseBloggerFeed(data)
   }
 
   async searchManga(query: string, page: number): Promise<MangaPage> {
-      const startIndex = 20 * (page - 1) + 1
-      const q = query ? `label:Series+${encodeURIComponent(query)}` : 'Series'
-      const data = await this.fetchApi(`/feeds/posts/default/-/${q}?alt=json&start-index=${startIndex}&max-results=21`)
-      return this.parseBloggerFeed(data)
+    const startIndex = 20 * (page - 1) + 1
+    const q = query ? `label:Series+${encodeURIComponent(query)}` : 'Series'
+    const data = await this.fetchApi(
+      `/feeds/posts/default/-/${q}?alt=json&start-index=${startIndex}&max-results=21`
+    )
+    return this.parseBloggerFeed(data)
   }
 
   private parseBloggerFeed(data: any): MangaPage {
-      if (!data || !data.feed || !data.feed.entry) return { manga: [], hasNextPage: false }
+    if (!data || !data.feed || !data.feed.entry) return { manga: [], hasNextPage: false }
 
-      const entries = data.feed.entry;
-      const manga: Manga[] = entries.map((entry: any) => {
-          const urlLink = entry.link?.find((l: any) => l.rel === 'alternate')?.href || ''
-          const title = entry.title?.$t || ''
-          const coverUrl = entry.media$thumbnail?.url?.replace(/\/s72-c\//, '/s1600/') || '' // Upscale Blogger thumbs
+    const entries = data.feed.entry
+    const manga: Manga[] = entries.map((entry: any) => {
+      const urlLink = entry.link?.find((l: any) => l.rel === 'alternate')?.href || ''
+      const title = entry.title?.$t || ''
+      const coverUrl = entry.media$thumbnail?.url?.replace(/\/s72-c\//, '/s1600/') || '' // Upscale Blogger thumbs
 
-          return {
-              id: urlLink.split('/').filter(Boolean).pop()?.replace('.html', '') || urlLink,
-              title: title.trim(),
-              url: urlLink,
-              coverUrl
-          }
-      })
+      return {
+        id: urlLink.split('/').filter(Boolean).pop()?.replace('.html', '') || urlLink,
+        title: title.trim(),
+        url: urlLink,
+        coverUrl
+      }
+    })
 
-      const hasNextPage = entries.length > 20
-      if (hasNextPage) manga.pop() // remove lookahead element
+    const hasNextPage = entries.length > 20
+    if (hasNextPage) manga.pop() // remove lookahead element
 
-      return { manga, hasNextPage }
+    return { manga, hasNextPage }
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-      const res: any = await DataService.fetchText(manga.url || '', { bypassCf: true })
-      if (!res || !res.ok || !res.data) return manga
+    const res: any = await DataService.fetchText(manga.url || '', { bypassCf: true })
+    if (!res || !res.ok || !res.data) return manga
 
-      const $ = cheerio.load(res.data)
-      const box = $('.grid.gtc-235fr').first()
+    const $ = cheerio.load(res.data)
+    const box = $('.grid.gtc-235fr').first()
 
-      if (box.length) {
-          const description = box.find('#synopsis').text().trim()
-          const genres: string[] = []
-          box.find('div.mt-15 > a[rel=tag]').each((_, el) => { genres.push($(el).text()) })
+    if (box.length) {
+      const description = box.find('#synopsis').text().trim()
+      const genres: string[] = []
+      box.find('div.mt-15 > a[rel=tag]').each((_, el) => {
+        genres.push($(el).text())
+      })
 
-          return {
-              ...manga,
-              description,
-              genres,
-              author: box.find('span#author').text().trim(),
-              artist: box.find('span#artist').text().trim(),
-              status: box.find('span[data-status]').text().trim() || manga.status
-          }
+      return {
+        ...manga,
+        description,
+        genres,
+        author: box.find('span#author').text().trim(),
+        artist: box.find('span#artist').text().trim(),
+        status: box.find('span[data-status]').text().trim() || manga.status
       }
+    }
 
-      return manga
+    return manga
   }
 
   async fetchChapters(mangaUrl: string): Promise<Chapter[]> {
-      const res: any = await DataService.fetchText(mangaUrl, { bypassCf: true })
-      if (!res || !res.ok || !res.data) return []
+    const res: any = await DataService.fetchText(mangaUrl, { bypassCf: true })
+    if (!res || !res.ok || !res.data) return []
 
-      const $ = cheerio.load(res.data)
-      const scriptHtml = $('script').map((_, s) => $(s).html() || '').get().join('\n')
+    const $ = cheerio.load(res.data)
+    const scriptHtml = $('script')
+      .map((_, s) => $(s).html() || '')
+      .get()
+      .join('\n')
 
-      const feedMatch = scriptHtml.match(/clwd\.run\((?:"|')(.*?)(?:"|')\)/) || scriptHtml.match(/label\s*=\s*'(.*?)'/)
-      const feed = feedMatch ? feedMatch[1] : 'Chapter'
+    const feedMatch =
+      scriptHtml.match(/clwd\.run\((?:"|')(.*?)(?:"|')\)/) ||
+      scriptHtml.match(/label\s*=\s*'(.*?)'/)
+    const feed = feedMatch ? feedMatch[1] : 'Chapter'
 
-      // Check Blogger Chapter Feed Index
-      const label = encodeURIComponent(feed === 'Chapter' ? 'Chapter' : feed)
-      const data = await this.fetchApi(`/feeds/posts/default/-/${label}?alt=json&max-results=999999`)
+    // Check Blogger Chapter Feed Index
+    const label = encodeURIComponent(feed === 'Chapter' ? 'Chapter' : feed)
+    const data = await this.fetchApi(`/feeds/posts/default/-/${label}?alt=json&max-results=999999`)
 
-      if (!data || !data.feed || !data.feed.entry) return []
+    if (!data || !data.feed || !data.feed.entry) return []
 
-      return data.feed.entry.map((entry: any) => {
-          const urlLink = entry.link?.find((l: any) => l.rel === 'alternate')?.href || ''
-          const title = entry.title?.$t || ''
+    return data.feed.entry.map((entry: any) => {
+      const urlLink = entry.link?.find((l: any) => l.rel === 'alternate')?.href || ''
+      const title = entry.title?.$t || ''
 
-          return {
-              id: urlLink,
-              title: title.trim(),
-              url: urlLink,
-              number: parseFloat(title.replace(/[^\d.]/g, '')) || 1,
-              date: entry.published?.$t
-          }
-      })
+      return {
+        id: urlLink,
+        title: title.trim(),
+        url: urlLink,
+        number: parseFloat(title.replace(/[^\d.]/g, '')) || 1,
+        date: entry.published?.$t
+      }
+    })
   }
 
   async fetchPages(chapterUrl: string): Promise<string[]> {
-      const res: any = await DataService.fetchText(chapterUrl.split('#')[0], { bypassCf: true })
-      if (!res || !res.ok || !res.data) return []
+    const res: any = await DataService.fetchText(chapterUrl.split('#')[0], { bypassCf: true })
+    if (!res || !res.ok || !res.data) return []
 
-      const $ = cheerio.load(res.data)
-      const pages: string[] = []
+    const $ = cheerio.load(res.data)
+    const pages: string[] = []
 
-      $('div.check-box div.separator img[src]').each((_, el) => {
-          const src = $(el).attr('src')
-          if (src) pages.push(src.replace(/ /g, '%20'))
-      })
+    $('div.check-box div.separator img[src]').each((_, el) => {
+      const src = $(el).attr('src')
+      if (src) pages.push(src.replace(/ /g, '%20'))
+    })
 
-      return pages
+    return pages
   }
 }

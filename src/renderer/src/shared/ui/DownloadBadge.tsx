@@ -7,14 +7,17 @@ interface DownloadBadgeProps {
   className?: string
 }
 
-export const DownloadBadge: React.FC<DownloadBadgeProps> = ({ status, progress, className = "" }) => {
+export const DownloadBadge: React.FC<DownloadBadgeProps> = ({
+  status,
+  progress,
+  className = ''
+}) => {
   if (!status) return null
 
   switch (status) {
     case 'downloading':
-      const percent = progress && progress.total > 0 
-        ? Math.round((progress.cached / progress.total) * 100) 
-        : 0
+      const percent =
+        progress && progress.total > 0 ? Math.round((progress.cached / progress.total) * 100) : 0
       return (
         <div className={`flex items-center gap-1 text-blue-400 font-medium text-xs ${className}`}>
           <Loader2 className="w-3 h-3 animate-spin" />

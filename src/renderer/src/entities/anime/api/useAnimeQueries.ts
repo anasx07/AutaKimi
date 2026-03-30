@@ -15,7 +15,7 @@ export const animeKeys = {
   libraryCheck: (id: string) => ['manga', 'library-check', id] as const,
   history: (type: string = 'anime') => ['manga', 'history', type].filter(Boolean),
   historyInfinite: (type: string = 'anime') => [...animeKeys.history(type), 'infinite'] as const,
-  progress: (animeId: string) => [...animeKeys.all, 'progress', animeId] as const,
+  progress: (animeId: string) => [...animeKeys.all, 'progress', animeId] as const
 }
 
 /**
@@ -26,23 +26,28 @@ export function useAnimeDetails(animeId: string, pkg: string | null, animeUrl?: 
     queryKey: animeKeys.details(animeId),
     queryFn: async () => {
       // 1. Check DB Cache
-      const cached = await DataService.db.getMangaCache(animeId) as NormalizedAnime | null
-      
+      const cached = (await DataService.db.getMangaCache(animeId)) as NormalizedAnime | null
+
       // 2. Fetch from extension if needed or to refresh
       if (pkg) {
         try {
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
-            const urlToFetch = animeUrl || cached?.url || animeId;
-            const fresh = await runner.fetchMangaDetails({ id: animeId, url: urlToFetch, title: cached?.title || '' })
+            const urlToFetch = animeUrl || cached?.url || animeId
+            const fresh = await runner.fetchMangaDetails({
+              id: animeId,
+              url: urlToFetch,
+              title: cached?.title || ''
+            })
             if (fresh) {
               // Preserve existing title if fresh one is missing or "Untitled" or purely numeric
-              const hasValidTitle = fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
-              const finalAnime = { 
+              const hasValidTitle =
+                fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
+              const finalAnime = {
                 ...cached,
-                ...fresh, 
-                title: hasValidTitle ? fresh.title : (cached?.title || fresh.title),
-                pkg, 
+                ...fresh,
+                title: hasValidTitle ? fresh.title : cached?.title || fresh.title,
+                pkg,
                 mediaType: 'anime' as const
               } as NormalizedAnime
               // Save to cache asynchronously
@@ -54,12 +59,12 @@ export function useAnimeDetails(animeId: string, pkg: string | null, animeUrl?: 
           console.error('Failed to fetch fresh anime details', e)
         }
       }
-      
+
       if (!cached) throw new Error('Anime not found and no extension provided')
       return cached
     },
     enabled: !!animeId,
-    staleTime: 1000 * 60 * 60, // 1 hour for details
+    staleTime: 1000 * 60 * 60 // 1 hour for details
   })
 }
 
@@ -72,13 +77,13 @@ export function useIsAnimeInLibrary(animeId: string) {
     queryFn: async () => {
       try {
         const library = await DataService.db.getLibrary({ type: 'anime' })
-        return (library as NormalizedAnime[]).some(m => m.id === animeId)
+        return (library as NormalizedAnime[]).some((m) => m.id === animeId)
       } catch {
         return false
       }
     },
     enabled: !!animeId,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 // 1 minute
   })
 }
 
@@ -91,7 +96,7 @@ export function useAnimeEpisodes(animeId: string, pkg: string | null, animeUrl?:
     queryFn: async () => {
       // 1. Get from DB
       const cached = await DataService.db.getChapters(animeId)
-      
+
       // 2. Refresh from extension if pkg provided
       if (pkg) {
         try {
@@ -99,7 +104,7 @@ export function useAnimeEpisodes(animeId: string, pkg: string | null, animeUrl?:
           if (runner) {
             // We need the anime URL for the extension
             const anime = await DataService.db.getMangaCache(animeId)
-            const urlToFetch = animeUrl || (anime as any)?.url || animeId;
+            const urlToFetch = animeUrl || (anime as any)?.url || animeId
             const fresh = await runner.fetchChapters(urlToFetch)
             if (fresh && fresh.length > 0) {
               await DataService.db.saveChapters({ mangaId: animeId, chapters: fresh })
@@ -113,7 +118,7 @@ export function useAnimeEpisodes(animeId: string, pkg: string | null, animeUrl?:
       return (cached as Episode[]) || []
     },
     enabled: !!animeId,
-    staleTime: 1000 * 60 * 15, // 15 minutes for episodes
+    staleTime: 1000 * 60 * 15 // 15 minutes for episodes
   })
 }
 
@@ -125,7 +130,11 @@ export function useInfiniteAnimeLibrary() {
     queryKey: animeKeys.libraryInfinite('anime'),
     queryFn: async ({ pageParam = 0 }): Promise<NormalizedAnime[]> => {
       try {
-        const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam as number, type: 'anime' })
+        const result = await DataService.db.getLibrary({
+          limit: 50,
+          offset: pageParam as number,
+          type: 'anime'
+        })
         return (result as NormalizedAnime[]) || []
       } catch {
         return []
@@ -138,7 +147,7 @@ export function useInfiniteAnimeLibrary() {
       const totalItems = allPages.reduce((acc, page) => acc + (page?.length || 0), 0)
       return totalItems
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5
   })
 }
 
@@ -149,7 +158,7 @@ export function useWatchingProgress(animeId: string) {
   return useQuery({
     queryKey: animeKeys.progress(animeId),
     queryFn: () => DataService.db.getProgress(animeId),
-    enabled: !!animeId,
+    enabled: !!animeId
   })
 }
 
@@ -161,7 +170,11 @@ export function useInfiniteAnimeHistory() {
     queryKey: animeKeys.historyInfinite('anime'),
     queryFn: async ({ pageParam = 0 }): Promise<HistoryEntry[]> => {
       try {
-        const result = await DataService.db.getHistory({ limit: 50, offset: pageParam as number, type: 'anime' })
+        const result = await DataService.db.getHistory({
+          limit: 50,
+          offset: pageParam as number,
+          type: 'anime'
+        })
         return result || []
       } catch {
         return []
@@ -173,7 +186,7 @@ export function useInfiniteAnimeHistory() {
       if (!allPages || !Array.isArray(allPages)) return undefined
       const totalItems = allPages.reduce((acc, page) => acc + (page?.length || 0), 0)
       return totalItems
-    },
+    }
   })
 }
 
@@ -185,14 +198,14 @@ export function useEpisodeStreams(pkg: string, episode: Episode | null) {
     queryKey: animeKeys.streams(episode?.id || ''),
     queryFn: async () => {
       if (!episode || !pkg) return []
-      
+
       const runner = await ExtensionResolver.resolve(pkg)
       if (!runner) throw new Error('Extension not found')
       const sources = await runner.fetchPages(episode.url)
       return sources // These will be video URLs
     },
     enabled: !!episode && !!pkg,
-    staleTime: 1000 * 60 * 60 * 1, // 1 hour for streams
+    staleTime: 1000 * 60 * 60 * 1 // 1 hour for streams
   })
 }
 
@@ -201,12 +214,13 @@ export function useEpisodeStreams(pkg: string, episode: Episode | null) {
  */
 export function useToggleAnimeLibrary() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: (anime: NormalizedAnime) => DataService.db.toggleLibrary({ ...anime, mediaType: 'anime' }),
+    mutationFn: (anime: NormalizedAnime) =>
+      DataService.db.toggleLibrary({ ...anime, mediaType: 'anime' }),
     onMutate: async (anime) => {
-      const checkKey = animeKeys.libraryCheck(anime.id);
-      
+      const checkKey = animeKeys.libraryCheck(anime.id)
+
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: checkKey })
       await queryClient.cancelQueries({ queryKey: ['manga', 'library'] })

@@ -1,1 +1,1 @@
- "artifactName": "${productName}.Setup.${version}.${ext}"
+"artifactName": "${productName}.Setup.${version}.${ext}"

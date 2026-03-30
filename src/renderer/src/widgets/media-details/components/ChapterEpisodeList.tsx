@@ -1,7 +1,14 @@
 import { useState, useMemo } from 'react'
 import {
-  Search, RefreshCw, Play, Download,
-  CheckCircle, Loader2, Trash2, CalendarDays
+  Search,
+  RefreshCw,
+  Play,
+  Download,
+  CheckCircle,
+  Loader2,
+  Trash2,
+  CalendarDays,
+  XCircle
 } from 'lucide-react'
 import { Button, Input, ErrorState, ChapterItemSkeleton } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
@@ -12,13 +19,18 @@ interface ChapterEpisodeListProps {
   items: Chapter[]
   readChapterIds: string[]
   pageProgress?: Record<string, number>
-  downloadStatuses: Record<string, 'pending' | 'downloading' | 'completed' | 'error' | 'paused' | 'none'>
+  downloadStatuses: Record<
+    string,
+    'pending' | 'downloading' | 'completed' | 'error' | 'paused' | 'none'
+  >
+  downloadProgress?: Record<string, number>
   mediaType: 'manga' | 'anime'
   isLoading?: boolean
   error?: string | null
   extLang: string
   onItemClick: (item: Chapter) => void
   onDownload: (item: Chapter) => void
+  onCancelDownload: (item: Chapter) => void
   onRemoveDownload: (item: Chapter) => void
   onRefresh: () => void
 }
@@ -34,23 +46,32 @@ export const ChapterEpisodeList = ({
   extLang,
   onItemClick,
   onDownload,
+  onCancelDownload,
   onRemoveDownload,
-  onRefresh
-}: ChapterEpisodeListProps) => {
+  onRefresh,
+  downloadProgress = {}
+}: ChapterEpisodeListProps): React.JSX.Element => {
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const isAnime = mediaType === 'anime'
-  const prefix = isAnime ? (extLang === 'ar' ? 'الحلقة' : 'Episode') : (extLang === 'ar' ? 'الفصل' : 'Chapter')
+  const prefix = isAnime
+    ? extLang === 'ar'
+      ? 'الحلقة'
+      : 'Episode'
+    : extLang === 'ar'
+      ? 'الفصل'
+      : 'Chapter'
 
   const filteredItems = useMemo(() => {
     const safeItems = Array.isArray(items) ? items : []
     let result = [...safeItems]
     if (search) {
-      result = result.filter(item =>
-        item.number?.toString().toLowerCase().includes(search.toLowerCase()) ||
-        item.title?.toLowerCase().includes(search.toLowerCase())
+      result = result.filter(
+        (item) =>
+          item.number?.toString().toLowerCase().includes(search.toLowerCase()) ||
+          item.title?.toLowerCase().includes(search.toLowerCase())
       )
     }
     return result.sort((a, b) => {
@@ -63,12 +84,17 @@ export const ChapterEpisodeList = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{(items || []).length} {isAnime ? 'Episodes' : 'Chapters'}</h2>
+        <h2 className="text-lg font-semibold">
+          {(items || []).length} {isAnime ? 'Episodes' : 'Chapters'}
+        </h2>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className={cn("h-8 w-8 hover:bg-primary/10", showSearch && "text-primary bg-primary/10")}
+            className={cn(
+              'h-8 w-8 hover:bg-primary/10',
+              showSearch && 'text-primary bg-primary/10'
+            )}
             onClick={() => setShowSearch(!showSearch)}
           >
             <Search className="h-4 w-4" />
@@ -77,13 +103,18 @@ export const ChapterEpisodeList = ({
             variant="ghost"
             size="sm"
             className="text-xs h-8 gap-1 text-muted-foreground hover:text-primary"
-            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+            onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
           >
-            <RefreshCw className={cn("h-3.5 w-3.5 transition-transform", sortOrder === 'asc' && "rotate-180")} />
+            <RefreshCw
+              className={cn(
+                'h-3.5 w-3.5 transition-transform',
+                sortOrder === 'asc' && 'rotate-180'
+              )}
+            />
             {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh}>
-            <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+            <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
           </Button>
         </div>
       </div>
@@ -128,34 +159,43 @@ export const ChapterEpisodeList = ({
             <div
               key={item.id}
               className={cn(
-                "flex items-center justify-between w-full px-4 py-4 hover:bg-primary/5 transition-all duration-200 group cursor-pointer",
-                isRead && "opacity-60"
+                'flex items-center justify-between w-full px-5 py-4 hover:bg-primary/5 transition-all duration-300 group cursor-pointer relative',
+                'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40',
+                isRead && 'opacity-60 grayscale-[0.3]'
               )}
               onClick={() => onItemClick(item)}
             >
               <div className="flex-1 flex flex-col items-start text-left min-w-0 pr-4">
                 <div className="flex items-center gap-2 max-w-full">
-                  <span className={cn(
-                    "font-semibold text-sm transition-colors truncate",
-                    isRead ? "text-muted-foreground" : "text-foreground group-hover:text-primary"
-                  )}>
+                  <span
+                    className={cn(
+                      'font-semibold text-sm transition-colors truncate',
+                      isRead ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary'
+                    )}
+                  >
                     {prefix} {item.number}
                   </span>
-                  {isRead && <CheckCircle className="h-3 w-3 text-primary fill-primary/10 flex-shrink-0" />}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {isRead && (
+                      <CheckCircle className="h-3.5 w-3.5 text-primary/80 fill-primary/10 flex-shrink-0" />
+                    )}
 
-                  {/* Partial Progress */}
-                  {pageProgress[item.id] > 1 && !isRead && (
-                    <span className="text-[9px] uppercase font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded ml-1 whitespace-nowrap flex-shrink-0">
-                      {isAnime ? `${Math.floor(pageProgress[item.id] / 60)}m` : `Page ${pageProgress[item.id]}`}
-                    </span>
-                  )}
+                    {/* Partial Progress */}
+                    {pageProgress[item.id] > 1 && !isRead && (
+                      <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 whitespace-nowrap flex-shrink-0">
+                        {isAnime
+                          ? `${Math.floor(pageProgress[item.id] / 60)}m`
+                          : `P. ${pageProgress[item.id]}`}
+                      </span>
+                    )}
 
-                  {/* Most Recently Read */}
-                  {isRead && readChapterIds[readChapterIds.length - 1] === item.id && (
-                    <span className="text-[9px] uppercase font-bold bg-secondary/80 text-secondary-foreground px-1.5 py-0.5 rounded ml-1 whitespace-nowrap flex-shrink-0">
-                      Last Read
-                    </span>
-                  )}
+                    {/* Most Recently Read */}
+                    {isRead && readChapterIds[readChapterIds.length - 1] === item.id && (
+                      <span className="text-[10px] font-bold bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full border border-secondary whitespace-nowrap flex-shrink-0">
+                        Last Read
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {item.title && (
                   <p className="text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -165,7 +205,7 @@ export const ChapterEpisodeList = ({
                 {item.date && (
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium">
                     <CalendarDays className="h-3 w-3" />
-                    <span dir='auto'>{item.date}</span>
+                    <span dir="auto">{item.date}</span>
                   </div>
                 )}
               </div>
@@ -175,14 +215,30 @@ export const ChapterEpisodeList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+                    className="h-10 w-10 text-muted-foreground/60 hover:text-primary transition-all duration-300 transform group-hover:scale-110"
                     onClick={(e) => {
                       e.stopPropagation()
-                      downloadStatus === 'completed' ? onRemoveDownload(item) : onDownload(item)
+                      if (downloadStatus === 'downloading') {
+                        onCancelDownload(item)
+                      } else if (downloadStatus === 'completed') {
+                        onRemoveDownload(item)
+                      } else {
+                        onDownload(item)
+                      }
                     }}
                   >
                     {downloadStatus === 'downloading' ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <div className="relative flex items-center justify-center group/cancel">
+                        {/* Progress State */}
+                        <div className="flex items-center justify-center transition-all duration-300 group-hover/cancel:scale-0 group-hover/cancel:opacity-0">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" />
+                          <span className="absolute text-[8px] font-bold text-primary">
+                            {Math.round((downloadProgress?.[item.id] || 0) * 100)}%
+                          </span>
+                        </div>
+                        {/* Cancel State (Visible on Hover) */}
+                        <XCircle className="absolute h-5 w-5 text-destructive opacity-0 scale-50 transition-all duration-300 group-hover/cancel:opacity-100 group-hover/cancel:scale-110" />
+                      </div>
                     ) : downloadStatus === 'completed' ? (
                       <Trash2 className="h-4 w-4 text-destructive" />
                     ) : (
@@ -193,9 +249,14 @@ export const ChapterEpisodeList = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-primary opacity-0 group-hover:opacity-100"
+                  className="h-10 w-10 text-primary/70 hover:text-primary transition-all duration-300 transform group-hover:scale-110"
                 >
-                  <Play className={cn("h-4 w-4", !isAnime && "fill-current")} />
+                  <Play
+                    className={cn(
+                      'h-4 w-4 transition-transform group-hover:translate-x-0.5',
+                      !isAnime && 'fill-current'
+                    )}
+                  />
                 </Button>
               </div>
             </div>
@@ -203,7 +264,9 @@ export const ChapterEpisodeList = ({
         })}
         {!isLoading && filteredItems.length === 0 && (
           <div className="text-center py-12 text-muted-foreground text-sm italic">
-            {search ? `No ${isAnime ? 'episodes' : 'chapters'} matching "${search}"` : `No ${isAnime ? 'episodes' : 'chapters'} available.`}
+            {search
+              ? `No ${isAnime ? 'episodes' : 'chapters'} matching "${search}"`
+              : `No ${isAnime ? 'episodes' : 'chapters'} available.`}
           </div>
         )}
       </div>

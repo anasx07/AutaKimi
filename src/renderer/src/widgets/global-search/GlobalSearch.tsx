@@ -22,7 +22,9 @@ export default function GlobalSearch() {
   const [onlyPinned, setOnlyPinned] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [statuses, setStatuses] = useState<Record<string, 'pending' | 'searching' | 'done' | 'error'>>({})
+  const [statuses, setStatuses] = useState<
+    Record<string, 'pending' | 'searching' | 'done' | 'error'>
+  >({})
 
   const searchIdRef = useRef(0)
 
@@ -35,13 +37,16 @@ export default function GlobalSearch() {
     setResults([])
 
     const targets = onlyPinned
-      ? installedExtensions.filter(e => pinnedExtensions.includes(e.pkg))
+      ? installedExtensions.filter((e) => pinnedExtensions.includes(e.pkg))
       : installedExtensions
 
-    const initialStatuses = targets.reduce((acc, ext) => {
-      acc[ext.pkg] = 'pending'
-      return acc
-    }, {} as Record<string, 'pending' | 'searching' | 'done' | 'error'>)
+    const initialStatuses = targets.reduce(
+      (acc, ext) => {
+        acc[ext.pkg] = 'pending'
+        return acc
+      },
+      {} as Record<string, 'pending' | 'searching' | 'done' | 'error'>
+    )
     setStatuses(initialStatuses)
 
     // Concurrency pooling (limit 3 simultaneous searches)
@@ -50,9 +55,9 @@ export default function GlobalSearch() {
       while (index < targets.length) {
         if (searchId !== searchIdRef.current) return
         const ext = targets[index++]
-        
-        setStatuses(prev => ({ ...prev, [ext.pkg]: 'searching' }))
-        
+
+        setStatuses((prev) => ({ ...prev, [ext.pkg]: 'searching' }))
+
         try {
           const runner = await ExtensionResolver.resolve(ext.pkg)
           if (!runner) throw new Error(`Extension ${ext.name} not found`)
@@ -61,15 +66,15 @@ export default function GlobalSearch() {
 
           if (searchId === searchIdRef.current) {
             if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
-              const wrappedResults = mangaPage.manga.map(m => ({ manga: m, extension: ext }))
-              setResults(prev => [...prev, ...wrappedResults])
+              const wrappedResults = mangaPage.manga.map((m) => ({ manga: m, extension: ext }))
+              setResults((prev) => [...prev, ...wrappedResults])
             }
-            setStatuses(prev => ({ ...prev, [ext.pkg]: 'done' }))
+            setStatuses((prev) => ({ ...prev, [ext.pkg]: 'done' }))
           }
         } catch (err: any) {
           console.error(`[GlobalSearch] Error searching ${ext.name}:`, err)
           if (searchId === searchIdRef.current) {
-            setStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+            setStatuses((prev) => ({ ...prev, [ext.pkg]: 'error' }))
           }
         }
       }
@@ -84,10 +89,10 @@ export default function GlobalSearch() {
   const retrySource = async (ext: ExtensionMetadata) => {
     if (!query.trim()) return
     const searchId = searchIdRef.current
-    
-    setStatuses(prev => ({ ...prev, [ext.pkg]: 'searching' }))
-    setResults(prev => prev.filter(r => r.extension.pkg !== ext.pkg))
-    
+
+    setStatuses((prev) => ({ ...prev, [ext.pkg]: 'searching' }))
+    setResults((prev) => prev.filter((r) => r.extension.pkg !== ext.pkg))
+
     try {
       const runner = await ExtensionResolver.resolve(ext.pkg)
       if (!runner) throw new Error(`Extension ${ext.name} not found`)
@@ -96,20 +101,20 @@ export default function GlobalSearch() {
 
       if (searchId === searchIdRef.current) {
         if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
-          const wrappedResults = mangaPage.manga.map(m => ({ manga: m, extension: ext }))
-          setResults(prev => [...prev, ...wrappedResults])
+          const wrappedResults = mangaPage.manga.map((m) => ({ manga: m, extension: ext }))
+          setResults((prev) => [...prev, ...wrappedResults])
         }
-        setStatuses(prev => ({ ...prev, [ext.pkg]: 'done' }))
+        setStatuses((prev) => ({ ...prev, [ext.pkg]: 'done' }))
       }
     } catch (err: any) {
       console.error(`[GlobalSearch] Error retrying ${ext.name}:`, err)
       if (searchId === searchIdRef.current) {
-        setStatuses(prev => ({ ...prev, [ext.pkg]: 'error' }))
+        setStatuses((prev) => ({ ...prev, [ext.pkg]: 'error' }))
       }
     }
   }
 
-  const doneCount = Object.values(statuses).filter(s => s === 'done' || s === 'error').length
+  const doneCount = Object.values(statuses).filter((s) => s === 'done' || s === 'error').length
   const totalCount = Object.keys(statuses).length
 
   return (
@@ -130,7 +135,11 @@ export default function GlobalSearch() {
           disabled={searching || !query.trim()}
           className="h-11 px-8 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          {searching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+          {searching ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Search className="h-4 w-4 mr-2" />
+          )}
           {searching ? 'Searching...' : 'Search'}
         </Button>
       </form>
@@ -162,27 +171,35 @@ export default function GlobalSearch() {
               </div>
               <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-muted-foreground px-1">
                 <span>Progress: {Math.round((doneCount / totalCount) * 100)}%</span>
-                <span>{doneCount} / {totalCount} Sources</span>
+                <span>
+                  {doneCount} / {totalCount} Sources
+                </span>
               </div>
             </>
           )}
 
           <div className="flex flex-wrap gap-2 justify-center pt-2">
-            {installedExtensions.map(ext => (
+            {installedExtensions.map((ext) => (
               <div
                 key={ext.pkg}
                 className={cn(
-                  "flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] transition-all",
-                  statuses[ext.pkg] === 'done' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                    statuses[ext.pkg] === 'error' ? "bg-destructive/10 text-destructive border-destructive/20" :
-                      statuses[ext.pkg] === 'searching' ? "bg-primary/10 text-primary border-primary/20" :
-                        "bg-secondary/30 text-muted-foreground border-border/40 opacity-50"
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] transition-all',
+                  statuses[ext.pkg] === 'done'
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : statuses[ext.pkg] === 'error'
+                      ? 'bg-destructive/10 text-destructive border-destructive/20'
+                      : statuses[ext.pkg] === 'searching'
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : 'bg-secondary/30 text-muted-foreground border-border/40 opacity-50'
                 )}
               >
-                {statuses[ext.pkg] === 'done' ? <CheckCircle className="h-2.5 w-2.5" /> :
-                  statuses[ext.pkg] === 'error' ? <AlertCircle className="h-2.5 w-2.5" /> :
-                    statuses[ext.pkg] === 'searching' ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> :
-                      null}
+                {statuses[ext.pkg] === 'done' ? (
+                  <CheckCircle className="h-2.5 w-2.5" />
+                ) : statuses[ext.pkg] === 'error' ? (
+                  <AlertCircle className="h-2.5 w-2.5" />
+                ) : statuses[ext.pkg] === 'searching' ? (
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                ) : null}
                 {ext.name}
               </div>
             ))}
@@ -193,13 +210,16 @@ export default function GlobalSearch() {
       {doneCount > 0 && (
         <div className="space-y-10">
           {installedExtensions.map((ext) => {
-            const extResults = results.filter(r => r.extension.pkg === ext.pkg)
+            const extResults = results.filter((r) => r.extension.pkg === ext.pkg)
             const status = statuses[ext.pkg]
 
             if (status === 'pending') return null
 
             return (
-              <div key={ext.pkg} className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-500">
+              <div
+                key={ext.pkg}
+                className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-500"
+              >
                 <div className="flex items-center justify-between border-b border-border/40 pb-2 group/header">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden ring-1 ring-border/50">
@@ -262,7 +282,9 @@ export default function GlobalSearch() {
                   </div>
                 ) : status === 'done' ? (
                   <div className="py-8 text-center bg-secondary/5 rounded-xl border border-dashed border-border/40">
-                    <p className="text-xs text-muted-foreground italic">No results found in this source</p>
+                    <p className="text-xs text-muted-foreground italic">
+                      No results found in this source
+                    </p>
                   </div>
                 ) : status === 'error' ? (
                   <div className="py-12 flex flex-col items-center justify-center gap-6 bg-destructive/5 rounded-2xl border border-dashed border-destructive/20 animate-in zoom-in duration-300">
@@ -275,9 +297,9 @@ export default function GlobalSearch() {
                         Something went wrong while connecting to this source.
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => retrySource(ext)}
                       className="h-8 gap-2 border-destructive/20 hover:bg-destructive hover:text-white transition-all active:scale-95"
                     >
@@ -305,7 +327,9 @@ export default function GlobalSearch() {
           </div>
           <div className="text-center space-y-1">
             <p className="text-lg font-medium text-foreground">No matches found</p>
-            <p className="text-sm">We couldn't find any manga named "{query}" in any of your sources.</p>
+            <p className="text-sm">
+              We couldn't find any manga named "{query}" in any of your sources.
+            </p>
           </div>
         </div>
       )}

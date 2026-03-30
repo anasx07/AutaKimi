@@ -22,4 +22,4 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   zh: '中文',
   'zh-hans': '简体中文',
   'zh-hant': '繁體中文'
-};
+}

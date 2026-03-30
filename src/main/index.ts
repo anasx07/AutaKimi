@@ -29,12 +29,15 @@ app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
 import { NetworkService } from '../common/services/network'
 import path from 'path'
 import fs from 'fs'
-import { DiskCache } from './cache/DiskCache'
 import crypto from 'crypto'
+import { CacheManager } from './services/cache.service'
+import { mangaCacheRepo } from './db'
 
 // Register Services
 import db, { runCleanupRoutine } from './db'
+import { extensionOrchestrator } from './services/extension.service'
 ServiceRegistry.register(DownloadManager.getInstance())
+ServiceRegistry.register(extensionOrchestrator)
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
@@ -46,12 +49,14 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'autakimi-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
 ])
 
-const MAX_CACHE_SIZE = 500 * 1024 * 1024 // 500MB
-export let imageCache: DiskCache;
-let mainWindow: BrowserWindow | null = null;
-let windowState = { width: 1000, height: 750, x: undefined as number | undefined, y: undefined as number | undefined, isMaximized: false };
-
-
+let mainWindow: BrowserWindow | null = null
+let windowState = {
+  width: 1000,
+  height: 750,
+  x: undefined as number | undefined,
+  y: undefined as number | undefined,
+  isMaximized: false
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -65,13 +70,15 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    ...(process.platform === 'win32' ? {
-      titleBarOverlay: {
-        color: '#09090b',
-        symbolColor: '#f4f4f5',
-        height: 32
-      }
-    } : {}),
+    ...(process.platform === 'win32'
+      ? {
+          titleBarOverlay: {
+            color: '#09090b',
+            symbolColor: '#f4f4f5',
+            height: 32
+          }
+        }
+      : {}),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -89,10 +96,12 @@ function createWindow(): void {
     if (saveTimeout) clearTimeout(saveTimeout)
     saveTimeout = setTimeout(() => {
       if (!mainWindow) return
-      let bounds: { x: number, y: number, width: number, height: number }
+      let bounds: { x: number; y: number; width: number; height: number }
       try {
         bounds = mainWindow.getBounds()
-      } catch (e) { return }
+      } catch (e) {
+        return
+      }
       const isMax = mainWindow.isMaximized()
       const state = {
         width: isMax ? windowState.width : bounds.width,
@@ -102,7 +111,10 @@ function createWindow(): void {
         isMaximized: isMax
       }
       try {
-        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('window_state', JSON.stringify(state))
+        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+          'window_state',
+          JSON.stringify(state)
+        )
         windowState = state
       } catch (e) {
         console.error('Failed to save window state:', e)
@@ -124,7 +136,9 @@ function createWindow(): void {
     }
 
     // Check setting (synchronous DB read for immediate event handling)
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('minimize_to_tray') as { value: string } | undefined
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('minimize_to_tray') as
+      | { value: string }
+      | undefined
     const minimizeToTray = row ? row.value !== 'false' : true
 
     if (minimizeToTray) {
@@ -137,9 +151,13 @@ function createWindow(): void {
 
   mainWindow?.on('ready-to-show', () => {
     mainWindow?.show()
+    // Inject webContents to downloadManager for IPC events
+    if (mainWindow) {
+      DownloadManager.getInstance().setWebContents(mainWindow.webContents)
+    }
     setImmediate(() => {
-      runCleanupRoutine();
-    });
+      runCleanupRoutine()
+    })
   })
 
   mainWindow?.webContents?.setWindowOpenHandler((details) => {
@@ -161,9 +179,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   // Initialize Services
-  await ServiceRegistry.initializeAll();
-
-  imageCache = new DiskCache(path.join(app.getPath('userData'), 'image_cache'), MAX_CACHE_SIZE)
+  await ServiceRegistry.initializeAll()
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -182,6 +198,14 @@ app.whenReady().then(async () => {
   registerWindowHandlers()
   registerDownloadHandlers()
 
+  // Initialize CacheManager
+  const cacheManager = CacheManager.getInstance()
+  if (mainWindow) cacheManager.setWebContents(mainWindow.webContents)
+  
+  // Connect Manga Cache Repo
+  cacheManager.setMangaRepo(mangaCacheRepo)
+  ServiceRegistry.register(cacheManager)
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
@@ -189,14 +213,26 @@ app.whenReady().then(async () => {
   protocol.handle('autakimi-cache', async (request) => {
     try {
       const url = request.url.replace('autakimi-cache://', 'https://')
-      
+
       // Prioritize local extension icons (match /icon/, /icons/, or /local-icon/)
-      if ((url.includes('/icons/') || url.includes('/icon/') || url.includes('/local-icon/')) && url.endsWith('.png')) {
+      if (
+        (url.includes('/icons/') || url.includes('/icon/') || url.includes('/local-icon/')) &&
+        url.endsWith('.png')
+      ) {
         const filename = path.basename(url)
-        const localIconPath = is.dev 
-          ? path.join(process.cwd(), 'src', 'renderer', 'src', 'app', 'assets', 'Extensionicon', filename)
-          : path.join(process.resourcesPath, 'Extensionicon', filename);
-          
+        const localIconPath = is.dev
+          ? path.join(
+              process.cwd(),
+              'src',
+              'renderer',
+              'src',
+              'app',
+              'assets',
+              'Extensionicon',
+              filename
+            )
+          : path.join(process.resourcesPath, 'Extensionicon', filename)
+
         try {
           if (fs.existsSync(localIconPath)) {
             return new Response(fs.readFileSync(localIconPath))
@@ -204,12 +240,13 @@ app.whenReady().then(async () => {
         } catch (e) {
           console.error('Local icon load failed:', e)
         }
-        
+
         // Block remote icon fetching
         return new Response('Icon not found locally', { status: 404 })
       }
 
       const hash = crypto.createHash('md5').update(url).digest('hex')
+      const imageCache = CacheManager.getInstance().getImageCache()
 
       const buffer = await imageCache.get(hash)
       if (buffer) return new Response(new Uint8Array(buffer))
@@ -217,20 +254,28 @@ app.whenReady().then(async () => {
       let origin = 'https://'
       try {
         origin = new URL(url).origin + '/'
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
-      const response = await NetworkService.fetchWithRetry(url, {
-        headers: {
-          'User-Agent': session.defaultSession.getUserAgent(),
-          'Referer': origin
-        }
-      }, NetworkConfig.DEFAULT_RETRY_ATTEMPTS, NetworkConfig.DEFAULT_RETRY_DELAY, net.fetch)
+      const response = await NetworkService.fetchWithRetry(
+        url,
+        {
+          headers: {
+            'User-Agent': session.defaultSession.getUserAgent(),
+            Referer: origin
+          }
+        },
+        NetworkConfig.DEFAULT_RETRY_ATTEMPTS,
+        NetworkConfig.DEFAULT_RETRY_DELAY,
+        net.fetch
+      )
 
       if (!response.ok) return new Response('Error loading resource', { status: response.status })
-      
+
       const resBuffer = Buffer.from(await response.arrayBuffer())
       await imageCache.set(hash, resBuffer)
-      
+
       return new Response(new Uint8Array(resBuffer))
     } catch (error) {
       console.error('Cache Protocol Error:', error)
@@ -248,7 +293,7 @@ app.whenReady().then(async () => {
   })
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
-  
+
   // Update events
   autoUpdater.on('checking-for-update', () => {
     mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'checking' })
@@ -260,7 +305,10 @@ app.whenReady().then(async () => {
     mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'idle' })
   })
   autoUpdater.on('download-progress', (progressObj) => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'downloading', progress: progressObj })
+    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, {
+      status: 'downloading',
+      progress: progressObj
+    })
   })
   autoUpdater.on('update-downloaded', () => {
     mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'downloaded' })
@@ -287,7 +335,9 @@ app.whenReady().then(async () => {
 
   // Load window state
   try {
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('window_state') as { value: string } | undefined
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('window_state') as
+      | { value: string }
+      | undefined
     if (row?.value) {
       const saved = JSON.parse(row.value)
       if (saved && typeof saved === 'object') {

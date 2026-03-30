@@ -13,14 +13,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
       outline: 'border border-border bg-background hover:bg-secondary/50 text-foreground',
       ghost: 'hover:bg-secondary/50 text-muted-foreground hover:text-foreground',
-      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
     }
 
     const sizes = {
       sm: 'h-8 px-3 text-xs',
       md: 'h-10 px-4 text-sm',
       lg: 'h-11 px-8 text-base',
-      icon: 'h-10 w-10 p-2',
+      icon: 'h-10 w-10 p-2'
     }
 
     return (

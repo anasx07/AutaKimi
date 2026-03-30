@@ -32,36 +32,44 @@ export const useAutoScroll = (
 
   useEffect(() => {
     if (!autoScrollEnabled || !scrollRef.current || !isInfiniteScroll) {
-       if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current)
-       return
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current)
+      return
     }
 
     const scroll = () => {
-       if (scrollRef.current && !isDragging && !isKbdPaused) {
-          let finalStep = autoScrollSpeed * 0.25
-          if (isKbdBoosted) finalStep *= 6
-          if (isKbdSlowed) finalStep *= 0.3
-          if (isKbdReversing) finalStep *= -2
-          
-          if (isHorizontal) {
-            preciseScrollLeft.current += isRtl ? -finalStep : finalStep
-            scrollRef.current.scrollLeft = preciseScrollLeft.current
-          } else {
-            preciseScrollTop.current += finalStep
-            scrollRef.current.scrollTop = preciseScrollTop.current
-          }
-       }
-       autoScrollRef.current = requestAnimationFrame(scroll)
+      if (scrollRef.current && !isDragging && !isKbdPaused) {
+        let finalStep = autoScrollSpeed * 0.25
+        if (isKbdBoosted) finalStep *= 6
+        if (isKbdSlowed) finalStep *= 0.3
+        if (isKbdReversing) finalStep *= -2
+
+        if (isHorizontal) {
+          preciseScrollLeft.current += isRtl ? -finalStep : finalStep
+          scrollRef.current.scrollLeft = preciseScrollLeft.current
+        } else {
+          preciseScrollTop.current += finalStep
+          scrollRef.current.scrollTop = preciseScrollTop.current
+        }
+      }
+      autoScrollRef.current = requestAnimationFrame(scroll)
     }
 
     autoScrollRef.current = requestAnimationFrame(scroll)
     return () => {
-       if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current)
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current)
     }
   }, [
-    autoScrollEnabled, autoScrollSpeed, isInfiniteScroll, 
-    isDragging, isKbdPaused, isKbdReversing, 
-    isKbdBoosted, isKbdSlowed, scrollRef, isHorizontal, isRtl
+    autoScrollEnabled,
+    autoScrollSpeed,
+    isInfiniteScroll,
+    isDragging,
+    isKbdPaused,
+    isKbdReversing,
+    isKbdBoosted,
+    isKbdSlowed,
+    scrollRef,
+    isHorizontal,
+    isRtl
   ])
 
   return {

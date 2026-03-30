@@ -1,6 +1,16 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { TitleBar } from '@renderer/widgets/title-bar'
-import { ArrowLeft, Loader2, ChevronLeft, ChevronRight, RefreshCw, Play, Menu, Zap, History } from 'lucide-react'
+import {
+  ArrowLeft,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Play,
+  Menu,
+  Zap,
+  History
+} from 'lucide-react'
 import {
   useLibraryStore,
   useExtensionStore,
@@ -20,7 +30,11 @@ export default function AnimeViewer() {
   const { markChapterRead } = useProgressStore()
   const { addHistoryEntry } = useHistoryStore()
 
-  const { data: episodes = [] } = useMangaChapters(selectedManga?.id || '', activeExtension || '', selectedManga?.url)
+  const { data: episodes = [] } = useMangaChapters(
+    selectedManga?.id || '',
+    activeExtension || '',
+    selectedManga?.url
+  )
 
   const [servers, setServers] = useState<string[]>([])
   const [activeServerIdx, setActiveServerIdx] = useState(0)
@@ -34,7 +48,6 @@ export default function AnimeViewer() {
   const { autoNextAnime, setAutoNextAnime, autoSwitchServer } = useSettingsStore()
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
 
   // Cinema Mode: Auto-hide controls
   useEffect(() => {
@@ -55,7 +68,6 @@ export default function AnimeViewer() {
     }
   }, [isEpisodesOpen])
 
-
   // Auto-expand debug on error
   useEffect(() => {
     if (error) setShowDebug(true)
@@ -65,9 +77,13 @@ export default function AnimeViewer() {
     return [...episodes].sort((a, b) => (a.number || 0) - (b.number || 0))
   }, [episodes])
 
-  const currentIndex = sortedEpisodes.findIndex(e => e.id === activeChapter?.id)
-  const nextEpisode = currentIndex !== -1 && currentIndex + 1 < sortedEpisodes.length ? sortedEpisodes[currentIndex + 1] : null
-  const prevEpisode = currentIndex !== -1 && currentIndex > 0 ? sortedEpisodes[currentIndex - 1] : null
+  const currentIndex = sortedEpisodes.findIndex((e) => e.id === activeChapter?.id)
+  const nextEpisode =
+    currentIndex !== -1 && currentIndex + 1 < sortedEpisodes.length
+      ? sortedEpisodes[currentIndex + 1]
+      : null
+  const prevEpisode =
+    currentIndex !== -1 && currentIndex > 0 ? sortedEpisodes[currentIndex - 1] : null
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -83,7 +99,7 @@ export default function AnimeViewer() {
           if (prevEpisode) setActiveChapter(prevEpisode)
           break
         case 'm':
-          setIsEpisodesOpen(prev => !prev)
+          setIsEpisodesOpen((prev) => !prev)
           break
         case 'escape':
           if (isEpisodesOpen) setIsEpisodesOpen(false)
@@ -123,12 +139,14 @@ export default function AnimeViewer() {
           const lastServer = localStorage.getItem('autakimi-anime-preferred-server')
           let targetIdx = 0
           if (lastServer) {
-            const prefIdx = urls.findIndex((s: any) => (typeof s === 'object' ? s.name : s) === lastServer)
+            const prefIdx = urls.findIndex(
+              (s: any) => (typeof s === 'object' ? s.name : s) === lastServer
+            )
             if (prefIdx !== -1) targetIdx = prefIdx
           }
 
           setActiveServerIdx(targetIdx)
-          
+
           // Added: Trigger history immediately when servers are ready
           if (selectedManga && activeChapter) {
             markChapterRead(selectedManga.id, activeChapter.id, true)
@@ -162,7 +180,7 @@ export default function AnimeViewer() {
     if (error && autoSwitchServer && servers.length > 1 && activeServerIdx < servers.length - 1) {
       setIsSwitchingServer(true)
       const timer = setTimeout(() => {
-        setActiveServerIdx(prev => prev + 1)
+        setActiveServerIdx((prev) => prev + 1)
         setIsSwitchingServer(false)
         setError(null)
       }, 3000)
@@ -170,8 +188,6 @@ export default function AnimeViewer() {
     }
     return undefined
   }, [error, autoSwitchServer, servers.length, activeServerIdx])
-
-
 
   if (!activeChapter || !selectedManga) return null
 
@@ -183,10 +199,12 @@ export default function AnimeViewer() {
       <TitleBar />
 
       {/* Top Header Overlay */}
-      <div className={cn(
-        "absolute top-8 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500",
-        !showControls && "translate-y-[-110%] opacity-0 pointer-events-none"
-      )}>
+      <div
+        className={cn(
+          'absolute top-8 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
+          !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
+        )}
+      >
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -204,8 +222,12 @@ export default function AnimeViewer() {
             {selectedManga.title}
           </h1>
           <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest">
-            <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">EP {activeChapter.number}</span>
-            <span className="truncate max-w-[150px] opacity-60 italic">{activeChapter.title || 'Watching Now'}</span>
+            <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">
+              EP {activeChapter.number}
+            </span>
+            <span className="truncate max-w-[150px] opacity-60 italic">
+              {activeChapter.title || 'Watching Now'}
+            </span>
           </div>
         </div>
 
@@ -215,18 +237,22 @@ export default function AnimeViewer() {
             size="sm"
             onClick={() => setAutoNextAnime(!autoNextAnime)}
             className={cn(
-              "h-9 px-3 text-[11px] font-bold rounded-full border transition-all",
-              autoNextAnime ? "bg-primary/20 border-primary/50 text-primary hover:bg-primary/30" : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+              'h-9 px-3 text-[11px] font-bold rounded-full border transition-all',
+              autoNextAnime
+                ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
+                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
             )}
           >
-            <Zap className={cn("h-3.5 w-3.5 mr-2", autoNextAnime && "fill-current")} />
+            <Zap className={cn('h-3.5 w-3.5 mr-2', autoNextAnime && 'fill-current')} />
             Auto-Next
           </Button>
 
           {servers.length > 1 && (
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-white/5 backdrop-blur-md rounded-full px-4 py-1.5 border border-white/10">
-                <span className="text-[10px] text-white/40 font-bold mr-3 uppercase tracking-tighter">Server</span>
+                <span className="text-[10px] text-white/40 font-bold mr-3 uppercase tracking-tighter">
+                  Server
+                </span>
                 <select
                   value={activeServerIdx}
                   onChange={(e) => {
@@ -280,8 +306,10 @@ export default function AnimeViewer() {
             size="icon"
             onClick={() => setIsEpisodesOpen(!isEpisodesOpen)}
             className={cn(
-              "h-10 w-10 rounded-full transition-all",
-              isEpisodesOpen ? "bg-primary text-white" : "text-white/70 hover:text-white hover:bg-white/10"
+              'h-10 w-10 rounded-full transition-all',
+              isEpisodesOpen
+                ? 'bg-primary text-white'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             )}
           >
             <Menu className="h-5 w-5" />
@@ -296,9 +324,9 @@ export default function AnimeViewer() {
           <>
             <div
               className={cn(
-                "absolute left-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-8",
-                showControls ? "opacity-100" : "opacity-0 pointer-events-none",
-                !prevEpisode && "hidden"
+                'absolute left-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-8',
+                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                !prevEpisode && 'hidden'
               )}
               onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
             >
@@ -307,9 +335,9 @@ export default function AnimeViewer() {
 
             <div
               className={cn(
-                "absolute right-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-8",
-                showControls ? "opacity-100" : "opacity-0 pointer-events-none",
-                !nextEpisode && "hidden"
+                'absolute right-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-8',
+                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                !nextEpisode && 'hidden'
               )}
               onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
             >
@@ -325,8 +353,12 @@ export default function AnimeViewer() {
               <Loader2 className="absolute inset-0 h-16 w-16 text-primary animate-spin" />
             </div>
             <div className="mt-8 text-center space-y-2">
-              <h2 className="text-xl font-bold tracking-tight text-white uppercase italic">Switching Server</h2>
-              <p className="text-sm text-white/50 font-medium tracking-widest uppercase animate-pulse">Trying alternative source ({activeServerIdx + 2}/{servers.length})</p>
+              <h2 className="text-xl font-bold tracking-tight text-white uppercase italic">
+                Switching Server
+              </h2>
+              <p className="text-sm text-white/50 font-medium tracking-widest uppercase animate-pulse">
+                Trying alternative source ({activeServerIdx + 2}/{servers.length})
+              </p>
             </div>
           </div>
         )}
@@ -334,7 +366,9 @@ export default function AnimeViewer() {
         {loading ? (
           <div className="flex flex-col items-center gap-4 text-neutral-500">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-            <p className="text-sm font-medium animate-pulse italic tracking-widest uppercase">Initializing player...</p>
+            <p className="text-sm font-medium animate-pulse italic tracking-widest uppercase">
+              Initializing player...
+            </p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-6 p-8 text-center max-w-2xl bg-neutral-900/50 rounded-2xl border border-white/5 backdrop-blur-xl z-20">
@@ -369,7 +403,7 @@ export default function AnimeViewer() {
               {servers.length > 1 && activeServerIdx < servers.length - 1 && (
                 <Button
                   variant="ghost"
-                  onClick={() => setActiveServerIdx(prev => prev + 1)}
+                  onClick={() => setActiveServerIdx((prev) => prev + 1)}
                   className="text-primary hover:bg-primary/10 gap-2 font-bold"
                 >
                   <RefreshCw className="h-4 w-4" /> Try Next Server
@@ -379,18 +413,26 @@ export default function AnimeViewer() {
 
             {showDebug && (
               <div className="w-full mt-4 text-left p-4 bg-black/60 rounded-lg border border-white/10 font-mono text-[10px] space-y-2 overflow-x-auto max-h-60">
-                <p className="text-primary font-bold uppercase tracking-wider border-b border-primary/20 pb-1 mb-2">Technical Logs</p>
+                <p className="text-primary font-bold uppercase tracking-wider border-b border-primary/20 pb-1 mb-2">
+                  Technical Logs
+                </p>
                 {debugInfo ? (
                   <>
                     <div className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1">
                       <span className="text-neutral-500">Target URL:</span>
                       <span className="text-neutral-300 break-all">{debugInfo.url}</span>
                       <span className="text-neutral-500">HTML Bytes:</span>
-                      <span className={cn("font-bold", debugInfo.htmlLength > 1000 ? "text-green-500" : "text-red-500")}>
-                        {debugInfo.htmlLength} {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
+                      <span
+                        className={cn(
+                          'font-bold',
+                          debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
+                        )}
+                      >
+                        {debugInfo.htmlLength}{' '}
+                        {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
                       </span>
                       <span className="text-neutral-500">CF Blocked:</span>
-                      <span className={debugInfo.isBlocked ? "text-amber-500" : "text-green-500"}>
+                      <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
                         {debugInfo.isBlocked ? 'YES (Challenge Detected)' : 'NO (Clear HTML)'}
                       </span>
                     </div>
@@ -426,8 +468,8 @@ export default function AnimeViewer() {
       {/* Episodes Sidebar Overlay */}
       <div
         className={cn(
-          "absolute right-0 top-0 bottom-0 w-80 bg-neutral-900/95 backdrop-blur-2xl border-l border-white/10 z-50 transition-transform duration-500 ease-in-out flex flex-col pt-8",
-          !isEpisodesOpen && "translate-x-full"
+          'absolute right-0 top-0 bottom-0 w-80 bg-neutral-900/95 backdrop-blur-2xl border-l border-white/10 z-50 transition-transform duration-500 ease-in-out flex flex-col pt-8',
+          !isEpisodesOpen && 'translate-x-full'
         )}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 mt-2">
@@ -454,33 +496,43 @@ export default function AnimeViewer() {
                 setIsEpisodesOpen(false)
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group',
                 ep.id === activeChapter.id
-                  ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold"
-                  : "hover:bg-white/5 text-neutral-400 hover:text-white"
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20 font-bold'
+                  : 'hover:bg-white/5 text-neutral-400 hover:text-white'
               )}
             >
-              <div className={cn(
-                "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold transition-colors",
-                ep.id === activeChapter.id ? "bg-white/20" : "bg-neutral-800 group-hover:bg-neutral-700"
-              )}>
+              <div
+                className={cn(
+                  'h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold transition-colors',
+                  ep.id === activeChapter.id
+                    ? 'bg-white/20'
+                    : 'bg-neutral-800 group-hover:bg-neutral-700'
+                )}
+              >
                 {ep.number}
               </div>
               <div className="flex flex-col items-start min-w-0">
                 <span className="text-[11px] truncate w-full">Episode {ep.number}</span>
-                {ep.title && <span className="text-[9px] opacity-60 truncate w-full">{ep.title}</span>}
+                {ep.title && (
+                  <span className="text-[9px] opacity-60 truncate w-full">{ep.title}</span>
+                )}
               </div>
-              {ep.id === activeChapter.id && <Play className="h-3 w-3 ml-auto fill-current animate-pulse" />}
+              {ep.id === activeChapter.id && (
+                <Play className="h-3 w-3 ml-auto fill-current animate-pulse" />
+              )}
             </button>
           ))}
         </div>
       </div>
 
       {/* Bottom Floating Navigation (HUD) */}
-      <div className={cn(
-        "absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500",
-        !showControls && "translate-y-[150%] opacity-0 pointer-events-none"
-      )}>
+      <div
+        className={cn(
+          'absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500',
+          !showControls && 'translate-y-[150%] opacity-0 pointer-events-none'
+        )}
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -494,8 +546,12 @@ export default function AnimeViewer() {
         <div className="h-8 w-px bg-white/10 mx-1" />
 
         <div className="px-6 py-2 flex flex-col items-center justify-center min-w-[140px]">
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">Playing Now</span>
-          <span className="text-xs font-bold text-primary tracking-tight">EPISODE {activeChapter.number}</span>
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">
+            Playing Now
+          </span>
+          <span className="text-xs font-bold text-primary tracking-tight">
+            EPISODE {activeChapter.number}
+          </span>
         </div>
 
         <div className="h-8 w-px bg-white/10 mx-1" />

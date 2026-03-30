@@ -44,7 +44,15 @@ export class SandboxRunner implements ISourceAdapter {
 
   async fetchPopular(page: number, extraArgs: any = {}): Promise<MangaPage> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { limit: 15, offset: (page - 1) * 15, activeFeed: 'popular', lang: this.lang, ...extraArgs }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: {
+        limit: 15,
+        offset: (page - 1) * 15,
+        activeFeed: 'popular',
+        lang: this.lang,
+        ...extraArgs
+      }
     })
     const manga = (res?.data || []).map((m: any) => normalizeManga(m))
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
@@ -52,7 +60,15 @@ export class SandboxRunner implements ISourceAdapter {
 
   async fetchLatest(page: number, extraArgs: any = {}): Promise<MangaPage> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { limit: 15, offset: (page - 1) * 15, activeFeed: 'latest', lang: this.lang, ...extraArgs }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: {
+        limit: 15,
+        offset: (page - 1) * 15,
+        activeFeed: 'latest',
+        lang: this.lang,
+        ...extraArgs
+      }
     })
     const manga = (res?.data || []).map((m: any) => normalizeManga(m))
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
@@ -60,7 +76,16 @@ export class SandboxRunner implements ISourceAdapter {
 
   async searchManga(query: string, page: number, extraArgs: any = {}): Promise<MangaPage> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { limit: 15, offset: (page - 1) * 15, debouncedSearch: query, activeFeed: 'search', lang: this.lang, ...extraArgs }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: {
+        limit: 15,
+        offset: (page - 1) * 15,
+        debouncedSearch: query,
+        activeFeed: 'search',
+        lang: this.lang,
+        ...extraArgs
+      }
     })
     const manga = (res?.data || []).map((m: any) => normalizeManga(m) as any as Manga)
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
@@ -68,24 +93,30 @@ export class SandboxRunner implements ISourceAdapter {
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
     })
     if (res && res.data) {
-       return { ...manga, ...normalizeManga(res.data) }
+      return { ...manga, ...normalizeManga(res.data) }
     }
     return manga
   }
 
   async fetchChapters(mangaUrl: string): Promise<Chapter[]> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { type: 'fetchChapters', mangaUrl }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: { type: 'fetchChapters', mangaUrl }
     })
     return res?.data || []
   }
 
   async fetchPages(chapterUrl: string): Promise<string[]> {
     const res = await DataService.executeExtension({
-      pkg: this.pkg, code: this.extensionCode, contextArgs: { type: 'fetchPages', chapterUrl }
+      pkg: this.pkg,
+      code: this.extensionCode,
+      contextArgs: { type: 'fetchPages', chapterUrl }
     })
     return res?.pages || []
   }
@@ -95,12 +126,12 @@ export const ExtensionResolver = {
   async resolve(pkg: string): Promise<ISourceAdapter | null> {
     const resExt = await DataService.db.getExtension(pkg)
     const native = SourceRegistry.resolveNative(pkg)
-    
+
     // 1. Check native compatibility
     if (native) {
       const dbVersion = resExt?.version || '0.0.0'
       const nativeVersion = native.version || '0.0.0'
-      
+
       // If native is same or newer than installed, use it
       if (compareVersions(nativeVersion, dbVersion) >= 0) {
         return native
@@ -118,4 +149,3 @@ export const ExtensionResolver = {
     return null
   }
 }
-

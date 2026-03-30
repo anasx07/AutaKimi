@@ -25,7 +25,7 @@ interface HistoryState {
   addHistoryEntry: (entry: Omit<HistoryEntry, 'id'>) => Promise<void>
   deleteHistoryEntry: (id: number) => Promise<void>
   deleteHistoryByManga: (mangaId: string) => Promise<void>
-  clearHistory: () => Promise<void>
+  clearHistory: (type?: 'manga' | 'anime') => Promise<void>
 }
 
 export const useHistoryStore = create<HistoryState>((set, get) => ({
@@ -89,12 +89,18 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     }
   },
 
-  clearHistory: async () => {
+  clearHistory: async (type) => {
     try {
-      await DataService.db.clearHistory()
-      set({ historyEntries: [] })
+      await DataService.db.clearHistory(type)
+      if (type) {
+        set((state) => ({
+          historyEntries: state.historyEntries.filter((e) => e.type !== type)
+        }))
+      } else {
+        set({ historyEntries: [] })
+      }
     } catch (e) {
       console.error('Failed to clear history:', e)
     }
-  },
+  }
 }))

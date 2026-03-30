@@ -39,14 +39,16 @@ export class MangaSid extends MadaraSource {
     try {
       const data = JSON.parse(jsonStr)
       // The API returns { success: true, data: { mangas: [...] } }
-      const items = data.data?.mangas || (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []))
-      
+      const items =
+        data.data?.mangas ||
+        (Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [])
+
       const manga: Manga[] = items.map((item: any) => {
         let coverUrl = item.cover_image || ''
         if (coverUrl.includes('api.mangatek.com')) {
           coverUrl = coverUrl.replace('api.mangatek.com', 'api.mangasid.com')
         }
-        
+
         return {
           id: String(item.id),
           title: item.title,
@@ -74,7 +76,7 @@ export class MangaSid extends MadaraSource {
     try {
       const data = JSON.parse(jsonStr)
       const details = data.data || data
-      
+
       const genres: string[] = []
       if (details.display_tags) {
         details.display_tags.forEach((tag: any) => genres.push(tag.name || tag))
@@ -149,7 +151,7 @@ export class MangaSid extends MadaraSource {
   private scrapeChaptersFromHtml(html: string): Chapter[] {
     const $ = cheerio.load(html)
     const chapters: Chapter[] = []
-    
+
     // Specific selector to avoid "Start Reading" button
     $('div.grid a[href*="/reader/"]').each((_, el) => {
       const a = $(el)
@@ -158,7 +160,7 @@ export class MangaSid extends MadaraSource {
 
       const absoluteUrl = url.startsWith('http') ? url : new URL(url, this.baseUrl).toString()
       const title = a.find('h3').text().trim() || a.text().trim()
-      
+
       // Filter out empty or "Start Reading" style links
       if (!title || title.includes('ابدأ')) return
 
@@ -183,13 +185,13 @@ export class MangaSid extends MadaraSource {
     // Robust extraction from script tags (Astro hydration state)
     const tokenMatch = html.match(/"chapter_token"\s*:\s*"([^"]+)"/)
     const imagesMatch = html.match(/"images"\s*:\s*(\[[^\]]+\])/)
-    
+
     if (tokenMatch && imagesMatch) {
       try {
         const token = tokenMatch[1]
         const imageIds = JSON.parse(imagesMatch[1])
-        return imageIds.map((id: string) => 
-          `${this.apiUrl}/chapters/stream/${token}/${id}?v=${Date.now()}`
+        return imageIds.map(
+          (id: string) => `${this.apiUrl}/chapters/stream/${token}/${id}?v=${Date.now()}`
         )
       } catch (err: any) {
         console.warn('[MangaSid] Failed to extract JSON images:', err.message)
@@ -201,7 +203,10 @@ export class MangaSid extends MadaraSource {
     const pages: string[] = []
     $('img').each((_, el) => {
       const src = $(el).attr('src') || $(el).attr('data-src')
-      if (src && (src.includes('/stream/') || src.includes('mangasid') || src.includes('mangatek'))) {
+      if (
+        src &&
+        (src.includes('/stream/') || src.includes('mangasid') || src.includes('mangatek'))
+      ) {
         pages.push(src)
       }
     })

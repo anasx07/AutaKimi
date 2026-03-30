@@ -10,10 +10,12 @@ interface MediaGridProps {
 
 export function MediaGrid({ children, className }: MediaGridProps) {
   return (
-    <div className={cn(
-      "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 items-start content-start",
-      className
-    )}>
+    <div
+      className={cn(
+        'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 items-start content-start',
+        className
+      )}
+    >
       {children}
     </div>
   )
@@ -32,13 +34,13 @@ interface MediaGridItemProps {
   index?: number
 }
 
-export function MediaGridItem({ 
-  title, 
-  coverUrl, 
-  mediaType = 'manga', 
-  status, 
+export function MediaGridItem({
+  title,
+  coverUrl,
+  mediaType = 'manga',
+  status,
   description,
-  onClick, 
+  onClick,
   badge,
   footerBadge,
   className,
@@ -50,18 +52,18 @@ export function MediaGridItem({
     <Card
       onClick={onClick}
       className={cn(
-        "group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card/40 backdrop-blur-sm",
-        "animate-in fade-in slide-in-from-bottom-4",
+        'group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-card/40 backdrop-blur-sm',
+        'animate-in fade-in slide-in-from-bottom-4',
         className
       )}
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       <div className="aspect-[3/4] relative overflow-hidden bg-secondary/20">
         {coverUrl ? (
-          <img 
-            src={coverUrl} 
-            alt={title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+          <img
+            src={coverUrl}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
         ) : (
@@ -69,7 +71,7 @@ export function MediaGridItem({
             <Icon className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
-        
+
         {/* Hover Description overlay (Browse pattern) */}
         {description && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
@@ -85,14 +87,20 @@ export function MediaGridItem({
       </div>
 
       <CardContent className="p-3 bg-card/50">
-        <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">{title}</h3>
+        <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+          {title}
+        </h3>
         <div className="flex items-center justify-between mt-1 min-h-[1.5rem]">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70 group-hover:opacity-100 transition-opacity overflow-hidden truncate">
-             {badge || (status && (
-                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider opacity-80">
+            {badge ||
+              (status && (
+                <Badge
+                  variant="secondary"
+                  className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider opacity-80"
+                >
                   {status}
                 </Badge>
-             ))}
+              ))}
           </div>
           {footerBadge}
         </div>
