@@ -1,1 +1,0 @@
-import{r as c}from"./main-hlm1zOhm.js";function b({hasNextPage:n,isFetchingNextPage:o,fetchNextPage:s,threshold:t=.1}){const u=c.useRef(null);return c.useEffect(()=>{if(!n||o)return;const e=new IntersectionObserver(f=>{f[0].isIntersecting&&s()},{threshold:t}),r=u.current;return r&&e.observe(r),()=>{r&&e.unobserve(r),e.disconnect()}},[n,o,s,t]),u}export{b as u};
