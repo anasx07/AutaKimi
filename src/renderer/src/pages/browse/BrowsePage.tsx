@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { DataService } from '@renderer/shared/api'
-import { ArrowLeft, Search, BookOpen, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
+import { Search, BookOpen, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
 import { useLibraryStore, useExtensionStore, useUIStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
@@ -12,11 +12,14 @@ import {
   ErrorState,
   MediaGrid,
   MediaGridItem,
-  MediaCardSkeleton
+  MediaCardSkeleton,
+  MobilePage
 } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
+import { isMobile } from '@renderer/shared/platform'
 
-export default function BrowsePage() {
+export default function BrowsePage(): React.JSX.Element {
+  const mobile = isMobile()
   const { viewMode, setViewMode } = useUIStore()
 
   const { setSelectedManga } = useLibraryStore()
@@ -82,262 +85,93 @@ export default function BrowsePage() {
     { id: '0bc0032e-4340-4966-88ef-22df6dbb51ba', name: 'Isekai' }
   ]
 
-  const toggleItem = (list: string[], setList: (val: string[]) => void, item: string) => {
+  const toggleItem = (list: string[], setList: (val: string[]) => void, item: string): void => {
     setList(list.includes(item) ? list.filter((i) => i !== item) : [...list, item])
   }
 
   return (
-    <div className="flex flex-col h-full w-full max-w-7xl mx-auto p-6 space-y-6 animate-in fade-in duration-500 overflow-hidden">
-      {/* Header and Controls */}
-      <div className="flex flex-col space-y-6 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setActiveExtension(null)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                {metadata?.name || 'Browse Source'}
-              </h1>
-              {metadata?.baseUrl && (
-                <p className="text-xs text-primary font-medium hover:underline cursor-pointer">
-                  <a href={metadata.baseUrl} target="_blank" rel="noreferrer">
-                    {metadata.baseUrl}
-                  </a>
-                </p>
-              )}
-              {!metadata?.baseUrl && (
-                <p className="text-xs text-muted-foreground font-mono">{activeExtension}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Tab Controls */}
-            <div className="flex bg-secondary/30 p-1 rounded-lg border border-border overflow-hidden">
-              {(['popular', 'latest', 'search'] as const).map((feed) => (
-                <button
-                  key={feed}
-                  onClick={() => {
-                    setActiveFeed(feed)
-                    if (feed !== 'search') setSearchQuery('')
-                  }}
-                  className={cn(
-                    'px-4 py-1.5 rounded-md text-sm font-medium transition-all capitalize',
-                    activeFeed === feed
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                  )}
-                >
-                  {feed}
-                </button>
-              ))}
-            </div>
-
-            {/* Display Mode Toggle */}
-            <div className="flex bg-secondary/30 p-1 rounded-lg border border-border">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  'p-1.5 h-8 w-8 rounded-md transition-all',
-                  viewMode === 'grid'
-                    ? 'bg-background shadow-sm text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 h-8 w-8 rounded-md transition-all',
-                  viewMode === 'list'
-                    ? 'bg-background shadow-sm text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+    <MobilePage
+      title={metadata?.name || 'Browse Source'}
+      subtitle={metadata?.baseUrl}
+      onBack={() => setActiveExtension(null)}
+      actions={
+        <div className="flex bg-secondary/30 p-0.5 rounded-xl border border-border shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className={cn(
+              'p-1.5 h-8 w-8 rounded-md transition-all',
+              viewMode === 'grid'
+                ? 'bg-background shadow-sm text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className={cn(
+              'p-1.5 h-8 w-8 rounded-md transition-all',
+              viewMode === 'list'
+                ? 'bg-background shadow-sm text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <List className="h-4 w-4" />
+          </Button>
         </div>
-
-        <div className="space-y-4">
-          <div className="flex gap-3">
-            <div className="relative flex-1 group">
-              <Search
-                className={cn(
-                  'absolute left-3 top-3.5 h-4 w-4 transition-colors',
-                  searchQuery
-                    ? 'text-primary'
-                    : 'text-muted-foreground group-focus-within:text-primary'
-                )}
-              />
-              <Input
-                className="pl-9 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl"
-                placeholder="Search manga in this source..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <Button
-              variant={showFilters ? 'secondary' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
+      }
+      headerExtra={
+        <div className={cn('flex gap-3', mobile && 'flex-col')}>
+          <div className="relative flex-1 group">
+            <Search
               className={cn(
-                'h-11 px-6 rounded-xl border-border/40 transition-all flex items-center gap-2',
-                activeFilterCount > 0 && 'border-primary/50 bg-primary/5'
+                'absolute left-3 top-3.5 h-4 w-4 transition-colors',
+                searchQuery ? 'text-primary' : 'text-muted-foreground group-focus-within:text-primary'
               )}
-            >
-              <Filter className={cn('h-4 w-4', activeFilterCount > 0 && 'text-primary')} />
-              <span className="font-semibold text-xs">Filters</span>
-              {activeFilterCount > 0 && (
-                <Badge className="ml-1 h-5 min-w-[20px] px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full border-none">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
+            />
+            <Input
+              className="pl-9 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl"
+              placeholder="Search manga in this source..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-
-          {/* Floating Side Filter Drawer */}
-          {showFilters && (
-            <>
-              <div
-                className="fixed inset-0 bg-background/40 backdrop-blur-[2px] z-[60] animate-in fade-in duration-300"
-                onClick={() => setShowFilters(false)}
-              />
-              <div className="fixed right-0 top-0 bottom-0 w-80 bg-card border-l border-border z-[70] p-6 shadow-2xl animate-in slide-in-from-right duration-500 overflow-y-auto no-scrollbar">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-xl font-bold tracking-tight">Advanced Filters</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowFilters(false)}
-                    className="rounded-full"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                      Demographic
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['shounen', 'shoujo', 'seinen', 'josei'].map((demo) => (
-                        <Badge
-                          key={demo}
-                          variant={selectedDemographics.includes(demo) ? 'default' : 'outline'}
-                          className={cn(
-                            'cursor-pointer capitalize py-2 flex justify-center text-xs transition-all border-border/40',
-                            selectedDemographics.includes(demo)
-                              ? 'shadow-md shadow-primary/20'
-                              : 'hover:bg-secondary/50'
-                          )}
-                          onClick={() =>
-                            toggleItem(selectedDemographics, setSelectedDemographics, demo)
-                          }
-                        >
-                          {demo}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                      Status
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {['ongoing', 'completed', 'hiatus', 'cancelled'].map((stat) => (
-                        <Badge
-                          key={stat}
-                          variant={selectedStatus.includes(stat) ? 'default' : 'outline'}
-                          className={cn(
-                            'cursor-pointer capitalize px-3 py-1.5 text-xs transition-all border-border/40',
-                            selectedStatus.includes(stat)
-                              ? 'shadow-md shadow-primary/20'
-                              : 'hover:bg-secondary/50 font-medium'
-                          )}
-                          onClick={() => toggleItem(selectedStatus, setSelectedStatus, stat)}
-                        >
-                          {stat}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                      Popular Tags
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {POPULAR_TAGS.map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant={selectedTags.includes(tag.id) ? 'default' : 'outline'}
-                          className={cn(
-                            'cursor-pointer px-3 py-1.5 text-xs transition-all border-border/40',
-                            selectedTags.includes(tag.id)
-                              ? 'shadow-md shadow-primary/20'
-                              : 'hover:bg-secondary/50 font-medium'
-                          )}
-                          onClick={() => toggleItem(selectedTags, setSelectedTags, tag.id)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-12 pt-6 border-t border-border/50 flex flex-col gap-3">
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 shadow-lg shadow-primary/20"
-                    onClick={() => setShowFilters(false)}
-                  >
-                    Apply Filters
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      'w-full text-xs font-semibold tracking-wide transition-colors rounded-xl h-11',
-                      activeFilterCount > 0
-                        ? 'text-destructive hover:bg-destructive/10'
-                        : 'text-muted-foreground opacity-50 pointer-events-none'
-                    )}
-                    onClick={() => {
-                      setSelectedDemographics([])
-                      setSelectedStatus([])
-                      setSelectedTags([])
-                    }}
-                  >
-                    Reset All Filters
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              'h-11 px-6 rounded-xl border-border/40 transition-all flex items-center gap-2',
+              activeFilterCount > 0 && 'border-primary/50 bg-primary/5',
+              mobile && 'w-full justify-center'
+            )}
+          >
+            <Filter className={cn('h-4 w-4', activeFilterCount > 0 && 'text-primary')} />
+            <span className="font-semibold text-xs">Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 h-5 min-w-[20px] px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full border-none">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
         </div>
-      </div>
-
-      {/* Results - Scrollable Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto pr-2 scroll-smooth">
-        <div className="space-y-6 pb-20">
+      }
+    >
+      <div className="flex-1">
+        <div className="space-y-6 pb-6">
           {loading && mangaList.length === 0 && (
-            <MediaGrid className="pr-2">
+            <MediaGrid>
               {Array.from({ length: 15 }).map((_, i) => (
                 <MediaCardSkeleton key={i} />
               ))}
@@ -370,7 +204,7 @@ export default function BrowsePage() {
           {mangaList.length > 0 && (
             <div className="space-y-6">
               {viewMode === 'grid' ? (
-                <MediaGrid className="pr-2">
+                <MediaGrid>
                   {mangaList.map((manga, idx) => (
                     <MediaGridItem
                       key={manga.id}
@@ -399,7 +233,7 @@ export default function BrowsePage() {
                   ))}
                 </MediaGrid>
               ) : (
-                <div className="space-y-3 pr-2">
+                <div className="space-y-3">
                   {mangaList.map((manga, idx) => (
                     <Card
                       key={manga.id}
@@ -447,7 +281,7 @@ export default function BrowsePage() {
                 </div>
               )}
 
-              <div ref={lastElementRef} className="pb-20 flex flex-col items-center justify-center">
+              <div ref={lastElementRef} className="pb-10 flex flex-col items-center justify-center">
                 {loading && hasMore && (
                   <div className="flex flex-col items-center gap-3 py-10">
                     <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
@@ -486,6 +320,123 @@ export default function BrowsePage() {
           )}
         </div>
       </div>
-    </div>
+
+      {/* Floating Side Filter Drawer */}
+      {showFilters && (
+        <>
+          <div
+            className="fixed inset-0 bg-background/40 backdrop-blur-[2px] z-[60] animate-in fade-in duration-300"
+            onClick={() => setShowFilters(false)}
+          />
+          <div className="fixed right-0 top-0 bottom-0 w-80 bg-card border-l border-border z-[70] p-6 shadow-2xl animate-in slide-in-from-right duration-500 overflow-y-auto no-scrollbar pb-safe">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold tracking-tight">Advanced Filters</h3>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="p-2 hover:bg-secondary rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                  Demographic
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {['shounen', 'shoujo', 'seinen', 'josei'].map((demo) => (
+                    <Badge
+                      key={demo}
+                      variant={selectedDemographics.includes(demo) ? 'default' : 'outline'}
+                      className={cn(
+                        'cursor-pointer capitalize py-2 flex justify-center text-xs transition-all border-border/40',
+                        selectedDemographics.includes(demo)
+                          ? 'shadow-md shadow-primary/20'
+                          : 'hover:bg-secondary/50'
+                      )}
+                      onClick={() => toggleItem(selectedDemographics, setSelectedDemographics, demo)}
+                    >
+                      {demo}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                  Status
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {['ongoing', 'completed', 'hiatus', 'cancelled'].map((stat) => (
+                    <Badge
+                      key={stat}
+                      variant={selectedStatus.includes(stat) ? 'default' : 'outline'}
+                      className={cn(
+                        'cursor-pointer capitalize px-3 py-1.5 text-xs transition-all border-border/40',
+                        selectedStatus.includes(stat)
+                          ? 'shadow-md shadow-primary/20'
+                          : 'hover:bg-secondary/50 font-medium'
+                      )}
+                      onClick={() => toggleItem(selectedStatus, setSelectedStatus, stat)}
+                    >
+                      {stat}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                  Popular Tags
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {POPULAR_TAGS.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant={selectedTags.includes(tag.id) ? 'default' : 'outline'}
+                      className={cn(
+                        'cursor-pointer px-3 py-1.5 text-xs transition-all border-border/40',
+                        selectedTags.includes(tag.id)
+                          ? 'shadow-md shadow-primary/20'
+                          : 'hover:bg-secondary/50 font-medium'
+                      )}
+                      onClick={() => toggleItem(selectedTags, setSelectedTags, tag.id)}
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-12 pt-6 border-t border-border/50 flex flex-col gap-3">
+              <Button
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-11 shadow-lg shadow-primary/20"
+                onClick={() => setShowFilters(false)}
+              >
+                Apply Filters
+              </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  'w-full text-xs font-semibold tracking-wide transition-colors rounded-xl h-11',
+                  activeFilterCount > 0
+                    ? 'text-destructive hover:bg-destructive/10'
+                    : 'text-muted-foreground opacity-50 pointer-events-none'
+                )}
+                onClick={() => {
+                  setSelectedDemographics([])
+                  setSelectedStatus([])
+                  setSelectedTags([])
+                }}
+              >
+                Reset All Filters
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </MobilePage>
   )
 }

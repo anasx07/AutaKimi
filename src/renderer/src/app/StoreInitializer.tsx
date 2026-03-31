@@ -23,6 +23,9 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
       try {
         console.time('[StoreInitializer] Total Boot Time')
 
+        // 0. Initialize backend (critical for mobile SQLite)
+        await DataService.init()
+
         // Concurrent fetch of core persistent data
         const [installed, libraryItems, settingsMap] = await Promise.all([
           DataService.db.getExtensions(),
@@ -79,10 +82,15 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
           </svg>
         </div>
         <h1 className="text-2xl font-bold mb-2">Boot Failure</h1>
-        <p className="text-zinc-500 mb-8 max-w-sm font-medium">
+        <p className="text-zinc-500 mb-4 max-w-md font-medium">
           The application failed to synchronize with the local database. This might be due to a
           filesystem lock or corrupted cache.
         </p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 mb-8 max-w-md w-full">
+          <p className="text-destructive font-mono text-sm break-words">
+            Error: {error}
+          </p>
+        </div>
         <button
           onClick={() => window.location.reload()}
           className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-all active:scale-95"

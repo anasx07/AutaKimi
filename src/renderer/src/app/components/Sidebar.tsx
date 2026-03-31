@@ -4,7 +4,6 @@ import {
   BookOpen,
   Compass,
   Settings,
-  Package,
   Info,
   Clock,
   Download,
@@ -35,7 +34,6 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
       { id: 'downloads', path: '/downloads', label: 'Downloads', icon: Download },
       { id: 'history', path: '/history', label: 'History', icon: Clock },
       { id: 'browse', path: '/browse', label: 'Manga Browser', icon: Compass },
-      { id: 'my-extensions', path: '/my-extensions', label: 'Manga Extensions', icon: Package },
       { id: 'anime', path: '/anime', label: 'Anime (BETA)', icon: ChartBarIncreasing },
       { id: 'settings', path: '/settings', label: 'Settings', icon: Settings },
       { id: 'about', path: '/about', label: 'About', icon: Info }

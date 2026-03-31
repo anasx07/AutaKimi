@@ -18,11 +18,29 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Application
+      - name: Build Desktop Application
         run: npm run build && npx electron-builder --win --publish never
+
+      - name: Build Mobile Assets
+        run: npm run build:mobile
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Generate Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
 
       - name: Publish to Public Repository
         shell: bash
@@ -31,9 +49,10 @@ jobs:
             dist/*.exe \
             dist/*.blockmap \
             dist/latest.yml \
+            android/app/build/outputs/apk/debug/app-debug.apk \
             --repo anasx07/AutaKimi-Release \
             --target main \
             --title "Release ${{ github.ref_name }}" \
-            --notes "Automated release from private repository."
+            --notes "Automated release from private repository including Windows and Android builds."
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}

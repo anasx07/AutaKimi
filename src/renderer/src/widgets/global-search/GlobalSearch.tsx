@@ -7,6 +7,7 @@ import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { cn } from '@renderer/shared/lib/utils'
 import { MediaCardSkeleton } from '@renderer/shared/ui'
 import { RotateCcw } from 'lucide-react'
+import { DataService } from '@renderer/shared/api'
 
 interface SearchResult {
   manga: any
@@ -224,7 +225,7 @@ export default function GlobalSearch() {
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden ring-1 ring-border/50">
                       <img
-                        src={`autakimi-cache://local-icon/${ext.pkg}.png`}
+                        src={DataService.getExtensionIcon(ext.pkg, ext.icon)}
                         alt=""
                         className="w-full h-full object-contain"
                         onError={(e) => (e.currentTarget.style.display = 'none')}

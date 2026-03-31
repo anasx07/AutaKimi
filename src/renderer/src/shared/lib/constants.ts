@@ -23,3 +23,39 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   'zh-hans': '简体中文',
   'zh-hant': '繁體中文'
 }
+
+export const getFlagEmoji = (lang: string): string => {
+  const flags: Record<string, string> = {
+    all: '🌐',
+    en: '🇺🇸',
+    ar: '🇸🇦',
+    es: '🇪🇸',
+    fr: '🇫🇷',
+    de: '🇩🇪',
+    ja: '🇯🇵',
+    ko: '🇰🇷',
+    zh: '🇨🇳',
+    'zh-hans': '🇨🇳',
+    'zh-hant': '🇹🇼',
+    pt: '🇵🇹',
+    'pt-br': '🇧🇷',
+    it: '🇮🇹',
+    ru: '🇷🇺',
+    vi: '🇻🇳',
+    th: '🇹🇭',
+    tr: '🇹🇷',
+    id: '🇮🇩',
+    uk: '🇺🇦',
+    pl: '🇵🇱',
+    ca: '🇪🇸',
+    cs: '🇨🇿',
+    bg: '🇧🇬'
+  }
+  return flags[lang.toLowerCase()] || '🏳️'
+}
+
+export const getLanguageLabel = (lang: string): string => {
+  const name = LANGUAGE_NAMES[lang.toLowerCase()] || lang.toUpperCase()
+  const flag = getFlagEmoji(lang)
+  return `${flag} ${name}`
+}

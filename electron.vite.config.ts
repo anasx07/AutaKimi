@@ -26,7 +26,8 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
-        '@common': resolve('src/common')
+        '@common': resolve('src/common'),
+        '@mobile': resolve('src/mobile')
       }
     },
     build: {

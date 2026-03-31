@@ -23,8 +23,10 @@ import { cn } from '@renderer/shared/lib/utils'
 import { useMangaChapters } from '@renderer/entities/manga/api/useMangaQueries'
 import { DataService } from '@renderer/shared/api'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
+import { isMobile } from '@renderer/shared/platform'
 
 export default function AnimeViewer() {
+  const mobile = isMobile()
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension } = useExtensionStore()
   const { markChapterRead } = useProgressStore()
@@ -195,7 +197,10 @@ export default function AnimeViewer() {
   const activeServerUrl = typeof s === 'object' ? (s as any).url : s
 
   return (
-    <div className="fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none">
+    <div className={cn(
+      "fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none",
+      mobile && "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+    )}>
       <TitleBar />
 
       {/* Top Header Overlay */}

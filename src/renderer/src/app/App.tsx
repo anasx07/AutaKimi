@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
-import { ExtensionsManager } from '@renderer/widgets/extensions-manager'
 import { useExtensionStore, useBrowseCacheStore } from '@renderer/shared/model'
 import { DownloadSync } from './components/DownloadSync'
 import { useEffect } from 'react'
@@ -16,6 +15,7 @@ const ExtensionsPage = lazy(() => import('@renderer/pages/extensions/ExtensionsP
 const SettingsPage = lazy(() => import('@renderer/pages/settings/SettingsPage'))
 const AboutPage = lazy(() => import('@renderer/pages/about/AboutPage'))
 const AnimePage = lazy(() => import('@renderer/pages/anime/AnimePage'))
+const MorePage = lazy(() => import('@renderer/pages/more/MorePage'))
 
 const LoadingFallback = (): React.JSX.Element => (
   <div className="flex items-center justify-center h-full">
@@ -84,10 +84,10 @@ function App(): React.JSX.Element {
             }
           />
           <Route
-            path="/my-extensions"
+            path="/extensions"
             element={
               <Suspense fallback={<LoadingFallback />}>
-                <ExtensionsManager />
+                <ExtensionsPage />
               </Suspense>
             }
           />
@@ -112,6 +112,14 @@ function App(): React.JSX.Element {
             element={
               <Suspense fallback={<LoadingFallback />}>
                 <AboutPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/more"
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <MorePage />
               </Suspense>
             }
           />

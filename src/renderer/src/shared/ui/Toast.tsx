@@ -2,22 +2,29 @@ import { useEffect } from 'react'
 import { useUIStore, Toast as ToastType } from '@renderer/shared/model'
 import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
+import { isMobile } from '@renderer/shared/platform'
 
 export default function ToastContainer() {
   const { toasts } = useUIStore()
+  const mobile = isMobile()
 
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className={cn(
+      'fixed z-[9999] flex flex-col gap-2 pointer-events-none transition-all duration-500',
+      mobile 
+        ? 'top-[calc(env(safe-area-inset-top)+1rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md' 
+        : 'bottom-4 right-4'
+    )}>
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} />
+        <ToastItem key={toast.id} toast={toast} mobile={mobile} />
       ))}
     </div>
   )
 }
 
-function ToastItem({ toast }: { toast: ToastType }) {
+function ToastItem({ toast, mobile }: { toast: ToastType; mobile: boolean }) {
   const { removeToast } = useUIStore()
 
   useEffect(() => {
@@ -42,7 +49,8 @@ function ToastItem({ toast }: { toast: ToastType }) {
   return (
     <div
       className={cn(
-        'pointer-events-auto flex items-start gap-3 px-4 py-3 min-w-[300px] max-w-md rounded-xl border backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-right-10 duration-300',
+        'pointer-events-auto flex items-start gap-3 px-4 py-3 min-w-[300px] w-full max-w-md rounded-xl border backdrop-blur-xl shadow-2xl animate-in fade-in duration-300',
+        mobile ? 'slide-in-from-top-10' : 'slide-in-from-right-10',
         styles[toast.type]
       )}
     >
