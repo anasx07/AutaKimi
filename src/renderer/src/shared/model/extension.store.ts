@@ -19,7 +19,7 @@ const triggerHaptic = async (style: ImpactStyle = ImpactStyle.Light) => {
     if (DataService.platform !== 'win32' && DataService.platform !== 'darwin') {
       await Haptics.impact({ style })
     }
-  } catch (e) {
+  } catch {
     // Ignore haptic failures
   }
 }
@@ -45,7 +45,7 @@ type ExtensionState = SettingsSchema['extensions'] & {
   _init: (installed: ExtensionMetadata[], settings: SettingsSchema['extensions']) => void
 }
 
-export const useExtensionStore = create<ExtensionState>((set, get) => ({
+export const useExtensionStore = create<ExtensionState>((set) => ({
   installedExtensions: [],
   pinnedExtensions: [],
   pinnedAnimeSources: [],

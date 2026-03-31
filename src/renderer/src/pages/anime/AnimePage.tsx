@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import {
   ExternalLink,
   Play,
-  ArrowLeft,
   Search,
   Loader2,
   Pin,

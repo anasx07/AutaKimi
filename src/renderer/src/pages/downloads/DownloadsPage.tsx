@@ -18,7 +18,6 @@ import {
   MobilePage
 } from '@renderer/shared/ui'
 import { DownloadManager } from '@renderer/widgets/download-queue'
-import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
 
 export default function DownloadsPage(): React.JSX.Element {

@@ -3,15 +3,12 @@ import {
   Tv,
   Info,
   ChevronRight,
-  Package,
   History,
-  Download,
   Github,
   Heart
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Button, Badge, MobilePage } from '@renderer/shared/ui'
-import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
 import { DataService } from '@renderer/shared/api'
 
