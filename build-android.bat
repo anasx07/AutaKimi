@@ -29,6 +29,7 @@ call gradlew.bat assembleDebug
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Gradle build failed.
     cd ..
+pause
     exit /b %ERRORLEVEL%
 )
 cd ..
@@ -39,6 +40,7 @@ if exist "android\app\build\outputs\apk\debug\app-debug.apk" (
     copy "android\app\build\outputs\apk\debug\app-debug.apk" "builds\android\AutaKimi-debug.apk" /y
     echo [SUCCESS] APK Collected: builds\android\AutaKimi-debug.apk
 ) else (
+pause
     echo [ERROR] Could not find generated APK. Please check the Android build logs.
 )
 
