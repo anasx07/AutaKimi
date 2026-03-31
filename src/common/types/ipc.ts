@@ -81,6 +81,7 @@ export enum IpcChannel {
  * Methods return IpcResult<T> to be handled via callIpc.
  */
 export interface ElectronApi {
+  init: () => Promise<IpcResult<void>>
   fetchRepo: (url: string) => Promise<IpcResult<any>>
   fetchText: (url: string, options?: FetchOptions) => Promise<IpcResult<FetchResult>>
   detectTheme: (baseUrl: string) => Promise<IpcResult<string>>

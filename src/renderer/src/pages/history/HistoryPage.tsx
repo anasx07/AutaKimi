@@ -20,7 +20,8 @@ import {
   Badge,
   LayoutSwitcher,
   MediaList,
-  MediaListItem
+  MediaListItem,
+  MobilePage
 } from '@renderer/shared/ui'
 import { useInfiniteScroll } from '@renderer/shared/lib'
 import { useInfiniteHistoryEntries, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
@@ -122,38 +123,38 @@ export default function HistoryPage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col h-full w-full p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="shrink-0 flex flex-col space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col space-y-1.5">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">History</h1>
-              {allEntries.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full mt-1"
-                  onClick={() => setIsConfirmClearOpen(true)}
-                  title="Clear All"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <p className="text-muted-foreground whitespace-nowrap">
-              Your recently {activeTab === 'anime' ? 'watched anime' : 'read manga'}.
-            </p>
+    <MobilePage
+      title="History"
+      subtitle="Continue where you left off"
+      actions={
+        allEntries.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 bg-secondary/30 rounded-xl hover:text-destructive transition-colors"
+            onClick={() => setIsConfirmClearOpen(true)}
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
+        )
+      }
+      headerExtra={
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+          <div className="flex-1 min-w-fit">
+            <MediaTabSwitcher
+              activeTab={activeTab === 'manga' ? 'manga' : 'anime'}
+              onTabChange={(t) => setActiveTab(t as any)}
+            />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="shrink-0 bg-secondary/30 p-1 rounded-xl border border-border/50">
             <LayoutSwitcher />
-            <MediaTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
         </div>
-      </div>
-
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      }
+    >
+      <div className="flex-1 flex flex-col">
         {isLoading && allEntries.length === 0 ? (
-          <div className="flex-1 overflow-y-auto pr-2 pb-6">
+          <div className="flex-1 pb-6">
             <MediaGrid>
               {Array.from({ length: 12 }).map((_, i) => (
                 <MediaCardSkeleton key={i} />
@@ -169,92 +170,88 @@ export default function HistoryPage(): React.JSX.Element {
             />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto pr-2 scroll-smooth">
-            <div className="pb-20">
-              {viewMode === 'grid' ? (
-                <MediaGrid>
-                  {sortedGroupedHistory.map((entry, idx) => (
-                    <MediaGridItem
-                      key={entry.mangaId}
-                      title={deriveTitle(entry)}
-                      coverUrl={entry.mangaCover}
-                      mediaType={activeTab}
-                      index={idx}
-                      onClick={() => handleEntryClick(entry)}
-                      badge={
-                        <Badge
-                          variant="secondary"
-                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
+          <div className="flex-1 pb-6">
+            {viewMode === 'grid' ? (
+              <MediaGrid>
+                {sortedGroupedHistory.map((entry, idx) => (
+                  <MediaGridItem
+                    key={entry.mangaId}
+                    title={deriveTitle(entry)}
+                    coverUrl={entry.mangaCover}
+                    mediaType={activeTab}
+                    index={idx}
+                    onClick={() => handleEntryClick(entry)}
+                    badge={
+                      <Badge
+                        variant="secondary"
+                        className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
+                      >
+                        {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
+                        {entry.chapterTitle || entry.chapterId}
+                      </Badge>
+                    }
+                    footerBadge={
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-[10px] text-muted-foreground/80 font-medium">
+                          {formatTimeAgo(entry.startedAt)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
+                          onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
                         >
-                          {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
-                          {entry.chapterTitle || entry.chapterId}
-                        </Badge>
-                      }
-                      footerBadge={
-                        <div className="flex items-center justify-between w-full">
-                          <span className="text-[10px] text-muted-foreground/80 font-medium">
-                            {formatTimeAgo(entry.startedAt)}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
-                            onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      }
-                    />
-                  ))}
-                </MediaGrid>
-              ) : (
-                <MediaList>
-                  {sortedGroupedHistory.map((entry, idx) => (
-                    <MediaListItem
-                      key={entry.mangaId}
-                      title={deriveTitle(entry)}
-                      coverUrl={entry.mangaCover}
-                      mediaType={activeTab}
-                      index={idx}
-                      onClick={() => handleEntryClick(entry)}
-                      badge={
-                        <Badge
-                          variant="secondary"
-                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    }
+                  />
+                ))}
+              </MediaGrid>
+            ) : (
+              <MediaList>
+                {sortedGroupedHistory.map((entry, idx) => (
+                  <MediaListItem
+                    key={entry.mangaId}
+                    title={deriveTitle(entry)}
+                    coverUrl={entry.mangaCover}
+                    mediaType={activeTab}
+                    index={idx}
+                    onClick={() => handleEntryClick(entry)}
+                    badge={
+                      <Badge
+                        variant="secondary"
+                        className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
+                      >
+                        {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
+                        {entry.chapterTitle || entry.chapterId}
+                      </Badge>
+                    }
+                    footerBadge={
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-[10px] text-muted-foreground/80 font-medium">
+                          {formatTimeAgo(entry.startedAt)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
+                          onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
                         >
-                          {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
-                          {entry.chapterTitle || entry.chapterId}
-                        </Badge>
-                      }
-                      footerBadge={
-                        <div className="flex items-center justify-between w-full">
-                          <span className="text-[10px] text-muted-foreground/80 font-medium">
-                            {formatTimeAgo(entry.startedAt)}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
-                            onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      }
-                    />
-                  ))}
-                </MediaList>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    }
+                  />
+                ))}
+              </MediaList>
+            )}
+            {/* Intersection Observer Anchor */}
+            <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-6">
+              {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />}
+              {!hasNextPage && allEntries.length > 0 && (
+                <p className="text-xs text-muted-foreground opacity-50 italic">No more history</p>
               )}
-              {/* Intersection Observer Anchor */}
-              <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-6">
-                {isFetchingNextPage && (
-                  <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
-                )}
-                {!hasNextPage && allEntries.length > 0 && (
-                  <p className="text-xs text-muted-foreground opacity-50 italic">No more history</p>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -263,23 +260,22 @@ export default function HistoryPage(): React.JSX.Element {
       <Dialog
         isOpen={isConfirmClearOpen}
         onClose={() => setIsConfirmClearOpen(false)}
-        title="Clear History"
+        title="Clear History?"
       >
-        <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            Are you sure you want to clear your entire {activeTab} history? This action cannot be
-            undone.
+        <div className="space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Are you sure you want to clear your entire history? This action cannot be undone.
           </p>
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-end w-full">
             <Button variant="outline" onClick={() => setIsConfirmClearOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={async () => {
-                await clearHistory(activeTab)
-                queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
+                await clearHistory()
                 setIsConfirmClearOpen(false)
+                queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
               }}
             >
               Clear All
@@ -287,6 +283,6 @@ export default function HistoryPage(): React.JSX.Element {
           </div>
         </div>
       </Dialog>
-    </div>
+    </MobilePage>
   )
 }

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 
@@ -28,7 +29,7 @@ export function Sheet({
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden animate-in fade-in duration-500">
       {/* Backdrop */}
       <div
@@ -59,6 +60,7 @@ export function Sheet({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

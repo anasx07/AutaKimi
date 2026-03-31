@@ -17,14 +17,14 @@ export function MediaTabSwitcher({ activeTab, onTabChange, className }: MediaTab
     >
       <div
         className={cn(
-          'absolute top-1 bottom-1 w-[104px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none',
+          'absolute top-1 bottom-1 w-[96px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none',
           activeTab === 'anime' ? 'translate-x-full' : 'translate-x-0'
         )}
       />
       <button
         onClick={() => onTabChange('manga')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 w-[104px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
+          'relative z-10 flex items-center justify-center gap-2 h-9 w-[96px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
           activeTab === 'manga' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
         )}
       >
@@ -34,7 +34,7 @@ export function MediaTabSwitcher({ activeTab, onTabChange, className }: MediaTab
       <button
         onClick={() => onTabChange('anime')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 w-[104px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
+          'relative z-10 flex items-center justify-center gap-2 h-9 w-[96px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
           activeTab === 'anime' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
         )}
       >

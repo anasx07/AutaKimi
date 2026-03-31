@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 
@@ -13,8 +14,8 @@ interface DialogProps {
 export function Dialog({ isOpen, onClose, title, children, className }: DialogProps) {
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
@@ -37,6 +38,7 @@ export function Dialog({ isOpen, onClose, title, children, className }: DialogPr
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

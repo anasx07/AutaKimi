@@ -1,0 +1,1 @@
+npm run build:mobile && npx cap sync android && npx cap run android

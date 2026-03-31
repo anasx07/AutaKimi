@@ -9,6 +9,7 @@ import {
 } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
+import { isMobile } from '@renderer/shared/platform'
 import { useMangaChapters, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
 import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
@@ -25,6 +26,7 @@ import { useDragToScroll } from './hooks/useDragToScroll'
 import { useZoom } from './hooks/useZoom'
 
 export default function ChapterReader() {
+  const mobile = isMobile()
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { addHistoryEntry } = useHistoryStore()
@@ -269,6 +271,7 @@ export default function ChapterReader() {
     <div
       className={cn(
         'fixed inset-0 z-[100] flex flex-col overflow-hidden animate-in fade-in duration-300',
+        mobile && 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
         readerBg
       )}
     >

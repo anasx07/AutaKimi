@@ -3,6 +3,7 @@ import { IpcChannel, type ElectronApi } from '../main/types/ipc'
 
 // Custom APIs for renderer
 const api: ElectronApi = {
+  init: async () => ({ ok: true, value: undefined }),
   fetchRepo: (url: string) => ipcRenderer.invoke(IpcChannel.FETCH_REPO, url),
   fetchText: (url: string, options?: any) =>
     ipcRenderer.invoke(IpcChannel.FETCH_TEXT, url, options),

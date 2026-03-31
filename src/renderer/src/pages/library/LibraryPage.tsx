@@ -10,7 +10,8 @@ import {
   Dialog,
   LayoutSwitcher,
   MediaList,
-  MediaListItem
+  MediaListItem,
+  MobilePage
 } from '@renderer/shared/ui'
 import { useLibraryStore } from '@renderer/shared/model'
 import { useState } from 'react'
@@ -53,60 +54,38 @@ export default function LibraryPage() {
   const allManga = data?.pages?.flat() || []
 
   return (
-    <div className="flex flex-col h-full w-full p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="shrink-0 flex flex-col space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col space-y-1.5">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-              {allManga.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-                  onClick={() => setIsConfirmClearOpen(true)}
-                  title={`Clear all ${activeTab}`}
-                >
-                  <Trash2 className="h-4.5 w-4.5" />
-                </Button>
-              )}
-            </div>
-            <p className="text-muted-foreground whitespace-nowrap">
-              Your collection of saved{' '}
-              {activeTab === 'anime' ? 'anime and series' : 'manga and manhwa'}.
-            </p>
+    <MobilePage
+      title="Library"
+      subtitle={activeTab === 'anime' ? 'Saved Anime' : 'Saved Manga'}
+      actions={
+        allManga.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+            onClick={() => setIsConfirmClearOpen(true)}
+          >
+            <Trash2 className="h-4.5 w-4.5" />
+          </Button>
+        )
+      }
+      headerExtra={
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+          <div className="flex-1 min-w-fit">
+            <MediaTabSwitcher
+              activeTab={activeTab === 'manga' ? 'manga' : 'anime'}
+              onTabChange={(t) => setActiveTab(t as any)}
+            />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0 bg-secondary/30 p-1 rounded-xl border border-border/50">
             <LayoutSwitcher />
-            <MediaTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
         </div>
-      </div>
-
-      <Dialog
-        isOpen={isConfirmClearOpen}
-        onClose={() => setIsConfirmClearOpen(false)}
-        title={`Clear ${activeTab === 'anime' ? 'Anime' : 'Manga'} Library?`}
-      >
-        <div className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Are you sure you want to clear your entire {activeTab} library? This action cannot be
-            undone.
-          </p>
-          <div className="flex gap-3 justify-end w-full">
-            <Button variant="outline" onClick={() => setIsConfirmClearOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleClearLibrary}>
-              Clear All
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      }
+    >
+      <div className="flex-1 flex flex-col">
         {isLoading && allManga.length === 0 ? (
-          <div className="flex-1 overflow-y-auto pr-2 pb-6">
+          <div className="flex-1 pb-6">
             <MediaGrid>
               {Array.from({ length: 15 }).map((_, i) => (
                 <MediaCardSkeleton key={i} />
@@ -114,7 +93,7 @@ export default function LibraryPage() {
             </MediaGrid>
           </div>
         ) : allManga.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center py-20 pb-40">
+          <div className="flex-1 flex flex-col items-center justify-center py-20">
             <EmptyState
               icon={
                 activeTab === 'anime' ? (
@@ -128,7 +107,7 @@ export default function LibraryPage() {
             />
           </div>
         ) : (
-          <div className="overflow-y-auto pr-2 pb-6 flex-1">
+          <div className="pb-6 flex-1">
             {viewMode === 'grid' ? (
               <MediaGrid>
                 {allManga.map((manga, idx) => {
@@ -176,6 +155,27 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
-    </div>
+
+      <Dialog
+        isOpen={isConfirmClearOpen}
+        onClose={() => setIsConfirmClearOpen(false)}
+        title={`Clear ${activeTab === 'anime' ? 'Anime' : 'Manga'} Library?`}
+      >
+        <div className="space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Are you sure you want to clear your entire {activeTab} library? This action cannot be
+            undone.
+          </p>
+          <div className="flex gap-3 justify-end w-full">
+            <Button variant="outline" onClick={() => setIsConfirmClearOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleClearLibrary}>
+              Clear All
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </MobilePage>
   )
 }
