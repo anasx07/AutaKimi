@@ -3,7 +3,6 @@ import {
   Tv,
   Info,
   ChevronRight,
-  History,
   Github,
   Heart
 } from 'lucide-react'
