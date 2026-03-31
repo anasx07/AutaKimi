@@ -27,15 +27,6 @@ export default function MorePage(): React.JSX.Element {
       bg: 'bg-amber-500/10'
     },
     {
-      id: 'history',
-      label: 'History',
-      description: 'Your watch/read journey',
-      icon: History,
-      path: '/history',
-      color: 'text-purple-500',
-      bg: 'bg-purple-500/10'
-    },
-    {
       id: 'settings',
       label: 'Settings',
       description: 'App configuration & UI',
