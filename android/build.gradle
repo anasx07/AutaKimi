@@ -1,21 +1,18 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-buildscript {
+apply from: 'variables.gradle'
 
+buildscript {
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:9.1.0'
+        classpath 'com.android.tools.build:gradle:8.7.3'
         classpath 'com.google.gms:google-services:4.4.2'
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0"
     }
 }
-
-apply from: "variables.gradle"
 
 allprojects {
     repositories {
@@ -33,17 +30,30 @@ subprojects {
         if (project.hasProperty('android')) {
             project.android {
                 if (namespace == null) {
-                    namespace = project.group
+                    namespace = project.group ?: "com.capacitor.plugin.${project.name.replace('-', '.')}"
                 }
+                
                 compileSdk = rootProject.ext.compileSdkVersion
+                
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_21
+                    targetCompatibility JavaVersion.VERSION_21
+                }
+                
                 defaultConfig {
-                    if (minSdk == null) {
-                        minSdk = rootProject.ext.minSdkVersion
+                    if (minSdk == null && rootProject.hasProperty('minSdkVersion')) {
+                        minSdk = rootProject.minSdkVersion
                     }
-                    if (targetSdk == null) {
-                        targetSdk = rootProject.ext.targetSdkVersion
+                    if (targetSdk == null && rootProject.hasProperty('targetSdkVersion')) {
+                        targetSdk = rootProject.targetSdkVersion
                     }
                 }
+            }
+        }
+        
+        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "21"
             }
         }
     }
