@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { BookOpen, Compass, Settings, Clock, Download, MoreHorizontal } from 'lucide-react'
+import { BookOpen, Compass, Clock, Download, MoreHorizontal } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 

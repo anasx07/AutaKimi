@@ -61,7 +61,7 @@ export function useInstallExtension() {
     mutationFn: async (ext: any) => {
       await installExtension(ext)
     },
-    onSuccess: (_, ext) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: extensionKeys.updates() })
     }
   })

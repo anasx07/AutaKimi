@@ -116,7 +116,7 @@ export const MobileDownload = {
     return { ok: true, value: true }
   },
 
-  async getStatus(args: { mangaId: string; chapterId: string }): Promise<any> {
+  async getStatus(): Promise<any> {
     // Check DB for status
     return { ok: true, value: { status: 'idle' } } // Placeholder
   },
@@ -129,7 +129,7 @@ export const MobileDownload = {
         directory: Directory.Data,
         recursive: true
       })
-    } catch (e) {}
+    } catch {}
     return { ok: true, value: true }
   }
 }
