@@ -323,7 +323,6 @@ export class CloudflareService {
     } finally {
       this.bypasses.delete(domain)
     }
-
   }
 
   private async loadAndExtract(

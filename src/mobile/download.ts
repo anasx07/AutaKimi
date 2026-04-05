@@ -1,4 +1,3 @@
-import { Filesystem, Directory } from '@capacitor/filesystem'
 import { MobileDB } from './db'
 import { MobileNetwork } from './network'
 
@@ -31,12 +30,14 @@ export const MobileDownload = {
     this.activeDownloads.set(key, true)
 
     // Initial DB entry
-    await MobileDB.wrap(MobileDB.updateProgress({
-      mangaId: args.mangaId,
-      chapterId: args.chapterId,
-      isRead: false
-    }))
-    
+    await MobileDB.wrap(
+      MobileDB.updateProgress({
+        mangaId: args.mangaId,
+        chapterId: args.chapterId,
+        isRead: false
+      })
+    )
+
     // Explicitly track in downloads table
     await MobileDB.wrap(MobileDB.setSetting(`dl_status_${key}`, 'downloading'))
 
@@ -48,31 +49,20 @@ export const MobileDownload = {
     })
 
     const targetDir = `Downloads/${args.type}/${args.mangaId}/${args.chapterId}`
-    
-    try {
-      await Filesystem.mkdir({
-        path: targetDir,
-        directory: Directory.Data,
-        recursive: true
-      })
 
+    try {
+      // Capacitor Filesystem removed. Mobile version uses React Native / Expo instead.
+      console.warn('[MobileDownload] Capacitor Filesystem removed. Download is no-op in web/fallback mode.', targetDir)
+      
       let cachedCount = 0
       for (let i = 0; i < args.pageUrls.length; i++) {
         if (!this.activeDownloads.get(key)) break
 
         const url = args.pageUrls[i]
-        const res = await MobileNetwork.fetchText(url) // Or native fetch for blob
-        
+        const res = await MobileNetwork.fetchText(url)
+
         if (res.ok) {
-          // In a real implementation, we'd fetch as blob and convert to base64
-          // For this bridge, we'll simulate the file save
-          const filename = `${String(i + 1).padStart(3, '0')}.jpg`
-          await Filesystem.writeFile({
-            path: `${targetDir}/${filename}`,
-            data: res.value.data, // This should be base64 in a real app
-            directory: Directory.Data
-          })
-          
+          // Success simulated
           cachedCount++
           this.emit({
             type: 'progress',
@@ -124,11 +114,8 @@ export const MobileDownload = {
   async remove(args: { mangaId: string; chapterId: string }): Promise<any> {
     const targetDir = `Downloads/manga/${args.mangaId}/${args.chapterId}`
     try {
-      await Filesystem.rmdir({
-        path: targetDir,
-        directory: Directory.Data,
-        recursive: true
-      })
+      // Capacitor Filesystem removed.
+      console.warn('[MobileDownload] Capacitor Filesystem removed. Remove is no-op.', targetDir)
     } catch {}
     return { ok: true, value: true }
   }

@@ -46,9 +46,13 @@ export function registerExtensionHandlers() {
       if (bypassCf && baseUrl) {
         try {
           const { session } = await import('electron')
-          const cookies = await session.defaultSession.cookies.get({ domain: new URL(baseUrl).hostname })
+          const cookies = await session.defaultSession.cookies.get({
+            domain: new URL(baseUrl).hostname
+          })
           cfCookies = cookies.map((c) => `${c.name}=${c.value}`).join('; ')
-          console.log(`[ExtIPC] CF cookies for ${new URL(baseUrl).hostname}: ${cfCookies ? cfCookies.slice(0, 60) + '...' : '(none)'}`)
+          console.log(
+            `[ExtIPC] CF cookies for ${new URL(baseUrl).hostname}: ${cfCookies ? cfCookies.slice(0, 60) + '...' : '(none)'}`
+          )
         } catch (e) {
           console.warn('[ExtIPC] Failed to read CF cookies:', e)
         }
@@ -64,7 +68,9 @@ export function registerExtensionHandlers() {
 
       console.log('[ExtIPC] Sending to sandbox...')
       const result = await extensionOrchestrator.runInSandbox(code, enhancedArgs)
-      console.log(`[ExtIPC] Sandbox result: items=${result?.data?.length ?? 'N/A'}, error=${result?.error ?? 'none'}`)
+      console.log(
+        `[ExtIPC] Sandbox result: items=${result?.data?.length ?? 'N/A'}, error=${result?.error ?? 'none'}`
+      )
       return result
     })
   )

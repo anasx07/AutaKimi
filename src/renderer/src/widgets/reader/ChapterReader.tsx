@@ -18,6 +18,7 @@ import { Chapter } from '@renderer/shared/api/sources/types'
 // Extracted Components
 import { ReaderToolbar } from './components/ReaderToolbar'
 import { ChapterSection } from './components/ChapterSection'
+import { ShareProgressModal } from './components/ShareProgressModal'
 
 // Extracted Hooks
 import { useKeyboardControls } from './hooks/useKeyboardControls'
@@ -51,6 +52,7 @@ export default function ChapterReader() {
   const [totalPages, setTotalPages] = useState(0)
   const [chapterPageCounts, setChapterPageCounts] = useState<Record<string, number>>({})
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollPage = useRef<number | null>(null)
   const lastSyncId = useRef<string | null>(null)
@@ -296,6 +298,7 @@ export default function ChapterReader() {
         onOpenInBrowser={openInBrowser}
         onToggleAutoScroll={() => setAutoScrollEnabled(!autoScrollEnabled)}
         onChangeAutoScrollSpeed={setAutoScrollSpeed}
+        onShare={() => setShowShareModal(true)}
       />
 
       <div
@@ -406,6 +409,18 @@ export default function ChapterReader() {
           </div>
         </div>
       )}
+
+      <ShareProgressModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        mangaTitle={selectedManga?.title || ''}
+        chapterNumber={activeChapter.number}
+        chapterTitle={activeChapter.title}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        chapterUrl={activeChapter.url || ''}
+        readerTheme={readerTheme}
+      />
     </div>
   )
 }

@@ -50,7 +50,7 @@ export class LibraryRepository {
       return true // Added
     }
   }
- 
+
   async clear(type?: 'manga' | 'anime') {
     let query = this.db.delete(schema.library).$dynamic()
     if (type) {

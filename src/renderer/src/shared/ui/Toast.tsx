@@ -11,12 +11,14 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null
 
   return (
-    <div className={cn(
-      'fixed z-[9999] flex flex-col gap-2 pointer-events-none transition-all duration-500',
-      mobile 
-        ? 'top-[calc(env(safe-area-inset-top)+1rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md' 
-        : 'bottom-4 right-4'
-    )}>
+    <div
+      className={cn(
+        'fixed z-[9999] flex flex-col gap-2 pointer-events-none transition-all duration-500',
+        mobile
+          ? 'top-[calc(env(safe-area-inset-top)+1rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md'
+          : 'bottom-4 right-4'
+      )}
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} mobile={mobile} />
       ))}

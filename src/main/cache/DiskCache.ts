@@ -64,7 +64,9 @@ export class DiskCache {
         return
       }
 
-      console.log(`[DiskCache] Evicting... Current size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`)
+      console.log(
+        `[DiskCache] Evicting... Current size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`
+      )
       stats.sort((a, b) => a.mtime - b.mtime)
 
       for (const stat of stats) {
@@ -72,7 +74,9 @@ export class DiskCache {
         await fs.promises.unlink(stat.filePath)
         currentSize -= stat.size
       }
-      console.log(`[DiskCache] Eviction done. New size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`)
+      console.log(
+        `[DiskCache] Eviction done. New size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`
+      )
     } catch (e) {
       console.error('[DiskCache] Eviction failed:', e)
     } finally {

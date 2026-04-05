@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
 import { SettingsSchema } from '@common/types'
-import { Haptics, ImpactStyle } from '@capacitor/haptics'
+
 
 export interface ExtensionMetadata {
   pkg: string
@@ -14,15 +14,7 @@ export interface ExtensionMetadata {
   repoUrl?: string
 }
 
-const triggerHaptic = async (style: ImpactStyle = ImpactStyle.Light) => {
-  try {
-    if (DataService.platform !== 'win32' && DataService.platform !== 'darwin') {
-      await Haptics.impact({ style })
-    }
-  } catch {
-    // Ignore haptic failures
-  }
-}
+
 
 type ExtensionState = SettingsSchema['extensions'] & {
   installedExtensions: ExtensionMetadata[]
@@ -82,7 +74,6 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   },
 
   uninstallExtension: async (pkg) => {
-    await triggerHaptic(ImpactStyle.Medium)
     await DataService.db.removeExtension(pkg)
     set((state) => ({
       installedExtensions: state.installedExtensions.filter((e) => e.pkg !== pkg),
@@ -96,7 +87,6 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
 
     try {
       await DataService.installExtension(ext, ext.repoUrl)
-      await triggerHaptic(ImpactStyle.Heavy)
 
       // Refresh installed list
       const installed = await DataService.db.getInstalledExtensions()
@@ -120,7 +110,6 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   },
 
   togglePin: async (pkg) => {
-    await triggerHaptic(ImpactStyle.Light)
     set((state) => {
       const isPinned = state.pinnedExtensions.includes(pkg)
       const nextPinned = isPinned

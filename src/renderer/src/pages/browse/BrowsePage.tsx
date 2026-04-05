@@ -130,7 +130,9 @@ export default function BrowsePage(): React.JSX.Element {
             <Search
               className={cn(
                 'absolute left-3 top-3.5 h-4 w-4 transition-colors',
-                searchQuery ? 'text-primary' : 'text-muted-foreground group-focus-within:text-primary'
+                searchQuery
+                  ? 'text-primary'
+                  : 'text-muted-foreground group-focus-within:text-primary'
               )}
             />
             <Input
@@ -355,7 +357,9 @@ export default function BrowsePage(): React.JSX.Element {
                           ? 'shadow-md shadow-primary/20'
                           : 'hover:bg-secondary/50'
                       )}
-                      onClick={() => toggleItem(selectedDemographics, setSelectedDemographics, demo)}
+                      onClick={() =>
+                        toggleItem(selectedDemographics, setSelectedDemographics, demo)
+                      }
                     >
                       {demo}
                     </Badge>

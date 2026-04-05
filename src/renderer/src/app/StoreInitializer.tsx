@@ -87,9 +87,7 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
           filesystem lock or corrupted cache.
         </p>
         <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 mb-8 max-w-md w-full">
-          <p className="text-destructive font-mono text-sm break-words">
-            Error: {error}
-          </p>
+          <p className="text-destructive font-mono text-sm break-words">Error: {error}</p>
         </div>
         <button
           onClick={() => window.location.reload()}

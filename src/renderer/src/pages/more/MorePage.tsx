@@ -1,11 +1,4 @@
-import {
-  Settings,
-  Tv,
-  Info,
-  ChevronRight,
-  Github,
-  Heart
-} from 'lucide-react'
+import { Settings, Tv, Info, ChevronRight, Github, Heart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Button, Badge, MobilePage } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'

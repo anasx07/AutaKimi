@@ -248,7 +248,9 @@ export default function HistoryPage(): React.JSX.Element {
             )}
             {/* Intersection Observer Anchor */}
             <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-6">
-              {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />}
+              {isFetchingNextPage && (
+                <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
+              )}
               {!hasNextPage && allEntries.length > 0 && (
                 <p className="text-xs text-muted-foreground opacity-50 italic">No more history</p>
               )}

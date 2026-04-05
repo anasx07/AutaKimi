@@ -353,7 +353,10 @@ export default function SettingsPage(): React.JSX.Element {
                   />
                 </div>
               </SettingsRow>
-              <SettingsRow title="Show NSFW Sources" description="Display 18+ extensions and content.">
+              <SettingsRow
+                title="Show NSFW Sources"
+                description="Display 18+ extensions and content."
+              >
                 <Switch checked={showNsfw} onCheckedChange={setShowNsfw} />
               </SettingsRow>
               <SettingsRow
@@ -395,7 +398,9 @@ export default function SettingsPage(): React.JSX.Element {
                 <div className="w-52">
                   <Select
                     value={readerTheme}
-                    onValueChange={(val) => setReaderTheme(val as 'match-app' | 'dark' | 'light' | 'system')}
+                    onValueChange={(val) =>
+                      setReaderTheme(val as 'match-app' | 'dark' | 'light' | 'system')
+                    }
                     options={[
                       { value: 'match-app', label: 'Match App Theme' },
                       { value: 'dark', label: 'Always Dark Mode' },
@@ -406,7 +411,9 @@ export default function SettingsPage(): React.JSX.Element {
               </SettingsRow>
               <div className="p-6 space-y-6">
                 <div className="space-y-1">
-                  <div className="text-sm font-bold flex items-center gap-2">Active Reading Mode</div>
+                  <div className="text-sm font-bold flex items-center gap-2">
+                    Active Reading Mode
+                  </div>
                   <div className="text-xs text-muted-foreground opacity-60">
                     Select your preferred navigation engine.
                   </div>
@@ -452,7 +459,9 @@ export default function SettingsPage(): React.JSX.Element {
                       <div
                         className={cn(
                           'p-2 rounded-lg border',
-                          readingMode === mode.id ? 'bg-white/20 border-white/20' : 'bg-card border-border'
+                          readingMode === mode.id
+                            ? 'bg-white/20 border-white/20'
+                            : 'bg-card border-border'
                         )}
                       >
                         {mode.icon}
@@ -464,10 +473,16 @@ export default function SettingsPage(): React.JSX.Element {
                   ))}
                 </div>
               </div>
-              <SettingsRow title="Auto Mark Read" description="Automatically track your reading progress.">
+              <SettingsRow
+                title="Auto Mark Read"
+                description="Automatically track your reading progress."
+              >
                 <Switch checked={autoMarkRead} onCheckedChange={setAutoMarkRead} />
               </SettingsRow>
-              <SettingsRow title="Predictive Preloading" description="Number of pages to load in advance.">
+              <SettingsRow
+                title="Predictive Preloading"
+                description="Number of pages to load in advance."
+              >
                 <Input
                   type="number"
                   min={1}
@@ -595,12 +610,16 @@ export default function SettingsPage(): React.JSX.Element {
                 <div className="space-y-1">
                   <div className="text-sm font-bold flex items-center gap-2 italic text-foreground">
                     Parallel Streams{' '}
-                    <Badge variant="outline" className="text-[9px] h-4 font-black bg-primary/20 border-primary/40 text-primary">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] h-4 font-black bg-primary/20 border-primary/40 text-primary"
+                    >
                       TURBO
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground max-w-sm">
-                    Concurrent page connections. Higher values download faster but risk source rate-limiting.
+                    Concurrent page connections. Higher values download faster but risk source
+                    rate-limiting.
                   </p>
                 </div>
                 <div className="w-44">
@@ -628,14 +647,16 @@ export default function SettingsPage(): React.JSX.Element {
                 className="h-20 gap-3 border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex flex-col items-center justify-center font-black uppercase tracking-widest text-xs transition-all active:scale-95 group text-foreground"
                 onClick={handleClearCache}
               >
-                <Eraser className="h-5 w-5 group-hover:rotate-12 transition-transform" /> Clear Image Assets
+                <Eraser className="h-5 w-5 group-hover:rotate-12 transition-transform" /> Clear
+                Image Assets
               </Button>
               <Button
                 variant="outline"
                 className="h-20 gap-3 border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex flex-col items-center justify-center font-black uppercase tracking-widest text-xs transition-all active:scale-95 group text-foreground"
                 onClick={handleClearCookies}
               >
-                <Cloud className="h-5 w-5 group-hover:-translate-y-1 transition-transform" /> Reset Session Data
+                <Cloud className="h-5 w-5 group-hover:-translate-y-1 transition-transform" /> Reset
+                Session Data
               </Button>
             </div>
           </section>
@@ -704,7 +725,10 @@ export default function SettingsPage(): React.JSX.Element {
               </div>
             </SectionHeader>
             <Card className="border-border bg-card p-6">
-              <SettingsRow title="Developer Logging" description="Verbose trace output for debugging.">
+              <SettingsRow
+                title="Developer Logging"
+                description="Verbose trace output for debugging."
+              >
                 <Switch checked={enableLog} onCheckedChange={setEnableLog} />
               </SettingsRow>
               <div className="mt-8 pt-8 border-t border-border flex items-center justify-between">

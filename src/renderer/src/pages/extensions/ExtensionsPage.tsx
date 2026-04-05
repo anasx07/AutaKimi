@@ -16,15 +16,7 @@ import {
 } from 'lucide-react'
 import { useExtensionStore, ExtensionMetadata } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
-import {
-  Button,
-  Input,
-  Card,
-  Badge,
-  MobilePage,
-  Sheet,
-  Checkbox
-} from '@renderer/shared/ui'
+import { Button, Input, Card, Badge, MobilePage, Sheet, Checkbox } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { getFlagEmoji, LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
 import { isMobile } from '@renderer/shared/platform'
@@ -70,9 +62,7 @@ export default function ExtensionsPage(): React.JSX.Element {
   const bulkUpdateMutation = useBulkUpdate()
 
   // --- UI State ---
-  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'installed' | 'updates'>(
-    'installed'
-  )
+  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'installed' | 'updates'>('installed')
   const [selectedLangs, setSelectedLangs] = useState<string[]>(['all'])
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -103,9 +93,7 @@ export default function ExtensionsPage(): React.JSX.Element {
       .filter((ext) => {
         if (!searchQuery) return true
         const lowQuery = searchQuery.toLowerCase()
-        return (
-          ext.name.toLowerCase().includes(lowQuery) || ext.pkg.toLowerCase().includes(lowQuery)
-        )
+        return ext.name.toLowerCase().includes(lowQuery) || ext.pkg.toLowerCase().includes(lowQuery)
       })
       .filter((ext) => showNsfw || !ext.nsfw)
 
@@ -137,9 +125,18 @@ export default function ExtensionsPage(): React.JSX.Element {
         if (aInst !== bInst) return extensionSortOrder === 'asc' ? bInst - aInst : aInst - bInst
       }
 
-      return extensionSortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+      return extensionSortOrder === 'asc'
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
     })
-  }, [baseFiltered, activeSubTab, pinnedExtensions, extensionSortBy, extensionSortOrder, installedExtensions])
+  }, [
+    baseFiltered,
+    activeSubTab,
+    pinnedExtensions,
+    extensionSortBy,
+    extensionSortOrder,
+    installedExtensions
+  ])
 
   // --- Components ---
   const LanguageFilter = (): React.JSX.Element => {
@@ -223,9 +220,7 @@ export default function ExtensionsPage(): React.JSX.Element {
           )}
         >
           <Globe className="h-4 w-4" />
-          <span className="text-[10px] font-bold uppercase tracking-wider">
-            {triggerLabel}
-          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider">{triggerLabel}</span>
         </Button>
 
         <Sheet
@@ -269,14 +264,16 @@ export default function ExtensionsPage(): React.JSX.Element {
   }
 
   const VirtuosoScroller = useMemo(() => {
-    const Scroller = forwardRef<HTMLDivElement, { style?: React.CSSProperties }>(({ style, ...props }, ref) => (
-      <div
-        {...props}
-        ref={ref}
-        style={style}
-        className="custom-scrollbar overflow-y-auto overflow-x-hidden pr-2"
-      />
-    ))
+    const Scroller = forwardRef<HTMLDivElement, { style?: React.CSSProperties }>(
+      ({ style, ...props }, ref) => (
+        <div
+          {...props}
+          ref={ref}
+          style={style}
+          className="custom-scrollbar overflow-y-auto overflow-x-hidden pr-2"
+        />
+      )
+    )
     Scroller.displayName = 'VirtuosoScroller'
     return Scroller
   }, [])
@@ -390,7 +387,9 @@ export default function ExtensionsPage(): React.JSX.Element {
               className={cn(
                 'h-8 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
                 updateAvailable && 'bg-primary shadow-lg shadow-primary/20 animate-pulse',
-                isInstalled && !updateAvailable && 'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20'
+                isInstalled &&
+                  !updateAvailable &&
+                  'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20'
               )}
             >
               {isInstalling ? (
@@ -524,7 +523,9 @@ export default function ExtensionsPage(): React.JSX.Element {
                 <Button
                   variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
                   size="sm"
-                  onClick={() => setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')}
+                  onClick={() =>
+                    setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+                  }
                   className={cn(
                     'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
                     extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'

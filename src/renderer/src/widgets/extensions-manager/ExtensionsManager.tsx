@@ -284,7 +284,10 @@ export default function ExtensionsManager(): React.JSX.Element {
               <ShieldCheck className="h-4 w-4" />
               Supported
               <ArrowUpDown
-                className={cn('h-3 w-3 opacity-50', extensionSortBy === 'supported' && 'opacity-100')}
+                className={cn(
+                  'h-3 w-3 opacity-50',
+                  extensionSortBy === 'supported' && 'opacity-100'
+                )}
               />
             </Button>
 
@@ -335,7 +338,10 @@ export default function ExtensionsManager(): React.JSX.Element {
               <PackageCheck className="h-4 w-4" />
               Installed
               <ArrowUpDown
-                className={cn('h-3 w-3 opacity-50', extensionSortBy === 'installed' && 'opacity-100')}
+                className={cn(
+                  'h-3 w-3 opacity-50',
+                  extensionSortBy === 'installed' && 'opacity-100'
+                )}
               />
             </Button>
 
@@ -403,9 +409,9 @@ export default function ExtensionsManager(): React.JSX.Element {
                   Recommended Sources
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  We recommend using <strong>Native Supported</strong> extensions for the best reading
-                  experience. These sources are verified for ultra-fast performance, automatic updates,
-                  and maximum security.
+                  We recommend using <strong>Native Supported</strong> extensions for the best
+                  reading experience. These sources are verified for ultra-fast performance,
+                  automatic updates, and maximum security.
                 </p>
               </div>
             </div>
@@ -425,7 +431,8 @@ export default function ExtensionsManager(): React.JSX.Element {
                       className="w-full h-full object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
-                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon')
+                        const fallback =
+                          e.currentTarget.parentElement?.querySelector('.fallback-icon')
                         if (fallback) fallback.classList.remove('hidden')
                       }}
                     />
@@ -515,7 +522,9 @@ export default function ExtensionsManager(): React.JSX.Element {
                       })()}
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-xs font-mono text-muted-foreground">v{ext.version}</span>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        v{ext.version}
+                      </span>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"

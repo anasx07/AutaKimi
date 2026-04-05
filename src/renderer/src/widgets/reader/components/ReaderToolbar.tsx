@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, Play, Pause, Hand } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2 } from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
@@ -23,6 +23,7 @@ interface ReaderToolbarProps {
   onOpenInBrowser: () => void
   onToggleAutoScroll: () => void
   onChangeAutoScrollSpeed: (speed: number) => void
+  onShare: () => void
 }
 
 export const ReaderToolbar = memo(
@@ -44,7 +45,8 @@ export const ReaderToolbar = memo(
     onClose,
     onOpenInBrowser,
     onToggleAutoScroll,
-    onChangeAutoScrollSpeed
+    onChangeAutoScrollSpeed,
+    onShare
   }: ReaderToolbarProps) => {
     const toolbarBg =
       readerTheme === 'match-app'
@@ -155,6 +157,15 @@ export const ReaderToolbar = memo(
               <Hand className="h-3.5 w-3.5" /> Drag On
             </div>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onShare}
+            className={cn('h-9 w-9', textSub, 'hover:text-primary hover:bg-primary/10')}
+            title="Share progress"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
           <div className="ml-1 w-44">
             <Select
               options={[

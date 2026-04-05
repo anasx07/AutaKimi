@@ -1,15 +1,7 @@
-import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite'
 import { Manga, IpcResult, HistoryEntry } from '@common/types'
 
-let _sqliteConnection: SQLiteConnection | null = null
-const getSQLiteConnection = (): SQLiteConnection => {
-  if (!_sqliteConnection) {
-    _sqliteConnection = new SQLiteConnection(CapacitorSQLite)
-  }
-  return _sqliteConnection
-}
-
-let db: SQLiteDBConnection | null = null
+// Capacitor SQLite removed. Mobile version uses React Native / Expo instead.
+let db: any = null
 let initPromise: Promise<void> | null = null
 
 const DB_NAME = 'autakimi_db'
@@ -19,31 +11,7 @@ export const MobileDB = {
     if (initPromise) return initPromise.then(() => ({ ok: true, value: undefined }))
 
     initPromise = (async () => {
-      try {
-        const sqlite = getSQLiteConnection()
-
-        const isConn = await sqlite.isConnection(DB_NAME, false)
-        let connection: SQLiteDBConnection
-
-        if (isConn.result) {
-          connection = await sqlite.retrieveConnection(DB_NAME, false)
-        } else {
-          connection = await sqlite.createConnection(DB_NAME, false, 'no-encryption', 1, false)
-        }
-
-        if (!connection) {
-          throw new Error('Failed to create SQLite connection')
-        }
-
-        await connection.open()
-        db = connection
-        await this.migrate(connection)
-      } catch (err) {
-        console.error('[MobileDB] Initialization failed:', err)
-        db = null
-        initPromise = null
-        throw err
-      }
+      console.warn('[MobileDB] Capacitor SQLite removed. No-op in web/fallback mode.')
     })()
 
     return initPromise.then(() => ({ ok: true, value: undefined }))
@@ -55,114 +23,8 @@ export const MobileDB = {
     }
   },
 
-  async migrate(connection: SQLiteDBConnection): Promise<void> {
-    // Get current version
-    const res = await connection.query('PRAGMA user_version;')
-    let currentVersion = 0
-    if (res.values && res.values.length > 0) {
-      currentVersion = res.values[0].user_version || 0
-    }
-
-    const execute = async (sql: string): Promise<void> => {
-      await connection.execute(sql)
-    }
-
-    // V1: Initial Core Schema (Consolidated for fresh installs)
-    if (currentVersion < 1) {
-      await execute(`
-        CREATE TABLE IF NOT EXISTS extensions (
-          pkg TEXT PRIMARY KEY,
-          installed_at TEXT,
-          name TEXT,
-          baseUrl TEXT,
-          lang TEXT,
-          icon TEXT,
-          version TEXT,
-          code TEXT
-        );
-        CREATE TABLE IF NOT EXISTS library (
-          id TEXT PRIMARY KEY,
-          title TEXT,
-          cover_url TEXT,
-          status TEXT,
-          metadata TEXT,
-          type TEXT DEFAULT 'manga'
-        );
-        CREATE TABLE IF NOT EXISTS settings (
-          key TEXT PRIMARY KEY,
-          value TEXT
-        );
-        CREATE TABLE IF NOT EXISTS manga_cache (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          cover_url TEXT,
-          description TEXT,
-          author TEXT,
-          artist TEXT,
-          status TEXT,
-          genres TEXT,
-          url TEXT,
-          updated_at TEXT,
-          type TEXT DEFAULT 'manga',
-          expires_at TEXT
-        );
-        CREATE TABLE IF NOT EXISTS reading_progress (
-          manga_id TEXT,
-          chapter_id TEXT,
-          is_read INTEGER DEFAULT 0,
-          last_page INTEGER DEFAULT 0,
-          updated_at TEXT,
-          PRIMARY KEY (manga_id, chapter_id)
-        );
-        CREATE TABLE IF NOT EXISTS reading_history (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          manga_id TEXT NOT NULL,
-          manga_title TEXT,
-          manga_cover TEXT,
-          manga_url TEXT,
-          chapter_id TEXT NOT NULL,
-          chapter_title TEXT,
-          started_at TEXT NOT NULL,
-          duration_seconds INTEGER DEFAULT 0,
-          pkg TEXT,
-          type TEXT DEFAULT 'manga'
-        );
-        CREATE TABLE IF NOT EXISTS downloads (
-          manga_id TEXT NOT NULL,
-          chapter_id TEXT NOT NULL,
-          total_pages INTEGER DEFAULT 0,
-          cached_pages INTEGER DEFAULT 0,
-          status TEXT,
-          error_message TEXT,
-          updated_at TEXT,
-          page_urls TEXT,
-          type TEXT DEFAULT 'manga',
-          PRIMARY KEY (manga_id, chapter_id)
-        );
-        CREATE TABLE IF NOT EXISTS chapters (
-          manga_id TEXT NOT NULL,
-          id TEXT NOT NULL,
-          number TEXT,
-          title TEXT,
-          date TEXT,
-          scanlator TEXT,
-          url TEXT,
-          PRIMARY KEY (manga_id, id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_progress_manga ON reading_progress(manga_id);
-        CREATE INDEX IF NOT EXISTS idx_history_manga ON reading_history(manga_id);
-        CREATE INDEX IF NOT EXISTS idx_history_started ON reading_history(started_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
-        CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id);
-      `)
-      currentVersion = 20 // Jump to latest version for fresh installs
-    }
-
-    // Individual migrations for incremental updates (if needed in the future)
-    // No changes needed for version 2-20 as they are consolidated in V1
-    
-    await connection.execute(`PRAGMA user_version = ${currentVersion};`)
-    console.log(`[MobileDB] Migration finished. Current version: ${currentVersion}`)
+  async migrate(connection: any): Promise<void> {
+    // Capacitor removed.
   },
 
   // --- Helper for results ---
@@ -242,7 +104,14 @@ export const MobileDB = {
     } else {
       await db!.run(
         'INSERT INTO library (id, title, cover_url, status, metadata, type) VALUES (?, ?, ?, ?, ?, ?);',
-        [manga.id, manga.title, manga.coverUrl, manga.status, JSON.stringify(manga), manga.mediaType || 'manga']
+        [
+          manga.id,
+          manga.title,
+          manga.coverUrl,
+          manga.status,
+          JSON.stringify(manga),
+          manga.mediaType || 'manga'
+        ]
       )
       return { ok: true, value: true }
     }
@@ -252,7 +121,7 @@ export const MobileDB = {
     await this.ensureReady()
     const res = await db!.query('SELECT * FROM settings;')
     const settings: Record<string, string> = {}
-    res.values?.forEach(s => settings[s.key] = s.value)
+    res.values?.forEach((s) => (settings[s.key] = s.value))
     return { ok: true, value: settings }
   },
 
@@ -309,19 +178,33 @@ export const MobileDB = {
   },
 
   async getProgress(mangaId: string): Promise<IpcResult<any[]>> {
-    return this.wrap(db!.query('SELECT * FROM reading_progress WHERE manga_id = ?;', [mangaId]).then(r => r.values || []))
+    return this.wrap(
+      db!
+        .query('SELECT * FROM reading_progress WHERE manga_id = ?;', [mangaId])
+        .then((r) => r.values || [])
+    )
   },
 
   async updateProgress(data: any): Promise<IpcResult<any>> {
-    return this.wrap(db!.run(
-      'INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);',
-      [data.mangaId, data.chapterId, data.isRead ? 1 : 0, data.lastPage || 0, new Date().toISOString()]
-    ))
+    return this.wrap(
+      db!.run(
+        'INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);',
+        [
+          data.mangaId,
+          data.chapterId,
+          data.isRead ? 1 : 0,
+          data.lastPage || 0,
+          new Date().toISOString()
+        ]
+      )
+    )
   },
 
   async getChapters(mangaId: string): Promise<IpcResult<any[]>> {
     await this.ensureReady()
-    return this.wrap(db!.query('SELECT * FROM chapters WHERE manga_id = ?;', [mangaId]).then(r => r.values || []))
+    return this.wrap(
+      db!.query('SELECT * FROM chapters WHERE manga_id = ?;', [mangaId]).then((r) => r.values || [])
+    )
   },
 
   async saveChapters(args: { mangaId: string; chapters: any[] }): Promise<IpcResult<boolean>> {
@@ -379,29 +262,33 @@ export const MobileDB = {
     const res = await db!.query('SELECT * FROM manga_cache WHERE id = ?;', [mangaId])
     const manga = res.values?.[0]
     if (manga && manga.genres) {
-      try { manga.genres = JSON.parse(manga.genres) } catch (e) {}
+      try {
+        manga.genres = JSON.parse(manga.genres)
+      } catch (e) {}
     }
     return { ok: true, value: manga || null }
   },
 
   async saveMangaCache(manga: Manga): Promise<IpcResult<any>> {
     await this.ensureReady()
-    return this.wrap(db!.run(
-      'INSERT OR REPLACE INTO manga_cache (id, title, cover_url, description, author, artist, status, genres, url, type, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
-      [
-        manga.id,
-        manga.title,
-        manga.coverUrl,
-        manga.description,
-        manga.author,
-        manga.artist,
-        manga.status,
-        Array.isArray(manga.genres) ? JSON.stringify(manga.genres) : manga.genres,
-        manga.url,
-        manga.mediaType || 'manga',
-        new Date().toISOString(),
-        (manga as any).expiresAt || null
-      ]
-    ))
+    return this.wrap(
+      db!.run(
+        'INSERT OR REPLACE INTO manga_cache (id, title, cover_url, description, author, artist, status, genres, url, type, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+        [
+          manga.id,
+          manga.title,
+          manga.coverUrl,
+          manga.description,
+          manga.author,
+          manga.artist,
+          manga.status,
+          Array.isArray(manga.genres) ? JSON.stringify(manga.genres) : manga.genres,
+          manga.url,
+          manga.mediaType || 'manga',
+          new Date().toISOString(),
+          (manga as any).expiresAt || null
+        ]
+      )
+    )
   }
 }

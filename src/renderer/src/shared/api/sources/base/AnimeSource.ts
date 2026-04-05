@@ -56,7 +56,7 @@ export abstract class AnimeSource implements ISourceAdapter {
       headers: { ...defaultHeaders, ...options.headers }
     })
 
-    let html = res && typeof res.data === 'string' ? res.data : ''
+    const html = res && typeof res.data === 'string' ? res.data : ''
 
     const isBlocked = !res || res.status === 403 || this.isCfChallengePage(html)
     if (isBlocked) {
