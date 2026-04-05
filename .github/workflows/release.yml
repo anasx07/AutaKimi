@@ -32,11 +32,15 @@ jobs:
         run: npm run build && npx electron-builder --win --publish never
 
       - name: Generate Mobile Android Project (Prebuild)
+        continue-on-error: true
+        id: mobile_prebuild
         run: |
           cd mobile
           npx expo prebuild --platform android --non-interactive
 
       - name: Generate Android APK
+        continue-on-error: true
+        id: mobile_build
         run: |
           cd mobile/android
           ./gradlew assembleDebug
@@ -44,14 +48,28 @@ jobs:
       - name: Publish to Public Repository
         shell: bash
         run: |
-          gh release create ${{ github.ref_name }} \
-            dist/*.exe \
-            dist/*.blockmap \
-            dist/latest.yml \
-            mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            --repo anasx07/AutaKimi-Release \
-            --target main \
-            --title "Release ${{ github.ref_name }}" \
-            --notes "Automated release from private repository including Windows and Android builds (Expo Native)."
+          # Define common arguments
+          ARGS=(
+            "${{ github.ref_name }}"
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+            --repo anasx07/AutaKimi-Release
+            --target main
+            --title "Release ${{ github.ref_name }}"
+            --notes "Automated release from private repository including Windows and optional Android builds."
+          )
+          
+          # Add APK if it exists
+          APK_PATH="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "Adding APK to release..."
+            ARGS+=("$APK_PATH")
+          else
+            echo "APK not found, skipping..."
+          fi
+          
+          gh release create "${ARGS[@]}"
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}
+

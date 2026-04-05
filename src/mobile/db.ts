@@ -4,8 +4,6 @@ import { Manga, IpcResult, HistoryEntry } from '@common/types'
 let db: any = null
 let initPromise: Promise<void> | null = null
 
-const DB_NAME = 'autakimi_db'
-
 export const MobileDB = {
   async init(): Promise<IpcResult<void>> {
     if (initPromise) return initPromise.then(() => ({ ok: true, value: undefined }))
@@ -23,7 +21,7 @@ export const MobileDB = {
     }
   },
 
-  async migrate(connection: any): Promise<void> {
+  async migrate(_connection: any): Promise<void> {
     // Capacitor removed.
   },
 
