@@ -13,7 +13,7 @@ export const MobileExtension = {
       fetch: async (url: string, init?: { method?: string; headers?: any; body?: any }) => {
         const bypassCf = params?._bypassCloudflare || false
         console.log(`[Mobile-Sandbox] Fetching: ${url} (bypassCf=${bypassCf})`)
-        
+
         const res = await MobileNetwork.fetchText(url, {
           method: (init?.method as any) || 'GET',
           headers: init?.headers,
@@ -42,21 +42,10 @@ export const MobileExtension = {
 
     try {
       const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-      const fn = new AsyncFunction(
-        'params',
-        'fetch',
-        'cheerio',
-        'console',
-        code
-      )
+      const fn = new AsyncFunction('params', 'fetch', 'cheerio', 'console', code)
 
-      const result = await fn(
-        sandbox.params,
-        sandbox.fetch,
-        sandbox.cheerio,
-        sandbox.console
-      )
-      
+      const result = await fn(sandbox.params, sandbox.fetch, sandbox.cheerio, sandbox.console)
+
       console.log(`[Mobile-Sandbox] Execution success for ${args.pkg}`)
       return { ok: true, value: result }
     } catch (err: unknown) {

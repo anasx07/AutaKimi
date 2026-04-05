@@ -20,10 +20,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
 import { useUIStore } from '@renderer/shared/model'
 
-import {
-  useInfiniteLibraryItems,
-  mangaKeys
-} from '@renderer/entities/manga/api/useMangaQueries'
+import { useInfiniteLibraryItems, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
 
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')

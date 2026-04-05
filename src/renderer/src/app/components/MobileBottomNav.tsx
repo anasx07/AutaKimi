@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { BookOpen, Compass, Clock, Download, MoreHorizontal } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
-import { Haptics, ImpactStyle } from '@capacitor/haptics'
+
 
 export function MobileBottomNav(): React.JSX.Element {
   const navItems = [
@@ -12,13 +12,7 @@ export function MobileBottomNav(): React.JSX.Element {
     { id: 'more', path: '/more', label: 'More', icon: MoreHorizontal }
   ]
 
-  const handleImpact = async (): Promise<void> => {
-    try {
-      await Haptics.impact({ style: ImpactStyle.Light })
-    } catch {
-      // Haptics might not be available
-    }
-  }
+
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border px-4 pb-[env(safe-area-inset-bottom)] pt-2 flex items-center justify-around safe-area-bottom shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
@@ -28,7 +22,6 @@ export function MobileBottomNav(): React.JSX.Element {
           <NavLink
             key={item.id}
             to={item.path}
-            onClick={handleImpact}
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl transition-all duration-300',

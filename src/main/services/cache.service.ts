@@ -54,7 +54,7 @@ export class CacheManager implements AppService {
     const userDataPath = app.getPath('userData')
     const cacheDir = path.join(userDataPath, 'image_cache')
     this.imageCache = new DiskCache(cacheDir, MAX_IMAGE_CACHE_SIZE)
-    
+
     console.log('[CacheManager] Initialized with DiskCache at:', cacheDir)
     // Run initial cleanup
     await this.cleanup()
@@ -76,8 +76,8 @@ export class CacheManager implements AppService {
 
   async cleanup(): Promise<void> {
     console.log('[CacheManager] Running periodic cleanup...')
-    
-    // 1. Cleanup Disk Cache (Images) - managed by DiskCache itself on set, 
+
+    // 1. Cleanup Disk Cache (Images) - managed by DiskCache itself on set,
     // but we can trigger a full check here.
     if (this.imageCache) {
       await this.imageCache.evict()

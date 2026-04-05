@@ -201,7 +201,7 @@ app.whenReady().then(async () => {
   // Initialize CacheManager
   const cacheManager = CacheManager.getInstance()
   if (mainWindow) cacheManager.setWebContents(mainWindow.webContents)
-  
+
   // Connect Manga Cache Repo
   cacheManager.setMangaRepo(mangaCacheRepo)
   ServiceRegistry.register(cacheManager)

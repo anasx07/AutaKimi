@@ -10,7 +10,7 @@ interface BrowseCacheState {
   chaptersCache: Map<string, CacheEntry<any[]>>
   pagesCache: Map<string, CacheEntry<string[]>>
   listCache: Map<string, CacheEntry<any[]>>
-  
+
   // Existing metadata caches (can remain as Records if preferred, but Maps are better for consistency)
   offsetCache: Record<string, number>
   hasMoreCache: Record<string, boolean>
@@ -20,7 +20,7 @@ interface BrowseCacheState {
   setChaptersCache: (mangaId: string, chapters: any[]) => void
   setPagesCache: (chapterId: string, pages: string[]) => void
   setListCache: (feed: string, list: any[]) => void
-  
+
   getChaptersCache: (mangaId: string) => any[] | null
   getPagesCache: (chapterId: string) => string[] | null
   getListCache: (feed: string) => any[] | null
@@ -28,7 +28,7 @@ interface BrowseCacheState {
   setOffsetCache: (feed: string, offset: number) => void
   setHasMoreCache: (feed: string, hasMore: boolean) => void
   setBatchCountCache: (feed: string, batchCount: number) => void
-  
+
   clearFeedCache: () => void
   invalidateGroup: (group: string, key?: string) => void
 }
@@ -50,9 +50,9 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
     const { chaptersCache } = get()
     // LRU: Remove if exists to move to end
     if (chaptersCache.has(mangaId)) chaptersCache.delete(mangaId)
-    
+
     chaptersCache.set(mangaId, { data: chapters, timestamp: Date.now() })
-    
+
     // Evict oldest if limit exceeded
     if (chaptersCache.size > MAX_CHAPTERS) {
       const firstKey = chaptersCache.keys().next().value
@@ -65,13 +65,13 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
     const { chaptersCache } = get()
     const entry = chaptersCache.get(mangaId)
     if (!entry) return null
-    
+
     if (Date.now() - entry.timestamp > CHAPTERS_TTL) {
       chaptersCache.delete(mangaId)
       set({ chaptersCache: new Map(chaptersCache) })
       return null
     }
-    
+
     // LRU: Refresh position
     chaptersCache.delete(mangaId)
     chaptersCache.set(mangaId, entry)
@@ -82,9 +82,9 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
   setPagesCache: (chapterId, pages) => {
     const { pagesCache } = get()
     if (pagesCache.has(chapterId)) pagesCache.delete(chapterId)
-    
+
     pagesCache.set(chapterId, { data: pages, timestamp: Date.now() })
-    
+
     if (pagesCache.size > MAX_PAGES) {
       const firstKey = pagesCache.keys().next().value
       if (firstKey) pagesCache.delete(firstKey)
@@ -96,13 +96,13 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
     const { pagesCache } = get()
     const entry = pagesCache.get(chapterId)
     if (!entry) return null
-    
+
     if (Date.now() - entry.timestamp > BROWSE_TTL) {
       pagesCache.delete(chapterId)
       set({ pagesCache: new Map(pagesCache) })
       return null
     }
-    
+
     pagesCache.delete(chapterId)
     pagesCache.set(chapterId, entry)
     set({ pagesCache: new Map(pagesCache) })
@@ -119,7 +119,7 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
     const { listCache } = get()
     const entry = listCache.get(feed)
     if (!entry) return null
-    
+
     if (Date.now() - entry.timestamp > BROWSE_TTL) {
       listCache.delete(feed)
       set({ listCache: new Map(listCache) })
@@ -134,7 +134,7 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
     set((state) => ({ hasMoreCache: { ...state.hasMoreCache, [feed]: hasMore } })),
   setBatchCountCache: (feed, batchCount) =>
     set((state) => ({ batchCountCache: { ...state.batchCountCache, [feed]: batchCount } })),
-  
+
   clearFeedCache: () =>
     set({ listCache: new Map(), offsetCache: {}, hasMoreCache: {}, batchCountCache: {} }),
 

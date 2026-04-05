@@ -100,7 +100,9 @@ export function useMangaPagination({
         const extLang =
           pkgParts.length >= 5 ? pkgParts[4] : pkgParts.length >= 3 ? pkgParts[2] : 'all'
 
-        console.log(`[Browse] Resolving extension: ${activeExtension}, feed: ${activeFeed}, offset: ${offset}`)
+        console.log(
+          `[Browse] Resolving extension: ${activeExtension}, feed: ${activeFeed}, offset: ${offset}`
+        )
         const runner = await ExtensionResolver.resolve(activeExtension)
         if (!runner) {
           console.warn(`[Browse] Runner not found for pkg: ${activeExtension}`)
@@ -108,7 +110,9 @@ export function useMangaPagination({
           setLoading(false)
           return
         }
-        console.log(`[Browse] Runner resolved: ${runner.constructor.name}, baseUrl: ${runner.baseUrl}`)
+        console.log(
+          `[Browse] Runner resolved: ${runner.constructor.name}, baseUrl: ${runner.baseUrl}`
+        )
 
         const page = Math.floor(offset / limit) + 1
         let res: any
@@ -121,7 +125,9 @@ export function useMangaPagination({
           res = await runner.searchManga(searchToWatch, page, { ...filters })
         }
 
-        console.log(`[Browse] Result for ${activeExtension}: manga=${res?.manga?.length ?? 'N/A'}, hasNextPage=${res?.hasNextPage}, error=${res?.error ?? 'none'}`)
+        console.log(
+          `[Browse] Result for ${activeExtension}: manga=${res?.manga?.length ?? 'N/A'}, hasNextPage=${res?.hasNextPage}, error=${res?.error ?? 'none'}`
+        )
 
         if (res && res.error && (res.error.includes('403') || res.error.includes('Forbidden'))) {
           const cfMsg =

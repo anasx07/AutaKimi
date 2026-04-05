@@ -9,11 +9,7 @@ interface MediaListProps {
 }
 
 export function MediaList({ children, className }: MediaListProps) {
-  return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      {children}
-    </div>
-  )
+  return <div className={cn('flex flex-col gap-3', className)}>{children}</div>
 }
 
 interface MediaListItemProps {

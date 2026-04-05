@@ -18,12 +18,15 @@ if (!parentPort) {
 }
 
 // Tracks in-flight delegated fetches: fetchId → resolver
-const pendingFetches = new Map<string, (res: {
-  ok: boolean
-  status: number
-  text: () => Promise<string>
-  json: () => Promise<unknown>
-}) => void>()
+const pendingFetches = new Map<
+  string,
+  (res: {
+    ok: boolean
+    status: number
+    text: () => Promise<string>
+    json: () => Promise<unknown>
+  }) => void
+>()
 
 // ─── Main task handler ────────────────────────────────────────────────────────
 parentPort.on(
@@ -103,7 +106,9 @@ parentPort.on(
             headers: extraHeaders
           })
           const body = await response.text()
-          console.log(`[Worker-VM] Response: status=${response.status} bodyLen=${body.length} url=${url}`)
+          console.log(
+            `[Worker-VM] Response: status=${response.status} bodyLen=${body.length} url=${url}`
+          )
           return {
             ok: response.ok,
             status: response.status,
@@ -155,7 +160,9 @@ parentPort.on(
         console.error(`[Worker-VM] Extension error for ${id}: ${output.error}`)
         parentPort!.postMessage({ id, error: output.error })
       } else {
-        console.log(`[Worker-VM] Extension success for ${id}: items=${output.result?.data?.length ?? 'N/A'}`)
+        console.log(
+          `[Worker-VM] Extension success for ${id}: items=${output.result?.data?.length ?? 'N/A'}`
+        )
         parentPort!.postMessage({ id, result: output.result })
       }
     } catch (error: unknown) {

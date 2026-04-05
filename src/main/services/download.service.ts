@@ -208,7 +208,7 @@ export class DownloadManager implements AppService {
             const parsedUrl = new URL(url)
             const rawExt = path.extname(parsedUrl.pathname).replace('.', '').toLowerCase()
             const validExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']
-            
+
             // Strictly alphanumeric, no slashes, no dots, max 5 chars
             const sanitizedExt = rawExt.replace(/[^a-z0-0]/g, '').slice(0, 5)
             const ext = validExts.includes(sanitizedExt) ? sanitizedExt : 'jpg'

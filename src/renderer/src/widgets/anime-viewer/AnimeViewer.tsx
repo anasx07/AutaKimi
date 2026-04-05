@@ -197,10 +197,12 @@ export default function AnimeViewer() {
   const activeServerUrl = typeof s === 'object' ? (s as any).url : s
 
   return (
-    <div className={cn(
-      "fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none",
-      mobile && "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
-    )}>
+    <div
+      className={cn(
+        'fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none',
+        mobile && 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
+      )}
+    >
       <TitleBar />
 
       {/* Top Header Overlay */}

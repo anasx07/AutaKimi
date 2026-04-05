@@ -1,12 +1,5 @@
 import { useState, useMemo } from 'react'
-import {
-  ExternalLink,
-  Play,
-  Search,
-  Loader2,
-  Pin,
-  PinOff
-} from 'lucide-react'
+import { ExternalLink, Play, Search, Loader2, Pin, PinOff } from 'lucide-react'
 import {
   Button,
   Badge,
@@ -219,8 +212,10 @@ export default function AnimePage(): React.JSX.Element {
                     <img
                       src={(() => {
                         try {
-                          return new URL(`../../app/assets/Animeicon/${ext.pkg}.png`, import.meta.url)
-                            .href
+                          return new URL(
+                            `../../app/assets/Animeicon/${ext.pkg}.png`,
+                            import.meta.url
+                          ).href
                         } catch {
                           return ''
                         }
@@ -372,7 +367,9 @@ export default function AnimePage(): React.JSX.Element {
               title="Fetch Error"
               message={error}
               onRetry={refresh}
-              onWebView={() => metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)}
+              onWebView={() =>
+                metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
+              }
               onReport={() =>
                 window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
               }

@@ -56,7 +56,7 @@ export class MadaraSource implements ISourceAdapter {
       headers: { ...defaultHeaders, ...options.headers }
     })
 
-    let html = res && typeof res.data === 'string' ? res.data : ''
+    const html = res && typeof res.data === 'string' ? res.data : ''
 
     // Even if 200 OK, it might be a challenge page
     const isBlocked = !res || res.status === 403 || this.isCfChallengePage(html)
@@ -115,7 +115,9 @@ export class MadaraSource implements ISourceAdapter {
     } catch {
       // All silent probes failed (likely CF-blocked). Try ONE non-silent fetch
       // which will trigger a single CF browser bypass via the domain lock.
-      console.log(`[MadaraSource] All probes failed for ${this.name}, trying CF bypass with first URL...`)
+      console.log(
+        `[MadaraSource] All probes failed for ${this.name}, trying CF bypass with first URL...`
+      )
       const fallbackUrl = urls[0]
       const fallbackRes = await this.parseMangaList(fallbackUrl, { page, silent: false })
       if (fallbackRes.manga && fallbackRes.manga.length > 0) {
@@ -279,14 +281,14 @@ export class MadaraSource implements ISourceAdapter {
   }
 
   async fetchChapters(mangaUrl: string): Promise<Chapter[]> {
-    let html = await this.fetchHtml(mangaUrl)
+    const html = await this.fetchHtml(mangaUrl)
     if (!html) {
       console.warn(`[MadaraSource] Empty HTML for chapters: ${mangaUrl}`)
       return []
     }
     let $ = cheerio.load(html)
 
-    let chapterSelector =
+    const chapterSelector =
       this.customSelectors?.chapterListSelector ||
       '.wp-manga-chapter a, li.wp-manga-chapter a, .chapter-item .chapter a, .li .chapter a, .chapter-link'
     let rows = $(chapterSelector)

@@ -109,7 +109,9 @@ export function DownloadManager({ isOpen, onClose }: DownloadManagerProps): Reac
                   />
                 </p>
                 <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                  {isFetchingPages ? 'Preparing next download...' : 'System Idle • Waiting for tasks'}
+                  {isFetchingPages
+                    ? 'Preparing next download...'
+                    : 'System Idle • Waiting for tasks'}
                 </p>
               </div>
             </div>

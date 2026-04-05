@@ -16,7 +16,7 @@ import { ChapterReader } from '@renderer/widgets/reader'
 import { AnimeViewer } from '@renderer/widgets/anime-viewer'
 import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
-import { StatusBar, Style } from '@capacitor/status-bar'
+
 
 export function AppLayout(): React.JSX.Element {
   useAppUpdater()
@@ -24,13 +24,7 @@ export function AppLayout(): React.JSX.Element {
   const location = useLocation()
   const mobile = isMobile()
 
-  // Initialize status bar on mobile
-  useEffect(() => {
-    if (mobile) {
-      StatusBar.setBackgroundColor({ color: '#09090b' }).catch(() => {})
-      StatusBar.setStyle({ style: Style.Dark }).catch(() => {})
-    }
-  }, [mobile])
+
 
   // Dismiss details and reader on route change
   useEffect(() => {
@@ -50,10 +44,12 @@ export function AppLayout(): React.JSX.Element {
         {!mobile && <TitleBar />}
         <div className="flex flex-1 overflow-hidden relative">
           {!mobile && <Sidebar />}
-          <main className={cn(
-            'flex-1 relative bg-background overflow-hidden',
-            mobile && 'pb-[64px]' // Fixed height of MobileBottomNav
-          )}>
+          <main
+            className={cn(
+              'flex-1 relative bg-background overflow-hidden',
+              mobile && 'pb-[64px]' // Fixed height of MobileBottomNav
+            )}
+          >
             <div className="flex flex-col h-full overflow-hidden">
               <ErrorBoundary label="Page Content">
                 <Outlet />

@@ -14,9 +14,9 @@ export const MobileApi: ElectronApi = {
 
   fetchRepo: (url: string) => MobileNetwork.fetchRepo(url),
   fetchText: (url: string, options?: any) => MobileNetwork.fetchText(url, options),
-  
+
   executeExtension: (args: any) => MobileExtension.execute(args),
-  
+
   installExtension: async (ext: any, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
     const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
     const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
@@ -47,7 +47,7 @@ export const MobileApi: ElectronApi = {
   },
 
   clearCookies: () => MobileNetwork.clearCookies() as any,
-  
+
   openExternal: async (url: string) => {
     window.open(url, '_blank')
   },
@@ -81,10 +81,10 @@ export const MobileApi: ElectronApi = {
   },
   onCfStatus: () => () => {},
   onCacheInvalidate: () => () => {},
-  
+
   installUpdate: async () => {},
   checkForUpdates: async () => {},
-  
+
   platform: 'android',
   version: '1.0.0'
 } as any
