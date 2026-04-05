@@ -49,7 +49,7 @@ export default function AnimeViewer() {
   const [isSwitchingServer, setIsSwitchingServer] = useState(false)
   const { autoNextAnime, setAutoNextAnime, autoSwitchServer } = useSettingsStore()
 
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const controlsTimeoutRef = useRef<any | null>(null)
 
   // Cinema Mode: Auto-hide controls
   useEffect(() => {

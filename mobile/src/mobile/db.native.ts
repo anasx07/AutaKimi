@@ -123,14 +123,14 @@ export const MobileDB = {
     await db!.runAsync(
       'INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
       [
-        data.pkg,
+        data.pkg ?? null,
         new Date().toISOString(),
-        data.code,
-        data.name,
-        data.baseUrl,
-        data.lang,
-        data.icon,
-        data.version
+        data.code ?? null,
+        data.name ?? null,
+        data.baseUrl ?? null,
+        data.lang ?? null,
+        data.icon ?? null,
+        data.version ?? null
       ]
     )
     return { ok: true, value: undefined }
@@ -170,10 +170,10 @@ export const MobileDB = {
       await db!.runAsync(
         'INSERT INTO library (id, title, cover_url, status, metadata, type) VALUES (?, ?, ?, ?, ?, ?);',
         [
-          manga.id,
-          manga.title,
-          manga.coverUrl,
-          manga.status,
+          manga.id ?? null,
+          manga.title ?? null,
+          manga.coverUrl ?? null,
+          manga.status ?? null,
           JSON.stringify(manga),
           manga.mediaType || 'manga'
         ]
@@ -218,15 +218,15 @@ export const MobileDB = {
     await db!.runAsync(
       'INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
       [
-        data.mangaId,
-        data.mangaTitle,
-        data.mangaCover,
-        data.mangaUrl,
+        data.mangaId ?? null,
+        data.mangaTitle ?? null,
+        data.mangaCover ?? null,
+        data.mangaUrl ?? null,
         data.chapterId || '',
-        data.chapterTitle,
-        data.startedAt,
+        data.chapterTitle ?? null,
+        data.startedAt ?? null,
         data.durationSeconds || 0,
-        data.pkg,
+        data.pkg ?? null,
         data.type || 'manga'
       ]
     )
