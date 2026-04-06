@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Search,
   RefreshCw,
@@ -33,6 +33,7 @@ interface ChapterEpisodeListProps {
   onCancelDownload: (item: Chapter) => void
   onRemoveDownload: (item: Chapter) => void
   onRefresh: () => void
+  defaultSortOrder?: 'asc' | 'desc'
 }
 
 export const ChapterEpisodeList = ({
@@ -49,11 +50,17 @@ export const ChapterEpisodeList = ({
   onCancelDownload,
   onRemoveDownload,
   onRefresh,
-  downloadProgress = {}
+  downloadProgress = {},
+  defaultSortOrder = 'desc'
 }: ChapterEpisodeListProps): React.JSX.Element => {
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultSortOrder)
+
+  // Sync with default sort order when it changes in settings
+  useEffect(() => {
+    setSortOrder(defaultSortOrder)
+  }, [defaultSortOrder])
 
   const isAnime = mediaType === 'anime'
   const prefix = isAnime
@@ -152,7 +159,9 @@ export const ChapterEpisodeList = ({
 
       <div className="divide-y divide-border/10 border border-border/10 rounded-xl bg-card/40 overflow-hidden max-h-[600px] overflow-y-auto shadow-none scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20">
         {filteredItems.map((item) => {
-          const isRead = readChapterIds.includes(item.id)
+          const isFinished = readChapterIds.includes(item.id)
+          const hasProgress = (pageProgress[item.id] || 0) > 1
+          const isRead = isFinished || hasProgress
           const downloadStatus = downloadStatuses[item.id] || 'none'
 
           return (
@@ -160,8 +169,7 @@ export const ChapterEpisodeList = ({
               key={item.id}
               className={cn(
                 'flex items-center justify-between w-full px-5 py-4 hover:bg-primary/5 transition-all duration-300 group cursor-pointer relative',
-                'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40',
-                isRead && 'opacity-60 grayscale-[0.3]'
+                'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40'
               )}
               onClick={() => onItemClick(item)}
             >
@@ -170,18 +178,18 @@ export const ChapterEpisodeList = ({
                   <span
                     className={cn(
                       'font-semibold text-sm transition-colors truncate',
-                      isRead ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary'
+                      isRead ? 'text-muted-foreground/70' : 'text-foreground group-hover:text-primary'
                     )}
                   >
                     {prefix} {item.number}
                   </span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {isRead && (
-                      <CheckCircle className="h-3.5 w-3.5 text-primary/80 fill-primary/10 flex-shrink-0" />
+                    {isFinished && (
+                      <CheckCircle className="h-3.5 w-3.5 text-muted-foreground/40 fill-muted-foreground/10 flex-shrink-0" />
                     )}
 
                     {/* Partial Progress */}
-                    {pageProgress[item.id] > 1 && !isRead && (
+                    {hasProgress && !isFinished && (
                       <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 whitespace-nowrap flex-shrink-0">
                         {isAnime
                           ? `${Math.floor(pageProgress[item.id] / 60)}m`
@@ -190,7 +198,7 @@ export const ChapterEpisodeList = ({
                     )}
 
                     {/* Most Recently Read */}
-                    {isRead && readChapterIds[readChapterIds.length - 1] === item.id && (
+                    {isFinished && readChapterIds[readChapterIds.length - 1] === item.id && (
                       <span className="text-[10px] font-bold bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full border border-secondary whitespace-nowrap flex-shrink-0">
                         Last Read
                       </span>
@@ -198,12 +206,22 @@ export const ChapterEpisodeList = ({
                   </div>
                 </div>
                 {item.title && (
-                  <p className="text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <p
+                    className={cn(
+                      'text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity',
+                      isRead && 'text-muted-foreground/50'
+                    )}
+                  >
                     {item.title}
                   </p>
                 )}
                 {item.date && (
-                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium">
+                  <div
+                    className={cn(
+                      'flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium',
+                      isRead && 'text-muted-foreground/40'
+                    )}
+                  >
                     <CalendarDays className="h-3 w-3" />
                     <span dir="auto">{item.date}</span>
                   </div>
@@ -215,7 +233,10 @@ export const ChapterEpisodeList = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 text-muted-foreground/60 hover:text-primary transition-all duration-300 transform group-hover:scale-110"
+                    className={cn(
+                      'h-10 w-10 text-muted-foreground/60 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
+                      isRead && 'opacity-80 bg-acc'
+                    )}
                     onClick={(e) => {
                       e.stopPropagation()
                       if (downloadStatus === 'downloading') {
@@ -249,7 +270,10 @@ export const ChapterEpisodeList = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 text-primary/70 hover:text-primary transition-all duration-300 transform group-hover:scale-110"
+                  className={cn(
+                    'h-10 w-10 text-primary/70 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
+                    isRead && 'opacity-80'
+                  )}
                 >
                   <Play
                     className={cn(

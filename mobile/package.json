@@ -1,6 +1,6 @@
 {
   "name": "@autakimi/mobile",
-  "version": "1.5.67",
+  "version": "1.5.70",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
