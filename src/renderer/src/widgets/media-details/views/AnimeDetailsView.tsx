@@ -5,7 +5,8 @@ import {
   useLibraryStore,
   useExtensionStore,
   useProgressStore,
-  useDownloadStore
+  useDownloadStore,
+  useReaderStore
 } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { DownloadEntry } from '@common/types'
@@ -49,6 +50,7 @@ export function AnimeDetailsView({
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { readingProgress, pageProgress } = useProgressStore()
   const { activeTasks, addToDownloadQueue } = useDownloadStore()
+  const { defaultChapterSort } = useReaderStore()
   const { addToast } = useUIStore()
 
   const [downloadStatuses, setDownloadStatuses] = useState<Record<string, DownloadStatus>>({})
@@ -261,6 +263,7 @@ export function AnimeDetailsView({
             }
           }}
           onRefresh={refetch}
+          defaultSortOrder={defaultChapterSort}
           onCancelDownload={async (episode) => {
             if (!mergedMedia) return
             try {

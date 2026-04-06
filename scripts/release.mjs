@@ -116,6 +116,26 @@ async function main() {
           pkg.version = newVersion
           writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n')
           console.log(`${C.green}✓${C.reset} package.json updated to v${newVersion}`)
+
+          // Update Mobile files
+          try {
+            const mobilePkgPath = './mobile/package.json'
+            const mobileAppPath = './mobile/app.json'
+
+            const mobilePkg = JSON.parse(readFileSync(mobilePkgPath, 'utf8'))
+            mobilePkg.version = newVersion
+            writeFileSync(mobilePkgPath, JSON.stringify(mobilePkg, null, 2) + '\n')
+            console.log(`${C.green}✓${C.reset} mobile/package.json updated to v${newVersion}`)
+
+            const mobileApp = JSON.parse(readFileSync(mobileAppPath, 'utf8'))
+            if (mobileApp.expo) {
+              mobileApp.expo.version = newVersion
+              writeFileSync(mobileAppPath, JSON.stringify(mobileApp, null, 2) + '\n')
+              console.log(`${C.green}✓${C.reset} mobile/app.json updated to v${newVersion}`)
+            }
+          } catch (e) {
+            console.log(`${C.yellow}⚠️  Could not update mobile files: ${e.message}${C.reset}`)
+          }
         }
 
         if (choice === '1') {
@@ -127,8 +147,8 @@ async function main() {
           const commitMsg = msg || `chore: release v${newVersion}`
           execSync(`git commit -m "${commitMsg}"`)
         } else if (choice === '2') {
-          console.log(`${C.dim}> Staging package.json...${C.reset}`)
-          execSync('git add package.json')
+          console.log(`${C.dim}> Staging version files...${C.reset}`)
+          execSync('git add package.json mobile/package.json mobile/app.json')
           execSync(`git commit -m "chore: version bump v${newVersion}"`)
         }
 

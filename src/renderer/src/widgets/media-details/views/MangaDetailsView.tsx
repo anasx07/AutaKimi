@@ -5,7 +5,8 @@ import {
   useLibraryStore,
   useExtensionStore,
   useProgressStore,
-  useDownloadStore
+  useDownloadStore,
+  useReaderStore
 } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { DownloadEntry } from '@common/types'
@@ -51,6 +52,7 @@ export function MangaDetailsView({
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { readingProgress, pageProgress } = useProgressStore()
   const { downloadQueue, addToDownloadQueue, activeTasks } = useDownloadStore()
+  const { defaultChapterSort } = useReaderStore()
 
   const { addToast } = useUIStore()
 
@@ -379,6 +381,7 @@ export function MangaDetailsView({
             }
           }}
           onRefresh={refetch}
+          defaultSortOrder={defaultChapterSort}
         />
       </div>
     </div>

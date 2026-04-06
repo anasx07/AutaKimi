@@ -3,7 +3,7 @@
     "name": "AutaKimi",
     "slug": "autakimi",
     "scheme": "autakimi",
-    "version": "1.5.67",
+    "version": "1.5.70",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
