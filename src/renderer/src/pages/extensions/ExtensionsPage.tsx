@@ -1,7 +1,6 @@
 import { forwardRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search,
   Package,
   Globe,
   Star,
@@ -12,8 +11,10 @@ import {
   ShieldCheck,
   ShieldAlert,
   ArrowUpDown,
-  X
+  X,
+  Search as SearchIcon
 } from 'lucide-react'
+import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
 import { useExtensionStore, ExtensionMetadata } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { Button, Input, Card, Badge, MobilePage, Sheet, Checkbox } from '@renderer/shared/ui'
@@ -62,7 +63,9 @@ export default function ExtensionsPage(): React.JSX.Element {
   const bulkUpdateMutation = useBulkUpdate()
 
   // --- UI State ---
-  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'installed' | 'updates'>('installed')
+  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'installed' | 'updates' | 'global'>(
+    'installed'
+  )
   const [selectedLangs, setSelectedLangs] = useState<string[]>(['all'])
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -415,17 +418,46 @@ export default function ExtensionsPage(): React.JSX.Element {
         title="Extensions"
         subtitle={`${catalog.length} Sources Available`}
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={isRefetching}
-            onClick={() => refreshCatalog()}
-            className="h-10 w-10 p-0 rounded-xl hover:bg-secondary transition-all"
-          >
-            <RefreshCw
-              className={cn('h-4 w-4 text-muted-foreground', isRefetching && 'animate-spin')}
-            />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isRefetching}
+              onClick={() => refreshCatalog()}
+              className="h-10 w-10 p-0 rounded-xl hover:bg-secondary transition-all"
+            >
+              <RefreshCw
+                className={cn('h-4 w-4 text-muted-foreground', isRefetching && 'animate-spin')}
+              />
+            </Button>
+            <Button
+              variant={activeSubTab === 'global' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveSubTab(activeSubTab === 'global' ? 'installed' : 'global')}
+              className={cn(
+                'h-10 w-10 p-0 rounded-xl transition-all relative group',
+                activeSubTab === 'global' && 'bg-primary/10 text-primary'
+              )}
+              title="Global Search"
+            >
+              <div className="relative flex items-center justify-center">
+                <Globe
+                  className={cn(
+                    'h-4 w-4 transition-all',
+                    activeSubTab === 'global' ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                />
+                <div
+                  className={cn(
+                    'absolute -bottom-1 -right-1 p-0.5 rounded-full transition-all border-2 border-background',
+                    activeSubTab === 'global' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
+                  )}
+                >
+                  <SearchIcon className="h-2 w-2" strokeWidth={3} />
+                </div>
+              </div>
+            </Button>
+          </div>
         }
         headerExtra={
           <div className="space-y-4">
@@ -480,69 +512,75 @@ export default function ExtensionsPage(): React.JSX.Element {
               ))}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1 group">
-                <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input
-                  className="pl-9 pr-4 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl text-sm"
-                  placeholder={
-                    activeSubTab === 'catalog' ? 'Search 1200+ sources...' : 'Search installed...'
-                  }
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <LanguageFilter />
-
-                <Button
-                  variant={showNsfw ? 'secondary' : 'outline'}
-                  onClick={() => setShowNsfw(!showNsfw)}
-                  className={cn(
-                    'h-11 px-4 rounded-xl border-border/40 transition-all font-bold text-[10px] uppercase tracking-wider bg-card/40',
-                    showNsfw && 'bg-destructive/10 text-destructive border-destructive/20'
-                  )}
-                >
-                  {showNsfw ? (
-                    <ShieldAlert className="w-4 h-4 mr-2" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4 mr-2" />
-                  )}
-                  18+
-                </Button>
-
-                <Button
-                  variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
-                  size="sm"
-                  onClick={() =>
-                    setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
-                  }
-                  className={cn(
-                    'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
-                    extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'
-                  )}
-                >
-                  <ArrowUpDown
-                    className={cn(
-                      'w-4 h-4 transition-transform',
-                      extensionSortOrder === 'desc' && 'rotate-180'
-                    )}
+            {activeSubTab !== 'global' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col md:flex-row gap-3"
+              >
+                <div className="relative flex-1 group">
+                  <SearchIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    className="pl-9 pr-4 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl text-sm"
+                    placeholder={
+                      activeSubTab === 'catalog' ? 'Search 1200+ sources...' : 'Search installed...'
+                    }
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <span className="font-semibold text-xs transition-all uppercase tracking-wider">
-                    {mobile ? '' : 'Sort'}
-                  </span>
-                </Button>
-              </div>
-            </div>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <LanguageFilter />
+
+                  <Button
+                    variant={showNsfw ? 'secondary' : 'outline'}
+                    onClick={() => setShowNsfw(!showNsfw)}
+                    className={cn(
+                      'h-11 px-4 rounded-xl border-border/40 transition-all font-bold text-[10px] uppercase tracking-wider bg-card/40',
+                      showNsfw && 'bg-destructive/10 text-destructive border-destructive/20'
+                    )}
+                  >
+                    {showNsfw ? (
+                      <ShieldAlert className="w-4 h-4 mr-2" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4 mr-2" />
+                    )}
+                    18+
+                  </Button>
+
+                  <Button
+                    variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() =>
+                      setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+                    }
+                    className={cn(
+                      'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
+                      extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'
+                    )}
+                  >
+                    <ArrowUpDown
+                      className={cn(
+                        'w-4 h-4 transition-transform',
+                        extensionSortOrder === 'desc' && 'rotate-180'
+                      )}
+                    />
+                    <span className="font-semibold text-xs transition-all uppercase tracking-wider">
+                      {mobile ? '' : 'Sort'}
+                    </span>
+                  </Button>
+                </div>
+              </motion.div>
+            )}
 
             {activeSubTab === 'updates' && updates.length > 0 && (
               <Button
@@ -562,8 +600,10 @@ export default function ExtensionsPage(): React.JSX.Element {
           </div>
         }
       >
-        <div className="flex-1 min-h-0 flex flex-col -mb-4">
-          {catalogLoading ? (
+        <div className={cn('flex-1 min-h-0 flex flex-col -mb-4', activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar')}>
+          {activeSubTab === 'global' ? (
+            <GlobalSearch />
+          ) : catalogLoading ? (
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div

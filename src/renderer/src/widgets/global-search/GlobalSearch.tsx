@@ -119,7 +119,7 @@ export default function GlobalSearch() {
   const totalCount = Object.keys(statuses).length
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 pt-2 duration-500">
       <form onSubmit={handleSearch} className="flex gap-3 max-w-2xl mx-auto">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
