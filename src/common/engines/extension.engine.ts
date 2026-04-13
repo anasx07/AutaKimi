@@ -97,7 +97,7 @@ export class ExtensionEngine {
     return { success: true }
   }
 
-  async execute(pkg: string, code: string, params: Record<string, any> = {}): Promise<any> {
+  async execute(_pkg: string, code: string, params: Record<string, any> = {}): Promise<any> {
       return this.platform.runSandbox(code, params)
   }
 }
