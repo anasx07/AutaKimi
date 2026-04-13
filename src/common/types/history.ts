@@ -7,7 +7,7 @@ export interface HistoryEntry {
   chapterId: string
   chapterTitle?: string
   startedAt: string
-  durationSeconds: number
+  durationSeconds?: number
   pkg?: string
-  type: 'manga' | 'anime'
+  type?: 'manga' | 'anime'
 }

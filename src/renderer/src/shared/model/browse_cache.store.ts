@@ -96,7 +96,7 @@ interface BrowseCacheState {
   invalidateGroup: (group: string, key?: string) => void
 }
 
-export const useBrowseCacheStore = create<BrowseCacheState>((set, get) => ({
+export const useBrowseCacheStore = create<BrowseCacheState>((set) => ({
   offsetCache: {},
   hasMoreCache: {},
   batchCountCache: {},

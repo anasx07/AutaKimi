@@ -7,4 +7,5 @@ export interface Extension {
   version: string
   nsfw?: number
   repoUrl?: string
+  code?: string
 }

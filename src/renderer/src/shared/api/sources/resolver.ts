@@ -141,8 +141,8 @@ export const ExtensionResolver = {
     }
 
     // 2. Fallback to sandbox if code exists
-    if (resExt?.code) {
-      return new SandboxRunner(pkg, resExt)
+    if ((resExt as any)?.code) {
+      return new SandboxRunner(pkg, resExt as any)
     }
 
     // 3. Last fallback to native if no code

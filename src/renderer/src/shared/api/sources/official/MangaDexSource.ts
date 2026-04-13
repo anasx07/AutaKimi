@@ -1,5 +1,5 @@
 import { DataService } from '@renderer/shared/api'
-import { ISourceAdapter, Manga, Chapter, MangaPage } from '../types'
+import { ISourceAdapter, Manga, Chapter, MangaPage, SourceFilterGroup } from '../types'
 
 export class MangaDexSource implements ISourceAdapter {
   id: string = 'official.mangadex'

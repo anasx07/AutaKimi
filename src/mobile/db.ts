@@ -45,34 +45,34 @@ export const MobileDB = {
 
   async addExtension(data: {
     pkg: string
-    code: string
-    name: string
-    baseUrl: string
-    lang: string
-    icon: string
-    version: string
-  }): Promise<IpcResult<void>> {
+    code?: string
+    name?: string
+    baseUrl?: string
+    lang?: string
+    icon?: string
+    version?: string
+  }): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     await this.ensureReady()
     await db!.run(
       'INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
       [
         data.pkg,
         new Date().toISOString(),
-        data.code,
-        data.name,
-        data.baseUrl,
-        data.lang,
-        data.icon,
-        data.version
+        data.code || '',
+        data.name || 'Unknown',
+        data.baseUrl || '',
+        data.lang || 'en',
+        data.icon || '',
+        data.version || '1.0.0'
       ]
     )
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
   async getLibrary(args?: {
-    type?: 'manga' | 'anime'
     limit?: number
     offset?: number
+    type?: string
   }): Promise<IpcResult<Manga[]>> {
     await this.ensureReady()
     let sql = 'SELECT * FROM library'
@@ -129,33 +129,45 @@ export const MobileDB = {
     return { ok: true, value: res.values?.[0]?.value || null }
   },
 
-  async setSetting(key: string, value: string): Promise<IpcResult<void>> {
+  async setSetting(key: string, value: string): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     await this.ensureReady()
     await db!.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?);', [key, value])
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
-  async getHistory(args?: {
-    type?: 'manga' | 'anime'
+  async getHistory(args?: number | {
+    type?: string
     limit?: number
+    offset?: number
   }): Promise<IpcResult<HistoryEntry[]>> {
     await this.ensureReady()
     let sql = 'SELECT * FROM reading_history'
     const params: (string | number)[] = []
-    if (typeof args === 'object' && args?.type) {
-      sql += ' WHERE type = ?'
-      params.push(args.type)
-    }
-    sql += ' ORDER BY started_at DESC'
-    if (typeof args === 'object' && args?.limit) {
-      sql += ' LIMIT ?'
-      params.push(args.limit)
+    if (typeof args === 'object') {
+      if (args?.type) {
+        sql += ' WHERE type = ?'
+        params.push(args.type)
+      }
+      sql += ' ORDER BY started_at DESC'
+      if (args?.limit) {
+        sql += ' LIMIT ?'
+        params.push(args.limit)
+      }
+      if (args?.offset) {
+        sql += ' OFFSET ?'
+        params.push(args.offset)
+      }
+    } else if (typeof args === 'number') {
+      sql += ' ORDER BY started_at DESC LIMIT ?'
+      params.push(args)
+    } else {
+      sql += ' ORDER BY started_at DESC'
     }
     const res = await db!.query(sql, params)
     return { ok: true, value: res.values || [] }
   },
 
-  async addHistory(data: HistoryEntry): Promise<IpcResult<void>> {
+  async addHistory(data: HistoryEntry): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     await this.ensureReady()
     await db!.run(
       'INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
@@ -172,7 +184,7 @@ export const MobileDB = {
         data.type || 'manga'
       ]
     )
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
   async getProgress(

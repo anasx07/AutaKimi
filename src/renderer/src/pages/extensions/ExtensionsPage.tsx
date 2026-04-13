@@ -47,8 +47,7 @@ export default function ExtensionsPage(): React.JSX.Element {
     extensionSortBy,
     extensionSortOrder,
     setExtensionSortOrder,
-    installingPkgs,
-    setActiveExtension
+    installingPkgs
   } = useExtensionStore()
 
   // --- React Query Data ---
