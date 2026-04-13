@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
 import { SettingsSchema, Extension } from '@common/types'
+export type ExtensionMetadata = Extension
 
 
 
@@ -74,7 +75,7 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
     set((state) => ({ installingPkgs: new Set(state.installingPkgs).add(pkg) }))
 
     try {
-      await DataService.installExtension(ext, ext.repoUrl)
+      await DataService.installExtension(ext, ext.repoUrl || 'local')
 
       // Refresh installed list
       const installed = await DataService.db.getInstalledExtensions()

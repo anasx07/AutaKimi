@@ -16,10 +16,11 @@ export function useAppUpdater(): void {
 
   useEffect(() => {
     // Listen for app updates
-    const unsubscribe = DataService.onAppUpdate((data: AppUpdateData) => {
-      if (data.status) {
-        setUpdateStatus(data.status)
-        if (data.status === 'checking') setUpdateError(null)
+    const unsubscribe = DataService.onAppUpdate((data: { status: string; progress?: any; error?: string }) => {
+      const status = data.status as AppUpdateData['status']
+      if (status) {
+        setUpdateStatus(status)
+        if (status === 'checking') setUpdateError(null)
       }
       if (data.progress) setUpdateProgress(data.progress)
       if (data.error) setUpdateError(data.error)

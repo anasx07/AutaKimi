@@ -96,10 +96,10 @@ export default function HistoryPage(): React.JSX.Element {
       if (!acc[mangaId]) {
         acc[mangaId] = {
           ...entry,
-          totalDuration: entry.durationSeconds
+          totalDuration: entry.durationSeconds || 0
         }
       } else {
-        acc[mangaId].totalDuration += entry.durationSeconds
+        acc[mangaId].totalDuration += (entry.durationSeconds || 0)
         if (new Date(entry.startedAt) > new Date(acc[mangaId].startedAt)) {
           acc[mangaId].chapterTitle = entry.chapterTitle
           acc[mangaId].chapterId = entry.chapterId

@@ -113,10 +113,19 @@ export const MobileDownload = {
 
   async remove(args: { mangaId: string; chapterId: string }): Promise<any> {
     const targetDir = `Downloads/manga/${args.mangaId}/${args.chapterId}`
-    try {
-      // Capacitor Filesystem removed.
-      console.warn('[MobileDownload] Capacitor Filesystem removed. Remove is no-op.', targetDir)
-    } catch {}
+    console.warn('[MobileDownload] Capacitor Filesystem removed. Remove is no-op.', targetDir)
+    return { ok: true, value: true }
+  },
+
+  async getMangaDownloads(_mangaId: string): Promise<any> {
+    return { ok: true, value: [] }
+  },
+
+  async getAllMangaDownloads(_type?: string): Promise<any> {
+    return { ok: true, value: [] }
+  },
+
+  async clearAll(_type?: string): Promise<any> {
     return { ok: true, value: true }
   }
 }

@@ -28,7 +28,13 @@ import { Button, Input, Card, Badge, Select, Dialog } from '@renderer/shared/ui'
 const catalogModules = import.meta.glob('../../shared/api/sources/catalog/extensions/*.json', {
   eager: true
 })
-const localExtensions = Object.values(catalogModules).flatMap((m: any) => m.default || m)
+const localExtensions = Object.values(catalogModules)
+  .flatMap((m: any) => m.default || m)
+  .map((ext: any) => ({
+    ...ext,
+    baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
+    icon: ext.icon || ''
+  }))
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { generatedSourcesJson } from '@renderer/shared/api/sources/SourceRegistry'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
@@ -39,8 +45,9 @@ interface Extension {
   pkg: string
   version: string
   lang: string
-  icon?: string
+  icon: string
   nsfw?: number
+  baseUrl: string
   sources?: { name: string; lang: string; id: string; baseUrl: string }[]
 }
 
