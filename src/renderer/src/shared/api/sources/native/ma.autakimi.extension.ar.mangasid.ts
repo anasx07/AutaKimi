@@ -54,7 +54,8 @@ export class MangaSid extends MadaraSource {
           title: item.title,
           coverUrl,
           url: `${this.baseUrl}/manga/${item.slug}`,
-          status: item.status || 'Unknown'
+          status: item.status || 'Unknown',
+          description: item.description || item.description_preview || item.content || item.excerpt || ''
         }
       })
 

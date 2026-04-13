@@ -44,7 +44,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
   return (
     <aside
       className={cn(
-        'border-r border-border bg-card flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20',
+        'glass-panel flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20',
         isSidebarCollapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -56,13 +56,13 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
         )}
         <button
           onClick={handleToggle}
-          className="p-1.5 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors ml-auto"
+          className="p-1.5 rounded-lg hover:bg-secondary/40 text-muted-foreground hover:text-foreground transition-colors ml-auto"
         >
           {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1.5 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 px-3 space-y-2 overflow-y-auto no-scrollbar">
         {sidebarItems.map((item) => {
           const Icon = item.icon
           return (
@@ -72,11 +72,11 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
               title={isSidebarCollapsed ? item.label : undefined}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center w-full rounded-xl text-sm font-medium transition-all group relative',
+                  'flex items-center w-full rounded-xl text-sm font-medium transition-all group relative border border-transparent',
                   isSidebarCollapsed ? 'justify-center py-3' : 'px-4 py-2.5 gap-3',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                    : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground hover:translate-x-1'
+                    ? 'glass-card aura-glow text-primary'
+                    : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:translate-x-1'
                 )
               }
             >
@@ -84,10 +84,10 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
                 <>
                   <Icon
                     className={cn(
-                      'h-5 w-5 transition-transform duration-300 group-hover:scale-110',
+                      'h-5 w-5 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
                       isActive
-                        ? 'text-primary-foreground'
-                        : 'text-muted-foreground group-hover:text-foreground'
+                        ? 'text-primary [filter:drop-shadow(0_0_5px_hsl(var(--primary)/0.6))] scale-110'
+                        : 'text-muted-foreground group-hover:text-foreground group-hover:scale-110'
                     )}
                   />
                   {!isSidebarCollapsed && (
@@ -96,7 +96,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
                     </span>
                   )}
                   {isActive && !isSidebarCollapsed && (
-                    <div className="absolute left-0 w-1 h-5 bg-primary-foreground rounded-r-full" />
+                    <div className="absolute -left-1 w-1 h-5 bg-primary rounded-full shadow-[0_0_10px_hsl(var(--primary))] animate-in fade-in duration-500" />
                   )}
                 </>
               )}

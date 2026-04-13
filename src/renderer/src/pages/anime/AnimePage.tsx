@@ -19,8 +19,8 @@ import { useNavigate } from 'react-router-dom'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { DataService } from '@renderer/shared/api'
+import { SourceRegistry } from '@renderer/shared/api/sources/SourceRegistry'
 import animeExtensions from '@renderer/shared/api/anime-sources/Anime.json'
-import { getAnimeSource } from '@renderer/shared/api/anime-sources'
 
 interface AnimeExtensionJSON {
   pkg: string
@@ -34,7 +34,7 @@ interface AnimeExtensionJSON {
 export default function AnimePage(): React.JSX.Element {
   const mobile = isMobile()
   const navigate = useNavigate()
-  const { installedExtensions, pinnedAnimeSources, togglePin } = useExtensionStore()
+  const { installedExtensions, pinnedAnimeSources, togglePin, domainOverrides } = useExtensionStore()
   const { viewMode } = useUIStore()
   const { setSelectedManga } = useLibraryStore()
 
@@ -72,8 +72,8 @@ export default function AnimePage(): React.JSX.Element {
   )
 
   const activeSource = useMemo(
-    () => (activeAnimePkg ? getAnimeSource(activeAnimePkg) : null),
-    [activeAnimePkg]
+    () => (activeAnimePkg ? SourceRegistry.resolveNative(activeAnimePkg, domainOverrides) : null),
+    [activeAnimePkg, domainOverrides]
   )
 
   const feedLabels = useMemo(
@@ -371,7 +371,7 @@ export default function AnimePage(): React.JSX.Element {
                 metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
               }
               onReport={() =>
-                window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
+                DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
               }
               details={{
                 source: metadata?.name || activeAnimePkg || 'unknown',
@@ -479,7 +479,7 @@ export default function AnimePage(): React.JSX.Element {
                       metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
                     }
                     onReport={() =>
-                      window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
+                      DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
                     }
                   />
                 )}

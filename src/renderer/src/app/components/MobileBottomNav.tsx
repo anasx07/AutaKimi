@@ -15,7 +15,7 @@ export function MobileBottomNav(): React.JSX.Element {
 
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border px-4 pb-[env(safe-area-inset-bottom)] pt-2 flex items-center justify-around safe-area-bottom shadow-[0_-8px_32px_rgba(0,0,0,0.1)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-panel px-6 pb-[env(safe-area-inset-bottom,20px)] pt-3 flex items-center justify-around shadow-[0_-8px_32px_rgba(0,0,0,0.1)] border-t border-border/40">
       {navItems.map((item) => {
         const Icon = item.icon
         return (
@@ -24,10 +24,10 @@ export function MobileBottomNav(): React.JSX.Element {
             to={item.path}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl transition-all duration-300',
+                'flex flex-col items-center justify-center gap-1.5 py-1 px-4 rounded-2xl transition-all duration-300 relative group',
                 isActive
                   ? 'text-primary scale-110'
-                  : 'text-muted-foreground hover:text-foreground active:scale-95'
+                  : 'text-muted-foreground hover:text-foreground active:scale-90'
               )
             }
           >
@@ -35,19 +35,19 @@ export function MobileBottomNav(): React.JSX.Element {
               <>
                 <div
                   className={cn(
-                    'relative p-1 rounded-lg transition-colors',
-                    isActive && 'bg-primary/10'
+                    'relative p-1.5 rounded-xl transition-all duration-300',
+                    isActive && 'bg-primary/10 aura-glow'
                   )}
                 >
-                  <Icon className={cn('h-6 w-6', isActive ? 'stroke-[2.5px]' : 'stroke-[1.5px]')} />
+                  <Icon className={cn('h-6 w-6 transition-transform group-hover:scale-110', isActive ? 'stroke-[2.5px]' : 'stroke-[1.5px]')} />
                   {isActive && (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full animate-in zoom-in duration-300" />
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_hsl(var(--primary))] animate-in zoom-in duration-300" />
                   )}
                 </div>
                 <span
                   className={cn(
-                    'text-[9px] font-black uppercase tracking-widest leading-none mt-1 transition-opacity duration-300',
-                    isActive ? 'opacity-100' : 'opacity-50'
+                    'text-[10px] font-black uppercase tracking-widest leading-none mt-1 transition-all duration-300',
+                    isActive ? 'opacity-100 scale-105' : 'opacity-40'
                   )}
                 >
                   {item.label}

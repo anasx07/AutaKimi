@@ -289,8 +289,7 @@ export default function ExtensionsPage(): React.JSX.Element {
     const iconUrl = DataService.getExtensionIcon(ext.pkg, ext.icon)
 
     const handleBrowse = (): void => {
-      setActiveExtension(ext.pkg)
-      navigate('/browse')
+      navigate(`/browse/${ext.pkg}`)
     }
 
     return (
@@ -326,9 +325,21 @@ export default function ExtensionsPage(): React.JSX.Element {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-1">
-                <h3 className="font-bold text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                  {ext.name}
-                </h3>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                      {ext.name}
+                    </h3>
+                    {ext.pkg === 'ma.autakimi.extension.ar.mangasid' && (
+                      <Badge
+                        variant="default"
+                        className="bg-primary/90 text-[8px] h-4 px-1.5 uppercase font-black tracking-tighter shadow-md shadow-primary/20 animate-in zoom-in duration-500 shrink-0"
+                      >
+                        Recommended
+                      </Badge>
+                    )}
+                  </div>
+                </div>
                 {ext.nsfw === 1 && (
                   <Badge
                     variant="outline"

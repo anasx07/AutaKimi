@@ -18,7 +18,7 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
       id: '',
       title: 'Unknown',
       coverUrl: null,
-      description: 'No description',
+      description: '',
       status: 'Unknown'
     }
   }
@@ -86,13 +86,13 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
 
   // 3. Extract Description
   let description =
-    manga.description || manga.attributes?.description || 'No description available.'
+    manga.description || manga.attributes?.description || ''
   if (typeof description === 'object' && description !== null) {
     description =
       (preferredLang && description[preferredLang]) ||
       description.en ||
       Object.values(description)[0] ||
-      'No description available.'
+      ''
   }
 
   // 4. Extract Status, Author, Artist, Genres

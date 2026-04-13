@@ -6,7 +6,8 @@ import {
   useReaderStore,
   useSettingsStore,
   useHistoryStore,
-  useUIStore
+  useUIStore,
+  useDownloadStore
 } from '@renderer/shared/model'
 import { SettingsMapper } from '@renderer/shared/lib/settings.mapper'
 
@@ -27,10 +28,11 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
         await DataService.init()
 
         // Concurrent fetch of core persistent data
-        const [installed, libraryItems, settingsMap] = await Promise.all([
+        const [installed, libraryItems, settingsMap, systemState] = await Promise.all([
           DataService.db.getExtensions(),
           DataService.db.getLibrary(),
-          DataService.db.getSettings()
+          DataService.db.getSettings(),
+          DataService.getSystemState()
         ])
 
         // Boot sequence: Order matters for dependent systems (like Theme -> UI)
@@ -41,16 +43,21 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
         useUIStore.getState()._init(schema.ui)
 
         // 2. Extensions (Registry and domain overrides)
-        useExtensionStore.getState()._init(installed as any[], schema.extensions)
+        useExtensionStore.getState()._init(installed, schema.extensions)
 
         // 3. Reader (Preferences and Layouts)
         useReaderStore.getState()._init(schema.reader)
 
         // 4. Library (User data)
-        useLibraryStore.getState()._init(libraryItems as any[])
+        useLibraryStore.getState()._init(libraryItems)
 
         // 5. History (Background load)
         useHistoryStore.getState().loadHistory()
+
+        // 6. Active Tasks (Hydration from background)
+        if (systemState.activeDownloads) {
+          useDownloadStore.getState().hydrateTasks(systemState.activeDownloads as any)
+        }
 
         console.timeEnd('[StoreInitializer] Total Boot Time')
         setIsReady(true)

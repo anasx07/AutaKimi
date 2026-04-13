@@ -6,6 +6,18 @@ export interface MangaPage {
   hasNextPage: boolean
 }
 
+export interface SourceFilterOption {
+  id: string
+  name: string
+}
+
+export interface SourceFilterGroup {
+  id: string
+  name: string
+  type: 'multiselect' | 'select' | 'toggle'
+  options: SourceFilterOption[]
+}
+
 export interface ISourceAdapter {
   id: string // Internal ID for the source
   name: string
@@ -17,6 +29,7 @@ export interface ISourceAdapter {
   nsfw: boolean
   icon: string // Added icon identification
 
+  getFilters?(): SourceFilterGroup[]
   fetchPopular(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   fetchLatest?(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   getFeedLabels?(): Record<string, string>

@@ -13,7 +13,7 @@ export interface DownloadQueueItem {
 export interface ActiveTask {
   mangaId: string
   chapterId: string
-  status: 'downloading' | 'completed' | 'error' | 'paused'
+  status: 'downloading' | 'completed' | 'error' | 'paused' | 'canceled'
   cached: number
   total: number
   error?: string
@@ -31,6 +31,7 @@ interface DownloadState {
   removeActiveTask: (mangaId: string, chapterId: string) => void
   clearFinishedTasks: () => void
   clearDownloadQueue: () => void
+  hydrateTasks: (tasks: Record<string, ActiveTask>) => void
 }
 
 export const useDownloadStore = create<DownloadState>((set) => ({
@@ -96,5 +97,6 @@ export const useDownloadStore = create<DownloadState>((set) => ({
       return { activeTasks: newTasks }
     }),
 
-  clearDownloadQueue: () => set({ downloadQueue: [] })
+  clearDownloadQueue: () => set({ downloadQueue: [] }),
+  hydrateTasks: (tasks) => set({ activeTasks: tasks })
 }))

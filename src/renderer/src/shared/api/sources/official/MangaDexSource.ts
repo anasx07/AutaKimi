@@ -12,12 +12,106 @@ export class MangaDexSource implements ISourceAdapter {
   nsfw: boolean = false
   icon: string = ''
 
+  getFilters(): SourceFilterGroup[] {
+    return [
+      {
+        id: 'publicationDemographic',
+        name: 'Demographic',
+        type: 'multiselect',
+        options: [
+          { id: 'shounen', name: 'Shounen' },
+          { id: 'shoujo', name: 'Shoujo' },
+          { id: 'seinen', name: 'Seinen' },
+          { id: 'josei', name: 'Josei' }
+        ]
+      },
+      {
+        id: 'status',
+        name: 'Status',
+        type: 'multiselect',
+        options: [
+          { id: 'ongoing', name: 'Ongoing' },
+          { id: 'completed', name: 'Completed' },
+          { id: 'hiatus', name: 'Hiatus' },
+          { id: 'cancelled', name: 'Cancelled' }
+        ]
+      },
+      {
+        id: 'contentRating',
+        name: 'Content Rating',
+        type: 'multiselect',
+        options: [
+          { id: 'safe', name: 'Safe' },
+          { id: 'suggestive', name: 'Suggestive' },
+          { id: 'erotica', name: 'Erotica' },
+          { id: 'pornographic', name: 'Pornographic' }
+        ]
+      },
+      {
+        id: 'includedTags',
+        name: 'Popular Tags',
+        type: 'multiselect',
+        options: [
+          { id: '391b042f-d80a-4d30-b458-0722bc63363e', name: 'Action' },
+          { id: '4d32cc48-9f00-4cca-9b5a-aef099f08c40', name: 'Comedy' },
+          { id: 'b9af3a06-f08a-4c2d-9b40-37412acdbde3', name: 'Drama' },
+          { id: 'cdc58593-87dd-415e-bbc0-2ec27bf404cc', name: 'Fantasy' },
+          { id: '423e2eaa-a7db-4f83-830a-ae1540fe54db', name: 'Romance' },
+          { id: 'e5301a23-ebd9-49df-a0cb-fab75307b1a8', name: 'Slice of Life' },
+          { id: 'eabc5bde-9397-43f0-aba4-400f87dd9339', name: 'Supernatural' },
+          { id: '0bc0032e-4340-4966-88ef-22df6dbb51ba', name: 'Isekai' }
+        ]
+      }
+    ]
+  }
+
+  private applyFiltersToUrl(baseUrl: string, extraArgs?: any): string {
+    let url = baseUrl
+    if (!extraArgs) return url
+
+    const queryParams: string[] = []
+
+    // Map filters to MangaDex query parameters
+    if (extraArgs.publicationDemographic?.length) {
+      extraArgs.publicationDemographic.forEach((val: string) => {
+        queryParams.push(`publicationDemographic[]=${val}`)
+      })
+    }
+    if (extraArgs.status?.length) {
+      extraArgs.status.forEach((val: string) => {
+        queryParams.push(`status[]=${val}`)
+      })
+    }
+    if (extraArgs.contentRating?.length) {
+      extraArgs.contentRating.forEach((val: string) => {
+        queryParams.push(`contentRating[]=${val}`)
+      })
+    } else {
+      // Default safety filters if none selected
+      queryParams.push('contentRating[]=safe')
+      queryParams.push('contentRating[]=suggestive')
+    }
+    if (extraArgs.includedTags?.length) {
+      extraArgs.includedTags.forEach((val: string) => {
+        queryParams.push(`includedTags[]=${val}`)
+      })
+    }
+
+    if (queryParams.length > 0) {
+      url += (url.includes('?') ? '&' : '?') + queryParams.join('&')
+    }
+
+    return url
+  }
+
   async fetchPopular(page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(
-      `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`
-    )
+    let url = `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art`
+
+    url = this.applyFiltersToUrl(url, extraArgs)
+
+    const res = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
@@ -40,9 +134,11 @@ export class MangaDexSource implements ISourceAdapter {
   async fetchLatest(page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(
-      `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&order[latestUploadedChapter]=desc`
-    )
+    let url = `${this.baseUrl}/manga?limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&order[latestUploadedChapter]=desc`
+
+    url = this.applyFiltersToUrl(url, extraArgs)
+
+    const res = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
@@ -65,9 +161,11 @@ export class MangaDexSource implements ISourceAdapter {
   async searchManga(query: string, page: number, extraArgs?: any): Promise<MangaPage> {
     const offset = (page - 1) * 20
     const lang = extraArgs?.lang || 'en'
-    const res = await DataService.fetchRepo(
-      `${this.baseUrl}/manga?title=${encodeURIComponent(query)}&limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`
-    )
+    let url = `${this.baseUrl}/manga?title=${encodeURIComponent(query)}&limit=20&offset=${offset}&availableTranslatedLanguage[]=${lang}&includes[]=cover_art`
+
+    url = this.applyFiltersToUrl(url, extraArgs)
+
+    const res = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')

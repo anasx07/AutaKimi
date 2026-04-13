@@ -5,6 +5,7 @@ import { MangaDexSource } from './official/MangaDexSource'
 import { MangaSid } from './native/ma.autakimi.extension.ar.mangasid'
 import { ISourceAdapter } from './types'
 import { SourceRegistry, generatedSourcesJson } from './SourceRegistry'
+import { useExtensionStore } from '@renderer/shared/model'
 
 // Register all manga native sources
 SourceRegistry.register('ma.autakimi.extension.ar.teamx', TeamX)
@@ -22,12 +23,3 @@ export function isFullySupported(pkg: string): boolean {
   )
 }
 
-/** @deprecated Use SourceRegistry.resolveNative instead */
-export function getNativeSource(pkg: string): ISourceAdapter | null {
-  return SourceRegistry.resolveNative(pkg)
-}
-
-/** @deprecated Use SourceRegistry.reload instead */
-export function reloadSource(pkg: string) {
-  SourceRegistry.reload(pkg)
-}

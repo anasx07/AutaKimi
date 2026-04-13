@@ -1,15 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { useSettingsStore } from '@renderer/shared/model'
+import { DataService } from '@renderer/shared/api'
 import appIcon from '../../app/assets/app-icon/64x64.png'
 
 export default function TitleBar() {
-  // Use window.api.platform safely
-  const platform = window.api?.platform || 'win32'
+  const platform = DataService.platform
   const { theme, colorTheme } = useSettingsStore()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (platform !== 'win32' || !window.api?.window?.updateOverlay) return
+    if (platform !== 'win32') return
 
     // Allow CSS vars to apply to the DOM before computing
     const timer = setTimeout(() => {
@@ -33,7 +33,7 @@ export default function TitleBar() {
           )
         }
 
-        window.api.window
+        DataService.window
           .updateOverlay({
             color: toHex(bgRgb),
             symbolColor: toHex(fgRgb)

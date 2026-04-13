@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { DataService } from '@renderer/shared/api'
 import { Search, BookOpen, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
 import { useLibraryStore, useExtensionStore, useUIStore } from '@renderer/shared/model'
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
+import { SourceRegistry } from '@renderer/shared/api/sources/SourceRegistry'
 import {
   Button,
   Input,
@@ -19,35 +21,39 @@ import { cn } from '@renderer/shared/lib/utils'
 import { isMobile } from '@renderer/shared/platform'
 
 export default function BrowsePage(): React.JSX.Element {
+  const { pkg } = useParams()
+  const navigate = useNavigate()
   const mobile = isMobile()
   const { viewMode, setViewMode } = useUIStore()
 
   const { setSelectedManga } = useLibraryStore()
   const { activeExtension, setActiveExtension } = useExtensionStore()
 
+  // Sync route param with store
+  useEffect(() => {
+    if (pkg && pkg !== activeExtension) {
+      setActiveExtension(pkg)
+    }
+  }, [pkg, activeExtension, setActiveExtension])
+
   // State definitions
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedDemographics, setSelectedDemographics] = useState<string[]>([])
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([])
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-
   const { metadata } = useExtensionMetadata(activeExtension)
+  const { domainOverrides } = useExtensionStore()
+
+  const source = useMemo(() => {
+    return pkg ? SourceRegistry.resolveNative(pkg, domainOverrides) : null
+  }, [pkg, domainOverrides])
+
+  const sourceFilters = useMemo(() => source?.getFilters?.() || [], [source])
+  const [filterValues, setFilterValues] = useState<Record<string, string[]>>({})
 
   const activeFilterCount = useMemo(() => {
-    return selectedDemographics.length + selectedStatus.length + selectedTags.length
-  }, [selectedDemographics, selectedStatus, selectedTags])
-
-  const filters = useMemo(
-    () => ({
-      selectedDemographics,
-      selectedStatus,
-      selectedTags
-    }),
-    [selectedDemographics, selectedStatus, selectedTags]
-  )
+    return Object.values(filterValues).reduce((acc, current) => acc + current.length, 0)
+  }, [filterValues])
 
   const {
     mangaList,
@@ -62,7 +68,7 @@ export default function BrowsePage(): React.JSX.Element {
     activeExtension,
     activeFeed,
     debouncedSearch,
-    filters
+    filters: filterValues
   })
 
   // Debounce search query updates
@@ -74,26 +80,36 @@ export default function BrowsePage(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  const POPULAR_TAGS = [
-    { id: '391b042f-d80a-4d30-b458-0722bc63363e', name: 'Action' },
-    { id: '4d32cc48-9f00-4cca-9b5a-aef099f08c40', name: 'Comedy' },
-    { id: 'b9af3a06-f08a-4c2d-9b40-37412acdbde3', name: 'Drama' },
-    { id: 'cdc58593-87dd-415e-bbc0-2ec27bf404cc', name: 'Fantasy' },
-    { id: '423e2eaa-a7db-4f83-830a-ae1540fe54db', name: 'Romance' },
-    { id: 'e5301a23-ebd9-49df-a0cb-fab75307b1a8', name: 'Slice of Life' },
-    { id: 'eabc5bde-9397-43f0-aba4-400f87dd9339', name: 'Supernatural' },
-    { id: '0bc0032e-4340-4966-88ef-22df6dbb51ba', name: 'Isekai' }
-  ]
-
-  const toggleItem = (list: string[], setList: (val: string[]) => void, item: string): void => {
-    setList(list.includes(item) ? list.filter((i) => i !== item) : [...list, item])
+  const toggleFilter = (groupId: string, optionId: string): void => {
+    setFilterValues((prev) => {
+      const current = prev[groupId] || []
+      const next = current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId]
+      return { ...prev, [groupId]: next }
+    })
   }
+
+  // Reset filters when extension changes
+  useEffect(() => {
+    setFilterValues({})
+  }, [activeExtension])
+
+  const feedLabels = useMemo(
+    () =>
+      source?.getFeedLabels?.() || {
+        popular: 'Popular',
+        latest: 'Latest',
+        search: 'Search'
+      },
+    [source]
+  )
 
   return (
     <MobilePage
       title={metadata?.name || 'Browse Source'}
       subtitle={metadata?.baseUrl}
-      onBack={() => setActiveExtension(null)}
+      onBack={() => navigate('/browse')}
       actions={
         <div className="flex bg-secondary/30 p-0.5 rounded-xl border border-border shrink-0">
           <Button
@@ -125,48 +141,81 @@ export default function BrowsePage(): React.JSX.Element {
         </div>
       }
       headerExtra={
-        <div className={cn('flex gap-3', mobile && 'flex-col')}>
-          <div className="relative flex-1 group">
-            <Search
-              className={cn(
-                'absolute left-3 top-3.5 h-4 w-4 transition-colors',
-                searchQuery
-                  ? 'text-primary'
-                  : 'text-muted-foreground group-focus-within:text-primary'
-              )}
-            />
-            <Input
-              className="pl-9 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl"
-              placeholder="Search manga in this source..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
+        <div className="space-y-4">
+          {/* Tabs (Feed Selection) */}
+          <div className="flex items-center gap-2 p-1.5 bg-secondary/30 rounded-2xl border border-border/50 overflow-x-auto no-scrollbar shadow-inner">
+            {(['popular', 'latest', 'search'] as const).map((feed) => (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+                key={feed}
+                onClick={() => {
+                  setActiveFeed(feed)
+                  if (feed !== 'search') {
+                    setSearchQuery('')
+                    setDebouncedSearch('')
+                  }
+                }}
+                className={cn(
+                  'px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap flex-1',
+                  activeFeed === feed
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+                )}
               >
-                <X className="h-4 w-4" />
+                {feedLabels[feed] || feed}
               </button>
-            )}
+            ))}
           </div>
-          <Button
-            variant={showFilters ? 'secondary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              'h-11 px-6 rounded-xl border-border/40 transition-all flex items-center gap-2',
-              activeFilterCount > 0 && 'border-primary/50 bg-primary/5',
-              mobile && 'w-full justify-center'
-            )}
-          >
-            <Filter className={cn('h-4 w-4', activeFilterCount > 0 && 'text-primary')} />
-            <span className="font-semibold text-xs">Filters</span>
-            {activeFilterCount > 0 && (
-              <Badge className="ml-1 h-5 min-w-[20px] px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full border-none">
-                {activeFilterCount}
-              </Badge>
-            )}
-          </Button>
+
+          <div className={cn('flex gap-3', mobile && 'flex-col')}>
+            <div className="relative flex-1 group">
+              <Search
+                className={cn(
+                  'absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors',
+                  searchQuery
+                    ? 'text-primary'
+                    : 'text-muted-foreground group-focus-within:text-primary'
+                )}
+              />
+              <Input
+                className="pl-10 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-2xl"
+                placeholder={activeFeed === 'search' ? "Search manga..." : "Quick Search..."}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  if (e.target.value && activeFeed !== 'search') setActiveFeed('search')
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('')
+                    setDebouncedSearch('')
+                    if (activeFeed === 'search') setActiveFeed('popular')
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-secondary/60 rounded-xl text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn(
+                'h-11 px-6 rounded-2xl border-border/40 transition-all flex items-center gap-2.5 font-bold text-xs',
+                activeFilterCount > 0 && 'border-primary/50 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.05)]',
+                mobile && 'w-full justify-center'
+              )}
+            >
+              <Filter className={cn('h-4 w-4', activeFilterCount > 0 && 'text-primary')} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <Badge className="ml-1 h-5 min-w-[22px] px-1.5 bg-primary text-primary-foreground text-[10px] font-black rounded-lg border-none animate-in zoom-in">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
         </div>
       }
     >
@@ -193,7 +242,7 @@ export default function BrowsePage(): React.JSX.Element {
                 metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
               }
               onReport={() =>
-                window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
+                DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
               }
               details={{
                 source: metadata?.name || activeExtension,
@@ -303,7 +352,7 @@ export default function BrowsePage(): React.JSX.Element {
                       metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
                     }
                     onReport={() =>
-                      window.api.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
+                      DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
                     }
                   />
                 )}
@@ -342,76 +391,45 @@ export default function BrowsePage(): React.JSX.Element {
             </div>
 
             <div className="space-y-8">
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                  Demographic
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {['shounen', 'shoujo', 'seinen', 'josei'].map((demo) => (
-                    <Badge
-                      key={demo}
-                      variant={selectedDemographics.includes(demo) ? 'default' : 'outline'}
-                      className={cn(
-                        'cursor-pointer capitalize py-2 flex justify-center text-xs transition-all border-border/40',
-                        selectedDemographics.includes(demo)
-                          ? 'shadow-md shadow-primary/20'
-                          : 'hover:bg-secondary/50'
-                      )}
-                      onClick={() =>
-                        toggleItem(selectedDemographics, setSelectedDemographics, demo)
-                      }
-                    >
-                      {demo}
-                    </Badge>
-                  ))}
+              {sourceFilters.map((group) => (
+                <div key={group.id} className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+                    {group.name}
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {group.options.map((option) => {
+                      const isSelected = (filterValues[group.id] || []).includes(option.id)
+                      return (
+                        <Badge
+                          key={option.id}
+                          variant={isSelected ? 'default' : 'outline'}
+                          className={cn(
+                            'cursor-pointer px-3 py-1.5 text-xs transition-all border-border/40',
+                            isSelected
+                              ? 'shadow-md shadow-primary/20'
+                              : 'hover:bg-secondary/50 font-medium'
+                          )}
+                          onClick={() => toggleFilter(group.id, option.id)}
+                        >
+                          {option.name}
+                        </Badge>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                  Status
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {['ongoing', 'completed', 'hiatus', 'cancelled'].map((stat) => (
-                    <Badge
-                      key={stat}
-                      variant={selectedStatus.includes(stat) ? 'default' : 'outline'}
-                      className={cn(
-                        'cursor-pointer capitalize px-3 py-1.5 text-xs transition-all border-border/40',
-                        selectedStatus.includes(stat)
-                          ? 'shadow-md shadow-primary/20'
-                          : 'hover:bg-secondary/50 font-medium'
-                      )}
-                      onClick={() => toggleItem(selectedStatus, setSelectedStatus, stat)}
-                    >
-                      {stat}
-                    </Badge>
-                  ))}
+              {sourceFilters.length === 0 && (
+                <div className="py-20 flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center mb-4">
+                    <Filter className="h-5 w-5 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">No filters available</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-wider">
+                    For this source
+                  </p>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                  Popular Tags
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {POPULAR_TAGS.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant={selectedTags.includes(tag.id) ? 'default' : 'outline'}
-                      className={cn(
-                        'cursor-pointer px-3 py-1.5 text-xs transition-all border-border/40',
-                        selectedTags.includes(tag.id)
-                          ? 'shadow-md shadow-primary/20'
-                          : 'hover:bg-secondary/50 font-medium'
-                      )}
-                      onClick={() => toggleItem(selectedTags, setSelectedTags, tag.id)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-12 pt-6 border-t border-border/50 flex flex-col gap-3">
@@ -429,11 +447,7 @@ export default function BrowsePage(): React.JSX.Element {
                     ? 'text-destructive hover:bg-destructive/10'
                     : 'text-muted-foreground opacity-50 pointer-events-none'
                 )}
-                onClick={() => {
-                  setSelectedDemographics([])
-                  setSelectedStatus([])
-                  setSelectedTags([])
-                }}
+                onClick={() => setFilterValues({})}
               >
                 Reset All Filters
               </Button>

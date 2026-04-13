@@ -3,6 +3,8 @@ import { Manga } from './manga'
 import { DownloadEntry } from './download'
 import { FetchOptions, FetchResult } from './network'
 import { HistoryEntry } from './history'
+import { Extension } from './extension'
+import { Chapter } from './chapter'
 
 export interface IpcContracts {
   [IpcChannel.FETCH_REPO]: {
@@ -18,13 +20,13 @@ export interface IpcContracts {
     result: string
   }
   [IpcChannel.EXTENSION_INSTALL]: {
-    args: { ext: any; repoUrl: string }
+    args: { ext: Extension; repoUrl: string }
     result: { success?: boolean; error?: string }
   }
 
   [IpcChannel.DB_GET_EXTENSIONS]: {
     args: void
-    result: any[]
+    result: Extension[]
   }
   [IpcChannel.DB_ADD_EXTENSION]: {
     args: {
@@ -39,7 +41,7 @@ export interface IpcContracts {
   }
   [IpcChannel.DB_GET_EXTENSION]: {
     args: string
-    result: any | null
+    result: Extension | null
   }
   [IpcChannel.DB_REMOVE_EXTENSION]: {
     args: string
@@ -111,10 +113,10 @@ export interface IpcContracts {
 
   [IpcChannel.DB_GET_CHAPTERS]: {
     args: string
-    result: any[]
+    result: Chapter[]
   }
   [IpcChannel.DB_SAVE_CHAPTERS]: {
-    args: { mangaId: string; chapters: any[] }
+    args: { mangaId: string; chapters: Chapter[] }
     result: boolean
   }
 
@@ -128,7 +130,7 @@ export interface IpcContracts {
   }
 
   [IpcChannel.EXECUTE_EXTENSION]: {
-    args: { pkg: string; code: string; contextArgs?: any }
+    args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }
     result: any
   }
   [IpcChannel.CLEAR_CACHE]: {

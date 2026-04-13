@@ -44,6 +44,7 @@ import { registerNetworkHandlers } from './ipc/network'
 import { registerWindowHandlers } from './ipc/window'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { IpcChannel } from './types/ipc'
+import { stateRegistry } from './services/state.service'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'autakimi-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
@@ -154,6 +155,7 @@ function createWindow(): void {
     // Inject webContents to downloadManager for IPC events
     if (mainWindow) {
       DownloadManager.getInstance().setWebContents(mainWindow.webContents)
+      stateRegistry.setWebContents(mainWindow.webContents)
     }
     setImmediate(() => {
       runCleanupRoutine()

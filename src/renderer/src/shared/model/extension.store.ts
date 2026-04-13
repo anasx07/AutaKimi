@@ -1,28 +1,16 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
-import { SettingsSchema } from '@common/types'
-
-
-export interface ExtensionMetadata {
-  pkg: string
-  name: string
-  lang: string
-  icon: string
-  baseUrl: string
-  version: string
-  nsfw?: number
-  repoUrl?: string
-}
+import { SettingsSchema, Extension } from '@common/types'
 
 
 
 type ExtensionState = SettingsSchema['extensions'] & {
-  installedExtensions: ExtensionMetadata[]
+  installedExtensions: Extension[]
   activeExtension: string | null
   installingPkgs: Set<string>
 
   // Actions
-  setInstalledExtensions: (exts: ExtensionMetadata[]) => void
+  setInstalledExtensions: (exts: Extension[]) => void
   setActiveExtension: (pkg: string | null) => void
   setDomainOverrides: (overrides: Record<string, string>) => void
   setExtensionSortBy: (val: 'name' | 'installed' | 'update' | 'supported') => Promise<void>
@@ -30,11 +18,11 @@ type ExtensionState = SettingsSchema['extensions'] & {
   setDomainOverride: (pkg: string, domain: string | null) => Promise<void>
   loadInstalled: () => Promise<void>
   uninstallExtension: (pkg: string) => Promise<void>
-  installExtension: (ext: any) => Promise<void>
+  installExtension: (ext: Extension) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
 
   // Init
-  _init: (installed: ExtensionMetadata[], settings: SettingsSchema['extensions']) => void
+  _init: (installed: Extension[], settings: SettingsSchema['extensions']) => void
 }
 
 export const useExtensionStore = create<ExtensionState>((set) => ({
@@ -70,7 +58,7 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
 
   loadInstalled: async () => {
     const installed = await DataService.db.getInstalledExtensions()
-    set({ installedExtensions: (installed as ExtensionMetadata[]) || [] })
+    set({ installedExtensions: installed || [] })
   },
 
   uninstallExtension: async (pkg) => {
@@ -94,7 +82,7 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
         const nextInstalling = new Set(state.installingPkgs)
         nextInstalling.delete(pkg)
         return {
-          installedExtensions: (installed as ExtensionMetadata[]) || [],
+          installedExtensions: installed || [],
           installingPkgs: nextInstalling
         }
       })

@@ -1,38 +1,33 @@
 import { useEffect } from 'react'
 import { useDownloadStore } from '@renderer/shared/model'
+import { DataService } from '@renderer/shared/api'
 
 export const DownloadSync = (): null => {
-  const { updateActiveTask, removeActiveTask, removeFromDownloadQueue } = useDownloadStore()
+  const { updateActiveTask, removeActiveTask, removeFromDownloadQueue, hydrateTasks } =
+    useDownloadStore()
 
   useEffect(() => {
-    if (!window.api?.onDownloadEvent) return
-
-    const unsubscribe = window.api.onDownloadEvent((event): void => {
-      const { type, cached, total, error } = event
-      const mangaId = String(event.mangaId)
-      const chapterId = String(event.chapterId)
-
-      if (type !== 'progress') {
-        console.log(`[DownloadSync] Received event: ${type} for ${mangaId}:${chapterId}`)
+    const unsubscribe = DataService.onSystemStateUpdate((event) => {
+      if (event.type === 'full_state_update') {
+        hydrateTasks(event.state.activeDownloads as any)
+        return
       }
 
-      switch (type) {
-        case 'start':
+      const { task } = event
+      const { status, cached, total, error, mangaId, chapterId } = task
+
+      if (status !== 'downloading') {
+        console.log(`[DownloadSync] Received state update: ${status} for ${mangaId}:${chapterId}`)
+      }
+
+      switch (status) {
+        case 'downloading':
           updateActiveTask({
             mangaId,
             chapterId,
             status: 'downloading',
-            cached: 0,
-            total: total || 0
-          })
-          break
-
-        case 'progress':
-          updateActiveTask({
-            mangaId,
-            chapterId,
-            cached: cached || 0,
-            total: total || 0
+            cached,
+            total
           })
           break
 
@@ -42,12 +37,11 @@ export const DownloadSync = (): null => {
             chapterId,
             status: 'completed'
           })
-          // Remove from UI queue since it's now an active/completed task
           removeFromDownloadQueue(chapterId)
-          // Optionally remove from active tasks after some time or keep for UI
+          // Keep in UI for a moment
           setTimeout(() => {
             removeActiveTask(mangaId, chapterId)
-          }, 3000)
+          }, 5000)
           break
 
         case 'error':
@@ -69,7 +63,7 @@ export const DownloadSync = (): null => {
     return () => {
       unsubscribe()
     }
-  }, [updateActiveTask, removeActiveTask, removeFromDownloadQueue])
+  }, [updateActiveTask, removeActiveTask, removeFromDownloadQueue, hydrateTasks])
 
   return null
 }

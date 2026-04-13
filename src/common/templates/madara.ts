@@ -1,4 +1,4 @@
-import { NetworkConfig } from '../../common/config/network'
+import { NetworkConfig } from '../config/network'
 import { ScrapingTemplate } from './index'
 
 export const MadaraTemplate: ScrapingTemplate = {
