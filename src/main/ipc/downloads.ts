@@ -80,5 +80,5 @@ export function registerDownloadHandlers(): void {
     IpcChannel.DOWNLOAD_CLEAR_ALL,
     wrapIpc((_, type?: 'manga' | 'anime') => downloadManager.clearAll(type))
   )
-  ipcMain.handle(IpcChannel.GET_SYSTEM_STATE, wrapIpc(() => stateRegistry.getState()))
+  ipcMain.handle(IpcChannel.GET_SYSTEM_STATE, wrapIpc(async () => stateRegistry.getState()))
 }
