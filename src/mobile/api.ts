@@ -1,11 +1,6 @@
 import {
   ElectronApi,
-  IpcResult,
   Extension,
-  HistoryEntry,
-  Manga,
-  Chapter,
-  SystemState,
   StateUpdateEvent
 } from '@common/types'
 import { MobileDB } from './db'
