@@ -1,4 +1,6 @@
 import { DataService } from '@renderer/shared/api'
+import { NetworkUtils } from '../../network.utils'
+import { bypassRegistry } from '../../bypass.registry'
 import * as cheerio from 'cheerio'
 import { ISourceAdapter, Manga, Chapter, MangaPage, FetchOptions } from '../types'
 
@@ -39,16 +41,7 @@ export class MadaraSource implements ISourceAdapter {
       return ''
     }
 
-    const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || '130'
-    const defaultHeaders = {
-      'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion}.0.0.0 Safari/537.36`,
-      Referer: this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`,
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
-      'Cache-Control': 'no-cache',
-      Pragma: 'no-cache'
-    }
+    const defaultHeaders = NetworkUtils.getStealthHeaders(this.baseUrl)
 
     const res: any = await DataService.fetchText(url, {
       ...options,
@@ -62,18 +55,34 @@ export class MadaraSource implements ISourceAdapter {
     const isBlocked = !res || res.status === 403 || this.isCfChallengePage(html)
 
     if (isBlocked) {
-      // Only trigger the heavy CF browser bypass for explicit (non-silent) requests.
-      // Silent probes (e.g. from Promise.any URL discovery) should just fail fast
-      // and let the caller handle the 403 — prevents 5+ simultaneous browser windows.
-      if (!options.silent) {
-        console.log(`[MadaraSource] Blocked on ${url}, fetching via browser...`)
+      const hostname = new URL(this.baseUrl).hostname
+      const isResolved = bypassRegistry.isResolved(hostname)
+
+      // We trigger the bypass if:
+      // 1. It's a non-silent request (user explicit action)
+      // 2. It's a silent request but we've already resolved this domain before
+      //    (allows background session checks without flicker)
+      if (!options.silent || isResolved) {
+        if (!options.silent) {
+          console.log(`[MadaraSource] Blocked on ${url}, fetching via browser...`)
+        }
         try {
-          const browserHtml = await DataService.cfFetchHtml(url)
-          if (browserHtml && !this.isCfChallengePage(browserHtml)) return browserHtml
+          // Pass the silent flag to DataService to control overlay visibility
+          const browserHtml = await DataService.cfFetchHtml(url, options.silent)
+          if (browserHtml && !this.isCfChallengePage(browserHtml)) {
+            bypassRegistry.setResolved(hostname, this.baseUrl)
+            // Small delay to ensure cookies are synced to electron's net layer
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            return browserHtml
+          }
         } catch (e) {
-          console.warn('[MadaraSource] cfFetchHtml failed:', e)
+          if (!options.silent) console.warn('[MadaraSource] cfFetchHtml failed:', e)
         }
       }
+    } else {
+      // Mark as active if successfully fetched without block
+      const hostname = new URL(this.baseUrl).hostname
+      bypassRegistry.reportPulse(hostname)
     }
 
     if (!html && !options.silent) {
@@ -98,6 +107,18 @@ export class MadaraSource implements ISourceAdapter {
         ...defaultUrls
       ])
     ]
+
+    // Performance optimization: If we have a working pattern, prioritize it sequentially
+    // to avoid spawning multiple parallel background browsers via silent probes.
+    if (this.workingUrlPatterns.length > 0) {
+      const url = this.workingUrlPatterns[0].replace('{page}', String(page))
+      try {
+        const res = await this.parseMangaList(url, { page, silent: true })
+        if (res.manga && res.manga.length > 0) return res
+      } catch (e) {
+        // Fallback to parallel discovery if the known pattern failed
+      }
+    }
 
     const promises = urls.map(async (url) => {
       const res = await this.parseMangaList(url, { page, silent: true })
@@ -148,6 +169,17 @@ export class MadaraSource implements ISourceAdapter {
         ...defaultUrls
       ])
     ]
+
+    // Performance optimization: Prioritize known working pattern
+    if (this.workingUrlPatterns.length > 0) {
+      const url = this.workingUrlPatterns[0].replace('{page}', String(page))
+      try {
+        const res = await this.parseMangaList(url, { page, silent: true })
+        if (res.manga && res.manga.length > 0) return res
+      } catch (e) {
+        // Fallback to discovery
+      }
+    }
 
     const promises = urls.map(async (url) => {
       const res = await this.parseMangaList(url, { page, silent: true })
@@ -217,12 +249,19 @@ export class MadaraSource implements ISourceAdapter {
         status = node.find('.post-on a').attr('title') || ''
       }
 
+      const description =
+        node.find('.post-content_item .summary-content').text().trim() ||
+        node.find('.manga-excerpt').text().trim() ||
+        node.find('.summary-content').text().trim() ||
+        ''
+
       manga.push({
         id: mangaUrl,
         title,
         coverUrl: cover,
         url: mangaUrl,
-        status: status || 'Unknown'
+        status: status || 'Unknown',
+        description
       })
     })
 

@@ -1,4 +1,4 @@
-import { Manga, IpcResult, HistoryEntry } from '@common/types'
+import { Manga, IpcResult, HistoryEntry, Extension, Chapter } from '@common/types'
 
 // Capacitor SQLite removed. Mobile version uses React Native / Expo instead.
 let db: any = null
@@ -37,10 +37,10 @@ export const MobileDB = {
 
   // --- Repository Methods ---
 
-  async getExtensions(): Promise<IpcResult<any[]>> {
+  async getExtensions(): Promise<IpcResult<Extension[]>> {
     await this.ensureReady()
     const res = await db!.query('SELECT * FROM extensions;')
-    return { ok: true, value: res.values || [] }
+    return { ok: true, value: (res.values as Extension[]) || [] }
   },
 
   async addExtension(data: {
@@ -175,15 +175,22 @@ export const MobileDB = {
     return { ok: true, value: undefined }
   },
 
-  async getProgress(mangaId: string): Promise<IpcResult<any[]>> {
+  async getProgress(
+    mangaId: string
+  ): Promise<IpcResult<{ chapterId: string; isRead: boolean; lastPage: number }[]>> {
     return this.wrap(
       db!
-        .query('SELECT * FROM reading_progress WHERE manga_id = ?;', [mangaId])
+        .query('SELECT chapter_id as chapterId, is_read as isRead, last_page as lastPage FROM reading_progress WHERE manga_id = ?;', [mangaId])
         .then((r) => r.values || [])
     )
   },
 
-  async updateProgress(data: any): Promise<IpcResult<any>> {
+  async updateProgress(data: {
+    mangaId: string
+    chapterId: string
+    isRead: boolean
+    lastPage?: number
+  }): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     return this.wrap(
       db!.run(
         'INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);',
@@ -194,80 +201,83 @@ export const MobileDB = {
           data.lastPage || 0,
           new Date().toISOString()
         ]
-      )
+      ).then(() => ({ success: true }))
     )
   },
 
-  async getChapters(mangaId: string): Promise<IpcResult<any[]>> {
+  async getChapters(mangaId: string): Promise<IpcResult<Chapter[]>> {
     await this.ensureReady()
     return this.wrap(
       db!.query('SELECT * FROM chapters WHERE manga_id = ?;', [mangaId]).then((r) => r.values || [])
     )
   },
 
-  async saveChapters(args: { mangaId: string; chapters: any[] }): Promise<IpcResult<boolean>> {
+  async saveChapters(args: { mangaId: string; chapters: Chapter[] }): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     await this.ensureReady()
     await db!.run('DELETE FROM chapters WHERE manga_id = ?;', [args.mangaId])
     for (const ch of args.chapters) {
       await db!.run(
         'INSERT INTO chapters (manga_id, id, number, title, date, scanlator, url) VALUES (?, ?, ?, ?, ?, ?, ?);',
-        [args.mangaId, ch.id, ch.number, ch.title, ch.date, ch.scanlator, ch.url]
+        [args.mangaId, ch.id, ch.number, ch.title, ch.date, (ch as any).scanlator, ch.url]
       )
     }
-    return { ok: true, value: true }
+    return { ok: true, value: { success: true } }
   },
 
-  async getExtension(pkg: string): Promise<IpcResult<any | null>> {
+  async getExtension(pkg: string): Promise<IpcResult<Extension | null>> {
     await this.ensureReady()
     const res = await db!.query('SELECT * FROM extensions WHERE pkg = ?;', [pkg])
-    return { ok: true, value: res.values?.[0] || null }
+    return { ok: true, value: (res.values?.[0] as Extension) || null }
   },
 
   async removeExtension(pkg: string): Promise<IpcResult<boolean>> {
     return this.wrap(db!.run('DELETE FROM extensions WHERE pkg = ?;', [pkg]).then(() => true))
   },
 
-  async deleteHistoryEntry(id: number): Promise<IpcResult<any>> {
-    return this.wrap(db!.run('DELETE FROM reading_history WHERE id = ?;', [id]))
+  async deleteHistoryEntry(id: number): Promise<IpcResult<{ success?: boolean; error?: string }>> {
+    return this.wrap(db!.run('DELETE FROM reading_history WHERE id = ?;', [id]).then(() => ({ success: true })))
   },
 
-  async deleteHistoryByManga(mangaId: string): Promise<IpcResult<any>> {
-    return this.wrap(db!.run('DELETE FROM reading_history WHERE manga_id = ?;', [mangaId]))
+  async deleteHistoryByManga(mangaId: string): Promise<IpcResult<{ success?: boolean; error?: string }>> {
+    return this.wrap(db!.run('DELETE FROM reading_history WHERE manga_id = ?;', [mangaId]).then(() => ({ success: true })))
   },
 
-  async clearHistory(type?: string): Promise<IpcResult<any>> {
+  async clearHistory(type?: string): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     let sql = 'DELETE FROM reading_history'
     const params: any[] = []
     if (type) {
       sql += ' WHERE type = ?'
       params.push(type)
     }
-    return this.wrap(db!.run(sql, params))
+    return this.wrap(db!.run(sql, params).then(() => ({ success: true })))
   },
 
-  async clearLibrary(type?: string): Promise<IpcResult<any>> {
+  async clearLibrary(type?: string): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     let sql = 'DELETE FROM library'
     const params: any[] = []
     if (type) {
       sql += ' WHERE type = ?'
       params.push(type)
     }
-    return this.wrap(db!.run(sql, params))
+    return this.wrap(db!.run(sql, params).then(() => ({ success: true })))
   },
 
-  async getMangaCache(mangaId: string): Promise<IpcResult<any | null>> {
+  async getMangaCache(mangaId: string): Promise<IpcResult<Manga | null>> {
     await this.ensureReady()
     const res = await db!.query('SELECT * FROM manga_cache WHERE id = ?;', [mangaId])
-    const manga = res.values?.[0]
-    if (manga && manga.genres) {
+    const manga = res.values?.[0] as Manga
+    if (manga && manga.description) {
+       // already object or string depending on db implementation
+    }
+    if (manga && (manga as any).genres) {
       try {
-        manga.genres = JSON.parse(manga.genres)
+        manga.genres = JSON.parse((manga as any).genres)
       } catch (e) {}
     }
     return { ok: true, value: manga || null }
   },
 
-  async saveMangaCache(manga: Manga): Promise<IpcResult<any>> {
+  async saveMangaCache(manga: Manga): Promise<IpcResult<{ success?: boolean; error?: string }>> {
     await this.ensureReady()
     return this.wrap(
       db!.run(
@@ -286,7 +296,7 @@ export const MobileDB = {
           new Date().toISOString(),
           (manga as any).expiresAt || null
         ]
-      )
+      ).then(() => ({ success: true }))
     )
   }
 }

@@ -1,6 +1,7 @@
 import { DataService } from '@renderer/shared/api'
 import { ISourceAdapter, Manga, Chapter, MangaPage } from './types'
 import { SourceRegistry } from './SourceRegistry'
+import { useExtensionStore } from '@renderer/shared/model'
 import { compareVersions } from '@renderer/shared/lib/version'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 
@@ -125,7 +126,8 @@ export class SandboxRunner implements ISourceAdapter {
 export const ExtensionResolver = {
   async resolve(pkg: string): Promise<ISourceAdapter | null> {
     const resExt = await DataService.db.getExtension(pkg)
-    const native = SourceRegistry.resolveNative(pkg)
+    const overrides = useExtensionStore.getState().domainOverrides
+    const native = SourceRegistry.resolveNative(pkg, overrides)
 
     // 1. Check native compatibility
     if (native) {

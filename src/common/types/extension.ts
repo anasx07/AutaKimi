@@ -5,4 +5,6 @@ export interface Extension {
   icon: string
   baseUrl: string
   version: string
+  nsfw?: number
+  repoUrl?: string
 }

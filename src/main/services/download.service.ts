@@ -9,6 +9,9 @@ import { NetworkConfig } from '../../common/config/network'
 import { AppService } from './service.registry'
 import { IpcChannel } from '../../common/types/ipc'
 import { DownloadEntry, DownloadedMedia } from '../../common/types/download'
+import { stateRegistry } from './state.service'
+import { ActiveTaskState } from '../../common/types/state'
+import { ReactiveQueue } from '../utils/reactive-queue'
 
 export interface DownloadTask {
   mangaId: string
@@ -21,30 +24,15 @@ export interface DownloadTask {
   chapterTitle?: string
 }
 
-/**
- * Runs `fn` over all `items` with at most `concurrency` tasks running in parallel.
- * Workers pull from the shared index counter — safe because JS is single-threaded.
- */
-async function runWithPool<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T, index: number) => Promise<void>
-): Promise<void> {
-  let index = 0
-  async function worker(): Promise<void> {
-    while (index < items.length) {
-      const i = index++
-      await fn(items[i], i)
-    }
-  }
-  const workerCount = Math.min(concurrency, items.length)
-  await Promise.all(Array.from({ length: workerCount }, worker))
-}
-
 export class DownloadManager implements AppService {
   private static instance: DownloadManager
   private activeDownloads: Map<string, { type: 'manga' | 'anime'; active: boolean }> = new Map()
   private webContents: WebContents | null = null
+  private globalRequestQueue: ReactiveQueue
+
+  constructor() {
+    this.globalRequestQueue = new ReactiveQueue({ concurrency: 3 })
+  }
 
   public static getInstance(): DownloadManager {
     if (!DownloadManager.instance) {
@@ -64,22 +52,47 @@ export class DownloadManager implements AppService {
     cached?: number
     total?: number
     error?: string
+    mangaTitle?: string
+    chapterTitle?: string
+    typeLabel?: 'manga' | 'anime'
   }): void {
+    // legacy emit for backward compatibility if needed, but primarily now via stateRegistry
     if (this.webContents) {
       this.webContents.send(IpcChannel.DOWNLOAD_EVENT, data)
-      if (data.type !== 'progress') {
-        console.log(
-          `[DownloadManager] Emitted event: ${data.type} for ${data.mangaId}:${data.chapterId}`
-        )
-      }
-    } else {
-      console.warn(`[DownloadManager] Cannot emit event ${data.type}: webContents not set!`)
+    }
+
+    const statusMap: Record<string, ActiveTaskState['status']> = {
+      start: 'downloading',
+      progress: 'downloading',
+      completed: 'completed',
+      error: 'error',
+      canceled: 'canceled'
+    }
+
+    stateRegistry.updateDownloadTask({
+      mangaId: data.mangaId,
+      chapterId: data.chapterId,
+      status: statusMap[data.type] || 'downloading',
+      cached: data.cached ?? 0,
+      total: data.total ?? 0,
+      error: data.error,
+      mangaTitle: data.mangaTitle,
+      chapterTitle: data.chapterTitle,
+      type: data.typeLabel || 'manga'
+    })
+
+    if (data.type !== 'progress') {
+      console.log(
+        `[DownloadManager] State updated: ${data.type} for ${data.mangaId}:${data.chapterId}`
+      )
     }
   }
 
   async initialize(): Promise<void> {
     console.log('[DownloadManager] Initializing and recovering downloads...')
     await downloadRepo.recoverOrphanedDownloads()
+    const concurrency = await this.getConcurrency()
+    this.globalRequestQueue.setConcurrency(concurrency)
   }
 
   async shutdown(): Promise<void> {
@@ -87,6 +100,7 @@ export class DownloadManager implements AppService {
     for (const [key, val] of this.activeDownloads) {
       this.activeDownloads.set(key, { ...val, active: false })
     }
+    this.globalRequestQueue.pause()
   }
 
   /** Read concurrency setting from DB, clamped to [1, 5], default 3. */
@@ -126,10 +140,14 @@ export class DownloadManager implements AppService {
       type: 'start',
       mangaId: task.mangaId,
       chapterId: task.chapterId,
-      total: task.pageUrls.length
+      total: task.pageUrls.length,
+      mangaTitle: task.mangaTitle,
+      chapterTitle: task.chapterTitle,
+      typeLabel: task.type
     })
 
     const concurrency = await this.getConcurrency()
+    this.globalRequestQueue.setConcurrency(concurrency)
 
     // NEW STRUCTURE: Documents/AutaKimi/Downloads/{TypeLabel}/{SourceName}/{MangaName}/{ChapterTitle}
     const documentsPath = app.getPath('documents')
@@ -165,7 +183,8 @@ export class DownloadManager implements AppService {
       // Atomic counter — safe since JS is single-threaded
       let cachedCount = 0
 
-      await runWithPool(task.pageUrls, concurrency, async (url, pageIndex) => {
+      // Add each page to the global request queue
+      const pageTasks = task.pageUrls.map((url, pageIndex) => async () => {
         if (!this.activeDownloads.get(key)?.active) return // Cancelled
 
         const hash = crypto.createHash('md5').update(url).digest('hex')
@@ -189,41 +208,29 @@ export class DownloadManager implements AppService {
 
             buffer = Buffer.from(await response.arrayBuffer())
             await CacheManager.getInstance().getImageCache().set(hash, buffer)
-
-            // Only count successfully cached pages (bug fix: was counting even on failure)
-            cachedCount++
           } catch (e) {
             console.error(`[DownloadManager] Failed to cache page: ${url}`, e)
-            return // Continue with remaining pages
+            return
           }
-        } else {
-          // Already cached
-          cachedCount++
         }
 
         // Save to structured directory
         if (buffer) {
           try {
-            // Ultra-robust extension extraction
             const parsedUrl = new URL(url)
             const rawExt = path.extname(parsedUrl.pathname).replace('.', '').toLowerCase()
             const validExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']
-
-            // Strictly alphanumeric, no slashes, no dots, max 5 chars
             const sanitizedExt = rawExt.replace(/[^a-z0-0]/g, '').slice(0, 5)
             const ext = validExts.includes(sanitizedExt) ? sanitizedExt : 'jpg'
 
             const filename = `${String(pageIndex + 1).padStart(3, '0')}.${ext}`
             const filePath = path.join(targetDir, filename)
 
-            console.log(`[DownloadManager] Writing page to: ${filePath}`)
             fs.writeFileSync(filePath, buffer)
-
-            // Only count successfully written files
             cachedCount++
           } catch (e) {
             console.error(`[DownloadManager] Failed to save file to disk: ${url}`, e)
-            return // Don't count this as cached/progress if write failed
+            return
           }
         }
 
@@ -239,15 +246,15 @@ export class DownloadManager implements AppService {
           mangaId: task.mangaId,
           chapterId: task.chapterId,
           cached: cachedCount,
-          total: task.pageUrls.length
+          total: task.pageUrls.length,
+          mangaTitle: task.mangaTitle,
+          chapterTitle: task.chapterTitle,
+          typeLabel: task.type
         })
-
-        if (cachedCount % 5 === 0 || cachedCount === task.pageUrls.length) {
-          console.log(
-            `[DownloadManager] Progress for ${key}: ${cachedCount}/${task.pageUrls.length}`
-          )
-        }
       })
+
+      // Wait for all pages of THIS chapter to finish (respecting global concurrency)
+      await this.globalRequestQueue.addAll(key, pageTasks)
 
       // Final check if it was cancelled during pool execution
       if (!this.activeDownloads.get(key)?.active) {
@@ -264,7 +271,10 @@ export class DownloadManager implements AppService {
       this.emit({
         type: 'completed',
         mangaId: task.mangaId,
-        chapterId: task.chapterId
+        chapterId: task.chapterId,
+        mangaTitle: task.mangaTitle,
+        chapterTitle: task.chapterTitle,
+        typeLabel: task.type
       })
 
       console.log(`[DownloadManager] Download completed for ${key}`)
@@ -290,6 +300,8 @@ export class DownloadManager implements AppService {
 
   cancelDownload(mangaId: string, chapterId: string): void {
     const key = `${mangaId}:${chapterId}`
+    this.globalRequestQueue.cancel(key)
+
     const existing = this.activeDownloads.get(key)
     if (existing) {
       this.activeDownloads.set(key, { ...existing, active: false })

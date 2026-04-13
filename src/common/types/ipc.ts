@@ -2,6 +2,10 @@ import { Result } from './result'
 import { FetchOptions, FetchResult } from './network'
 import { Manga } from './manga'
 import { DownloadEntry } from './download'
+import { StateUpdateEvent, SystemState } from './state'
+import { Extension } from './extension'
+import { Chapter } from './chapter'
+import { HistoryEntry } from './history'
 
 export type IpcResult<T> = Result<T>
 
@@ -64,6 +68,8 @@ export enum IpcChannel {
   REMOVE_DOWNLOAD = 'download:remove',
   DOWNLOAD_CLEAR_ALL = 'download:clear-all',
   DOWNLOAD_EVENT = 'download:event',
+  GET_SYSTEM_STATE = 'system:get-state',
+  SYSTEM_STATE_UPDATE = 'system:state-update',
 
   // App Updates
   APP_UPDATE = 'app:update',
@@ -86,7 +92,7 @@ export interface ElectronApi {
   fetchText: (url: string, options?: FetchOptions) => Promise<IpcResult<FetchResult>>
   detectTheme: (baseUrl: string) => Promise<IpcResult<string>>
   db: {
-    getExtensions: () => Promise<IpcResult<any[]>>
+    getExtensions: () => Promise<IpcResult<Extension[]>>
     addExtension: (args: {
       pkg: string
       code?: string
@@ -94,14 +100,15 @@ export interface ElectronApi {
       baseUrl?: string
       lang?: string
       icon?: string
+      nsfw?: number
     }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-    getExtension: (pkg: string) => Promise<IpcResult<any | null>>
+    getExtension: (pkg: string) => Promise<IpcResult<Extension | null>>
     removeExtension: (pkg: string) => Promise<IpcResult<boolean>>
     getLibrary: (args?: {
       limit?: number
       offset?: number
       type?: string
-    }) => Promise<IpcResult<any[]>>
+    }) => Promise<IpcResult<Manga[]>>
     toggleLibrary: (manga: Manga) => Promise<IpcResult<boolean>>
     getSetting: (key: string) => Promise<IpcResult<string | null>>
     getSettings: () => Promise<IpcResult<Record<string, string>>>
@@ -132,19 +139,19 @@ export interface ElectronApi {
     }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
     getHistory: (
       args?: { limit?: number; offset?: number; type?: string } | number
-    ) => Promise<IpcResult<any[]>>
+    ) => Promise<IpcResult<HistoryEntry[]>>
     deleteHistoryEntry: (id: number) => Promise<IpcResult<{ success?: boolean; error?: string }>>
     deleteHistoryByManga: (
       mangaId: string
     ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
     clearHistory: (type?: string) => Promise<IpcResult<{ success?: boolean; error?: string }>>
     clearLibrary: (type?: string) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-    getChapters: (mangaId: string) => Promise<IpcResult<any[]>>
+    getChapters: (mangaId: string) => Promise<IpcResult<Chapter[]>>
     saveChapters: (args: {
       mangaId: string
-      chapters: any[]
+      chapters: Chapter[]
     }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-    getMangaCache: (mangaId: string) => Promise<IpcResult<any | null>>
+    getMangaCache: (mangaId: string) => Promise<IpcResult<Manga | null>>
     saveMangaCache: (manga: Manga) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   }
   clearCache: () => Promise<IpcResult<{ success?: boolean; error?: string }>>
@@ -152,10 +159,10 @@ export interface ElectronApi {
   executeExtension: (args: {
     pkg: string
     code: string
-    contextArgs?: any
+    contextArgs?: Record<string, unknown>
   }) => Promise<IpcResult<any>>
   installExtension: (
-    ext: any,
+    ext: Extension,
     repoUrl: string
   ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   openExternal: (url: string) => Promise<void>
@@ -209,6 +216,8 @@ export interface ElectronApi {
   openInternalBrowser: (url: string) => Promise<void>
   cfBypass: (url: string) => Promise<IpcResult<boolean>>
   cfFetchHtml: (url: string) => Promise<IpcResult<string | null>>
+  getSystemState: () => Promise<IpcResult<SystemState>>
+  onSystemStateUpdate: (callback: (data: StateUpdateEvent) => void) => () => void
   platform: string
   version: string
 }

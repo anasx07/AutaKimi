@@ -82,6 +82,12 @@ const api: ElectronApi = {
   openInternalBrowser: (url: string) => ipcRenderer.invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
   cfBypass: (url: string) => ipcRenderer.invoke(IpcChannel.CF_BYPASS, url),
   cfFetchHtml: (url: string) => ipcRenderer.invoke(IpcChannel.CF_FETCH_HTML, url),
+  getSystemState: () => ipcRenderer.invoke(IpcChannel.GET_SYSTEM_STATE),
+  onSystemStateUpdate: (callback) => {
+    const subscription = (_event: any, data: any) => callback(data)
+    ipcRenderer.on(IpcChannel.SYSTEM_STATE_UPDATE, subscription)
+    return () => ipcRenderer.removeListener(IpcChannel.SYSTEM_STATE_UPDATE, subscription)
+  },
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }

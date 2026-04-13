@@ -8,11 +8,7 @@ interface UseMangaPaginationProps {
   activeExtension: string | null
   activeFeed: 'popular' | 'latest' | 'search'
   debouncedSearch: string
-  filters: {
-    selectedDemographics: string[]
-    selectedStatus: string[]
-    selectedTags: string[]
-  }
+  filters: Record<string, string[]>
 }
 
 export function useMangaPagination({
@@ -30,7 +26,7 @@ export function useMangaPagination({
     setOffsetCache,
     setHasMoreCache,
     setBatchCountCache,
-    clearFeedCache
+    invalidateGroup
   } = useBrowseCacheStore()
 
   const [loading, setLoading] = useState(true)
@@ -39,33 +35,37 @@ export function useMangaPagination({
   const [refreshKey, setRefreshKey] = useState(0)
   const searchToWatch = activeFeed === 'search' ? debouncedSearch : ''
 
-  // Derived state — listCache is a Map, must use .get() not bracket notation
-  const mangaList = listCache.get(activeFeed)?.data || []
-  const offset = offsetCache[activeFeed] || 0
-  const hasMore = hasMoreCache[activeFeed] !== false
-  const lastBatchCount = batchCountCache[activeFeed] || 0
+  // Identity Caching Strategy: Generate a unique key for the current browsing context.
+  // This is the industry-standard way (used by React Query/SWR) to prevent state leakage.
+  const contextKey = `${activeExtension}:${activeFeed}:${searchToWatch}:${JSON.stringify(filters)}`
 
-  // Helper setters that transparently update the current feed cache
+  // Derived state — tied to contextKey identity
+  const mangaList = listCache.get(contextKey)?.data || []
+  const offset = offsetCache[contextKey] || 0
+  const hasMore = hasMoreCache[contextKey] !== false
+  const lastBatchCount = batchCountCache[contextKey] || 0
+
+  // Helper setters — keyed to the current context
   const setMangaList = (
     val: NormalizedManga[] | ((prev: NormalizedManga[]) => NormalizedManga[])
   ) => {
-    const current = listCache.get(activeFeed)?.data || []
+    const current = listCache.get(contextKey)?.data || []
     const next = typeof val === 'function' ? val(current) : val
-    setListCache(activeFeed, next)
+    setListCache(contextKey, next)
   }
 
   const setOffset = (val: number | ((prev: number) => number)) => {
-    const current = offsetCache[activeFeed] || 0
+    const current = offsetCache[contextKey] || 0
     const next = typeof val === 'function' ? val(current) : val
-    setOffsetCache(activeFeed, next)
+    setOffsetCache(contextKey, next)
   }
 
   const setHasMore = (val: boolean) => {
-    setHasMoreCache(activeFeed, val)
+    setHasMoreCache(contextKey, val)
   }
 
   const setLastBatchCount = (val: number) => {
-    setBatchCountCache(activeFeed, val)
+    setBatchCountCache(contextKey, val)
   }
 
   // Use unified infinite scroll hook
@@ -77,15 +77,11 @@ export function useMangaPagination({
     }
   })
 
-  // Consolidate filter reset logic
-  useEffect(() => {
-    // Reset ALL caches when filters or extension changes
-    clearFeedCache()
-  }, [activeExtension, filters, searchToWatch])
-
   useEffect(() => {
     const fetchManga = async () => {
       if (!activeExtension) return
+
+      // If we already have data for this identity, avoid unnecessary re-fetch
       if (mangaList.length > 0 && offset === 0) {
         setLoading(false)
         return
@@ -94,25 +90,19 @@ export function useMangaPagination({
       setLoading(true)
       setError(null)
       setPaginationError(null)
+
       try {
         const limit = offset === 0 ? 15 : 10
         const pkgParts = activeExtension.split('.')
         const extLang =
           pkgParts.length >= 5 ? pkgParts[4] : pkgParts.length >= 3 ? pkgParts[2] : 'all'
 
-        console.log(
-          `[Browse] Resolving extension: ${activeExtension}, feed: ${activeFeed}, offset: ${offset}`
-        )
         const runner = await ExtensionResolver.resolve(activeExtension)
         if (!runner) {
-          console.warn(`[Browse] Runner not found for pkg: ${activeExtension}`)
           setError('Extension not found')
           setLoading(false)
           return
         }
-        console.log(
-          `[Browse] Runner resolved: ${runner.constructor.name}, baseUrl: ${runner.baseUrl}`
-        )
 
         const page = Math.floor(offset / limit) + 1
         let res: any
@@ -125,13 +115,8 @@ export function useMangaPagination({
           res = await runner.searchManga(searchToWatch, page, { ...filters })
         }
 
-        console.log(
-          `[Browse] Result for ${activeExtension}: manga=${res?.manga?.length ?? 'N/A'}, hasNextPage=${res?.hasNextPage}, error=${res?.error ?? 'none'}`
-        )
-
         if (res && res.error && (res.error.includes('403') || res.error.includes('Forbidden'))) {
-          const cfMsg =
-            'Cloudflare block detected. Please use the Shield icon to solve the challenge.'
+          const cfMsg = 'Access Blocked (Cloudflare). Use the Web View to resolve.'
           if (offset === 0) setError(cfMsg)
           else setPaginationError(cfMsg)
           return
@@ -151,38 +136,28 @@ export function useMangaPagination({
           setLastBatchCount(res.manga.length)
           setHasMore(res.hasNextPage)
         } else {
-          if (offset === 0) {
-            setError(res?.manga ? 'No data returned' : 'Malformed response')
-          } else {
-            setPaginationError('Failed to load next page')
-          }
+          if (offset === 0) setError('No content found')
+          else setPaginationError('End of results')
         }
       } catch (err) {
-        let msg = err instanceof Error ? err.message : 'Error fetching manga'
-        if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
-          msg = 'Access Blocked (403). Try solving the Cloudflare challenge in Web View.'
-        }
-
-        if (offset === 0) {
-          setError(msg)
-        } else {
-          setPaginationError(msg)
-        }
+        const msg = err instanceof Error ? err.message : 'Source error'
+        if (offset === 0) setError(msg)
+        else setPaginationError(msg)
       } finally {
         setLoading(false)
       }
     }
 
     fetchManga()
-  }, [activeExtension, activeFeed, searchToWatch, filters, offset, refreshKey])
+  }, [contextKey, offset, refreshKey])
 
   const refresh = useCallback(async () => {
-    clearFeedCache()
+    invalidateGroup('browse_lists', contextKey)
     setOffset(0)
     setError(null)
     setPaginationError(null)
     setRefreshKey((prev) => prev + 1)
-  }, [clearFeedCache, activeFeed])
+  }, [contextKey])
 
   const retryPagination = useCallback(async () => {
     setPaginationError(null)

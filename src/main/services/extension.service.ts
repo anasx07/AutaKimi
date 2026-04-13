@@ -2,11 +2,11 @@ import { net } from 'electron'
 import { Worker } from 'worker_threads'
 import path from 'path'
 import { extensionRepo, settingsRepo } from '../db'
-import { getTemplate } from '../templates'
 import { NetworkService } from '../../common/services/network'
 import { NetworkConfig } from '../../common/config/network'
 import * as crypto from 'crypto'
 import { AppService } from './service.registry'
+import { ExtensionEngine, IExtensionPlatform } from '../../common/engines/extension.engine'
 
 class WorkerPool {
   private workers: { worker: Worker; isBusy: boolean; id: number }[] = []
@@ -117,9 +117,6 @@ class WorkerPool {
     workerObj.worker.terminate().catch(() => {})
     this.workers = this.workers.filter((w) => w !== workerObj)
 
-    // Find if the worker was handling any active task
-    // It is safer to rely on timeouts, but we can also forcefully timeout tasks attached to this worker obj? Not tracked, so timeout wins.
-
     if (this.initialized) {
       this.spawnWorker()
       this.processQueue()
@@ -183,9 +180,14 @@ class WorkerPool {
  * - Isolated sandbox execution
  * - Configuration and persistence
  */
-export class ExtensionOrchestrator implements AppService {
+export class ExtensionOrchestrator implements AppService, IExtensionPlatform {
   private static instance: ExtensionOrchestrator
   private workerPool = new WorkerPool()
+  private engine: ExtensionEngine
+
+  constructor() {
+    this.engine = new ExtensionEngine(this)
+  }
 
   public static getInstance(): ExtensionOrchestrator {
     if (!ExtensionOrchestrator.instance) {
@@ -194,10 +196,29 @@ export class ExtensionOrchestrator implements AppService {
     return ExtensionOrchestrator.instance
   }
 
+  // --- IExtensionPlatform Implementation ---
+
+  async fetch(url: string, init?: any, bypassCf = false): Promise<any> {
+    const fetchFn = bypassCf ? this.electronFetch.bind(this) : fetch
+    const response = await NetworkService.fetchWithRetry(url, init, 3, 1000, fetchFn)
+    return response // Duck-typing for IExtensionPlatform response
+  }
+
+  async runSandbox(code: string, params: Record<string, any>): Promise<any> {
+    return this.workerPool.runInSandbox(code, params)
+  }
+
+  async getSetting(key: string): Promise<string | null> {
+    return settingsRepo.get(key)
+  }
+
+  async upsertExtension(ext: any): Promise<void> {
+    await extensionRepo.upsert(ext)
+  }
+
   // --- Service Lifecycle ---
 
   async initialize(): Promise<void> {
-    // Initialize with 4 workers (can be tuned or read from OS cores limit)
     this.workerPool.initialize(4)
   }
 
@@ -205,16 +226,21 @@ export class ExtensionOrchestrator implements AppService {
     await this.workerPool.shutdown()
   }
 
-  // --- Sandbox Execution ---
+  // --- Logic delegation to Engine ---
 
-  /**
-   * Executes dynamic Javascript code inside an isolated Worker Thread + Sandbox
-   */
   async runInSandbox(code: string, params: Record<string, any> = {}): Promise<any> {
-    return this.workerPool.runInSandbox(code, params)
+    return this.engine.execute('', code, params)
   }
 
-  // --- Fetch Utilities ---
+  async detectTheme(url: string, bypassCf = true): Promise<'madara' | 'mangastream' | 'unknown'> {
+    return this.engine.detectTheme(url, bypassCf)
+  }
+
+  async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
+    return this.engine.install(ext, repoUrl)
+  }
+
+  // --- Electron Specific Utilities ---
 
   /**
    * Electron-native fetch wrapper using net.fetch for automatic cookie/session handling
@@ -228,93 +254,6 @@ export class ExtensionOrchestrator implements AppService {
       console.error('[ExtensionOrchestrator] electronFetch error:', e)
       throw e
     }
-  }
-
-  /**
-   * Unified fetch entry point for extensions with retry logic
-   */
-  async fetch(url: string, init?: any, bypassCf = false): Promise<any> {
-    const fetchFn = bypassCf ? this.electronFetch.bind(this) : fetch
-    return NetworkService.fetchWithRetry(url, init, 3, 1000, fetchFn)
-  }
-
-  // --- Installation & Detection ---
-
-  async detectTheme(url: string, bypassCf = true): Promise<'madara' | 'mangastream' | 'unknown'> {
-    const check = async (testUrl: string) => {
-      try {
-        const response = await this.fetch(
-          testUrl,
-          {
-            headers: { 'User-Agent': NetworkConfig.DEFAULT_UA }
-          },
-          bypassCf
-        )
-        const html = await response.text()
-        if (
-          html.includes('madara') ||
-          html.includes('wp-content/themes/madara') ||
-          html.includes('Madara')
-        )
-          return 'madara'
-        if (
-          html.includes('mangastream') ||
-          html.includes('wp-content/themes/mangastream') ||
-          html.includes('class="bsx"') ||
-          html.includes('class="listupd"')
-        )
-          return 'mangastream'
-      } catch (e) {
-        console.warn(`[ExtensionOrchestrator] detectTheme error on ${testUrl}:`, e)
-      }
-      return 'unknown'
-    }
-
-    let theme = await check(url)
-    if (theme === 'unknown') {
-      const cleanUrl = url.replace(/\/$/, '')
-      theme = await check(`${cleanUrl}/series`)
-      if (theme === 'unknown') theme = await check(`${cleanUrl}/manga`)
-    }
-    return theme as any
-  }
-
-  async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
-    const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
-    const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
-    let code = ''
-
-    const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
-
-    try {
-      const response = await this.fetch(`${baseUrl}/js/${ext.pkg}.js`, {}, bypassCf)
-      if (response.ok) code = await response.text()
-    } catch (e) {}
-
-    if (!code) {
-      const extBaseUrl = ext.sources?.[0]?.baseUrl
-      if (extBaseUrl) {
-        const theme = await this.detectTheme(extBaseUrl, bypassCf)
-        const template = getTemplate(theme)
-        if (template) code = template.generate(extBaseUrl)
-      }
-    }
-
-    // Use a clean local-only URL format
-    const iconUrl = `autakimi-cache://local-icon/${ext.pkg}.png`
-
-    await extensionRepo.upsert({
-      pkg: ext.pkg,
-      installedAt: new Date().toISOString(),
-      code,
-      name: ext.name,
-      baseUrl: ext.sources?.[0]?.baseUrl,
-      lang: ext.lang,
-      icon: iconUrl,
-      version: ext.version
-    })
-
-    return { success: true }
   }
 }
 

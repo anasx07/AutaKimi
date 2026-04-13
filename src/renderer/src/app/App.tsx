@@ -1,10 +1,14 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
-import { useExtensionStore, useBrowseCacheStore } from '@renderer/shared/model'
+import { useBrowseCacheStore } from '@renderer/shared/model'
 import { DownloadSync } from './components/DownloadSync'
+import { CfBypassOverlay } from './components/CfBypassOverlay'
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useUIStore } from '@renderer/shared/model/ui.store'
 import { DataService } from '../shared/api/data.service'
+import { bypassHeartbeatService } from '../shared/api/BypassHeartbeatService'
 
 // Lazy load page components
 const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))
@@ -24,15 +28,26 @@ const LoadingFallback = (): React.JSX.Element => (
 )
 
 /**
- * Composite Browse Page that switches between Extension list and Source content
+ * Helper to wrap lazy components in Suspense with a consistent fallback
  */
-function BrowseView(): React.JSX.Element {
-  const { activeExtension } = useExtensionStore()
-  return activeExtension ? <BrowsePage /> : <ExtensionsPage />
-}
+const LazyRoute = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
+  <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+)
 
 function App(): React.JSX.Element {
   const { invalidateGroup } = useBrowseCacheStore()
+  const { setIsCfBypassing } = useUIStore()
+  const location = useLocation()
+
+  useEffect(() => {
+    // Force clear bypass state on navigation to prevent stuck overlays
+    setIsCfBypassing(false)
+  }, [location.pathname, setIsCfBypassing])
+
+  useEffect(() => {
+    bypassHeartbeatService.start()
+    return () => bypassHeartbeatService.stop()
+  }, [])
 
   useEffect(() => {
     const unsub = DataService.onCacheInvalidate((data: { group: string; key?: string }) => {
@@ -45,84 +60,29 @@ function App(): React.JSX.Element {
   return (
     <>
       <DownloadSync />
+      <CfBypassOverlay />
       <Routes>
         <Route element={<AppLayout />}>
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/library" replace />} />
 
-          {/* Tab Routes */}
-          <Route
-            path="/library"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <LibraryPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/downloads"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <DownloadsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <HistoryPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/browse"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <BrowseView />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/extensions"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <ExtensionsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/anime"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <AnimePage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <SettingsPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/about"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <AboutPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/more"
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <MorePage />
-              </Suspense>
-            }
-          />
+          {/* Core App Routes */}
+          <Route path="/library" element={<LazyRoute><LibraryPage /></LazyRoute>} />
+          <Route path="/downloads" element={<LazyRoute><DownloadsPage /></LazyRoute>} />
+          <Route path="/history" element={<LazyRoute><HistoryPage /></LazyRoute>} />
+          <Route path="/anime" element={<LazyRoute><AnimePage /></LazyRoute>} />
+          <Route path="/settings" element={<LazyRoute><SettingsPage /></LazyRoute>} />
+          <Route path="/about" element={<LazyRoute><AboutPage /></LazyRoute>} />
+          <Route path="/more" element={<LazyRoute><MorePage /></LazyRoute>} />
+
+          {/* Nested Browse / Extensions Flow */}
+          <Route path="/browse">
+            <Route index element={<LazyRoute><ExtensionsPage /></LazyRoute>} />
+            <Route path=":pkg" element={<LazyRoute><BrowsePage /></LazyRoute>} />
+          </Route>
+
+          {/* Compat Route for /extensions */}
+          <Route path="/extensions" element={<Navigate to="/browse" replace />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/library" replace />} />
@@ -133,3 +93,4 @@ function App(): React.JSX.Element {
 }
 
 export default App
+

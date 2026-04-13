@@ -1,48 +1,36 @@
-import { ElectronApi, IpcResult } from '@common/types'
+import {
+  ElectronApi,
+  IpcResult,
+  Extension,
+  HistoryEntry,
+  Manga,
+  Chapter,
+  SystemState,
+  StateUpdateEvent
+} from '@common/types'
 import { MobileDB } from './db'
 import { MobileNetwork } from './network'
 import { MobileExtension } from './extension'
 import { MobileDownload } from './download'
-import { MobileCache } from './cache'
 
 // MobileApi is a pure object export here.
 // Initialization should be explicitly called via the init() method.
 
 export const MobileApi: ElectronApi = {
   init: () => MobileDB.init(),
-  db: MobileDB as any,
+  db: MobileDB,
 
   fetchRepo: (url: string) => MobileNetwork.fetchRepo(url),
-  fetchText: (url: string, options?: any) => MobileNetwork.fetchText(url, options),
+  fetchText: (url: string, options?: any) => MobileNetwork.fetchText(url, options) as any,
+  detectTheme: (url: string) => MobileExtension.detectTheme(url),
 
-  executeExtension: (args: any) => MobileExtension.execute(args),
+  executeExtension: (args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }) =>
+    MobileExtension.execute(args),
 
-  installExtension: async (ext: any, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
-    const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
-    const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
-
-    try {
-      const res = await MobileNetwork.fetchText(`${baseUrl}/js/${ext.pkg}.js`)
-      if (res.ok) {
-        await MobileDB.addExtension({
-          pkg: ext.pkg,
-          code: res.value.data,
-          name: ext.name,
-          baseUrl: ext.sources?.[0]?.baseUrl,
-          lang: ext.lang,
-          icon: ext.icon,
-          version: ext.version
-        })
-        return { ok: true, value: { success: true } }
-      }
-      return { ok: false, error: res.error || 'Failed to fetch extension code' }
-    } catch (err: any) {
-      return { ok: false, error: err.message || String(err) }
-    }
-  },
+  installExtension: (ext: Extension, repoUrl: string) => MobileExtension.install(ext, repoUrl),
 
   clearCache: async () => {
-    await MobileCache.clear()
+    // Cache clearing logic can be added here if needed (e.g. clearing local storage)
     return { ok: true, value: { success: true } }
   },
 
@@ -63,7 +51,7 @@ export const MobileApi: ElectronApi = {
       return { ok: false, error: r.error }
     }),
 
-  download: MobileDownload as any,
+  download: MobileDownload,
 
   window: {
     minimize: async () => {},
@@ -81,10 +69,39 @@ export const MobileApi: ElectronApi = {
   },
   onCfStatus: () => () => {},
   onCacheInvalidate: () => () => {},
+  getSystemState: () => Promise.resolve({ ok: true, value: { activeDownloads: {} } }),
+  onSystemStateUpdate: (callback: (data: StateUpdateEvent) => void) => {
+    // Bridge MobileDownload events to the renderer's SystemState format
+    const handler = (evt: any) => {
+      const statusMap: Record<string, any> = {
+        start: 'downloading',
+        progress: 'downloading',
+        completed: 'completed',
+        error: 'error',
+        canceled: 'canceled'
+      }
+
+      callback({
+        type: 'active_tasks_update',
+        task: {
+          mangaId: evt.mangaId,
+          chapterId: evt.chapterId,
+          status: statusMap[evt.type as string] || 'downloading',
+          cached: evt.cached || 0,
+          total: evt.total || 0,
+          error: evt.error,
+          type: 'manga'
+        }
+      })
+    }
+
+    MobileDownload.onEvent(handler)
+    return () => MobileDownload.onEvent(() => {})
+  },
 
   installUpdate: async () => {},
   checkForUpdates: async () => {},
 
   platform: 'android',
   version: '1.0.0'
-} as any
+}
