@@ -1,22 +1,23 @@
-import { ElectronApi, IpcResult } from '../common/types'
+import { ElectronApi, IpcResult, FetchOptions, Extension, StateUpdateEvent } from '../common/types'
 import { MobileDB } from './db.native'
 import { MobileNetwork } from './network.native'
 import { MobileExtension } from './extension.native'
 import { MobileDownload } from './download.native'
 import { MobileCache } from './cache.native'
-import * as WebBrowser from 'expo-web-browser'
 import Constants from 'expo-constants'
+import * as WebBrowser from 'expo-web-browser'
 
 export const MobileApi: ElectronApi = {
   init: () => MobileDB.init(),
-  db: MobileDB as any,
+  db: MobileDB as unknown as ElectronApi['db'],
 
   fetchRepo: (url: string) => MobileNetwork.fetchRepo(url),
-  fetchText: (url: string, options?: any) => MobileNetwork.fetchText(url, options),
+  fetchText: (url: string, options?: FetchOptions) => MobileNetwork.fetchText(url, options),
 
-  executeExtension: (args: any) => MobileExtension.execute(args),
+  executeExtension: (args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }) =>
+    MobileExtension.execute(args),
 
-  installExtension: async (ext: any, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
+  installExtension: async (ext: Extension, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
     const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
     const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
 
@@ -45,7 +46,9 @@ export const MobileApi: ElectronApi = {
     return { ok: true, value: { success: true } }
   },
 
-  clearCookies: () => MobileNetwork.clearCookies() as any,
+  clearCookies: async () => {
+    return await MobileNetwork.clearCookies()
+  },
 
   openExternal: async (url: string) => {
     await WebBrowser.openBrowserAsync(url)
@@ -62,7 +65,7 @@ export const MobileApi: ElectronApi = {
       return { ok: false, error: r.error }
     }),
 
-  download: MobileDownload as any,
+  download: MobileDownload as unknown as ElectronApi['download'],
 
   window: {
     minimize: async () => {},
@@ -73,8 +76,21 @@ export const MobileApi: ElectronApi = {
     updateOverlay: async () => {}
   },
 
+  getSystemState: async () => ({
+    ok: true,
+    value: { activeDownloads: {} }
+  }),
+
+  onSystemStateUpdate: (_callback: (data: StateUpdateEvent) => void) => {
+    return () => {}
+  },
+
+  detectTheme: async (_baseUrl: string): Promise<IpcResult<string>> => {
+    return { ok: true, value: 'madara' }
+  },
+
   onAppUpdate: () => () => {},
-  onDownloadEvent: (callback: any) => {
+  onDownloadEvent: (callback: (data: any) => void) => {
     MobileDownload.onEvent(callback)
     return () => MobileDownload.onEvent(() => {})
   },
@@ -86,4 +102,4 @@ export const MobileApi: ElectronApi = {
 
   platform: 'android',
   version: Constants.expoConfig?.version || '1.0.0'
-} as any
+}

@@ -1,5 +1,6 @@
 import { NetworkService } from '@common/services/network'
 import { Extension, IpcResult } from '@common/types'
+import { localExtensions as rawCatalog } from './sources/catalog/catalog-local'
 
 const REPO_URL =
   'https://raw.githubusercontent.com/keiyoushi/extensions-source/main/index.min.json'
@@ -15,18 +16,8 @@ export const CatalogService = {
    * remote updates from the official repository.
    */
   getExtensions: async (): Promise<IpcResult<Extension[]>> => {
-    // 1. Load Local Bundled Extensions (Vite eager glob)
-    // Path is relative to this file
-    const catalogModules = import.meta.glob('./sources/catalog/extensions/*.json', {
-      eager: true
-    })
-
-    const localExtensions = Object.values(catalogModules).flatMap(
-      (m: any) => (m.default || m) as Extension[]
-    )
-
-    // Map local raw JSON to standardized Extension format
-    const processedLocal: Extension[] = localExtensions.map((ext: any) => ({
+    // 1. Load Local Bundled Extensions
+    const localExtensions = rawCatalog.map((ext: any) => ({
       pkg: ext.pkg,
       name: ext.name,
       lang: ext.lang,
@@ -63,7 +54,7 @@ export const CatalogService = {
       const mergedMap = new Map<string, Extension>()
 
       // Fill with local first
-      processedLocal.forEach((ext) => mergedMap.set(ext.pkg, ext))
+      localExtensions.forEach((ext) => mergedMap.set(ext.pkg, ext))
 
       // Update with remote (newer info)
       remoteExtensions.forEach((ext) => {
@@ -74,7 +65,7 @@ export const CatalogService = {
     } catch (e: unknown) {
       console.warn('[CatalogService] Failed to fetch remote catalog, falling back to local only:', e)
       // Return local only if remote fails to ensure app remains functional offline
-      return { ok: true, value: processedLocal }
+      return { ok: true, value: localExtensions }
     }
   }
 }

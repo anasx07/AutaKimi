@@ -5,8 +5,8 @@ import { MangaThemesiaSource } from './base/MangaThemesiaSource'
 import { ZeistMangaSource } from './base/ZeistMangaSource'
 import { ShahiidAnimeSource } from '../anime-sources/native/ma.autakimi.extension.ar.shahiidanime'
 import { RistoAnimeSource } from '../anime-sources/native/ma.autakimi.extension.ar.ristoanime'
+import { metadataModules } from './catalog/generated-local'
 
-const metadataModules = import.meta.glob('./catalog/generated/*.json', { eager: true })
 export const generatedSourcesJson = Object.assign(
   {},
   ...Object.values(metadataModules).map((m: any) => m.default || m)

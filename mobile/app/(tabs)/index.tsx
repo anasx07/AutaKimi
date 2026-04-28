@@ -4,25 +4,75 @@ import { Typography } from '../../src/native/ui/Typography';
 import { Button } from '../../src/native/ui/Button';
 import { Card } from '../../src/native/ui/Card';
 import { Trash2, BookOpen, Play, Search, LayoutGrid, List } from 'lucide-react-native';
-import { useInfiniteLibraryItems } from '@renderer/entities/manga/api/useMangaQueries';
 import { normalizeManga } from '@common/utils/mangaNormalizer';
+import { DataService } from '@renderer/shared/api';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Local hook — avoids importing shared useMangaQueries which pulls in
+// Vite-specific SourceRegistry (import.meta.glob) that Metro can't handle
+function useLibraryItems(type?: 'manga' | 'anime') {
+  return useInfiniteQuery({
+    queryKey: ['library', type],
+    queryFn: async ({ pageParam = 0 }) => {
+      const result = await DataService.db.getLibrary({ limit: 50, offset: pageParam as number, type });
+      // Normalize snake_case DB columns to camelCase
+      const items = (result as any[]) || [];
+      return items.map((e: any) => ({
+        id: e.id ?? e.Id,
+        title: e.title,
+        coverUrl: e.coverUrl || e.cover_url,
+        status: e.status,
+        type: e.type,
+        pkg: e.pkg,
+        url: e.url,
+        description: e.description,
+        author: e.author,
+        artist: e.artist,
+        genres: e.genres,
+        ...(e.metadata ? (typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata) : {})
+      }));
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < 50) return undefined;
+      return allPages.reduce((acc, p) => acc + (p?.length || 0), 0);
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
 
 export default function LibraryTab() {
   const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
-    useInfiniteLibraryItems(activeTab);
+    useLibraryItems(activeTab);
 
   const allItems = data?.pages?.flat() || [];
+
+  const openMangaDetails = (item: any) => {
+    const norm = normalizeManga(item);
+    const isAnime = item.type === 'anime' || item.mediaType === 'anime';
+    router.push({
+      pathname: isAnime ? '/anime/[id]' : '/manga/[id]',
+      params: {
+        id: item.id,
+        title: norm.title,
+        coverUrl: norm.coverUrl || '',
+        pkg: item.pkg || '',
+        url: item.url || ''
+      }
+    });
+  };
 
   const renderItem = ({ item }: { item: any; index: number }) => {
     const norm = normalizeManga(item);
 
     if (viewMode === 'grid') {
       return (
-        <TouchableOpacity className="flex-1 m-2">
+        <TouchableOpacity className="flex-1 m-2" onPress={() => openMangaDetails(item)}>
           <Card className="aspect-[2/3]">
             <Image source={{ uri: norm.coverUrl }} className="flex-1" resizeMode="cover" />
             <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/60">
@@ -36,7 +86,7 @@ export default function LibraryTab() {
     }
 
     return (
-      <TouchableOpacity className="flex-row items-center p-3 border-b border-border">
+      <TouchableOpacity className="flex-row items-center p-3 border-b border-border" onPress={() => openMangaDetails(item)}>
         <Image
           source={{ uri: norm.coverUrl }}
           className="w-16 h-24 rounded-md"

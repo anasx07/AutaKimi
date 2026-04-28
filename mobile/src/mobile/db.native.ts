@@ -1,5 +1,8 @@
 import * as SQLite from 'expo-sqlite'
-import { Manga, IpcResult, HistoryEntry } from '../common/types'
+import { Manga, IpcResult, HistoryEntry, Chapter } from '../common/types'
+import { Extension } from '../common/types'
+
+type SuccessResult = IpcResult<{ success?: boolean; error?: string }>
 
 let db: SQLite.SQLiteDatabase | null = null
 const DB_NAME = 'autakimi_db'
@@ -118,7 +121,7 @@ export const MobileDB = {
     return { ok: true, value: res }
   },
 
-  async addExtension(data: any): Promise<IpcResult<void>> {
+  async addExtension(data: any): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.runAsync(
       'INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
@@ -133,7 +136,19 @@ export const MobileDB = {
         data.version ?? null
       ]
     )
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
+  },
+
+  async removeExtension(pkg: string): Promise<IpcResult<boolean>> {
+    await this.ensureReady()
+    await db!.runAsync('DELETE FROM extensions WHERE pkg = ?;', [pkg])
+    return { ok: true, value: true }
+  },
+
+  async getExtension(pkg: string): Promise<IpcResult<any>> {
+    await this.ensureReady()
+    const res = await db!.getFirstAsync<any>('SELECT * FROM extensions WHERE pkg = ?;', [pkg])
+    return { ok: true, value: res || null }
   },
 
   async getLibrary(args?: {
@@ -190,10 +205,19 @@ export const MobileDB = {
     return { ok: true, value: settings }
   },
 
-  async setSetting(key: string, value: string): Promise<IpcResult<void>> {
+  async getSetting(key: string): Promise<IpcResult<string | null>> {
+    await this.ensureReady()
+    const res = await db!.getFirstAsync<{ value: string }>(
+      'SELECT value FROM settings WHERE key = ?;',
+      [key]
+    )
+    return { ok: true, value: res?.value || null }
+  },
+
+  async setSetting(key: string, value: string): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?);', [key, value])
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
   async getHistory(args?: { type?: string; limit?: number }): Promise<IpcResult<HistoryEntry[]>> {
@@ -213,7 +237,7 @@ export const MobileDB = {
     return { ok: true, value: res }
   },
 
-  async addHistory(data: HistoryEntry): Promise<IpcResult<void>> {
+  async addHistory(data: HistoryEntry): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.runAsync(
       'INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
@@ -230,10 +254,10 @@ export const MobileDB = {
         data.type || 'manga'
       ]
     )
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
-  async updateProgress(data: any): Promise<IpcResult<void>> {
+  async updateProgress(data: any): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.runAsync(
       'INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);',
@@ -245,7 +269,7 @@ export const MobileDB = {
         new Date().toISOString()
       ]
     )
-    return { ok: true, value: undefined }
+    return { ok: true, value: { success: true } }
   },
 
   async getChapters(mangaId: string): Promise<IpcResult<any[]>> {
@@ -254,7 +278,7 @@ export const MobileDB = {
     return { ok: true, value: res }
   },
 
-  async saveChapters(args: { mangaId: string; chapters: any[] }): Promise<IpcResult<boolean>> {
+  async saveChapters(args: { mangaId: string; chapters: any[] }): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.withTransactionAsync(async () => {
       await db!.runAsync('DELETE FROM chapters WHERE manga_id = ?;', [args.mangaId])
@@ -265,6 +289,80 @@ export const MobileDB = {
         )
       }
     })
-    return { ok: true, value: true }
+    return { ok: true, value: { success: true } }
+  },
+
+  async deleteHistoryEntry(id: number): Promise<SuccessResult> {
+    await this.ensureReady()
+    await db!.runAsync('DELETE FROM reading_history WHERE id = ?;', [id])
+    return { ok: true, value: { success: true } }
+  },
+
+  async deleteHistoryByManga(mangaId: string): Promise<SuccessResult> {
+    await this.ensureReady()
+    await db!.runAsync('DELETE FROM reading_history WHERE manga_id = ?;', [mangaId])
+    return { ok: true, value: { success: true } }
+  },
+
+  async clearHistory(type?: string): Promise<SuccessResult> {
+    await this.ensureReady()
+    if (type) {
+      await db!.runAsync('DELETE FROM reading_history WHERE type = ?;', [type])
+    } else {
+      await db!.runAsync('DELETE FROM reading_history;')
+    }
+    return { ok: true, value: { success: true } }
+  },
+
+  async clearLibrary(type?: string): Promise<SuccessResult> {
+    await this.ensureReady()
+    if (type) {
+      await db!.runAsync('DELETE FROM library WHERE type = ?;', [type])
+    } else {
+      await db!.runAsync('DELETE FROM library;')
+    }
+    return { ok: true, value: { success: true } }
+  },
+
+  async getProgress(mangaId: string): Promise<IpcResult<any[]>> {
+    await this.ensureReady()
+    const res = await db!.getAllAsync<any>(
+      'SELECT * FROM reading_progress WHERE manga_id = ?;',
+      [mangaId]
+    )
+    return { ok: true, value: res }
+  },
+
+  async getMangaCache(mangaId: string): Promise<IpcResult<any>> {
+    await this.ensureReady()
+    const res = await db!.getFirstAsync<any>(
+      'SELECT * FROM manga_cache WHERE id = ?;',
+      [mangaId]
+    )
+    return { ok: true, value: res || null }
+  },
+
+  async saveMangaCache(manga: any): Promise<SuccessResult> {
+    await this.ensureReady()
+    await db!.runAsync(
+      `INSERT OR REPLACE INTO manga_cache
+       (id, title, cover_url, description, author, artist, status, genres, url, updated_at, type, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      [
+        manga.id,
+        manga.title || null,
+        manga.coverUrl || manga.cover_url || null,
+        manga.description || null,
+        manga.author || null,
+        manga.artist || null,
+        manga.status || null,
+        manga.genres ? JSON.stringify(manga.genres) : null,
+        manga.url || null,
+        new Date().toISOString(),
+        manga.mediaType || manga.type || 'manga',
+        null
+      ]
+    )
+    return { ok: true, value: { success: true } }
   }
 }

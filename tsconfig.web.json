@@ -4,7 +4,6 @@
     "src/renderer/src/env.d.ts",
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.tsx",
-    "src/mobile/**/*",
     "src/preload/*.d.ts",
     "src/common/**/*"
   ],
@@ -18,9 +17,6 @@
       ],
       "@common/*": [
         "src/common/*"
-      ],
-      "@mobile/*": [
-        "src/mobile/*"
       ]
     }
   }

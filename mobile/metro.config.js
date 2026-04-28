@@ -16,6 +16,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Resolve path aliases to shared code in the root workspace
+config.resolver.alias = {
+  '@renderer': path.resolve(workspaceRoot, 'src/renderer/src'),
+  '@common': path.resolve(workspaceRoot, 'src/common'),
+};
+
 module.exports = withNativeWind(config, { 
   input: './global.css',
   projectRoot: projectRoot 

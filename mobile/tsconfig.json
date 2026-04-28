@@ -1,7 +1,13 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@renderer/*": ["../src/renderer/src/*"],
+      "@common/*": ["../src/common/*"],
+      "@mobile/*": ["src/mobile/*"]
+    }
   },
   "include": [
     "**/*.ts",
