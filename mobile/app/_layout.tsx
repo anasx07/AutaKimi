@@ -11,6 +11,10 @@ export default function RootLayout() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    // Register MobileApi as the platform bridge so shared DataService
+    // (used by hooks like useInfiniteLibraryItems) works via window.api
+    ;(window as any).api = MobileApi
+
     // Initialize Database and Services
     MobileApi.init().then(() => {
       setInitialized(true);

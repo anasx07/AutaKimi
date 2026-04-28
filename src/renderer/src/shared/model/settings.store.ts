@@ -29,8 +29,11 @@ type SettingsState = SettingsSchema['app'] &
 
 /**
  * Shared utility to apply theme and color theme classes to the document
+ * Guarded against non-browser environments (React Native, SSR)
  */
 const applyTheme = (theme: ThemeType, colorTheme: ColorThemeType) => {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return
+
   const isDark =
     theme === 'dark' ||
     (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)

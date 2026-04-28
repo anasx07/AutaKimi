@@ -10,17 +10,22 @@ import {
   StateUpdateEvent
 } from '@common/types'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
-import { MobileApi } from '@mobile/api'
 import { CatalogService } from './catalog.service'
 import { useUIStore } from '../model/ui.store'
 
 // Use Electron IPC API if window.api is exposed (Desktop)
-// Otherwise fall back to MobileApi (Capacitor/Native)
+// On mobile (Expo), window.api is set in app/_layout.tsx by MobileApi
 const getApi = (): ElectronApi => {
   if (typeof window !== 'undefined' && window.api) {
     return window.api
   }
-  return MobileApi
+  // In a pure web environment without API bridge, provide a minimal fallback
+  // that throws informative errors
+  return new Proxy({} as ElectronApi, {
+    get(_, prop) {
+      return () => Promise.reject(new Error(`ElectronApi.${String(prop)} not available — no API bridge found`))
+    }
+  })
 }
 
 async function callIpc<T>(fn: () => Promise<IpcResult<T>>): Promise<T> {

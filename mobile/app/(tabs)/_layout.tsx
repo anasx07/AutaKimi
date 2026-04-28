@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { BookOpen, Search, Settings } from 'lucide-react-native';
+import { BookOpen, Search, Download, Clock, Settings } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -30,6 +30,20 @@ export default function TabLayout() {
         options={{
           title: 'Browse',
           tabBarIcon: ({ color }) => <Search size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="downloads"
+        options={{
+          title: 'Downloads',
+          tabBarIcon: ({ color }) => <Download size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) => <Clock size={24} color={color} />,
         }}
       />
       <Tabs.Screen
