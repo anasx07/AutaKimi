@@ -14,7 +14,10 @@
     "dev:page": "npm run dev -w github-page",
     "build:page": "npm run build -w github-page",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "android:studio": "scripts\\open_in_android_studio.bat",
+    "start:desktop": "scripts\\Start_dev.bat",
+    "start:mobile": "scripts\\Start_mobile_dev.bat"
   },
   "devDependencies": {
     "eslint": "^9.39.1",

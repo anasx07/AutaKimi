@@ -7,15 +7,15 @@ echo ========================================
 
 echo.
 echo [1/3] Cleaning previous builds...
-if exist dist rd /s /q dist
-if exist dist-electron rd /s /q dist-electron
-if exist release rd /s /q release
+if exist apps\desktop\dist rd /s /q apps\desktop\dist
+if exist apps\desktop\dist-electron rd /s /q apps\desktop\dist-electron
+if exist apps\desktop\release rd /s /q apps\desktop\release
 
 echo.
 echo [2/3] Building and Packaging Application...
 set NODE_OPTIONS=--max-old-space-size=8192
-call npm run build
-call npm run electron:build-main
+npm run build:desktop
+cd apps/desktop
 npx electron-builder --win nsis msi --config.npmRebuild=false
 
 echo.
