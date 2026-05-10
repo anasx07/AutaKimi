@@ -17,7 +17,7 @@ export default function ChangelogPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://api.github.com/repos/anasx07/AutaKimi-Release/releases')
+    fetch('https://api.github.com/repos/anasx07/AutaKimi/releases')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -60,9 +60,9 @@ export default function ChangelogPage() {
                   </div>
                 </div>
               </div>
-              <a 
-                href={release.html_url} 
-                target="_blank" 
+              <a
+                href={release.html_url}
+                target="_blank"
                 rel="noreferrer"
                 className="flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-transform hover:scale-105 active:scale-95 relative z-10 w-full md:w-auto shadow-lg"
               >
@@ -70,27 +70,27 @@ export default function ChangelogPage() {
                 Download Release
               </a>
             </div>
-            
+
             {/* Release Notes Parser */}
             <div className="text-zinc-300 relative z-10 space-y-2 text-[15px] leading-relaxed font-medium">
               {release.body ? release.body.split('\n').map((line, j) => {
                 // Extremely simple formatting for Github markdown lists
                 const isHeader = line.startsWith('#');
                 const isListItem = line.trim().startsWith('-');
-                
+
                 if (isHeader) {
                   return <h3 key={j} className="text-white font-bold text-lg mt-6 mb-2">{line.replace(/#/g, '').trim()}</h3>;
                 }
-                
+
                 if (isListItem) {
                   return (
                     <div key={j} className="flex items-start gap-3 mt-1">
-                       <span className="text-primary mt-1">•</span>
-                       <span>{line.replace(/^-/, '').trim()}</span>
+                      <span className="text-primary mt-1">•</span>
+                      <span>{line.replace(/^-/, '').trim()}</span>
                     </div>
                   );
                 }
-                
+
                 return <p key={j} className="min-h-[1em]">{line}</p>;
               }) : <p className="italic text-zinc-500">No release notes provided.</p>}
             </div>

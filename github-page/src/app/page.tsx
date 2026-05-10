@@ -16,7 +16,7 @@ export default function Home() {
   const [version, setVersion] = useState("1.5.71")
 
   useEffect(() => {
-    fetch('https://api.github.com/repos/anasx07/AutaKimi-Release/releases/latest')
+    fetch('https://api.github.com/repos/anasx07/AutaKimi/releases/latest')
       .then(res => res.json())
       .then(data => {
         if (data.tag_name) {
@@ -69,13 +69,13 @@ export default function Home() {
       badge: "Customization",
       title: "Premium Themes",
       description: "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic dark modes to character-inspired aesthetics.",
-      image: "/AutaKimi-Release/assets/screenshot-themes.png" // Updated path
+      image: "/AutaKimi/assets/screenshot-themes.png" // Updated path
     },
     {
       badge: "Discovery",
       title: "Smart Search & Filters",
       description: "Find your next read across connected translation sources instantly with deep filter support.",
-      image: "/AutaKimi-Release/assets/screenshot-themes.png", // Updated path
+      image: "/AutaKimi/assets/screenshot-themes.png", // Updated path
       reverse: true
     }
   ]
@@ -91,7 +91,7 @@ export default function Home() {
       <header className="pb-16 w-full flex justify-center">
         <div className="glass-card rounded-[32px] p-10 md:p-16 max-w-[680px] w-[90%] text-center hero-animate">
           <div className="mb-8 flex justify-center opacity-0 animate-[fadeIn_0.8s_ease_forwards_0.4s]">
-            <Image src="/AutaKimi-Release/assets/icon.png" alt="AutaKimi Icon" width={100} height={100} className="w-[100px] h-[100px] rounded-3xl shadow-2xl" />
+            <Image src="/AutaKimi/assets/icon.png" alt="AutaKimi Icon" width={100} height={100} className="w-[100px] h-[100px] rounded-3xl shadow-2xl" />
           </div>
           <span className="premium-pill mb-6 opacity-0 animate-[fadeIn_0.8s_ease_forwards_0.4s]">Version {version}</span>
           <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-5 text-gradient opacity-0 animate-[fadeIn_0.8s_ease_forwards_0.6s]">AutaKimi</h1>
@@ -103,14 +103,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-[fadeIn_0.8s_ease_forwards_1s]">
             <MediaButton
               label="Repo Release Page"
-              href="https://github.com/anasx07/AutaKimi-Release/releases/latest"
+              href="https://github.com/anasx07/AutaKimi/releases/latest"
               icon={<Download className="w-5 h-5 text-white" />}
               mediaUrl="https://i.pinimg.com/originals/65/2b/4b/652b4b5e1044885c6045242d6ac7e1bf.gif"
               className="w-full sm:w-auto"
             />
             <MediaButton
               label="Download Installer"
-              href="https://github.com/anasx07/AutaKimi-Release/releases/download/latest/AutaKimi.exe"
+              href="https://github.com/anasx07/AutaKimi/releases/download/latest/AutaKimi.exe"
               icon={<Download className="w-5 h-5 text-white" />}
               mediaUrl="https://v1.pinimg.com/videos/mc/720p/c6/65/cd/c665cdad613f37177c727ba93a5a4512.mp4"
               className="w-full sm:w-auto"
@@ -126,11 +126,11 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
-            <GlowCard 
-              key={i} 
-              customSize 
-              glowColor="purple" 
-              className="p-10 group transition-transform duration-500 hover:-translate-y-2 opacity-0 animate-fade-in cursor-default" 
+            <GlowCard
+              key={i}
+              customSize
+              glowColor="purple"
+              className="p-10 group transition-transform duration-500 hover:-translate-y-2 opacity-0 animate-fade-in cursor-default"
               style={{ animationDelay: `${0.2 + i * 0.1}s` }}
             >
               <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 text-white group-hover:text-purple-400 transition-colors">

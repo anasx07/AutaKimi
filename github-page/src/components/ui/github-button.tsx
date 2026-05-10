@@ -26,7 +26,7 @@ const GitHubButton = () => {
   return (
     <div className="flex justify-center items-center">
       <a
-        href="https://github.com/anasx07/AutaKimi-Release"
+        href="https://github.com/anasx07/AutaKimi"
         target="_blank"
         className="relative inline-block w-32 h-10 group bg-black border-white/20 border rounded-xl overflow-visible transition-transform hover:-translate-y-0.5">
         <div className="absolute w-[112.81%] h-[128.57%] top-[8.57%] left-1/2 -translate-x-1/2 filter blur-[10px] opacity-50 group-hover:opacity-80 transition-opacity duration-500">
