@@ -26,6 +26,20 @@ export class StateRegistryService {
   }
 
   /**
+   * High-level helper for download status updates
+   */
+  public updateDownloadState(mangaId: string, chapterId: string, status: string): void {
+    this.updateDownloadTask({
+        mangaId,
+        chapterId,
+        status: status as any,
+        cached: 0,
+        total: 0,
+        type: 'manga'
+    })
+  }
+
+  /**
    * Updates an active download task and broadcasts the change.
    */
   public updateDownloadTask(task: ActiveTaskState): void {

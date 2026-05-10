@@ -89,6 +89,27 @@ export class DownloadRepository {
     }))
   }
 
+  async updateProgress(mangaId: string, chapterId: string, cached: number): Promise<any> {
+    return this.db
+      .update(schema.downloads)
+      .set({ cachedPages: cached, updatedAt: new Date().toISOString() })
+      .where(and(eq(schema.downloads.mangaId, mangaId), eq(schema.downloads.chapterId, chapterId)))
+      .run()
+  }
+
+  async updateStatus(
+    mangaId: string,
+    chapterId: string,
+    status: string,
+    error?: string
+  ): Promise<any> {
+    return this.db
+      .update(schema.downloads)
+      .set({ status, error, updatedAt: new Date().toISOString() })
+      .where(and(eq(schema.downloads.mangaId, mangaId), eq(schema.downloads.chapterId, chapterId)))
+      .run()
+  }
+
   async recoverOrphanedDownloads(): Promise<any> {
     return this.db
       .update(schema.downloads)

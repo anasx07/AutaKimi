@@ -12,7 +12,6 @@ export class SyncServer implements AppService {
   private service: Service | null = null
   private port = 42069 // AutaKimi Sync Port
   private isRunning = false
-  private webContents: Electron.WebContents | null = null
 
   private constructor() {}
 
@@ -23,8 +22,8 @@ export class SyncServer implements AppService {
     return SyncServer.instance
   }
 
-  setWebContents(webContents: Electron.WebContents) {
-    this.webContents = webContents
+  setWebContents(_webContents: Electron.WebContents) {
+    // webContents currently unused for sync server events
   }
 
   async initialize(): Promise<void> {
@@ -60,7 +59,9 @@ export class SyncServer implements AppService {
   async stop(): Promise<void> {
     if (!this.isRunning) return
 
-    this.service?.stop()
+    if (this.service && 'stop' in this.service) {
+      (this.service as any).stop()
+    }
     this.bonjour?.destroy()
     this.wss?.close()
     
@@ -117,7 +118,7 @@ export class SyncServer implements AppService {
       case 'pull_library':
         if (!(ws as any).authenticated) return ws.close()
         try {
-          const library = await libraryRepo.getLibrary()
+          const library = await libraryRepo.getAll()
           ws.send(JSON.stringify({ type: 'library_data', data: library }))
         } catch (e) {
           console.error('[SyncServer] Failed to fetch library for sync:', e)

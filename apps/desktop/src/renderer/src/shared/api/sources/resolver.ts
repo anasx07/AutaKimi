@@ -44,7 +44,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async fetchPopular(page: number, extraArgs: any = {}): Promise<MangaPage> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: {
@@ -60,7 +60,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async fetchLatest(page: number, extraArgs: any = {}): Promise<MangaPage> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: {
@@ -76,7 +76,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async searchManga(query: string, page: number, extraArgs: any = {}): Promise<MangaPage> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: {
@@ -93,7 +93,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
@@ -105,7 +105,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async fetchChapters(mangaUrl: string): Promise<Chapter[]> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: { type: 'fetchChapters', mangaUrl }
@@ -114,7 +114,7 @@ export class SandboxRunner implements ISourceAdapter {
   }
 
   async fetchPages(chapterUrl: string): Promise<string[]> {
-    const res = await DataService.executeExtension({
+    const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: { type: 'fetchPages', chapterUrl }

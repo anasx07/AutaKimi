@@ -33,7 +33,7 @@ export class MangaThemesiaSource implements ISourceAdapter {
     if (res?.status === 403 || !res) {
       console.log(`[MangaThemesiaSource] 403 on ${url}, fetching via browser...`)
       try {
-        return await DataService.cfFetchHtml(url)
+        return await DataService.cfFetchHtml(url) as string
       } catch (e) {
         console.warn('[MangaThemesiaSource] cfFetchHtml failed:', e)
       }
