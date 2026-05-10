@@ -1,5 +1,6 @@
 dist
 dist-mobile
+mobile
 out
 node_modules
 .agents
@@ -9,4 +10,4 @@ node_modules
 .aider*
 tmp
 *.lnk
-critial_info.txt
+critical_info.txt

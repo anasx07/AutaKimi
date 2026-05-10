@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Dongman Manhua",
+    "pkg": "ma.autakimi.extension.zh.dongmanmanhua",
+    "lang": "zh-Hans",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Dongman Manhua",
+        "lang": "zh-Hans",
+        "id": "4222375517460530289",
+        "baseUrl": "https://www.dongmanmanhua.cn"
+      }
+    ]
+  },
+  {
+    "name": "Iqiyi",
+    "pkg": "ma.autakimi.extension.zh.iqiyi",
+    "lang": "zh-Hans",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "爱奇艺叭嗒",
+        "lang": "zh-Hans",
+        "id": "2198877009406729694",
+        "baseUrl": "https://www.iqiyi.com/manhua"
+      }
+    ]
+  },
+  {
+    "name": "Tencent Comics (ac.qq.com)",
+    "pkg": "ma.autakimi.extension.zh.tencentcomics",
+    "lang": "zh-Hans",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "腾讯动漫",
+        "lang": "zh-Hans",
+        "id": "6353436350537369479",
+        "baseUrl": "https://m.ac.qq.com"
+      }
+    ]
+  }
+]

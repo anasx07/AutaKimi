@@ -1,0 +1,11 @@
+{
+  "ma.autakimi.extension.pl.mangahona": {
+    "id": "ma.autakimi.extension.pl.mangahona",
+    "name": "MangaHoNa",
+    "version": "0.0.1",
+    "baseUrl": "https://mangahona.pl",
+    "apiUrl": "https://mangahona.pl",
+    "lang": "pl",
+    "baseClass": "Madara"
+  }
+}
