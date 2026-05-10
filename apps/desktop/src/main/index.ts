@@ -192,18 +192,6 @@ app.whenReady().then(async () => {
   // Initialize Services
   await ServiceRegistry.initializeAll()
 
-  // Fetch scraper templates
-  try {
-    const reposJson = await settingsRepo.get('source_repositories')
-    const repos: string[] = reposJson ? JSON.parse(reposJson) : []
-    const { templateService } = await import('@common')
-    templateService.loadAllRepositories(repos).then(res => {
-      if (res.success) console.log(`[Templates] Loaded ${res.totalCount} templates from ${repos.length} repos.`)
-    })
-  } catch (err) {
-    console.error('[Templates] Failed to trigger template fetch:', err)
-  }
-
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.codixy.autakimi')
 
