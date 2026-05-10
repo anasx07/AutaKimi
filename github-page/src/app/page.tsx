@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, BookOpen, Puzzle, History, Search, Zap, ChevronDown, Globe, Smartphone, MonitorSmartphone, Database, Cpu } from 'lucide-react'
+import { Download, BookOpen, Puzzle, History, Search, Zap, ChevronDown, Globe, Smartphone, MonitorSmartphone, Database, Cpu, MessageSquare } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
