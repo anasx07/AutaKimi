@@ -100,7 +100,7 @@ export enum IpcChannel {
  */
 export interface ElectronApi {
   init: () => Promise<IpcResult<void>>
-  fetchRepo: (url: string) => Promise<IpcResult<unknown>>
+  fetchRepo: (url: string) => Promise<IpcResult<any>>
   fetchText: (url: string, options?: FetchOptions) => Promise<IpcResult<FetchResult>>
   detectTheme: (baseUrl: string) => Promise<IpcResult<string>>
   sync: {
@@ -111,7 +111,7 @@ export interface ElectronApi {
   }
   sources: {
     getRepos: () => Promise<IpcResult<string[]>>
-    addRepo: (url: string) => Promise<IpcResult<{ success: boolean; count: number }>>
+    addRepo: (url: string) => Promise<IpcResult<{ success: boolean; count: number; error?: string }>>
     removeRepo: (url: string) => Promise<IpcResult<void>>
     refreshAll: () => Promise<IpcResult<{ totalCount: number }>>
   }
@@ -184,7 +184,7 @@ export interface ElectronApi {
     pkg: string
     code: string
     contextArgs?: Record<string, unknown>
-  }) => Promise<IpcResult<unknown>>
+  }) => Promise<IpcResult<any>>
   installExtension: (
     ext: Extension,
     repoUrl: string

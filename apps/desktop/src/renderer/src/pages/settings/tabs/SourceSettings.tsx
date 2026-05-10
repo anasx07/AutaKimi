@@ -33,7 +33,7 @@ export function SourceSettings(): React.JSX.Element {
         setNewRepoUrl('')
         fetchRepos()
       } else {
-        setError(res.error || 'Failed to add repository')
+        setError((res as any).error || 'Failed to add repository')
       }
     } catch (e: any) {
       setError(e.message)

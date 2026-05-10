@@ -1,16 +1,9 @@
-import { net, WebContents, app } from 'electron'
-import crypto from 'crypto'
-import fs from 'fs'
-import path from 'path'
+import { WebContents } from 'electron'
 import { downloadRepo, settingsRepo } from '../db'
-import { NetworkService } from '@common/services/network'
 import { CacheManager } from './cache.service'
-import { NetworkConfig } from '@common/config/network'
 import { AppService } from './service.registry'
 import { IpcChannel } from '@common/types/ipc'
-import { DownloadEntry, DownloadedMedia } from '@common/types/download'
 import { stateRegistry } from './state.service'
-import { ActiveTaskState } from '@common/types/state'
 import { ReactiveQueue } from '../utils/reactive-queue'
 
 export interface DownloadTask {
@@ -25,7 +18,6 @@ export interface DownloadTask {
 
 export class DownloadManager implements AppService {
   private static instance: DownloadManager
-  private tasks = new Map<string, DownloadTask>()
   private queue = new ReactiveQueue({ concurrency: 3 })
   private webContents: WebContents | null = null
   public activeDownloads = new Map<string, boolean>()
@@ -49,7 +41,7 @@ export class DownloadManager implements AppService {
   }
 
   async shutdown(): Promise<void> {
-    // ReactiveQueue cleanup if needed
+    this.queue.clear()
   }
 
   async startDownload(task: DownloadTask) {
@@ -70,7 +62,7 @@ export class DownloadManager implements AppService {
       totalPages: task.pageUrls.length,
       cachedPages: 0,
       updatedAt: new Date().toISOString(),
-      type: task.type,
+      mediaType: task.type,
       pageUrls: JSON.stringify(task.pageUrls)
     })
 
@@ -82,6 +74,30 @@ export class DownloadManager implements AppService {
     this.activeDownloads.delete(key)
     this.queue.cancel(key)
     this.notifyStatus({ mangaId, chapterId } as any, 'canceled')
+  }
+
+  async deleteDownload(mangaId: string, chapterId: string) {
+    await this.cancelDownload(mangaId, chapterId)
+    await downloadRepo.remove(mangaId, chapterId)
+  }
+
+  getStatus(mangaId: string, chapterId: string) {
+    const key = `${mangaId}:${chapterId}`
+    return this.activeDownloads.get(key) ? 'downloading' : 'idle'
+  }
+
+  async getMangaDownloads(mangaId: string) {
+    return downloadRepo.getByManga(mangaId)
+  }
+
+  async getDownloadedManga(type?: 'manga' | 'anime') {
+    return downloadRepo.getDownloadedManga(type)
+  }
+
+  async clearAll(type?: 'manga' | 'anime') {
+    this.queue.clear()
+    this.activeDownloads.clear()
+    await downloadRepo.clear(type)
   }
 
   private notifyStatus(
@@ -102,12 +118,7 @@ export class DownloadManager implements AppService {
       })
     }
 
-    stateRegistry.updateState({
-      type: 'download',
-      mangaId: task.mangaId,
-      chapterId: task.chapterId,
-      downloadStatus: type
-    })
+    stateRegistry.updateDownloadState(task.mangaId, task.chapterId, type)
   }
 
   private async processTask(task: DownloadTask) {
@@ -119,11 +130,10 @@ export class DownloadManager implements AppService {
         if (!this.activeDownloads.has(key)) return // Canceled
 
         const url = task.pageUrls[i]
-        const ext = path.extname(new URL(url).pathname) || '.jpg'
-        const fileName = `${task.mangaId}/${task.chapterId}/${i}${ext}`
 
         try {
-          await CacheManager.getInstance().get(url, CacheManager.GROUP_MANGA, fileName)
+          // Use the correct ImageCache instance method
+          await CacheManager.getInstance().getImageCache().get(url)
           cachedCount++
           this.notifyStatus(task, 'progress', cachedCount, task.pageUrls.length)
 

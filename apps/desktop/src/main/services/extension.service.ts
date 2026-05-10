@@ -2,7 +2,7 @@ import { net } from 'electron'
 import { Worker } from 'worker_threads'
 import path from 'path'
 import { extensionRepo, settingsRepo } from '../db'
-import { NetworkService, ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
+import { ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import * as crypto from 'crypto'
 import { AppService } from './service.registry'
 
@@ -129,7 +129,7 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
   }
 
   async getExtension(pkg: string): Promise<any> {
-    return extensionRepo.get(pkg)
+    return extensionRepo.getByPkg(pkg)
   }
 
   // --- Public Engine Accessors ---
@@ -139,7 +139,7 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
   }
 
   async detectTheme(url: string, bypassCf = true): Promise<'madara' | 'mangastream' | 'unknown'> {
-    return this.engine.detectTheme(url, bypassCf)
+    return this.engine.detectTheme(url, bypassCf) as Promise<'madara' | 'mangastream' | 'unknown'>
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {

@@ -1,5 +1,4 @@
 import {
-  AlertCircle,
   Loader2,
   BookOpen,
   Settings2,
@@ -10,7 +9,7 @@ import { useState } from 'react'
 import { ThemeType, ColorThemeType } from '@common/types'
 import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
-import { useSettingsStore, useReaderStore } from '@renderer/shared/model'
+import { useSettingsStore } from '@renderer/shared/model'
 import {
   Badge,
   Card,
@@ -95,8 +94,7 @@ function SidebarItem({ id, label, icon: Icon, activeTab, setActiveTab }: Sidebar
 }
 
 export default function SettingsPage(): React.JSX.Element {
-  const mobile = isMobile()
-  const { theme, setTheme, colorTheme, setColorTheme } = useSettingsStore()
+  const { setTheme, setColorTheme } = useSettingsStore()
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [showMobileMenu, setShowMobileMenu] = useState(true)
@@ -109,7 +107,7 @@ export default function SettingsPage(): React.JSX.Element {
 
   const handleTabSelect = (id: SettingsTab): void => {
     setActiveTab(id)
-    if (mobile) setShowMobileMenu(false)
+    if (isMobile()) setShowMobileMenu(false)
   }
 
   const renderContent = () => {
@@ -125,7 +123,7 @@ export default function SettingsPage(): React.JSX.Element {
       case 'sources':
         return <SourceSettings />
       case 'advanced':
-        return <AdvancedSettings statusMessage={statusMessage} setStatusMessage={setStatusMessage} />
+        return <AdvancedSettings setStatusMessage={setStatusMessage} />
     }
   }
 
@@ -136,7 +134,7 @@ export default function SettingsPage(): React.JSX.Element {
         className="px-8 py-4 text-sm font-black uppercase tracking-widest shadow-2xl border-2 border-border/20 backdrop-blur-3xl ring-4 ring-black/10"
       >
         {statusMessage.includes('Failed') ? (
-          <AlertCircle className="mr-3 h-5 w-5" />
+          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
         ) : (
           <Loader2 className="mr-3 h-5 w-5 animate-spin" />
         )}
@@ -145,7 +143,7 @@ export default function SettingsPage(): React.JSX.Element {
     </div>
   ) : null
 
-  if (mobile) {
+  if (isMobile()) {
     if (showMobileMenu) {
       return (
         <MobilePage title="Settings" subtitle="Configure preferences">

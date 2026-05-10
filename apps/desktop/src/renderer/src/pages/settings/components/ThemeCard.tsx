@@ -1,20 +1,5 @@
 import { cn } from '@renderer/shared/lib/utils'
-import { ThemeType, ColorThemeType } from '@common/types'
-
-export interface ThemeOption {
-  id: string
-  name: string
-  desc: string
-  theme: ThemeType
-  colorTheme: ColorThemeType
-  bgClass: string
-  borderClass: string
-  dotClass: string
-  boxClass?: string
-  descClass?: string
-  tag?: string
-  bgImage?: string
-}
+import { ThemeOption } from '@renderer/shared/config/themes'
 
 interface ThemeCardProps {
   opt: ThemeOption

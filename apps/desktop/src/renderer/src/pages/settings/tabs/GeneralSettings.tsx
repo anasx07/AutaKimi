@@ -8,7 +8,6 @@ import {
   SettingsRow,
   SectionHeader
 } from '@renderer/shared/ui'
-import { ThemeType, ColorThemeType } from '@common/types'
 import { DEFAULT_THEMES, PREMIUM_THEMES, ThemeOption } from '@renderer/shared/config/themes'
 import { ThemeCard } from '../components/ThemeCard'
 
