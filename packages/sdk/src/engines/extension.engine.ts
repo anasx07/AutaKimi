@@ -21,7 +21,6 @@ export class ExtensionEngine {
   constructor(private platform: IExtensionPlatform) {}
 
   async detectTheme(url: string, bypassCf = true): Promise<string> {
-    const templates = templateService.getAllTemplates()
     const check = async (testUrl: string) => {
       try {
         const response = await this.platform.fetch(

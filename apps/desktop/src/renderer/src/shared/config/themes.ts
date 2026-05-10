@@ -1,3 +1,4 @@
+import { ThemeType, ColorThemeType } from '@common/types'
 import dabiImg from '../../app/assets/ThemeCharacter/dabi-from-my-hero-academia_1280x720_xtrafondos.com.jpg'
 import itachiImg from '../../app/assets/ThemeCharacter/itachi-uchiha-naruto_1280x720_xtrafondos.com.jpg'
 import gokuImg from '../../app/assets/ThemeCharacter/goku-super-saiyan-ultra-instinct-dragon-ball-super_1280x720_xtrafondos.com.jpg'
@@ -13,15 +14,15 @@ export interface ThemeOption {
   id: string
   name: string
   desc: string
-  theme: 'light' | 'dark' | 'system'
-  colorTheme: string
-  bgImage?: string
-  tag?: string
-  bgClass?: string
-  borderClass?: string
-  boxClass?: string
+  theme: ThemeType
+  colorTheme: ColorThemeType
+  bgClass: string
+  borderClass: string
   dotClass: string
-  descClass: string
+  boxClass?: string
+  descClass?: string
+  tag?: string
+  bgImage?: string
 }
 
 export const DEFAULT_THEMES: ThemeOption[] = [
@@ -60,7 +61,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'all-might',
     bgImage: allMightImg,
     tag: 'Sunset',
-    bgClass: 'text-zinc-900 border-amber-200/50 shadow-md',
+    bgClass: 'text-zinc-900',
+    borderClass: 'border-amber-200/50 shadow-md',
     boxClass: 'bg-white/80 border-amber-200/50',
     dotClass: 'bg-amber-500',
     descClass: 'text-zinc-700 font-medium'
@@ -73,7 +75,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'goku',
     bgImage: gokuImg,
     tag: 'Light',
-    bgClass: 'text-zinc-900 border-blue-200/50 shadow-md',
+    bgClass: 'text-zinc-900',
+    borderClass: 'border-blue-200/50 shadow-md',
     boxClass: 'bg-white/80 border-blue-200/50',
     dotClass: 'bg-blue-500',
     descClass: 'text-zinc-700 font-medium'
@@ -86,7 +89,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'itachi',
     bgImage: itachiImg,
     tag: 'Dark',
-    bgClass: 'text-white border-purple-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-purple-900/50 shadow-md',
     boxClass: 'bg-purple-950/40 border-purple-500/30',
     dotClass: 'bg-red-500',
     descClass: 'text-neutral-300 font-medium'
@@ -99,7 +103,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'dabi',
     bgImage: dabiImg,
     tag: 'Dark',
-    bgClass: 'text-white border-red-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-red-900/50 shadow-md',
     boxClass: 'bg-red-950/40 border-red-500/30',
     dotClass: 'bg-red-500',
     descClass: 'text-neutral-300 font-medium'
@@ -112,7 +117,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'gojo',
     bgImage: gojoImg,
     tag: 'Void',
-    bgClass: 'text-white border-blue-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-blue-900/50 shadow-md',
     boxClass: 'bg-indigo-950/40 border-indigo-500/30',
     dotClass: 'bg-blue-400',
     descClass: 'text-neutral-300 font-medium'
@@ -125,7 +131,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'sung-jinwoo',
     bgImage: jinwooImg,
     tag: 'Arisen',
-    bgClass: 'text-white border-indigo-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-indigo-900/50 shadow-md',
     boxClass: 'bg-slate-950/40 border-indigo-500/30',
     dotClass: 'bg-violet-500',
     descClass: 'text-indigo-200 font-medium'
@@ -138,7 +145,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'nanami',
     bgImage: nanamiImg,
     tag: 'Overtime',
-    bgClass: 'text-white border-amber-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-amber-900/50 shadow-md',
     boxClass: 'bg-amber-950/40 border-amber-500/30',
     dotClass: 'bg-amber-400',
     descClass: 'text-amber-100 font-medium'
@@ -151,7 +159,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'slayer',
     bgImage: slayerImg,
     tag: 'Flowing',
-    bgClass: 'text-white border-blue-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-blue-900/50 shadow-md',
     boxClass: 'bg-blue-950/40 border-blue-500/30',
     dotClass: 'bg-cyan-400',
     descClass: 'text-cyan-100 font-medium'
@@ -164,7 +173,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'zoro',
     bgImage: zoroImg,
     tag: 'Santoryu',
-    bgClass: 'text-white border-emerald-900/50 shadow-md',
+    bgClass: 'text-white',
+    borderClass: 'border-emerald-900/50 shadow-md',
     boxClass: 'bg-emerald-950/40 border-emerald-500/30',
     dotClass: 'bg-emerald-400',
     descClass: 'text-emerald-100 font-medium'
@@ -177,7 +187,8 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     colorTheme: 'naruto',
     bgImage: narutoImg,
     tag: 'Tailed',
-    bgClass: 'text-zinc-900 border-amber-200/50 shadow-md',
+    bgClass: 'text-zinc-900',
+    borderClass: 'border-amber-200/50 shadow-md',
     boxClass: 'bg-white/80 border-amber-200/50',
     dotClass: 'bg-amber-500',
     descClass: 'text-zinc-700 font-medium'

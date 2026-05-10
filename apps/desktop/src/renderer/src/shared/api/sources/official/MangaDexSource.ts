@@ -111,7 +111,7 @@ export class MangaDexSource implements ISourceAdapter {
 
     url = this.applyFiltersToUrl(url, extraArgs)
 
-    const res = await DataService.fetchRepo(url)
+    const res: any = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
@@ -138,7 +138,7 @@ export class MangaDexSource implements ISourceAdapter {
 
     url = this.applyFiltersToUrl(url, extraArgs)
 
-    const res = await DataService.fetchRepo(url)
+    const res: any = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
@@ -165,7 +165,7 @@ export class MangaDexSource implements ISourceAdapter {
 
     url = this.applyFiltersToUrl(url, extraArgs)
 
-    const res = await DataService.fetchRepo(url)
+    const res: any = await DataService.fetchRepo(url)
 
     const manga: Manga[] = (res.data || []).map((m: any) => {
       const coverRel = m.relationships?.find((r: any) => r.type === 'cover_art')
@@ -186,7 +186,7 @@ export class MangaDexSource implements ISourceAdapter {
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
-    const res = await DataService.fetchRepo(
+    const res: any = await DataService.fetchRepo(
       `${this.baseUrl}/manga/${manga.id}?includes[]=cover_art`
     )
     const m = res.data
@@ -207,7 +207,7 @@ export class MangaDexSource implements ISourceAdapter {
 
   async fetchChapters(mangaId: string): Promise<Chapter[]> {
     // Note: mangaId here is expected to be a UUID for MangaDex
-    const res = await DataService.fetchRepo(
+    const res: any = await DataService.fetchRepo(
       `${this.baseUrl}/manga/${mangaId}/feed?limit=500&translatedLanguage[]=en&order[chapter]=desc`
     )
     if (!res || !res.data) return []
@@ -222,7 +222,7 @@ export class MangaDexSource implements ISourceAdapter {
   }
 
   async fetchPages(chapterId: string): Promise<string[]> {
-    const res = await DataService.fetchRepo(`${this.baseUrl}/at-home/server/${chapterId}`)
+    const res: any = await DataService.fetchRepo(`${this.baseUrl}/at-home/server/${chapterId}`)
     if (!res || !res.chapter) return []
 
     const host = res.baseUrl

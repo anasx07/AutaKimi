@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
-import { IpcChannel } from '@common'
+import { IpcChannel } from '@common/types/ipc'
 import { settingsRepo } from '../db'
-import { templateService } from '@common'
+import { templateService } from '@common/services/template.service'
 import { wrapIpc } from './utils'
 
 export function registerSourceHandlers() {

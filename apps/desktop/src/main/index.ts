@@ -361,7 +361,9 @@ app.whenReady().then(async () => {
   }
 
   createWindow()
-  cacheManager.setWebContents(mainWindow.webContents)
+  if (mainWindow) {
+    cacheManager.setWebContents(mainWindow.webContents)
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

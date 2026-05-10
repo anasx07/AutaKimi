@@ -69,11 +69,11 @@ export class MadaraSource implements ISourceAdapter {
         try {
           // Pass the silent flag to DataService to control overlay visibility
           const browserHtml = await DataService.cfFetchHtml(url, options.silent)
-          if (browserHtml && !this.isCfChallengePage(browserHtml)) {
+          if (browserHtml && !this.isCfChallengePage(browserHtml as string)) {
             bypassRegistry.setResolved(hostname, this.baseUrl)
             // Small delay to ensure cookies are synced to electron's net layer
             await new Promise((resolve) => setTimeout(resolve, 500))
-            return browserHtml
+            return browserHtml as string
           }
         } catch (e) {
           if (!options.silent) console.warn('[MadaraSource] cfFetchHtml failed:', e)
@@ -127,7 +127,7 @@ export class MadaraSource implements ISourceAdapter {
     })
 
     try {
-      const { res, url } = await Promise.any(promises)
+      const { res, url } = await (Promise as any).any(promises)
       const pattern = url
         .replace(`/page/${page}/`, '/page/{page}/')
         .replace(`page=${page}`, 'page={page}')
@@ -188,7 +188,7 @@ export class MadaraSource implements ISourceAdapter {
     })
 
     try {
-      const { res, url } = await Promise.any(promises)
+      const { res, url } = await (Promise as any).any(promises)
       const pattern = url
         .replace(`/page/${page}/`, '/page/{page}/')
         .replace(`page=${page}`, 'page={page}')
