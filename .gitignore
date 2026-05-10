@@ -11,3 +11,4 @@ node_modules
 tmp
 *.lnk
 critical_info.txt
+autakimi-extensions/
