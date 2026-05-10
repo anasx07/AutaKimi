@@ -123,6 +123,17 @@ export class ReactiveQueue {
     }
   }
 
+  /**
+   * Clears all pending and active cancel signals.
+   */
+  public clear(): void {
+    this.cancelSignals.forEach((signal) => {
+      signal.next()
+      signal.complete()
+    })
+    this.cancelSignals.clear()
+  }
+
   private getCancelSignal(id: string): Subject<void> {
     let signal = this.cancelSignals.get(id)
     if (!signal) {

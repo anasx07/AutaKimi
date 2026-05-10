@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
 const rl = createInterface({
@@ -31,147 +31,149 @@ const printHeader = () => {
   console.log(`${C.dim}───────────────────────────────────────────${C.reset}\n`)
 }
 
+function getLatestTag() {
+  try {
+    const tag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim()
+    return tag.startsWith('v') ? tag.substring(1) : tag
+  } catch (e) {
+    return null
+  }
+}
+
+function getNextVersion(current, type) {
+  const [major, minor, patch] = current.split('.').map(Number)
+  if (type === 'patch') return `${major}.${minor}.${patch + 1}`
+  if (type === 'minor') return `${major}.${minor + 1}.0`
+  if (type === 'major') return `${major + 1}.0.0`
+  return current
+}
+
 async function main() {
   try {
     printHeader()
 
     // 0. Build Check
-    console.log(`${C.cyan}${C.bright}Running Build Check...${C.reset}\n`)
+    console.log(`${C.cyan}${C.bright}Running Build Check (Desktop)...${C.reset}\n`)
     try {
-      execSync('npm run build', { stdio: 'inherit' })
+      // Check if we are at root or inside apps/desktop
+      const isRoot = existsSync('./apps/desktop')
+      const buildCmd = isRoot ? 'npm run build:desktop' : 'npm run build'
+      
+      execSync(buildCmd, { stdio: 'inherit' })
       console.log(`\n${C.green}✓${C.reset} Build successful!\n`)
     } catch (error) {
       console.log(`\n${C.red}${C.bright}Build Failed!${C.reset}`)
-      console.log(
-        `${C.yellow}${C.bright}Please Fix these errors and Come again for Release${C.reset}\n`
-      )
+      console.log(`${C.yellow}${C.bright}Please Fix build errors before releasing.${C.reset}\n`)
       return
     }
 
-    // 1. Get current version
-    while (true) {
-      try {
-        printHeader()
-        const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
-        console.log(`${C.cyan}Current Version:${C.reset} ${C.bright}${pkg.version}${C.reset}\n`)
+    // 1. Fetch Version Info
+    const rootPkg = JSON.parse(readFileSync('./package.json', 'utf8'))
+    const localVersion = rootPkg.version
+    const latestTag = getLatestTag()
+    const currentVersion = latestTag || localVersion
 
-        // 2. Show Menu
-        console.log(`${C.bright}SELECT RELEASE MODE:${C.reset}`)
-        console.log(
-          `${C.green}  (1)${C.reset} ${C.bright}Full Release${C.reset}       ${C.dim}(Stage All -> Commit -> Tag -> Push)${C.reset}`
-        )
-        console.log(
-          `${C.yellow}  (2)${C.reset} ${C.bright}Version Only${C.reset}       ${C.dim}(Stage package.json -> Tag -> Push)${C.reset}`
-        )
-        console.log(
-          `${C.magenta}  (3)${C.reset} ${C.bright}Tag Only${C.reset}           ${C.dim}(Skip package.json, push vTag only)${C.reset}`
-        )
-        console.log(`${C.red}  (0)${C.reset} ${C.bright}Cancel${C.reset}`)
+    printHeader()
+    console.log(`${C.cyan}Local Version:  ${C.reset} ${localVersion}`)
+    console.log(`${C.cyan}Latest Tag:     ${C.reset} ${latestTag ? 'v' + latestTag : 'None found'}`)
+    console.log(`${C.cyan}Release Origin: ${C.reset} ${C.bright}${currentVersion}${C.reset}\n`)
 
-        const choice = await question(`\n${C.cyan}${C.bright}» Choose [1-3, 0]:${C.reset} `)
+    // 2. Selection Menu
+    console.log(`${C.bright}SELECT RELEASE TYPE:${C.reset}`)
+    console.log(`  ${C.green}(1)${C.reset} ${C.bright}Patch / Fix${C.reset}      ${C.dim}→ v${getNextVersion(currentVersion, 'patch')}${C.reset}`)
+    console.log(`  ${C.green}(2)${C.reset} ${C.bright}Feature / Minor${C.reset}  ${C.dim}→ v${getNextVersion(currentVersion, 'minor')}${C.reset}`)
+    console.log(`  ${C.green}(3)${C.reset} ${C.bright}Breaking / Major${C.reset} ${C.dim}→ v${getNextVersion(currentVersion, 'major')}${C.reset}`)
+    console.log(`  ${C.yellow}(4)${C.reset} Custom Version`)
+    console.log(`  ${C.red}(0)${C.reset} Cancel`)
 
-        if (choice === '0' || !['1', '2', '3'].includes(choice)) {
-          console.log(`\n${C.dim}Operation cancelled.${C.reset}`)
-          break
+    const vChoice = await question(`\n${C.cyan}${C.bright}» Choose [1-4, 0]:${C.reset} `)
+
+    let newVersion = currentVersion
+    if (vChoice === '1') newVersion = getNextVersion(currentVersion, 'patch')
+    else if (vChoice === '2') newVersion = getNextVersion(currentVersion, 'minor')
+    else if (vChoice === '3') newVersion = getNextVersion(currentVersion, 'major')
+    else if (vChoice === '4') {
+      newVersion = await question(`${C.cyan}${C.bright}» Enter Custom Version (x.y.z):${C.reset} `)
+    } else {
+      console.log(`\n${C.dim}Operation cancelled.${C.reset}`)
+      return
+    }
+
+    if (!newVersion || !/^\d+\.\d+\.\d+$/.test(newVersion)) {
+      console.log(`${C.red}Invalid version format.${C.reset}`)
+      return
+    }
+
+    // 3. Apply Updates
+    console.log(`\n${C.cyan}${C.bright}Bumping version to v${newVersion}...${C.reset}`)
+    
+    const pathsToUpdate = [
+      './package.json',
+      './packages/sdk/package.json',
+      './apps/desktop/package.json',
+      './apps/mobile/package.json',
+      './apps/mobile/app.json'
+    ]
+
+    for (const path of pathsToUpdate) {
+      if (existsSync(path)) {
+        const data = JSON.parse(readFileSync(path, 'utf8'))
+        if (path.endsWith('app.json')) {
+          if (data.expo) data.expo.version = newVersion
+        } else {
+          data.version = newVersion
         }
-
-        // 3. Version Handling
-        let newVersion = pkg.version
-        if (choice === '1' || choice === '2') {
-          newVersion = await question(
-            `${C.cyan}${C.bright}» Target Version (e.g. 1.0.6):${C.reset} `
-          )
-          if (!newVersion) {
-            console.log(`${C.red}Invalid version. Cancelled.${C.reset}`)
-            await question(`\n${C.yellow}Press Enter to return to menu...${C.reset}`)
-            continue
-          }
-        } else if (choice === '3') {
-          const tagSuffix = await question(
-            `${C.cyan}${C.bright}» Tag Name (current is v${pkg.version}):${C.reset} v`
-          )
-          newVersion = tagSuffix || pkg.version
-        }
-
-        // 4. Confirmation
-        console.log(`\n${C.bg} CONFIRMATION ${C.reset}`)
-        console.log(
-          `${C.dim}Mode: ${choice === '1' ? 'Full' : choice === '2' ? 'Version' : 'Tag-Only'}${C.reset}`
-        )
-        console.log(
-          `${C.dim}Task: pushing ${C.reset}${C.green}${C.bright}v${newVersion}${C.reset}${C.dim} to GitHub...${C.reset}`
-        )
-
-        const confirm = await question(`\n${C.yellow}${C.bright}Proceed? (y/n):${C.reset} `)
-        if (confirm.toLowerCase() !== 'y') {
-          console.log(`${C.dim}Aborted.${C.reset}`)
-          await question(`\n${C.yellow}Press Enter to return to menu...${C.reset}`)
-          continue
-        }
-
-        // 5. Execution
-        console.log(`\n${C.cyan}${C.bright}Starting Release...${C.reset}\n`)
-
-        if (choice === '1' || choice === '2') {
-          pkg.version = newVersion
-          writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n')
-          console.log(`${C.green}✓${C.reset} package.json updated to v${newVersion}`)
-
-          // Update Mobile files
-          try {
-            const mobilePkgPath = './mobile/package.json'
-            const mobileAppPath = './mobile/app.json'
-
-            const mobilePkg = JSON.parse(readFileSync(mobilePkgPath, 'utf8'))
-            mobilePkg.version = newVersion
-            writeFileSync(mobilePkgPath, JSON.stringify(mobilePkg, null, 2) + '\n')
-            console.log(`${C.green}✓${C.reset} mobile/package.json updated to v${newVersion}`)
-
-            const mobileApp = JSON.parse(readFileSync(mobileAppPath, 'utf8'))
-            if (mobileApp.expo) {
-              mobileApp.expo.version = newVersion
-              writeFileSync(mobileAppPath, JSON.stringify(mobileApp, null, 2) + '\n')
-              console.log(`${C.green}✓${C.reset} mobile/app.json updated to v${newVersion}`)
-            }
-          } catch (e) {
-            console.log(`${C.yellow}⚠️  Could not update mobile files: ${e.message}${C.reset}`)
-          }
-        }
-
-        if (choice === '1') {
-          console.log(`${C.dim}> Staging all changes...${C.reset}`)
-          execSync('git add .')
-          const msg = await question(
-            `${C.cyan}${C.bright}» Commit Message (default: v${newVersion}):${C.reset} `
-          )
-          const commitMsg = msg || `chore: release v${newVersion}`
-          execSync(`git commit -m "${commitMsg}"`)
-        } else if (choice === '2') {
-          console.log(`${C.dim}> Staging version files...${C.reset}`)
-          execSync('git add package.json mobile/package.json mobile/app.json')
-          execSync(`git commit -m "chore: version bump v${newVersion}"`)
-        }
-
-        console.log(`${C.dim}> Creating tag v${newVersion}...${C.reset}`)
-        execSync(`git tag -a v${newVersion} -m "v${newVersion} release"`)
-
-        console.log(`${C.dim}> Pushing main and v${newVersion}...${C.reset}`)
-        execSync(`git push origin main`)
-        execSync(`git push origin v${newVersion}`)
-
-        console.log(
-          `\n${C.green}${C.bright}Release v${newVersion} Successfully Pushed! 🚀${C.reset}`
-        )
-        console.log(`${C.dim}Keep an eye on AutaKimi for the finished build.${C.reset}\n`)
-
-        break // Success! Exit loop.
-      } catch (error) {
-        console.error(`\n${C.red}${C.bright}FAILED:${C.reset} ${error.message}`)
-        await question(`\n${C.yellow}Press Enter to return to menu...${C.reset}`)
+        writeFileSync(path, JSON.stringify(data, null, 2) + '\n')
+        console.log(`${C.green}✓${C.reset} Updated ${path}`)
       }
     }
+
+    // 4. Commit Decision
+    console.log(`\n${C.magenta}${C.bright}--- CHANGES TO COMMIT ---${C.reset}`)
+    execSync('git status -s', { stdio: 'inherit' })
+
+    const doCommit = await question(`\n${C.yellow}${C.bright}Commit these changes now? (y/n):${C.reset} `)
+    
+    if (doCommit.toLowerCase() === 'y') {
+      execSync('git add .')
+      const msg = await question(`${C.cyan}${C.bright}» Commit Message (default: release v${newVersion}):${C.reset} `)
+      const commitMsg = msg || `release v${newVersion}`
+      execSync(`git commit -m "${commitMsg}"`)
+      console.log(`${C.green}✓${C.reset} Changes committed.`)
+    }
+
+    // 5. Final Confirmation
+    console.log(`\n${C.bg} FINAL RELEASE PREPARATION ${C.reset}`)
+    console.log(`${C.dim}Target: v${newVersion}${C.reset}`)
+    console.log(`${C.dim}Task:   Create tag and push to GitHub origin${C.reset}`)
+    
+    const finalConfirm = await question(`\n${C.yellow}${C.bright}Is everything ready to go public? (y/n):${C.reset} `)
+    if (finalConfirm.toLowerCase() !== 'y') {
+      console.log(`${C.dim}Push cancelled.${C.reset}`)
+      return
+    }
+
+    // 6. Push to Cloud
+    try {
+      console.log(`${C.dim}> Tagging v${newVersion}...${C.reset}`)
+      execSync(`git tag -a v${newVersion} -m "v${newVersion} release"`)
+      
+      console.log(`${C.dim}> Pushing main branch...${C.reset}`)
+      execSync('git push origin main')
+      
+      console.log(`${C.dim}> Pushing v${newVersion} tag...${C.reset}`)
+      execSync(`git push origin v${newVersion}`)
+      
+      console.log(`\n${C.green}${C.bright}SUCCESS! v${newVersion} is now live on GitHub. 🚀${C.reset}\n`)
+    } catch (err) {
+      console.error(`\n${C.red}${C.bright}PUSH FAILED:${C.reset} ${err.message}`)
+      console.log(`${C.yellow}Check your internet connection or git permissions.${C.reset}`)
+    }
+
+  } catch (error) {
+    console.error(`\n${C.red}${C.bright}CRITICAL ERROR:${C.reset} ${error.message}`)
   } finally {
-    await question(`\n${C.dim}Press Enter to exit...${C.reset}`)
+    console.log(`${C.dim}Release process terminated.${C.reset}`)
     rl.close()
   }
 }

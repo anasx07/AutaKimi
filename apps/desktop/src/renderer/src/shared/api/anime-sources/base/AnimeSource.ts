@@ -67,9 +67,9 @@ export abstract class AnimeSource implements ISourceAdapter {
       )
       try {
         const browserHtml = await DataService.cfFetchHtml(url)
-        if (browserHtml && !this.isCfChallengePage(browserHtml)) {
+        if (browserHtml && !this.isCfChallengePage(browserHtml as string)) {
           console.log(`[${this.name}] Browser fetch SUCCESS for ${url}`)
-          return browserHtml
+          return browserHtml as string
         }
       } catch (e) {
         console.warn(`[${this.name}] cfFetchHtml failed for ${url}:`, e)
