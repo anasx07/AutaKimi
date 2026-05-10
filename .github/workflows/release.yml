@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: windows-latest
@@ -26,14 +29,17 @@ jobs:
           distribution: 'temurin'
 
       - name: Install Dependencies
+        shell: bash
         run: npm ci
 
       - name: Rebuild Native Modules
+        shell: bash
         run: |
           cd apps/desktop
           npm run rebuild
 
       - name: Build Desktop Application
+        shell: bash
         run: |
           cd apps/desktop
           npm run build
@@ -42,6 +48,7 @@ jobs:
       - name: Generate Mobile Android Project (Prebuild)
         continue-on-error: true
         id: mobile_prebuild
+        shell: bash
         run: |
           cd apps/mobile
           npx expo prebuild --platform android --non-interactive
@@ -49,29 +56,38 @@ jobs:
       - name: Generate Android APK
         continue-on-error: true
         id: mobile_build
+        shell: bash
         run: |
-          cd apps/mobile/android
-          ./gradlew assembleDebug
+          if [ -d "apps/mobile/android" ]; then
+            cd apps/mobile/android
+            ./gradlew assembleDebug
+          else
+            echo "⚠️ Android folder not found, skipping compilation."
+          fi
 
       - name: Publish Release
         shell: bash
         run: |
-          # Create a list of files that actually exist
+          # 1. Gather Desktop Artifacts
           FILES=()
           for f in apps/desktop/dist/*.exe apps/desktop/dist/*.blockmap apps/desktop/dist/latest.yml; do
-            [ -e "$f" ] && FILES+=("$f")
+            if [ -f "$f" ]; then
+              echo "✅ Found Desktop file: $f"
+              FILES+=("$f")
+            fi
           done
           
-          # Add APK if it exists
+          # 2. Add Android APK if it exists
           APK_PATH="apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$APK_PATH" ]; then
-            echo "✅ APK found, adding to release."
+            echo "✅ Found Android APK: $APK_PATH"
             FILES+=("$APK_PATH")
           else
-            echo "⚠️  APK not found, releasing desktop only."
+            echo "⚠️ Android APK not found."
           fi
           
-          # Create the release
+          # 3. Create Release (Force desktop upload even if array is missing android)
+          echo "🚀 Creating GitHub Release v${{ github.ref_name }}..."
           gh release create "${{ github.ref_name }}" "${FILES[@]}" \
             --repo ${{ github.repository }} \
             --target main \
