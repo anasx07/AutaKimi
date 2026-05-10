@@ -9,7 +9,8 @@ const rl = createInterface({
   output: process.stdout
 })
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 // The project root is one level up from the scripts folder
 const projectRoot = join(__dirname, '..')
 
@@ -63,7 +64,6 @@ async function main() {
     // 0. Build Check
     console.log(`${C.cyan}${C.bright}Running Build Check (Desktop)...${C.reset}\n`)
     try {
-      // Run the build from the root using workspaces
       execSync('npm run build:desktop', { stdio: 'inherit', cwd: projectRoot })
       console.log(`\n${C.green}✓${C.reset} Build successful!\n`)
     } catch (error) {
@@ -74,7 +74,8 @@ async function main() {
 
     // 1. Fetch Version Info
     const rootPkgPath = join(projectRoot, 'package.json')
-    const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf8'))
+    const rootPkgContent = readFileSync(rootPkgPath, 'utf8')
+    const rootPkg = JSON.parse(rootPkgContent)
     const localVersion = rootPkg.version
     const latestTag = getLatestTag()
     const currentVersion = latestTag || localVersion
@@ -110,7 +111,7 @@ async function main() {
       return
     }
 
-    // 3. Apply Updates to all Monorepo packages
+    // 3. Apply Updates
     console.log(`\n${C.cyan}${C.bright}Bumping version to v${newVersion}...${C.reset}`)
     
     const relativePaths = [
@@ -180,7 +181,6 @@ async function main() {
   } catch (error) {
     console.error(`\n${C.red}${C.bright}CRITICAL ERROR:${C.reset} ${error.message}`)
   } finally {
-    console.log(`${C.dim}Release process terminated.${C.reset}`)
     rl.close()
   }
 }
