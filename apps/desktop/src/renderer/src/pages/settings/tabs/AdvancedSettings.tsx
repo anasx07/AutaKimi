@@ -253,7 +253,7 @@ export function AdvancedSettings({ statusMessage, setStatusMessage }: AdvancedSe
               Build Engineering: Deepmind Advanced Agentic Coding
             </p>
             <a
-              href="https://github.com/anasx07/AutaKimi-Release"
+              href="https://github.com/anasx07/AutaKimi"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px] hover:scale-110 active:scale-95 transition-all"
