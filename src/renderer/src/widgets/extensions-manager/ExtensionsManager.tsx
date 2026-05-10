@@ -24,21 +24,17 @@ import {
   useUIStore
 } from '@renderer/shared/model'
 import { Button, Input, Card, Badge, Select, Dialog } from '@renderer/shared/ui'
-
-const catalogModules = import.meta.glob('../../shared/api/sources/catalog/extensions/*.json', {
-  eager: true
-})
-const localExtensions = Object.values(catalogModules)
-  .flatMap((m: any) => m.default || m)
-  .map((ext: any) => ({
-    ...ext,
-    baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
-    icon: ext.icon || ''
-  }))
+import { localExtensions as rawLocalExtensions } from '@renderer/shared/api/sources/catalog/catalog-local'
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { generatedSourcesJson } from '@renderer/shared/api/sources/SourceRegistry'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
 import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
+
+const localExtensions = (rawLocalExtensions as any[]).map((ext: any) => ({
+  ...ext,
+  baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
+  icon: ext.icon || ''
+}))
 
 interface Extension {
   name: string
