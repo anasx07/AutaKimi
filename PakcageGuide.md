@@ -1,1 +1,0 @@
-"artifactName": "${productName}.Setup.${version}.${ext}"
