@@ -1,11 +1,17 @@
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { createInterface } from 'node:readline'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout
 })
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+// The project root is one level up from the scripts folder
+const projectRoot = join(__dirname, '..')
 
 const question = (query) => new Promise((resolve) => rl.question(query, resolve))
 
@@ -33,7 +39,7 @@ const printHeader = () => {
 
 function getLatestTag() {
   try {
-    const tag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim()
+    const tag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8', cwd: projectRoot }).trim()
     return tag.startsWith('v') ? tag.substring(1) : tag
   } catch (e) {
     return null
@@ -41,7 +47,9 @@ function getLatestTag() {
 }
 
 function getNextVersion(current, type) {
-  const [major, minor, patch] = current.split('.').map(Number)
+  const parts = current.split('.').map(Number)
+  if (parts.length !== 3) return current
+  const [major, minor, patch] = parts
   if (type === 'patch') return `${major}.${minor}.${patch + 1}`
   if (type === 'minor') return `${major}.${minor + 1}.0`
   if (type === 'major') return `${major + 1}.0.0`
@@ -55,11 +63,8 @@ async function main() {
     // 0. Build Check
     console.log(`${C.cyan}${C.bright}Running Build Check (Desktop)...${C.reset}\n`)
     try {
-      // Check if we are at root or inside apps/desktop
-      const isRoot = existsSync('./apps/desktop')
-      const buildCmd = isRoot ? 'npm run build:desktop' : 'npm run build'
-      
-      execSync(buildCmd, { stdio: 'inherit' })
+      // Run the build from the root using workspaces
+      execSync('npm run build:desktop', { stdio: 'inherit', cwd: projectRoot })
       console.log(`\n${C.green}✓${C.reset} Build successful!\n`)
     } catch (error) {
       console.log(`\n${C.red}${C.bright}Build Failed!${C.reset}`)
@@ -68,7 +73,8 @@ async function main() {
     }
 
     // 1. Fetch Version Info
-    const rootPkg = JSON.parse(readFileSync('./package.json', 'utf8'))
+    const rootPkgPath = join(projectRoot, 'package.json')
+    const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf8'))
     const localVersion = rootPkg.version
     const latestTag = getLatestTag()
     const currentVersion = latestTag || localVersion
@@ -104,41 +110,42 @@ async function main() {
       return
     }
 
-    // 3. Apply Updates
+    // 3. Apply Updates to all Monorepo packages
     console.log(`\n${C.cyan}${C.bright}Bumping version to v${newVersion}...${C.reset}`)
     
-    const pathsToUpdate = [
-      './package.json',
-      './packages/sdk/package.json',
-      './apps/desktop/package.json',
-      './apps/mobile/package.json',
-      './apps/mobile/app.json'
+    const relativePaths = [
+      'package.json',
+      'packages/sdk/package.json',
+      'apps/desktop/package.json',
+      'apps/mobile/package.json',
+      'apps/mobile/app.json'
     ]
 
-    for (const path of pathsToUpdate) {
-      if (existsSync(path)) {
-        const data = JSON.parse(readFileSync(path, 'utf8'))
-        if (path.endsWith('app.json')) {
+    for (const relPath of relativePaths) {
+      const fullPath = join(projectRoot, relPath)
+      if (existsSync(fullPath)) {
+        const data = JSON.parse(readFileSync(fullPath, 'utf8'))
+        if (relPath.endsWith('app.json')) {
           if (data.expo) data.expo.version = newVersion
         } else {
           data.version = newVersion
         }
-        writeFileSync(path, JSON.stringify(data, null, 2) + '\n')
-        console.log(`${C.green}✓${C.reset} Updated ${path}`)
+        writeFileSync(fullPath, JSON.stringify(data, null, 2) + '\n')
+        console.log(`${C.green}✓${C.reset} Updated ${relPath}`)
       }
     }
 
     // 4. Commit Decision
     console.log(`\n${C.magenta}${C.bright}--- CHANGES TO COMMIT ---${C.reset}`)
-    execSync('git status -s', { stdio: 'inherit' })
+    execSync('git status -s', { stdio: 'inherit', cwd: projectRoot })
 
     const doCommit = await question(`\n${C.yellow}${C.bright}Commit these changes now? (y/n):${C.reset} `)
     
     if (doCommit.toLowerCase() === 'y') {
-      execSync('git add .')
+      execSync('git add .', { cwd: projectRoot })
       const msg = await question(`${C.cyan}${C.bright}» Commit Message (default: release v${newVersion}):${C.reset} `)
       const commitMsg = msg || `release v${newVersion}`
-      execSync(`git commit -m "${commitMsg}"`)
+      execSync(`git commit -m "${commitMsg}"`, { cwd: projectRoot })
       console.log(`${C.green}✓${C.reset} Changes committed.`)
     }
 
@@ -156,13 +163,13 @@ async function main() {
     // 6. Push to Cloud
     try {
       console.log(`${C.dim}> Tagging v${newVersion}...${C.reset}`)
-      execSync(`git tag -a v${newVersion} -m "v${newVersion} release"`)
+      execSync(`git tag -a v${newVersion} -m "v${newVersion} release"`, { cwd: projectRoot })
       
       console.log(`${C.dim}> Pushing main branch...${C.reset}`)
-      execSync('git push origin main')
+      execSync('git push origin main', { cwd: projectRoot })
       
       console.log(`${C.dim}> Pushing v${newVersion} tag...${C.reset}`)
-      execSync(`git push origin v${newVersion}`)
+      execSync(`git push origin v${newVersion}`, { cwd: projectRoot })
       
       console.log(`\n${C.green}${C.bright}SUCCESS! v${newVersion} is now live on GitHub. 🚀${C.reset}\n`)
     } catch (err) {
