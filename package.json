@@ -1,6 +1,7 @@
 {
   "name": "autakimi-monorepo",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -28,5 +29,5 @@
   "dependencies": {
     "better-sqlite3": "^12.9.0"
   },
-  "version": "2.0.7"
+  "version": "2.0.8"
 }
