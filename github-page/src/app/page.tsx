@@ -105,7 +105,7 @@ export default function Home() {
               label="Join Discord"
               href="https://discord.gg/qRbpCusgan"
               icon={<MessageSquare className="w-5 h-5 text-white" />}
-              mediaUrl="https://i.pinimg.com/originals/f3/d5/d3/f3d5d36e2f411623864d2937397b2049.gif"
+              mediaUrl="https://i.pinimg.com/originals/13/35/60/133560789fd0fce5291e32c021cc7515.gif"
               className="w-full sm:w-auto"
             />
             <MediaButton
