@@ -24,7 +24,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Install Dependencies
         run: npm ci
@@ -52,28 +51,26 @@ jobs:
       - name: Publish Release
         shell: bash
         run: |
-          # Define common arguments
-          # We point to the artifacts in apps/desktop/dist
-          ARGS=(
-            "${{ github.ref_name }}"
-            apps/desktop/dist/*.exe
-            apps/desktop/dist/*.blockmap
-            apps/desktop/dist/latest.yml
-            --repo ${{ github.repository }}
-            --target main
-            --title "Release ${{ github.ref_name }}"
-            --notes "Automated release of AutaKimi Monorepo (Windows & Android)."
-          )
+          # Create a list of files that actually exist
+          FILES=()
+          for f in apps/desktop/dist/*.exe apps/desktop/dist/*.blockmap apps/desktop/dist/latest.yml; do
+            [ -e "$f" ] && FILES+=("$f")
+          done
           
           # Add APK if it exists
           APK_PATH="apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$APK_PATH" ]; then
-            echo "Adding APK to release..."
-            ARGS+=("$APK_PATH")
+            echo "✅ APK found, adding to release."
+            FILES+=("$APK_PATH")
           else
-            echo "APK not found, skipping..."
+            echo "⚠️  APK not found, releasing desktop only."
           fi
           
-          gh release create "${ARGS[@]}"
+          # Create the release
+          gh release create "${{ github.ref_name }}" "${FILES[@]}" \
+            --repo ${{ github.repository }} \
+            --target main \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "Automated release of AutaKimi (Windows & Android)."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
