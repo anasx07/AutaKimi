@@ -102,6 +102,13 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0 animate-[fadeIn_0.8s_ease_forwards_1s]">
             <MediaButton
+              label="Join Discord"
+              href="https://discord.gg/qRbpCusgan"
+              icon={<MessageSquare className="w-5 h-5 text-white" />}
+              mediaUrl="https://i.pinimg.com/originals/f3/d5/d3/f3d5d36e2f411623864d2937397b2049.gif"
+              className="w-full sm:w-auto"
+            />
+            <MediaButton
               label="Repo Release Page"
               href="https://github.com/anasx07/AutaKimi/releases/latest"
               icon={<Download className="w-5 h-5 text-white" />}
