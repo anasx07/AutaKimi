@@ -1,0 +1,11 @@
+{
+  "ma.autakimi.extension.ru.mangashi": {
+    "id": "ma.autakimi.extension.ru.mangashi",
+    "name": "Manga-shi",
+    "version": "0.0.1",
+    "baseUrl": "https://manga-shi.org",
+    "apiUrl": "https://manga-shi.org",
+    "lang": "ru",
+    "baseClass": "Madara"
+  }
+}

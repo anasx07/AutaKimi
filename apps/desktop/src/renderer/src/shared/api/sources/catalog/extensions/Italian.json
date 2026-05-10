@@ -1,0 +1,227 @@
+[
+  {
+    "name": "Anime GDR Club",
+    "pkg": "ma.autakimi.extension.it.animegdrclub",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Anime GDR Club",
+        "lang": "it",
+        "id": "726858430404746545",
+        "baseUrl": "http://www.agcscanlation.it/"
+      }
+    ]
+  },
+  {
+    "name": "DigitalTeam",
+    "pkg": "ma.autakimi.extension.it.digitalteam",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "DigitalTeam",
+        "lang": "it",
+        "id": "4450188005228586123",
+        "baseUrl": "https://dgtread.com"
+      }
+    ]
+  },
+  {
+    "name": "GTO The Great Site",
+    "pkg": "ma.autakimi.extension.it.gto",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "GTO The Great Site",
+        "lang": "it",
+        "id": "2773063800266255222",
+        "baseUrl": "https://reader.gtothegreatsite.net"
+      }
+    ]
+  },
+  {
+    "name": "Hasta Team",
+    "pkg": "ma.autakimi.extension.it.hastateam",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Hasta Team",
+        "lang": "it",
+        "id": "3278618591126542009",
+        "baseUrl": "https://reader.hastateam.com"
+      }
+    ]
+  },
+  {
+    "name": "HentaiArchive",
+    "pkg": "ma.autakimi.extension.it.hentaiarchive",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiArchive",
+        "lang": "it",
+        "id": "6052929656772429531",
+        "baseUrl": "https://www.hentai-archive.com"
+      }
+    ]
+  },
+  {
+    "name": "HentaiFantasy",
+    "pkg": "ma.autakimi.extension.it.hentaifantasy",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiFantasy",
+        "lang": "it",
+        "id": "398037379041422243",
+        "baseUrl": "https://hentaifantasy.it/index.php"
+      }
+    ]
+  },
+  {
+    "name": "Juin Jutsu Team Reader",
+    "pkg": "ma.autakimi.extension.it.juinjutsuteamreader",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Juin Jutsu Team Reader",
+        "lang": "it",
+        "id": "1779918793601923139",
+        "baseUrl": "https://www.juinjutsureader.ovh"
+      }
+    ]
+  },
+  {
+    "name": "LupiTeam",
+    "pkg": "ma.autakimi.extension.it.lupiteam",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "LupiTeam",
+        "lang": "it",
+        "id": "148102640598931038",
+        "baseUrl": "https://lupiteam.net"
+      }
+    ]
+  },
+  {
+    "name": "Mangaworld",
+    "pkg": "ma.autakimi.extension.it.mangaworld",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mangaworld",
+        "lang": "it",
+        "id": "7114846210461894145",
+        "baseUrl": "https://www.mangaworld.mx"
+      }
+    ]
+  },
+  {
+    "name": "MangaworldAdult",
+    "pkg": "ma.autakimi.extension.it.mangaworldadult",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "MangaworldAdult",
+        "lang": "it",
+        "id": "392961957042768607",
+        "baseUrl": "https://www.mangaworldadult.net"
+      }
+    ]
+  },
+  {
+    "name": "NIFTeam",
+    "pkg": "ma.autakimi.extension.it.nifteam",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "NIFTeam",
+        "lang": "it",
+        "id": "7816508865953731299",
+        "baseUrl": "https://read-nifteam.info"
+      }
+    ]
+  },
+  {
+    "name": "Phoenix Scans",
+    "pkg": "ma.autakimi.extension.it.phoenixscans",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Phoenix Scans",
+        "lang": "it",
+        "id": "6272882172599295519",
+        "baseUrl": "https://www.phoenixscans.com"
+      }
+    ]
+  },
+  {
+    "name": "TuttoAnimeManga",
+    "pkg": "ma.autakimi.extension.it.tuttoanimemanga",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "TuttoAnimeManga",
+        "lang": "it",
+        "id": "2102507871480604746",
+        "baseUrl": "https://tuttoanimemanga.net"
+      }
+    ]
+  },
+  {
+    "name": "Walpurgi Scan",
+    "pkg": "ma.autakimi.extension.it.walpurgisscan",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Walpurgi Scan",
+        "lang": "it",
+        "id": "6566957355096372149",
+        "baseUrl": "https://www.walpurgiscan.it"
+      }
+    ]
+  },
+  {
+    "name": "ZeurelScan",
+    "pkg": "ma.autakimi.extension.it.zeurelscan",
+    "lang": "it",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "ZeurelScan",
+        "lang": "it",
+        "id": "8830049663587145084",
+        "baseUrl": "https://www.zeurelscan.com"
+      }
+    ]
+  }
+]

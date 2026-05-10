@@ -1,0 +1,1568 @@
+[
+  {
+    "name": "AKAYA",
+    "pkg": "ma.autakimi.extension.es.akaya",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "AKAYA",
+        "lang": "es",
+        "id": "670820877691078900",
+        "baseUrl": "https://akaya.io"
+      }
+    ]
+  },
+  {
+    "name": "ApollComics",
+    "pkg": "ma.autakimi.extension.es.apollcomics",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ApollComics",
+        "lang": "es",
+        "id": "3044113561993269522",
+        "baseUrl": "https://apollcomics.es"
+      }
+    ]
+  },
+  {
+    "name": "Asia Lotus",
+    "pkg": "ma.autakimi.extension.es.asialotus",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Asia Lotus",
+        "lang": "es",
+        "id": "3655128076360662290",
+        "baseUrl": "https://asialotuss.com"
+      }
+    ]
+  },
+  {
+    "name": "BarManga",
+    "pkg": "ma.autakimi.extension.es.barmanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "BarManga",
+        "lang": "es",
+        "id": "404674447362480247",
+        "baseUrl": "https://archiviumbar.com"
+      }
+    ]
+  },
+  {
+    "name": "Bega Translation",
+    "pkg": "ma.autakimi.extension.es.begatranslation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Bega Translation",
+        "lang": "es",
+        "id": "6757330205319558057",
+        "baseUrl": "https://begatranslation.com"
+      }
+    ]
+  },
+  {
+    "name": "Biblio Panda",
+    "pkg": "ma.autakimi.extension.es.bibliopanda",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Biblio Panda",
+        "lang": "es",
+        "id": "8219271831795034464",
+        "baseUrl": "https://bibliopanda.com"
+      }
+    ]
+  },
+  {
+    "name": "Bloom Scans",
+    "pkg": "ma.autakimi.extension.es.bloomscans",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Bloom Scans",
+        "lang": "es",
+        "id": "2598725055968738551",
+        "baseUrl": "https://bloomscans.com"
+      }
+    ]
+  },
+  {
+    "name": "BokugenTranslation",
+    "pkg": "ma.autakimi.extension.es.bokugentranslation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "BokugenTranslation",
+        "lang": "es",
+        "id": "1598762687295904337",
+        "baseUrl": "https://bokugents.com"
+      }
+    ]
+  },
+  {
+    "name": "Brakeout",
+    "pkg": "ma.autakimi.extension.es.brakeout",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Brakeout",
+        "lang": "es",
+        "id": "7123045421883828967",
+        "baseUrl": "https://brakeout.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Bymichi Scan",
+    "pkg": "ma.autakimi.extension.es.bymichiscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Bymichi Scan",
+        "lang": "es",
+        "id": "4436777272781358384",
+        "baseUrl": "https://bymichiby.com"
+      }
+    ]
+  },
+  {
+    "name": "Catharsis World",
+    "pkg": "ma.autakimi.extension.es.catharsisworld",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Catharsis World",
+        "lang": "es",
+        "id": "2856082375563763469",
+        "baseUrl": "https://catharsisworld.dig-it.info"
+      }
+    ]
+  },
+  {
+    "name": "CatManhwas",
+    "pkg": "ma.autakimi.extension.es.catmanhwas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "CatManhwas",
+        "lang": "es",
+        "id": "2801410029624167639",
+        "baseUrl": "https://newcat1.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Celestial Moon",
+    "pkg": "ma.autakimi.extension.es.celestialmoon",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Celestial Moon",
+        "lang": "es",
+        "id": "7771256386177960897",
+        "baseUrl": "https://celestialmoonscan.es"
+      }
+    ]
+  },
+  {
+    "name": "Cerberus Series",
+    "pkg": "ma.autakimi.extension.es.cerberusseries",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Cerberus Series",
+        "lang": "es",
+        "id": "1814471239661920836",
+        "baseUrl": "https://legionscans.com/wp"
+      }
+    ]
+  },
+  {
+    "name": "ChoChoX",
+    "pkg": "ma.autakimi.extension.es.chochox",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ChoChoX",
+        "lang": "es",
+        "id": "1434289653753200808",
+        "baseUrl": "https://chochox.com"
+      }
+    ]
+  },
+  {
+    "name": "Codex Zero",
+    "pkg": "ma.autakimi.extension.es.codexzero",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Codex Zero",
+        "lang": "es",
+        "id": "5416462601349591349",
+        "baseUrl": "https://codex.readkisho.me"
+      }
+    ]
+  },
+  {
+    "name": "Colorcito Scan",
+    "pkg": "ma.autakimi.extension.es.colorcitoscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Colorcito Scan",
+        "lang": "es",
+        "id": "1261665235729689526",
+        "baseUrl": "https://colorcitoscan.com"
+      }
+    ]
+  },
+  {
+    "name": "DapRob",
+    "pkg": "ma.autakimi.extension.es.daprob",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "DapRob",
+        "lang": "es",
+        "id": "5193352988321008008",
+        "baseUrl": "https://daprob.com"
+      }
+    ]
+  },
+  {
+    "name": "Dark Room Fansub",
+    "pkg": "ma.autakimi.extension.es.darkroomfansub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Dark Room Fansub",
+        "lang": "es",
+        "id": "2769673412724723872",
+        "baseUrl": "https://lector-darkroomfansub.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Dat-Gar Scan",
+    "pkg": "ma.autakimi.extension.es.datgarscanlation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Dat-Gar Scan",
+        "lang": "es",
+        "id": "1626637101814976364",
+        "baseUrl": "https://datgarscanlation.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Doujinclub",
+    "pkg": "ma.autakimi.extension.es.doujinclub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Doujinclub",
+        "lang": "es",
+        "id": "7710571678445746234",
+        "baseUrl": "https://capibaratraductor.com/doujinclub"
+      }
+    ]
+  },
+  {
+    "name": "DoujinHentai",
+    "pkg": "ma.autakimi.extension.es.doujinhentai",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "DoujinHentai",
+        "lang": "es",
+        "id": "3895171315878328595",
+        "baseUrl": "https://doujinhentai.net"
+      }
+    ]
+  },
+  {
+    "name": "DoujinsHell",
+    "pkg": "ma.autakimi.extension.es.doujinshell",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "DoujinsHell",
+        "lang": "es",
+        "id": "7008709488397053596",
+        "baseUrl": "https://doujinshell.net"
+      }
+    ]
+  },
+  {
+    "name": "DragonTranslation.org",
+    "pkg": "ma.autakimi.extension.es.dragontranslationorg",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "DragonTranslation.org",
+        "lang": "es",
+        "id": "4647982373411241498",
+        "baseUrl": "https://dragontranslation.org"
+      }
+    ]
+  },
+  {
+    "name": "Emperor Scan",
+    "pkg": "ma.autakimi.extension.es.emperorscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Emperor Scan",
+        "lang": "es",
+        "id": "4562754350961964148",
+        "baseUrl": "https://imperiomanhua.com"
+      }
+    ]
+  },
+  {
+    "name": "Escaneo de Leyendas",
+    "pkg": "ma.autakimi.extension.es.escaneodeleyendas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Escaneo de Leyendas",
+        "lang": "es",
+        "id": "7243980374121466722",
+        "baseUrl": "https://escaneodeleyendas.com"
+      }
+    ]
+  },
+  {
+    "name": "Es.Mi2Manga",
+    "pkg": "ma.autakimi.extension.es.esmi2manga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Es.Mi2Manga",
+        "lang": "es",
+        "id": "1024617013674150903",
+        "baseUrl": "https://es.mi2manga.com"
+      }
+    ]
+  },
+  {
+    "name": "EternalMangas",
+    "pkg": "ma.autakimi.extension.es.eternalmangas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "EternalMangas",
+        "lang": "es",
+        "id": "1533901034425595323",
+        "baseUrl": "https://eternalmangas.org"
+      }
+    ]
+  },
+  {
+    "name": "Gistamis House",
+    "pkg": "ma.autakimi.extension.es.gistamishouse",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Gistamis House",
+        "lang": "es",
+        "id": "1284110018292651928",
+        "baseUrl": "https://gistamishousefansub.blogspot.com"
+      }
+    ]
+  },
+  {
+    "name": "Gremory Mangas",
+    "pkg": "ma.autakimi.extension.es.gremorymangas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Gremory Mangas",
+        "lang": "es",
+        "id": "6911130909796364094",
+        "baseUrl": "https://gremoryhistorias.org"
+      }
+    ]
+  },
+  {
+    "name": "Hades no Fansub",
+    "pkg": "ma.autakimi.extension.es.hadesnofansub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hades no Fansub",
+        "lang": "es",
+        "id": "8311505150576608267",
+        "baseUrl": "https://lectorhades.latamtoon.com"
+      }
+    ]
+  },
+  {
+    "name": "Harem de Kira",
+    "pkg": "ma.autakimi.extension.es.haremdekira",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Harem de Kira",
+        "lang": "es",
+        "id": "1480472727871484054",
+        "baseUrl": "https://kiraproject.lat"
+      }
+    ]
+  },
+  {
+    "name": "HeavenManga",
+    "pkg": "ma.autakimi.extension.es.heavenmanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HeavenManga",
+        "lang": "es",
+        "id": "1872740333369520717",
+        "baseUrl": "https://heavenmanga.com"
+      }
+    ]
+  },
+  {
+    "name": "HentaiMode",
+    "pkg": "ma.autakimi.extension.es.hentaimode",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiMode",
+        "lang": "es",
+        "id": "5208759847357095642",
+        "baseUrl": "https://hentaimode.com"
+      }
+    ]
+  },
+  {
+    "name": "Hmangakyomi",
+    "pkg": "ma.autakimi.extension.es.hmangakyomi",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Hmangakyomi",
+        "lang": "es",
+        "id": "5581720399523259773",
+        "baseUrl": "https://hmangakyomi.online"
+      }
+    ]
+  },
+  {
+    "name": "House Of Otakus",
+    "pkg": "ma.autakimi.extension.es.houseofotakus",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "House Of Otakus",
+        "lang": "es",
+        "id": "1968531533450563052",
+        "baseUrl": "https://houseofotakusv2.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Ikigai Mangas",
+    "pkg": "ma.autakimi.extension.es.ikigaimangas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ikigai Mangas",
+        "lang": "es",
+        "id": "3546919326830738510",
+        "baseUrl": "https://viralikigai.melauroral.com"
+      }
+    ]
+  },
+  {
+    "name": "Ikuhentai",
+    "pkg": "ma.autakimi.extension.es.ikuhentai",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ikuhentai",
+        "lang": "es",
+        "id": "7567013997438852760",
+        "baseUrl": "https://ikuhentai.net/"
+      }
+    ]
+  },
+  {
+    "name": "InfraFandub",
+    "pkg": "ma.autakimi.extension.es.infrafandub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "InfraFandub",
+        "lang": "es",
+        "id": "5594696691862732725",
+        "baseUrl": "https://infrafandub.com"
+      }
+    ]
+  },
+  {
+    "name": "InManga",
+    "pkg": "ma.autakimi.extension.es.inmanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "InManga",
+        "lang": "es",
+        "id": "6963106975536326424",
+        "baseUrl": "https://inmanga.com"
+      }
+    ]
+  },
+  {
+    "name": "Inmortal Scan",
+    "pkg": "ma.autakimi.extension.es.inmortalscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Inmortal Scan",
+        "lang": "es",
+        "id": "8879875375160764811",
+        "baseUrl": "https://scanimnortal.com"
+      }
+    ]
+  },
+  {
+    "name": "Insanos Scan",
+    "pkg": "ma.autakimi.extension.es.insanosscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Insanos Scan",
+        "lang": "es",
+        "id": "3274240800401031223",
+        "baseUrl": "https://insanosmanhua.com"
+      }
+    ]
+  },
+  {
+    "name": "Inventario Oculto",
+    "pkg": "ma.autakimi.extension.es.inventariooculto",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Inventario Oculto",
+        "lang": "es",
+        "id": "609477585841458199",
+        "baseUrl": "https://inventariooculto.com"
+      }
+    ]
+  },
+  {
+    "name": "Jeaz Scans",
+    "pkg": "ma.autakimi.extension.es.jeazscans",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Jeaz Scans",
+        "lang": "es",
+        "id": "5292079548510508306",
+        "baseUrl": "https://lectorhub.j5z.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Knight No Scanlation",
+    "pkg": "ma.autakimi.extension.es.knightnoscanlation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Knight No Scanlation",
+        "lang": "es",
+        "id": "6482794816533233181",
+        "baseUrl": "https://lectorknight.com"
+      }
+    ]
+  },
+  {
+    "name": "Koinobori Scan",
+    "pkg": "ma.autakimi.extension.es.koinoboriscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Koinobori Scan",
+        "lang": "es",
+        "id": "5873846881094044177",
+        "baseUrl": "https://visorkoi.com"
+      }
+    ]
+  },
+  {
+    "name": "LectorJPG",
+    "pkg": "ma.autakimi.extension.es.lectorjpg",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "LectorJPG",
+        "lang": "es",
+        "id": "4439526602175493484",
+        "baseUrl": "https://lectorjpg.com"
+      }
+    ]
+  },
+  {
+    "name": "LectorManga.lat",
+    "pkg": "ma.autakimi.extension.es.lectormangalat",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "LectorManga.lat",
+        "lang": "es",
+        "id": "3701714196729780447",
+        "baseUrl": "https://lectormangaa.com"
+      }
+    ]
+  },
+  {
+    "name": "Lector MOnline",
+    "pkg": "ma.autakimi.extension.es.lectormonline",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Lector MOnline",
+        "lang": "es",
+        "id": "7470188862319655999",
+        "baseUrl": "https://www.lectormangas.online"
+      }
+    ]
+  },
+  {
+    "name": "TuMangaOnline",
+    "pkg": "ma.autakimi.extension.es.lectortmo",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "TuMangaOnline",
+        "lang": "es",
+        "id": "4146344224513899730",
+        "baseUrl": "https://zonatmo.com"
+      }
+    ]
+  },
+  {
+    "name": "LeerCapitulo",
+    "pkg": "ma.autakimi.extension.es.leercapitulo",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "LeerCapitulo",
+        "lang": "es",
+        "id": "5621901596522308538",
+        "baseUrl": "https://www.leercapitulo.co"
+      }
+    ]
+  },
+  {
+    "name": "LeerManga",
+    "pkg": "ma.autakimi.extension.es.leermanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "LeerManga",
+        "lang": "es",
+        "id": "3329502392382757058",
+        "baseUrl": "https://leermanga.net"
+      }
+    ]
+  },
+  {
+    "name": "Lmtos",
+    "pkg": "ma.autakimi.extension.es.lmtoonline",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Lmtos",
+        "lang": "es",
+        "id": "3752522006902890093",
+        "baseUrl": "https://www.lmtos.com"
+      }
+    ]
+  },
+  {
+    "name": "Lolivault",
+    "pkg": "ma.autakimi.extension.es.lolivault",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Lolivault",
+        "lang": "es",
+        "id": "1420213267345607410",
+        "baseUrl": "https://lector.lolivault.net"
+      }
+    ]
+  },
+  {
+    "name": "Manga Crab",
+    "pkg": "ma.autakimi.extension.es.mangacrab",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Manga Crab",
+        "lang": "es",
+        "id": "6167683270485370369",
+        "baseUrl": "https://mangacrab.org"
+      }
+    ]
+  },
+  {
+    "name": "MangaEsp",
+    "pkg": "ma.autakimi.extension.es.mangaesp",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MangaEsp",
+        "lang": "es",
+        "id": "1995045995184096324",
+        "baseUrl": "https://mangaesp.topmanhuas.org"
+      }
+    ]
+  },
+  {
+    "name": "MangaOni",
+    "pkg": "ma.autakimi.extension.es.mangamx",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "MangaOni",
+        "lang": "es",
+        "id": "2202687009511923782",
+        "baseUrl": "https://manga-oni.com"
+      }
+    ]
+  },
+  {
+    "name": "Manga Romance",
+    "pkg": "ma.autakimi.extension.es.mangaromance",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manga Romance",
+        "lang": "es",
+        "id": "3857421120061111113",
+        "baseUrl": "https://mangaromance19.com"
+      }
+    ]
+  },
+  {
+    "name": "Manga Mukai",
+    "pkg": "ma.autakimi.extension.es.mangashiina",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manga Mukai",
+        "lang": "es",
+        "id": "711368877221654433",
+        "baseUrl": "https://mangamukai.com"
+      }
+    ]
+  },
+  {
+    "name": "Mangas.in",
+    "pkg": "ma.autakimi.extension.es.mangasin",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Mangas.in",
+        "lang": "es",
+        "id": "3344386250058668105",
+        "baseUrl": "https://m440.in"
+      }
+    ]
+  },
+  {
+    "name": "Mangas No Sekai",
+    "pkg": "ma.autakimi.extension.es.mangasnosekai",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Mangas No Sekai",
+        "lang": "es",
+        "id": "829053423099062956",
+        "baseUrl": "https://mangasnosekai.com"
+      }
+    ]
+  },
+  {
+    "name": "Manga TV",
+    "pkg": "ma.autakimi.extension.es.mangatv",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manga  TV",
+        "lang": "es",
+        "id": "7214040353404261084",
+        "baseUrl": "https://mangatv.net"
+      }
+    ]
+  },
+  {
+    "name": "SamuraiScan",
+    "pkg": "ma.autakimi.extension.es.manhuaonline",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "SamuraiScan",
+        "lang": "es",
+        "id": "5713083996691468192",
+        "baseUrl": "https://samurai.j5z.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Manhwa-Latino",
+    "pkg": "ma.autakimi.extension.es.manhwalatino",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manhwa-Latino",
+        "lang": "es",
+        "id": "3548601371328353875",
+        "baseUrl": "https://manhwa-latino.com"
+      }
+    ]
+  },
+  {
+    "name": "ManhwaOnline",
+    "pkg": "ma.autakimi.extension.es.manhwaonline",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ManhwaOnline",
+        "lang": "es",
+        "id": "5414998368888208528",
+        "baseUrl": "https://manhwa-online.com"
+      }
+    ]
+  },
+  {
+    "name": "ManhwaWeb",
+    "pkg": "ma.autakimi.extension.es.manhwaweb",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "ManhwaWeb",
+        "lang": "es",
+        "id": "5943212552955476721",
+        "baseUrl": "https://manhwaweb.com"
+      }
+    ]
+  },
+  {
+    "name": "Manhwa Scan",
+    "pkg": "ma.autakimi.extension.es.mantrazscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Manhwa Scan",
+        "lang": "es",
+        "id": "7172992930543738693",
+        "baseUrl": "https://manhwascan.lat"
+      }
+    ]
+  },
+  {
+    "name": "Marmota",
+    "pkg": "ma.autakimi.extension.es.marmota",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Marmota",
+        "lang": "es",
+        "id": "5937472249278743372",
+        "baseUrl": "https://marmota.me"
+      }
+    ]
+  },
+  {
+    "name": "Menudo-Fansub",
+    "pkg": "ma.autakimi.extension.es.menudofansub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Menudo-Fansub",
+        "lang": "es",
+        "id": "3505996597464989970",
+        "baseUrl": "https://www.menudo-fansub.com"
+      }
+    ]
+  },
+  {
+    "name": "MHScans",
+    "pkg": "ma.autakimi.extension.es.mhscans",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MHScans",
+        "lang": "es",
+        "id": "3253304651550496369",
+        "baseUrl": "https://mh.inventariooculto.com"
+      }
+    ]
+  },
+  {
+    "name": "Monopoly Scan",
+    "pkg": "ma.autakimi.extension.es.monopolyscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Monopoly Scan",
+        "lang": "es",
+        "id": "5862188113261788590",
+        "baseUrl": "https://monopolymanhua.com"
+      }
+    ]
+  },
+  {
+    "name": "Mundo Manhwa",
+    "pkg": "ma.autakimi.extension.es.mundomanhwa",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Mundo Manhwa",
+        "lang": "es",
+        "id": "7121772696835562045",
+        "baseUrl": "https://mundomanhwa.com"
+      }
+    ]
+  },
+  {
+    "name": "Traducciones Amistosas",
+    "pkg": "ma.autakimi.extension.es.nartag",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Traducciones Amistosas",
+        "lang": "es",
+        "id": "1424373335432920755",
+        "baseUrl": "https://nartag.com"
+      }
+    ]
+  },
+  {
+    "name": "NekoScans",
+    "pkg": "ma.autakimi.extension.es.nekoscans",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "NekoScans",
+        "lang": "es",
+        "id": "8396340084333456288",
+        "baseUrl": "https://nekoproject.org"
+      }
+    ]
+  },
+  {
+    "name": "Noblesse Translations",
+    "pkg": "ma.autakimi.extension.es.noblessetranslations",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Noblesse Translations",
+        "lang": "es",
+        "id": "5125011410949702843",
+        "baseUrl": "https://nobledicion.yoveo.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Nova Manhwas",
+    "pkg": "ma.autakimi.extension.es.novamanhwa",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Nova Manhwas",
+        "lang": "es",
+        "id": "2716608619626653265",
+        "baseUrl": "https://novamanhwa.cc"
+      }
+    ]
+  },
+  {
+    "name": "Novato Scans",
+    "pkg": "ma.autakimi.extension.es.novatoscans",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Novato Scans",
+        "lang": "es",
+        "id": "9161344173890108758",
+        "baseUrl": "https://www.novatoscans.top"
+      }
+    ]
+  },
+  {
+    "name": "Olympus Scanlation",
+    "pkg": "ma.autakimi.extension.es.olympusscanlation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Olympus Scanlation",
+        "lang": "es",
+        "id": "1596411039134168890",
+        "baseUrl": "https://olympusbiblioteca.com"
+      }
+    ]
+  },
+  {
+    "name": "Plot Twist No Fansub",
+    "pkg": "ma.autakimi.extension.es.plottwistnofansub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Plot Twist No Fansub",
+        "lang": "es",
+        "id": "6935004473807791201",
+        "baseUrl": "https://plotnf.com"
+      }
+    ]
+  },
+  {
+    "name": "Ragnarok Scanlation",
+    "pkg": "ma.autakimi.extension.es.ragnarokscanlation",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Ragnarok Scanlation",
+        "lang": "es",
+        "id": "1348827658894665970",
+        "baseUrl": "https://ragnarokscanlation.org"
+      }
+    ]
+  },
+  {
+    "name": "Raiki Scan",
+    "pkg": "ma.autakimi.extension.es.raikiscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Raiki Scan",
+        "lang": "es",
+        "id": "7874966674901996300",
+        "baseUrl": "https://raikiscan.com"
+      }
+    ]
+  },
+  {
+    "name": "RavenManga",
+    "pkg": "ma.autakimi.extension.es.ravenmanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "RavenManga",
+        "lang": "es",
+        "id": "698913079501532785",
+        "baseUrl": "https://ravensword.lat"
+      }
+    ]
+  },
+  {
+    "name": "RichtoScan",
+    "pkg": "ma.autakimi.extension.es.richtoscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "RichtoScan",
+        "lang": "es",
+        "id": "1245067583654716116",
+        "baseUrl": "https://r1.richtoon.top"
+      }
+    ]
+  },
+  {
+    "name": "SapphireScan",
+    "pkg": "ma.autakimi.extension.es.sapphirescan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "SapphireScan",
+        "lang": "es",
+        "id": "8955531858664387570",
+        "baseUrl": "https://sapphirescan.com"
+      }
+    ]
+  },
+  {
+    "name": "Senshi Manga",
+    "pkg": "ma.autakimi.extension.es.senshimanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Senshi Manga",
+        "lang": "es",
+        "id": "5781693635940874072",
+        "baseUrl": "https://capibaratraductor.com/senshimanga"
+      }
+    ]
+  },
+  {
+    "name": "6ianfranc9",
+    "pkg": "ma.autakimi.extension.es.sixianfranc9",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "6ianfranc9",
+        "lang": "es",
+        "id": "852558842404987566",
+        "baseUrl": "https://capibaratraductor.com/6ianfranc9"
+      }
+    ]
+  },
+  {
+    "name": "SkyMangas",
+    "pkg": "ma.autakimi.extension.es.skymangas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "SkyMangas",
+        "lang": "es",
+        "id": "8713024885922119175",
+        "baseUrl": "https://skymangas.com"
+      }
+    ]
+  },
+  {
+    "name": "Spicy Scan",
+    "pkg": "ma.autakimi.extension.es.spicyscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Spicy Scan",
+        "lang": "es",
+        "id": "2665002677795338092",
+        "baseUrl": "https://spicyseries.com"
+      }
+    ]
+  },
+  {
+    "name": "Stick Horse",
+    "pkg": "ma.autakimi.extension.es.stickhorse",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Stick Horse",
+        "lang": "es",
+        "id": "8230044165601692864",
+        "baseUrl": "https://stickhorse.cl"
+      }
+    ]
+  },
+  {
+    "name": "Submanhwa",
+    "pkg": "ma.autakimi.extension.es.submanhwa",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Submanhwa",
+        "lang": "es",
+        "id": "1136717301008230074",
+        "baseUrl": "https://www.submanhwa.com"
+      }
+    ]
+  },
+  {
+    "name": "Sword Of Oblivion",
+    "pkg": "ma.autakimi.extension.es.swordofoblivion",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Sword Of Oblivion",
+        "lang": "es",
+        "id": "6084280098324546826",
+        "baseUrl": "https://swordofoblivion.com"
+      }
+    ]
+  },
+  {
+    "name": "Taurus Fansub",
+    "pkg": "ma.autakimi.extension.es.taurusfansub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Taurus Fansub",
+        "lang": "es",
+        "id": "5157867187592331768",
+        "baseUrl": "https://lectortaurus.com"
+      }
+    ]
+  },
+  {
+    "name": "Temple Scan",
+    "pkg": "ma.autakimi.extension.es.templescanesp",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Temple Scan",
+        "lang": "es",
+        "id": "3451196845457607826",
+        "baseUrl": "https://aedexnox.pwhost.xyz"
+      }
+    ]
+  },
+  {
+    "name": "Falco Scan",
+    "pkg": "ma.autakimi.extension.es.tenkaiscan",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Falco Scan",
+        "lang": "es",
+        "id": "5992780069311625546",
+        "baseUrl": "https://falcoscan.net"
+      }
+    ]
+  },
+  {
+    "name": "TMOHentai",
+    "pkg": "ma.autakimi.extension.es.tmohentai",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "TMOHentai",
+        "lang": "es",
+        "id": "8385948079634749158",
+        "baseUrl": "https://tmohentai.com"
+      }
+    ]
+  },
+  {
+    "name": "Toon-es",
+    "pkg": "ma.autakimi.extension.es.toones",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Toon-es",
+        "lang": "es",
+        "id": "5035285034268559598",
+        "baseUrl": "https://toon-es.com"
+      }
+    ]
+  },
+  {
+    "name": "TopComicPorno",
+    "pkg": "ma.autakimi.extension.es.topcomicporno",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "TopComicPorno",
+        "lang": "es",
+        "id": "6716313068102878996",
+        "baseUrl": "https://topcomicporno.com"
+      }
+    ]
+  },
+  {
+    "name": "Traducciones Moonlight",
+    "pkg": "ma.autakimi.extension.es.traduccionesmoonlight",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Traducciones Moonlight",
+        "lang": "es",
+        "id": "4349338377187141550",
+        "baseUrl": "https://traduccionesmoonlight.com"
+      }
+    ]
+  },
+  {
+    "name": "TuManhwas.Club",
+    "pkg": "ma.autakimi.extension.es.tumanhwasclub",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "TuManhwas.Club",
+        "lang": "es",
+        "id": "8004442288770923365",
+        "baseUrl": "https://tumanhwas.club"
+      }
+    ]
+  },
+  {
+    "name": "Uchuujin Projects",
+    "pkg": "ma.autakimi.extension.es.uchuujinprojects",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Uchuujin Projects",
+        "lang": "es",
+        "id": "3953107753690791431",
+        "baseUrl": "https://uchuujinmangas.com"
+      }
+    ]
+  },
+  {
+    "name": "VCPVMP",
+    "pkg": "ma.autakimi.extension.es.vcpvmp",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "VCP",
+        "lang": "es",
+        "id": "8472215287946707583",
+        "baseUrl": "https://vercomicsporno.com"
+      },
+      {
+        "name": "VMP",
+        "lang": "es",
+        "id": "4952451593357491304",
+        "baseUrl": "https://vermangasporno.com"
+      }
+    ]
+  },
+  {
+    "name": "Ver Manhwas",
+    "pkg": "ma.autakimi.extension.es.vermanhwas",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Ver Manhwas",
+        "lang": "es",
+        "id": "4150746388640244220",
+        "baseUrl": "https://vermanhwa.com"
+      }
+    ]
+  },
+  {
+    "name": "Yupmanga",
+    "pkg": "ma.autakimi.extension.es.yupmanga",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Yupmanga",
+        "lang": "es",
+        "id": "4437245120973625796",
+        "baseUrl": "https://www.yupmanga.com"
+      }
+    ]
+  },
+  {
+    "name": "Yuri-Online",
+    "pkg": "ma.autakimi.extension.es.yurionline",
+    "lang": "es",
+    "version": "0.0.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Yuri-Online",
+        "lang": "es",
+        "id": "3410370616110029377",
+        "baseUrl": "https://yuri-online.com"
+      }
+    ]
+  }
+]
