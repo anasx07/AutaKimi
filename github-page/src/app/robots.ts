@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/private/'],
     },
-    sitemap: 'https://anasx07.github.io/AutaKimi-Release/sitemap.xml',
+    sitemap: 'https://anasx07.github.io/AutaKimi/sitemap.xml',
   }
 }

@@ -86,7 +86,7 @@ export default function AboutPage(): React.JSX.Element {
               variant="outline"
               className="gap-2.5 rounded-2xl px-8 h-12 border-border/50 bg-secondary/50 backdrop-blur-sm hover:bg-secondary font-bold transition-all"
               onClick={() =>
-                DataService.openExternal('https://anasx07.github.io/AutaKimi-Release/')
+                DataService.openExternal('https://anasx07.github.io/AutaKimi/')
               }
             >
               <ExternalLink className="h-5 w-5" />
@@ -187,7 +187,7 @@ export default function AboutPage(): React.JSX.Element {
                 variant="ghost"
                 size="sm"
                 className="text-primary text-[10px] font-black uppercase tracking-widest gap-2"
-                onClick={() => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/blob/main/LICENSE')}
+                onClick={() => DataService.openExternal('https://github.com/anasx07/AutaKimi/blob/main/LICENSE')}
               >
                 Read Terms <ExternalLink className="h-3 w-3" />
               </Button>

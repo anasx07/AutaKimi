@@ -242,7 +242,7 @@ export default function BrowsePage(): React.JSX.Element {
                 metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
               }
               onReport={() =>
-                DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
+                DataService.openExternal('https://github.com/anasx07/AutaKimi/issues/new')
               }
               details={{
                 source: metadata?.name || activeExtension,
@@ -352,7 +352,7 @@ export default function BrowsePage(): React.JSX.Element {
                       metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
                     }
                     onReport={() =>
-                      DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
+                      DataService.openExternal('https://github.com/anasx07/AutaKimi/issues')
                     }
                   />
                 )}

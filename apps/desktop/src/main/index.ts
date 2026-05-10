@@ -300,7 +300,7 @@ app.whenReady().then(async () => {
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'anasx07',
-    repo: 'AutaKimi-Release',
+    repo: 'AutaKimi',
     private: false
   })
   autoUpdater.autoDownload = true

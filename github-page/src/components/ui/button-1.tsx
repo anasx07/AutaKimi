@@ -67,11 +67,11 @@ type GradientSvgProps = {
   colors: Colors;
 };
 
-const GradientSvg: React.FC<GradientSvgProps> = ({
+const GradientSvg = ({
   className,
   isHovered,
   colors,
-}) => {
+}: GradientSvgProps) => {
   const svgStates: SvgStates = {
     svg1: {
       gradientTransform:
@@ -226,7 +226,7 @@ type LiquidProps = {
   colors: Colors;
 };
 
-export const Liquid: React.FC<LiquidProps> = ({ isHovered, colors }) => {
+export const Liquid = ({ isHovered, colors }: LiquidProps) => {
   return (
     <>
       {Array.from({ length: 7 }).map((_, index) => (

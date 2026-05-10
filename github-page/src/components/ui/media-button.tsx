@@ -11,7 +11,7 @@ type MediaButtonProps = {
   className?: string;
 };
 
-export const MediaButton: React.FC<MediaButtonProps> = ({ label, mediaUrl, href, icon, className = '' }) => {
+export const MediaButton = ({ label, mediaUrl, href, icon, className = '' }: MediaButtonProps) => {
   const isVideo = /\.(mp4|webm)$/i.test(mediaUrl);
 
   const Component = href ? motion.a : motion.button;
