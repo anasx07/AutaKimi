@@ -12,23 +12,23 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://anasx07.github.io/AutaKimi-Release"),
+  metadataBase: new URL("https://anasx07.github.io/AutaKimi"),
   title: "AutaKimi - The Ultimate Manga Reader",
   description: "The ultimate manga experience on Windows. Free, extensible, and built for speed.",
   keywords: ["Manga", "Reader", "Windows", "AutaKimi", "Anime", "Free", "Extensions", "Arabic localization"],
   icons: {
-    icon: "/AutaKimi-Release/favicon.png",
-    shortcut: "/AutaKimi-Release/favicon.png",
-    apple: "/AutaKimi-Release/assets/icon.png",
+    icon: "/AutaKimi/favicon.png",
+    shortcut: "/AutaKimi/favicon.png",
+    apple: "/AutaKimi/assets/icon.png",
   },
   openGraph: {
     title: "AutaKimi - The Ultimate Manga Reader",
     description: "The ultimate manga experience on Windows. Free, extensible, and built for speed.",
-    url: "https://anasx07.github.io/AutaKimi-Release",
+    url: "https://anasx07.github.io/AutaKimi",
     siteName: "AutaKimi",
     images: [
       {
-        url: "/AutaKimi-Release/assets/icon.png",
+        url: "/AutaKimi/assets/icon.png",
         width: 512,
         height: 512,
         alt: "AutaKimi Logo",
@@ -38,7 +38,7 @@ export const metadata = {
     type: "website",
   },
   alternates: {
-    canonical: "https://anasx07.github.io/AutaKimi-Release",
+    canonical: "https://anasx07.github.io/AutaKimi",
   },
   verification: {
     google: "oLob_47r8e6mHEe8beX6u_sSm-eGtaljDpJQkZ_jeuw",

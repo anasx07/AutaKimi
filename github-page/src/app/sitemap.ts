@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export const dynamic = 'force-static'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://anasx07.github.io/AutaKimi-Release'
+  const baseUrl = 'https://anasx07.github.io/AutaKimi'
 
   return [
     {

@@ -10,12 +10,12 @@ export function Navbar() {
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-purple-500/10 opacity-30 group-hover/nav:opacity-60 transition-opacity duration-500"></div>
         </div>
-        
+
         {/* Logo Section */}
         <Link href="/" className="relative flex items-center gap-3 cursor-pointer group ml-2 z-10 w-fit">
           <div className="relative">
             <div className="absolute inset-0 bg-white/20 rounded-lg blur-md group-hover:bg-white/40 transition-colors"></div>
-            <Image src="/AutaKimi-Release/assets/icon.png" alt="AutaKimi Logo" width={32} height={32} className="relative w-8 h-8 rounded-lg shadow-xl group-hover:scale-105 transition-transform" />
+            <Image src="/AutaKimi/assets/icon.png" alt="AutaKimi Logo" width={32} height={32} className="relative w-8 h-8 rounded-lg shadow-xl group-hover:scale-105 transition-transform" />
           </div>
           <span className="font-bold text-xl tracking-tight text-white transition-all group-hover:tracking-wider drop-shadow-md">AutaKimi</span>
         </Link>
@@ -26,10 +26,10 @@ export function Navbar() {
           <Link href="/docs" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-white transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-white after:rounded-full after:transition-all">Docs</Link>
           <Link href="/changelog" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-white transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-white after:rounded-full after:transition-all">Changelog</Link>
         </div>
-        
+
         {/* Right Action */}
         <div className="relative flex items-center z-10">
-           <GitHubButton />
+          <GitHubButton />
         </div>
       </nav>
     </div>

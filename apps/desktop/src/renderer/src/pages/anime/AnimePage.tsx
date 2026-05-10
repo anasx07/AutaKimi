@@ -239,7 +239,7 @@ export default function AnimePage(): React.JSX.Element {
                       className={cn(
                         'absolute top-0 right-0 h-6 w-6 rounded-bl-xl rounded-tr-none bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/80 hover:text-white z-10',
                         pinnedAnimeSources.includes(ext.pkg) &&
-                          'opacity-100 text-primary bg-primary/20'
+                        'opacity-100 text-primary bg-primary/20'
                       )}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -371,7 +371,7 @@ export default function AnimePage(): React.JSX.Element {
                 metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
               }
               onReport={() =>
-                DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues/new')
+                DataService.openExternal('https://github.com/anasx07/AutaKimi/issues/new')
               }
               details={{
                 source: metadata?.name || activeAnimePkg || 'unknown',
@@ -479,7 +479,7 @@ export default function AnimePage(): React.JSX.Element {
                       metadata?.baseUrl && DataService.openInternalBrowser(metadata.baseUrl)
                     }
                     onReport={() =>
-                      DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/issues')
+                      DataService.openExternal('https://github.com/anasx07/AutaKimi/issues')
                     }
                   />
                 )}

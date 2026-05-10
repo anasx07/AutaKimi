@@ -26,7 +26,7 @@ const sizeMap = {
   lg: 'w-80 h-96'
 };
 
-const GlowCard: React.FC<GlowCardProps> = ({ 
+const GlowCard = ({ 
   children, 
   className = '', 
   glowColor = 'purple',
@@ -35,7 +35,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
   height,
   customSize = false,
   style = {}
-}) => {
+}: GlowCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
