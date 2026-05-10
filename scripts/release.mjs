@@ -11,12 +11,10 @@ const rl = createInterface({
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-// The project root is one level up from the scripts folder
 const projectRoot = join(__dirname, '..')
 
 const question = (query) => new Promise((resolve) => rl.question(query, resolve))
 
-// ANSI Colors
 const C = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -47,6 +45,19 @@ function getLatestTag() {
   }
 }
 
+// Simple version comparison: returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+function compareVersions(v1, v2) {
+  if (!v1) return -1
+  if (!v2) return 1
+  const p1 = v1.split('.').map(Number)
+  const p2 = v2.split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if (p1[i] > p2[i]) return 1
+    if (p1[i] < p2[i]) return -1
+  }
+  return 0
+}
+
 function getNextVersion(current, type) {
   const parts = current.split('.').map(Number)
   if (parts.length !== 3) return current
@@ -74,16 +85,23 @@ async function main() {
 
     // 1. Fetch Version Info
     const rootPkgPath = join(projectRoot, 'package.json')
-    const rootPkgContent = readFileSync(rootPkgPath, 'utf8')
-    const rootPkg = JSON.parse(rootPkgContent)
+    const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf8'))
     const localVersion = rootPkg.version
     const latestTag = getLatestTag()
-    const currentVersion = latestTag || localVersion
+    
+    // Determine the base version (Source of Truth)
+    const isLocalAhead = compareVersions(localVersion, latestTag) > 0
+    const currentVersion = isLocalAhead ? localVersion : (latestTag || localVersion)
 
     printHeader()
     console.log(`${C.cyan}Local Version:  ${C.reset} ${localVersion}`)
     console.log(`${C.cyan}Latest Tag:     ${C.reset} ${latestTag ? 'v' + latestTag : 'None found'}`)
-    console.log(`${C.cyan}Release Origin: ${C.reset} ${C.bright}${currentVersion}${C.reset}\n`)
+    
+    if (isLocalAhead && latestTag) {
+        console.log(`${C.yellow}${C.bright}⚠️  Notice: Local version is ahead of latest Git tag.${C.reset}`)
+    }
+    
+    console.log(`${C.cyan}Base for bump:  ${C.reset} ${C.bright}${currentVersion}${C.reset}\n`)
 
     // 2. Selection Menu
     console.log(`${C.bright}SELECT RELEASE TYPE:${C.reset}`)
@@ -153,7 +171,6 @@ async function main() {
     // 5. Final Confirmation
     console.log(`\n${C.bg} FINAL RELEASE PREPARATION ${C.reset}`)
     console.log(`${C.dim}Target: v${newVersion}${C.reset}`)
-    console.log(`${C.dim}Task:   Create tag and push to GitHub origin${C.reset}`)
     
     const finalConfirm = await question(`\n${C.yellow}${C.bright}Is everything ready to go public? (y/n):${C.reset} `)
     if (finalConfirm.toLowerCase() !== 'y') {
@@ -175,7 +192,6 @@ async function main() {
       console.log(`\n${C.green}${C.bright}SUCCESS! v${newVersion} is now live on GitHub. 🚀${C.reset}\n`)
     } catch (err) {
       console.error(`\n${C.red}${C.bright}PUSH FAILED:${C.reset} ${err.message}`)
-      console.log(`${C.yellow}Check your internet connection or git permissions.${C.reset}`)
     }
 
   } catch (error) {
