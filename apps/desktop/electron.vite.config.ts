@@ -11,7 +11,7 @@ export default defineConfig({
       }
     },
     build: {
-      bytecode: true,
+      bytecode: false,
       sourcemap: false,
       rollupOptions: {
         external: ['electron', 'path', 'fs', 'crypto', 'os', 'worker_threads', 'vm', 'http', 'better-sqlite3'],
@@ -20,7 +20,24 @@ export default defineConfig({
           'extension-worker': resolve(__dirname, 'src/main/extension-worker.ts')
         }
       }
-    }
+    },
+    plugins: [
+      obfuscator({
+        options: {
+          compact: true,
+          controlFlowFlattening: true,
+          controlFlowFlatteningThreshold: 0.75,
+          numbersToExpressions: true,
+          simplify: true,
+          stringArray: true,
+          stringArrayCallsTransform: true,
+          stringArrayThreshold: 0.75,
+          splitStrings: true,
+          splitStringsChunkLength: 10,
+          unicodeEscapeSequence: true
+        }
+      })
+    ]
   },
   preload: {
     resolve: {
@@ -29,9 +46,26 @@ export default defineConfig({
       }
     },
     build: {
-      bytecode: true,
+      bytecode: false,
       sourcemap: false
-    }
+    },
+    plugins: [
+      obfuscator({
+        options: {
+          compact: true,
+          controlFlowFlattening: true,
+          controlFlowFlatteningThreshold: 0.75,
+          numbersToExpressions: true,
+          simplify: true,
+          stringArray: true,
+          stringArrayCallsTransform: true,
+          stringArrayThreshold: 0.75,
+          splitStrings: true,
+          splitStringsChunkLength: 10,
+          unicodeEscapeSequence: true
+        }
+      })
+    ]
   },
   renderer: {
     resolve: {
