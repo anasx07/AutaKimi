@@ -26,6 +26,7 @@ export interface SettingsSchema {
     extensionSortOrder: 'asc' | 'desc'
     pinnedAnimeSources: string[]
     domainOverrides: Record<string, string>
+    pluginsEnabled: string[]
   }
   network: {
     bypassCloudflare: boolean
@@ -74,7 +75,8 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
     extensionSortBy: 'supported',
     extensionSortOrder: 'asc',
     pinnedAnimeSources: [],
-    domainOverrides: {}
+    domainOverrides: {},
+    pluginsEnabled: []
   },
   network: {
     bypassCloudflare: true,
@@ -121,6 +123,7 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   extension_sort_by: 'extensions.extensionSortBy',
   extension_sort_order: 'extensions.extensionSortOrder',
   pinnedAnimeSources: 'extensions.pinnedAnimeSources',
+  pluginsEnabled: 'extensions.pluginsEnabled',
 
   // Network
   bypass_cloudflare: 'network.bypassCloudflare',

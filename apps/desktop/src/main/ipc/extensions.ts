@@ -1,16 +1,13 @@
-import { ipcMain } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import { extensionOrchestrator } from '../services/extension.service'
 import { NetworkConfig, getEffectiveUA } from '@common/config/network'
 import { extensionRepo, settingsRepo } from '../db'
-import { wrapIpc } from './utils'
+import { registerHandler, wrapIpc } from './utils'
 
 export function registerExtensionHandlers() {
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.EXTENSION_INSTALL,
-    wrapIpc((_, { ext, repoUrl }: { ext: any; repoUrl: string }) =>
-      extensionOrchestrator.install(ext, repoUrl)
-    )
+    wrapIpc((_, ext: any, repoUrl: string) => extensionOrchestrator.install(ext, repoUrl))
   )
 
   interface ExecuteExtensionArgs {
@@ -19,7 +16,7 @@ export function registerExtensionHandlers() {
     contextArgs: Record<string, any>
   }
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.EXECUTE_EXTENSION,
     wrapIpc(async (_, { pkg, code, contextArgs }: ExecuteExtensionArgs) => {
       console.log(`[ExtIPC] Executing pkg: ${pkg}, activeFeed: ${contextArgs?.activeFeed}`)
@@ -75,7 +72,7 @@ export function registerExtensionHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DETECT_THEME,
     wrapIpc(async (_, url) => {
       const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
@@ -83,3 +80,4 @@ export function registerExtensionHandlers() {
     })
   )
 }
+

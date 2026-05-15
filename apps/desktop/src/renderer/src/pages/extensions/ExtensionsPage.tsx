@@ -285,7 +285,7 @@ export default function ExtensionsPage(): React.JSX.Element {
     const isPinned = pinnedExtensions.includes(ext.pkg)
     const isInstalling = installingPkgs.has(ext.pkg)
     const updateAvailable = updates.some((u) => u.pkg === ext.pkg)
-    const iconUrl = DataService.getExtensionIcon(ext.pkg, ext.icon)
+    const iconUrl = DataService.getExtensionIcon(ext.pkg)
 
     const handleBrowse = (): void => {
       navigate(`/browse/${ext.pkg}`)

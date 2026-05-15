@@ -13,12 +13,17 @@ export interface IBypassProvider {
    * Triggers a user-solved bypass flow (e.g. opens a hidden browser window).
    * Should return the valid User-Agent and Cookies after successful solving.
    */
-  resolveChallenge(url: string): Promise<Result<{ userAgent: string; cookies: string }>>
+  resolveChallenge(url: string, silent?: boolean): Promise<Result<{ userAgent: string; cookies: string }>>
   
   /**
    * Retrieves currently stored cookies/UA for a domain without triggering UI.
    */
   getCredentials(url: string): Promise<{ userAgent: string; cookies: string }>
+
+  /**
+   * Reports that a domain was successfully used for a fetch.
+   */
+  reportPulse(url: string): void
 }
 
 /**
@@ -38,49 +43,85 @@ export class NetworkClient {
   /**
    * High-level fetch that automatically detects Cloudflare challenges
    * and requests a bypass from the platform if needed.
+   * Now includes built-in retry logic.
    */
-  async fetch(url: string, init: RequestInit = {}): Promise<Result<Response>> {
-    try {
-      // 1. Get existing credentials if provider is available
-      if (this.provider) {
-        const { userAgent, cookies } = await this.provider.getCredentials(url)
-        init.headers = {
-          ...init.headers,
-          'User-Agent': userAgent,
-          'Cookie': cookies
-        }
-      }
+  async fetch(
+    url: string,
+    options: {
+      attempts?: number
+      delay?: number
+      fetchFn?: any
+      silent?: boolean
+    } & RequestInit = {}
+  ): Promise<Result<Response>> {
+    const { attempts = 1, delay = 1000, fetchFn = fetch, ...init } = options
 
-      // 2. Perform initial request
-      let response = await fetch(url, init)
-
-      // 3. Detect Cloudflare challenge (403 Forbidden or specific headers)
-      if (response.status === 403 || response.status === 503) {
-        const text = await response.clone().text()
-        if (text.includes('cloudflare') || text.includes('Challenge_eb') || text.includes('cf-browser-verification')) {
-          console.warn(`[NetworkClient] Cloudflare detected for ${url}. Requesting bypass...`)
-          
+    return NetworkClient.executeWithRetry(
+      async () => {
+        try {
+          // 1. Get existing credentials if provider is available
           if (this.provider) {
-            const bypassRes = await this.provider.resolveChallenge(url)
-            if (bypassRes.ok) {
-              // Retry with new credentials
-              init.headers = {
-                ...init.headers,
-                'User-Agent': bypassRes.value.userAgent,
-                'Cookie': bypassRes.value.cookies
-              }
-              response = await fetch(url, init)
-            } else {
-              return { ok: false, error: 'Cloudflare bypass failed or was cancelled', status: response.status }
+            const { userAgent, cookies } = await this.provider.getCredentials(url)
+            init.headers = {
+              ...init.headers,
+              'User-Agent': userAgent,
+              'Cookie': cookies
             }
           }
-        }
-      }
 
-      return { ok: true, value: response }
-    } catch (err: any) {
-      return { ok: false, error: err.message || String(err) }
-    }
+          // 2. Perform initial request
+          let response = await fetchFn(url, init)
+
+          // 3. Detect Cloudflare challenge (403 Forbidden or specific headers)
+          if (response.status === 403 || response.status === 503) {
+            const text = await response.clone().text()
+            if (
+              text.includes('cloudflare') ||
+              text.includes('Challenge_eb') ||
+              text.includes('cf-browser-verification')
+            ) {
+              console.warn(`[NetworkClient] Cloudflare detected for ${url}. Requesting bypass...`)
+
+              if (this.provider) {
+                const bypassRes = await this.provider.resolveChallenge(url, options.silent)
+                if (bypassRes.ok) {
+                  // Update headers for retry (this specific attempt's retry)
+                  init.headers = {
+                    ...init.headers,
+                    'User-Agent': bypassRes.value.userAgent,
+                    'Cookie': bypassRes.value.cookies
+                  }
+                  response = await fetchFn(url, init)
+                } else {
+                  return {
+                    ok: false,
+                    error: 'Cloudflare bypass failed or was cancelled',
+                    status: response.status
+                  }
+                }
+              }
+            }
+          }
+
+          // 4. Report pulse on success if we have a provider
+          if (response.ok && this.provider) {
+            this.provider.reportPulse(url)
+          }
+
+          return { ok: true, value: response }
+        } catch (err: any) {
+          return { ok: false, error: err.message || String(err) }
+        }
+      },
+      (res: Result<Response>) => {
+        // Retry logic: retry if not OK AND (it's a 5xx error OR rate limited)
+        if (!res.ok) return true // Generic error (network level)
+        const response = res.value
+        return !response.ok && (response.status >= 500 || response.status === 429)
+      },
+      attempts,
+      delay
+    )
   }
 
   /**
@@ -88,7 +129,7 @@ export class NetworkClient {
    */
   static async executeWithRetry<T>(
     fn: () => Promise<T>,
-    shouldRetry: (res: any) => boolean,
+    shouldRetry: (res: T) => boolean,
     attempts = 3,
     delay = 1000
   ): Promise<T> {
@@ -114,7 +155,7 @@ export class NetworkClient {
 export const networkClient = new NetworkClient()
 
 /**
- * Backward compatibility alias for NetworkService
+ * @deprecated Use `networkClient.fetch()` instead.
  */
 export const NetworkService = {
   executeWithRetry: NetworkClient.executeWithRetry,
@@ -125,11 +166,10 @@ export const NetworkService = {
     delay = 1000,
     fetchFn: any = fetch
   ): Promise<any> => {
-    return NetworkClient.executeWithRetry(
-      () => fetchFn(url, init),
-      (res) => !res.ok && (res.status >= 500 || res.status === 429),
-      attempts,
-      delay
-    )
+    const res = await networkClient.fetch(url, { ...init, attempts, delay, fetchFn })
+    if (res.ok) return res.value
+    // Legacy return was just the response object, even if it failed
+    // (the caller would check res.ok). If it threw a network error, we should re-throw.
+    throw new Error(res.error)
   }
 }

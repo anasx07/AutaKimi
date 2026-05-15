@@ -1,30 +1,19 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import { Bonjour, Service } from 'bonjour-service'
-import { AppService } from './service.registry'
+import { AppService, ServicePriority } from './service.registry'
 import { identityService } from './identity.service'
 import { historyRepo, libraryRepo } from '../db'
 import os from 'os'
 
 export class SyncServer implements AppService {
-  private static instance: SyncServer
+  public priority = ServicePriority.FEATURE
   private wss: WebSocketServer | null = null
   private bonjour: Bonjour | null = null
   private service: Service | null = null
   private port = 42069 // AutaKimi Sync Port
   private isRunning = false
 
-  private constructor() {}
-
-  public static getInstance(): SyncServer {
-    if (!SyncServer.instance) {
-      SyncServer.instance = new SyncServer()
-    }
-    return SyncServer.instance
-  }
-
-  setWebContents(_webContents: Electron.WebContents) {
-    // webContents currently unused for sync server events
-  }
+  constructor() {}
 
   async initialize(): Promise<void> {
     // Identity should already be initialized by ServiceRegistry order
@@ -159,4 +148,4 @@ export class SyncServer implements AppService {
   }
 }
 
-export const syncServer = SyncServer.getInstance()
+export const syncServer = new SyncServer()

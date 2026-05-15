@@ -1,12 +1,12 @@
-import { ipcMain, session } from 'electron'
+import { session } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import { extensionOrchestrator } from '../services/extension.service'
 import { NetworkConfig } from '@common/config/network'
-import { wrapIpc, isValidUrl } from './utils'
-import { CacheManager, CacheGroup } from '../services/cache.service'
+import { registerHandler, wrapIpc, isValidUrl } from './utils'
+import { cacheManager, CacheGroup } from '../services/cache.service'
 
 export function registerNetworkHandlers() {
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.FETCH_REPO,
     wrapIpc(async (_, url: string) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL')
@@ -18,7 +18,7 @@ export function registerNetworkHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.FETCH_TEXT,
     wrapIpc(async (_, url: string, options?: any) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL')
@@ -27,7 +27,13 @@ export function registerNetworkHandlers() {
         const response = await extensionOrchestrator.fetch(url, options || {})
         const data = await response.text()
         console.log(`[FetchText] ← ${url} status=${response.status} bodyLen=${data.length}`)
-        return { data, status: response.status, ok: response.ok }
+
+        // Ensure only serializable data is returned
+        return {
+          data,
+          status: Number(response.status),
+          ok: Boolean(response.ok)
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e)
         console.error(`[FetchText] ✗ ${url}:`, msg)
@@ -36,21 +42,22 @@ export function registerNetworkHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.CLEAR_CACHE,
     wrapIpc(async () => {
       await session.defaultSession.clearCache()
-      await CacheManager.getInstance().invalidate(CacheGroup.IMAGES)
-      await CacheManager.getInstance().cleanup() // Trigger global cleanup
-      return true
+      await cacheManager.invalidate(CacheGroup.IMAGES)
+      await cacheManager.cleanup() // Trigger global cleanup
+      return { success: true }
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.CLEAR_COOKIES,
     wrapIpc(async () => {
       await session.defaultSession.clearStorageData({ storages: ['cookies'] })
-      return true
+      return { success: true }
     })
   )
 }
+

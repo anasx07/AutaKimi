@@ -59,7 +59,6 @@ export const ChapterSection = memo(
         // Trigger visit immediately when pages are ready
         onVisible(chapter)
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pages.length, chapter.id])
 
     // --- Halfway & section visibility observers ---
@@ -96,7 +95,6 @@ export const ChapterSection = memo(
         halfwayObserver.disconnect()
         visibilityObserver.disconnect()
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pages.length, chapter.id, isVertical])
 
     // --- Per-image page tracking observer (vertical/webtoon modes) ---
@@ -131,7 +129,6 @@ export const ChapterSection = memo(
       })
 
       return () => observer.disconnect()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pages.length, isVertical, scrollRoot])
 
     if (isLoading) {

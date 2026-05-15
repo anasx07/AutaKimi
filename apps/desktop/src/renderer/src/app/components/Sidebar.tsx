@@ -44,7 +44,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
   return (
     <aside
       className={cn(
-        'glass-panel flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20',
+        'glass-panel flex flex-col transition-all duration-500 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] z-20',
         isSidebarCollapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -84,7 +84,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
                 <>
                   <Icon
                     className={cn(
-                      'h-5 w-5 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+                      'h-5 w-5 transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]',
                       isActive
                         ? 'text-primary [filter:drop-shadow(0_0_5px_hsl(var(--primary)/0.6))] scale-110'
                         : 'text-muted-foreground group-hover:text-foreground group-hover:scale-110'

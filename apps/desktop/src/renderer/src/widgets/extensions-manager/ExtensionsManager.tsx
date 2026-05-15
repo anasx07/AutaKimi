@@ -24,17 +24,10 @@ import {
   useUIStore
 } from '@renderer/shared/model'
 import { Button, Input, Card, Badge, Select, Dialog } from '@renderer/shared/ui'
-import { localExtensions as rawLocalExtensions } from '@renderer/shared/api/sources/catalog/catalog-local'
 import { getNativeSource, isFullySupported } from '@renderer/shared/api/sources'
 import { generatedSourcesJson } from '@renderer/shared/api/sources/SourceRegistry'
 import { DomainOverrideModal } from '@renderer/features/extension-management'
 import { LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
-
-const localExtensions = (rawLocalExtensions as any[]).map((ext: any) => ({
-  ...ext,
-  baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
-  icon: ext.icon || ''
-}))
 
 interface Extension {
   name: string
@@ -53,16 +46,19 @@ export default function ExtensionsManager(): React.JSX.Element {
   const { loadFromDb } = useLibraryStore()
   const {
     installedExtensions,
+    availableExtensions: extensions,
+    isRefreshingCatalog,
     uninstallExtension,
     setActiveExtension,
     extensionSortBy,
     extensionSortOrder,
     setExtensionSortBy,
     setExtensionSortOrder,
-    loadInstalled
+    loadInstalled,
+    loadCatalog
   } = useExtensionStore()
   const { setActiveTab: setGlobalActiveTab } = useUIStore()
-  const [extensions] = useState<Extension[]>(localExtensions as Extension[])
+
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'installed' | 'all'>('installed')
   const [installStatuses, setInstallStatuses] = useState<
@@ -140,21 +136,6 @@ export default function ExtensionsManager(): React.JSX.Element {
       }
       return 0
     })
-
-  // Helper to get local icon path
-  const getIconPath = (ext: Extension) => {
-    const pkg = ext.pkg
-    if (ext.icon) return ext.icon.replace('https://', 'autakimi-cache://')
-
-    try {
-      // 1. Try local asset first (bundled with the app)
-      const localPath = new URL(`../../app/assets/Extensionicon/${pkg}.png`, import.meta.url).href
-      if (localPath && !localPath.includes('undefined')) return localPath
-    } catch (e) {}
-
-    // No remote fallback - use our local protocol
-    return `autakimi-cache://local-icon/${pkg}.png`
-  }
 
   const handleBulkInstall = async () => {
     if (bulkInstallStatus?.isInstalling) return
@@ -429,7 +410,7 @@ export default function ExtensionsManager(): React.JSX.Element {
                 <div className="flex items-start gap-3">
                   <div className="w-14 h-14 flex-shrink-0 rounded-lg bg-secondary flex items-center p-0.5 justify-center relative overflow-hidden ring-2 ring-border/50 group-hover:ring-primary/30 transition-all">
                     <img
-                      src={getIconPath(ext)}
+                      src={DataService.getExtensionIcon(ext.pkg)}
                       alt={ext.name}
                       className="w-full h-full object-contain"
                       onError={(e) => {

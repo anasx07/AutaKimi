@@ -1,4 +1,4 @@
-import { AnimeSource } from '../base/AnimeSource'
+import { AnimeSource } from '@common/engines/sources'
 import { Manga, MangaPage, Chapter } from '../../sources/types'
 import * as cheerio from 'cheerio'
 
