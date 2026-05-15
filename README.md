@@ -12,7 +12,8 @@
 - **🛡️ Privacy First:** No accounts, no tracking, and no central servers. Your data stays on your device.
 - **📱 P2P Syncing:** Seamlessly synchronize your history and library between Desktop and Mobile via local Wi-Fi pairing.
 - **🧩 Dynamic Extensions:** A powerful "Empty Shell" architecture that allows you to add your own content sources via remote repositories.
-- **☁️ Cloudflare Bypass:** Built-in "User-Solved" verification system to navigate protected websites reliably.
+- **🔌 Sandboxed Plugins:** Secure, community-driven JavaScript modules for specialized automation and site interactions (e.g., automated Cloudflare solving).
+- **☁️ Cloudflare Bypass:** Built-in "User-Solved" verification system and automated solver plugins to navigate protected websites reliably.
 - **⚡ High Performance:** Native-speed performance powered by Electron (Desktop) and Expo/React Native (Mobile).
 
 ---
@@ -21,8 +22,8 @@
 
 AutaKimi is built as a unified TypeScript monorepo using npm workspaces:
 
-- **`packages/sdk`**: The shared core containing the extension engine, network client, and sync protocols.
-- **`apps/desktop`**: Modern Electron application featuring a sleek React 19 UI and Drizzle ORM.
+- **`packages/sdk`**: The shared core containing the extension engine, sandboxed plugin system, network client, and sync protocols.
+- **`apps/desktop`**: Modern Electron application featuring a sleek React 19 UI, sandboxed VM execution, and Drizzle ORM.
 - **`apps/mobile`**: High-performance Expo application with NativeWind styling and local-first storage.
 - **`github-page`**: Next.js-powered landing page and documentation.
 

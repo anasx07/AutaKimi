@@ -1,20 +1,13 @@
 import { settingsRepo } from '../db'
 import crypto from 'crypto'
-import { AppService } from './service.registry'
+import { AppService, ServicePriority } from './service.registry'
 
 export class IdentityService implements AppService {
-  private static instance: IdentityService
+  public priority = ServicePriority.CORE
   private deviceId: string | null = null
   private syncSecret: string | null = null
 
-  private constructor() {}
-
-  public static getInstance(): IdentityService {
-    if (!IdentityService.instance) {
-      IdentityService.instance = new IdentityService()
-    }
-    return IdentityService.instance
-  }
+  constructor() {}
 
   async initialize(): Promise<void> {
     this.deviceId = await settingsRepo.get('device_id')
@@ -63,4 +56,4 @@ export class IdentityService implements AppService {
   }
 }
 
-export const identityService = IdentityService.getInstance()
+export const identityService = new IdentityService()

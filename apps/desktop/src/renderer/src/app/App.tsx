@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useUIStore } from '@renderer/shared/model/ui.store'
 import { DataService } from '../shared/api/data.service'
-import { bypassHeartbeatService } from '../shared/api/BypassHeartbeatService'
+import { setGeneratedSources } from '../shared/api/sources/SourceRegistry'
 
 // Lazy load page components
 const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))
@@ -44,10 +44,6 @@ function App(): React.JSX.Element {
     setIsCfBypassing(false)
   }, [location.pathname, setIsCfBypassing])
 
-  useEffect(() => {
-    bypassHeartbeatService.start()
-    return () => bypassHeartbeatService.stop()
-  }, [])
 
   useEffect(() => {
     const unsub = DataService.onCacheInvalidate((data: { group: string; key?: string }) => {
@@ -56,6 +52,12 @@ function App(): React.JSX.Element {
     })
     return () => unsub()
   }, [invalidateGroup])
+
+  const { loadCatalog } = useExtensionStore()
+
+  useEffect(() => {
+    loadCatalog()
+  }, [loadCatalog])
 
   return (
     <>

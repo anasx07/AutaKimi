@@ -1,9 +1,9 @@
-import { WebContents } from 'electron'
 import { downloadRepo, settingsRepo } from '../db'
-import { CacheManager } from './cache.service'
-import { AppService } from './service.registry'
+import { AppService, ServicePriority } from './service.registry'
 import { IpcChannel } from '@common/types/ipc'
 import { stateRegistry } from './state.service'
+import { broadcastService } from './broadcast.service'
+import { cacheManager } from './cache.service'
 import { ReactiveQueue } from '../utils/reactive-queue'
 
 export interface DownloadTask {
@@ -17,23 +17,11 @@ export interface DownloadTask {
 }
 
 export class DownloadManager implements AppService {
-  private static instance: DownloadManager
+  public priority = ServicePriority.FEATURE
   private queue = new ReactiveQueue({ concurrency: 3 })
-  private webContents: WebContents | null = null
   public activeDownloads = new Map<string, boolean>()
 
-  private constructor() {}
-
-  public static getInstance(): DownloadManager {
-    if (!DownloadManager.instance) {
-      DownloadManager.instance = new DownloadManager()
-    }
-    return DownloadManager.instance
-  }
-
-  setWebContents(webContents: WebContents) {
-    this.webContents = webContents
-  }
+  constructor() {}
 
   async initialize(): Promise<void> {
     const concurrency = parseInt((await settingsRepo.get('download_concurrency')) || '3')
@@ -107,16 +95,14 @@ export class DownloadManager implements AppService {
     total?: number,
     error?: string
   ) {
-    if (this.webContents) {
-      this.webContents.send(IpcChannel.DOWNLOAD_EVENT, {
-        type,
-        mangaId: task.mangaId,
-        chapterId: task.chapterId,
-        cached,
-        total,
-        error
-      })
-    }
+    broadcastService.send(IpcChannel.DOWNLOAD_EVENT, {
+      type,
+      mangaId: task.mangaId,
+      chapterId: task.chapterId,
+      cached,
+      total,
+      error
+    })
 
     stateRegistry.updateDownloadState(task.mangaId, task.chapterId, type)
   }
@@ -133,7 +119,7 @@ export class DownloadManager implements AppService {
 
         try {
           // Use the correct ImageCache instance method
-          await CacheManager.getInstance().getImageCache().get(url)
+          await cacheManager.getImageCache().get(url)
           cachedCount++
           this.notifyStatus(task, 'progress', cachedCount, task.pageUrls.length)
 
@@ -154,4 +140,4 @@ export class DownloadManager implements AppService {
   }
 }
 
-export const downloadManager = DownloadManager.getInstance()
+export const downloadManager = new DownloadManager()

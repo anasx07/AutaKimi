@@ -5,10 +5,10 @@ import { join } from 'path'
 import { NetworkConfig } from '@common/config/network'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { ServiceRegistry } from './services/service.registry'
-import { DownloadManager } from './services/download.service'
+import { downloadManager } from './services/download.service'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
-import { TrayManager } from './tray'
+import { trayManager } from './tray'
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -26,11 +26,11 @@ app.on('second-instance', () => {
 // Disable Chromium automation detection flags (required for Cloudflare bypass)
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
 
-import { NetworkService } from '@common/services/network'
+import { networkClient } from '@common'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { CacheManager } from './services/cache.service'
+import { cacheManager } from './services/cache.service'
 import { mangaCacheRepo } from './db'
 
 // Register Services
@@ -39,11 +39,15 @@ import { extensionOrchestrator } from './services/extension.service'
 import { identityService } from './services/identity.service'
 import { syncServer } from './services/sync-server.service'
 import { cloudflareService } from './services/cloudflare.service'
+import { pluginManager } from './services/plugin.manager'
+import { broadcastService } from './services/broadcast.service'
+ServiceRegistry.register(broadcastService)
 ServiceRegistry.register(identityService)
 ServiceRegistry.register(syncServer)
 ServiceRegistry.register(cloudflareService)
-ServiceRegistry.register(DownloadManager.getInstance())
+ServiceRegistry.register(downloadManager)
 ServiceRegistry.register(extensionOrchestrator)
+ServiceRegistry.register(pluginManager)
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
@@ -51,6 +55,7 @@ import { registerWindowHandlers } from './ipc/window'
 import { registerDownloadHandlers } from './ipc/downloads'
 import { registerSyncHandlers } from './ipc/sync'
 import { registerSourceHandlers } from './ipc/sources'
+import { registerHandler, wrapIpc } from './ipc/utils'
 import { IpcChannel } from './types/ipc'
 import { stateRegistry } from './services/state.service'
 
@@ -134,13 +139,13 @@ function createWindow(): void {
   mainWindow.on('move', saveState)
 
   // System Tray Initialization
-  TrayManager.getInstance().createTray(mainWindow, icon)
+  trayManager.createTray(mainWindow, icon)
 
   // Handle window close (minimize to tray)
   mainWindow.on('close', (event) => {
     // If the app is quitting (via tray or system quit), let it close
     if ((app as any).isQuitting) {
-      TrayManager.getInstance().destroy()
+      trayManager.destroy()
       return
     }
 
@@ -154,22 +159,20 @@ function createWindow(): void {
       event.preventDefault()
       mainWindow?.hide()
     } else {
-      TrayManager.getInstance().destroy()
+      trayManager.destroy()
     }
   })
 
-  mainWindow?.on('ready-to-show', () => {
-    mainWindow?.show()
-    // Inject webContents to downloadManager for IPC events
-    if (mainWindow) {
-      DownloadManager.getInstance().setWebContents(mainWindow.webContents)
-      syncServer.setWebContents(mainWindow.webContents)
-      stateRegistry.setWebContents(mainWindow.webContents)
-    }
-    setImmediate(() => {
-      runCleanupRoutine()
+    mainWindow?.on('ready-to-show', () => {
+      mainWindow?.show()
+      // Inject webContents to BroadcastService for centralized IPC
+      if (mainWindow) {
+        broadcastService.setWebContents(mainWindow.webContents)
+      }
+      setImmediate(() => {
+        runCleanupRoutine()
+      })
     })
-  })
 
   mainWindow?.webContents?.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -211,9 +214,6 @@ app.whenReady().then(async () => {
   registerSyncHandlers()
   registerSourceHandlers()
 
-  // Initialize CacheManager
-  const cacheManager = CacheManager.getInstance()
-
   // Connect Manga Cache Repo
   cacheManager.setMangaRepo(mangaCacheRepo)
   ServiceRegistry.register(cacheManager)
@@ -235,15 +235,11 @@ app.whenReady().then(async () => {
         const localIconPath = is.dev
           ? path.join(
               process.cwd(),
-              'src',
-              'renderer',
-              'src',
-              'app',
-              'assets',
-              'Extensionicon',
+              'autakimi-extensions',
+              'icons',
               filename
             )
-          : path.join(process.resourcesPath, 'Extensionicon', filename)
+          : path.join(process.resourcesPath, 'icons', filename)
 
         try {
           if (fs.existsSync(localIconPath)) {
@@ -258,7 +254,7 @@ app.whenReady().then(async () => {
       }
 
       const hash = crypto.createHash('md5').update(url).digest('hex')
-      const imageCache = CacheManager.getInstance().getImageCache()
+      const imageCache = cacheManager.getImageCache()
 
       const buffer = await imageCache.get(hash)
       if (buffer) return new Response(new Uint8Array(buffer))
@@ -270,20 +266,18 @@ app.whenReady().then(async () => {
         /* ignore */
       }
 
-      const response = await NetworkService.fetchWithRetry(
-        url,
-        {
-          headers: {
-            'User-Agent': session.defaultSession.getUserAgent(),
-            Referer: origin
-          }
+      const res = await networkClient.fetch(url, {
+        headers: {
+          'User-Agent': session.defaultSession.getUserAgent(),
+          Referer: origin
         },
-        NetworkConfig.DEFAULT_RETRY_ATTEMPTS,
-        NetworkConfig.DEFAULT_RETRY_DELAY,
-        net.fetch
-      )
+        attempts: NetworkConfig.DEFAULT_RETRY_ATTEMPTS,
+        delay: NetworkConfig.DEFAULT_RETRY_DELAY,
+        fetchFn: net.fetch
+      })
 
-      if (!response.ok) return new Response('Error loading resource', { status: response.status })
+      if (!res.ok) return new Response('Error loading resource', { status: res.status || 500 })
+      const response = res.value
 
       const resBuffer = Buffer.from(await response.arrayBuffer())
       await imageCache.set(hash, resBuffer)
@@ -308,38 +302,39 @@ app.whenReady().then(async () => {
 
   // Update events
   autoUpdater.on('checking-for-update', () => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'checking' })
+    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'checking' })
   })
   autoUpdater.on('update-available', () => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'available' })
+    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'available' })
   })
   autoUpdater.on('update-not-available', () => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'idle' })
+    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'idle' })
   })
   autoUpdater.on('download-progress', (progressObj) => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, {
+    broadcastService.send(IpcChannel.APP_UPDATE, {
       status: 'downloading',
       progress: progressObj
     })
   })
   autoUpdater.on('update-downloaded', () => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'downloaded' })
+    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'downloaded' })
   })
   autoUpdater.on('error', (err) => {
-    mainWindow?.webContents.send(IpcChannel.APP_UPDATE, { status: 'error', error: err.message })
+    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'error', error: err.message })
   })
 
-  ipcMain.handle(IpcChannel.INSTALL_UPDATE, () => {
+  registerHandler(IpcChannel.INSTALL_UPDATE, wrapIpc(async () => {
     autoUpdater.quitAndInstall()
-  })
+  }))
 
-  ipcMain.handle(IpcChannel.CHECK_FOR_UPDATE, () => {
+  registerHandler(IpcChannel.CHECK_FOR_UPDATE, wrapIpc(async () => {
     autoUpdater.checkForUpdatesAndNotify()
-  })
+  }))
 
   ipcMain.on(IpcChannel.GET_VERSION, (event) => {
     event.returnValue = app.getVersion()
   })
+
 
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     console.error('Failed to check for updates:', err)
@@ -361,9 +356,6 @@ app.whenReady().then(async () => {
   }
 
   createWindow()
-  if (mainWindow) {
-    cacheManager.setWebContents(mainWindow.webContents)
-  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

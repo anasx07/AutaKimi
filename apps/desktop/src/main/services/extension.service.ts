@@ -4,7 +4,7 @@ import path from 'path'
 import { extensionRepo, settingsRepo } from '../db'
 import { ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import * as crypto from 'crypto'
-import { AppService } from './service.registry'
+import { AppService, ServicePriority } from './service.registry'
 
 class WorkerPool {
   private workers: { worker: Worker; isBusy: boolean; id: number }[] = []
@@ -84,20 +84,13 @@ class WorkerPool {
 }
 
 export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
-  private static instance: ExtensionOrchestrator
+  public priority = ServicePriority.PLUGIN
   private workerPool: WorkerPool
   private engine: ExtensionEngine
 
-  private constructor() {
+  constructor() {
     this.workerPool = new WorkerPool()
     this.engine = new ExtensionEngine(this)
-  }
-
-  public static getInstance(): ExtensionOrchestrator {
-    if (!ExtensionOrchestrator.instance) {
-      ExtensionOrchestrator.instance = new ExtensionOrchestrator()
-    }
-    return ExtensionOrchestrator.instance
   }
 
   async initialize(): Promise<void> {
@@ -163,4 +156,4 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
   }
 }
 
-export const extensionOrchestrator = ExtensionOrchestrator.getInstance()
+export const extensionOrchestrator = new ExtensionOrchestrator()

@@ -1,7 +1,7 @@
 import { parentPort } from 'worker_threads'
 import vm from 'vm'
 import * as cheerio from 'cheerio'
-import { NetworkService } from '@common/services/network'
+import { networkClient } from '@common'
 import { NetworkConfig } from '@common/config/network'
 
 /**
@@ -84,7 +84,14 @@ parentPort.on(
             json: () => Promise<unknown>
           }>((resolve) => {
             pendingFetches.set(fetchId, resolve)
-            parentPort!.postMessage({ type: 'WORKER_FETCH', fetchId, url, init })
+            
+            // Sanitize init to ensure it's serializable
+            const sanitizedInit: any = { ...init }
+            if (init && init.headers) {
+               sanitizedInit.headers = JSON.parse(JSON.stringify(init.headers))
+            }
+            
+            parentPort!.postMessage({ type: 'WORKER_FETCH', fetchId, url, init: sanitizedInit })
           })
         }
 
@@ -101,10 +108,14 @@ parentPort.on(
         }
 
         try {
-          const response = await NetworkService.fetchWithRetry(url, {
+          const res = await networkClient.fetch(url, {
             ...init,
-            headers: extraHeaders
+            headers: extraHeaders,
+            attempts: 3,
+            delay: 1000
           })
+          if (!res.ok) throw new Error(res.error)
+          const response = res.value
           const body = await response.text()
           console.log(
             `[Worker-VM] Response: status=${response.status} bodyLen=${body.length} url=${url}`
