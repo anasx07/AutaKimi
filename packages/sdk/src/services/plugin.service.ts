@@ -1,12 +1,14 @@
 import { networkClient } from './network'
 
+export type PluginTarget = 'main-cloudflare' | 'renderer-reader' | (string & {})
+
 export interface PluginManifest {
   id: string
   name: string
   description: string
   author: string
   version: string
-  target: string
+  target: PluginTarget
 }
 
 export interface AutakimiPlugin extends PluginManifest {
@@ -140,7 +142,7 @@ export class PluginService {
     return this.enabledPlugins.has(id)
   }
 
-  getEnabledPluginsByTarget(target: string): AutakimiPlugin[] {
+  getEnabledPluginsByTarget(target: PluginTarget): AutakimiPlugin[] {
     return this.getAllPlugins().filter(p => p.target === target && this.enabledPlugins.has(p.id))
   }
 }

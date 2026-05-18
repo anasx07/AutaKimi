@@ -35,7 +35,7 @@ interface Extension {
   version: string
   lang: string
   icon: string
-  nsfw?: number
+  nsfw?: boolean
   baseUrl: string
   sources?: { name: string; lang: string; id: string; baseUrl: string }[]
 }

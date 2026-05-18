@@ -69,7 +69,8 @@ export class MangaThemesiaSource implements ISourceAdapter {
             title,
             url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
             coverUrl: img.attr('data-src') || img.attr('src') || '',
-            status: combinedStatus
+            status: combinedStatus,
+            pkg: this.id
           })
         }
       }

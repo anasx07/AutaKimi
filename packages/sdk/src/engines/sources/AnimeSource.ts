@@ -1,4 +1,4 @@
-import { ISourceAdapter, Manga, Chapter, MangaPage, FetchOptions } from '../../types'
+import { ISourceAdapter, Manga, Chapter, MangaPage, FetchOptions, StreamingServer } from '../../types'
 import { networkClient } from '../../services/network'
 
 /**
@@ -48,5 +48,5 @@ export abstract class AnimeSource implements ISourceAdapter {
   abstract searchManga(query: string, page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   abstract fetchMangaDetails(manga: Manga): Promise<Manga>
   abstract fetchChapters(mangaUrl: string): Promise<Chapter[]>
-  abstract fetchPages(episodeUrl: string): Promise<string[]>
+  abstract fetchPages(episodeUrl: string): Promise<string[] | StreamingServer[]>
 }

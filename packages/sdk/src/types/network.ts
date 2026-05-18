@@ -7,7 +7,10 @@ export interface FetchOptions {
   attempts?: number
   delay?: number
   page?: number
-  [key: string]: any // Allow for extra dynamic args used by some sources
+  offset?: number
+  limit?: number
+  activeFeed?: string
+  debouncedSearch?: string
 }
 
 export interface FetchResult {

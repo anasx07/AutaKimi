@@ -58,14 +58,29 @@ export class TemplateService {
    */
   private registerDynamicTemplate(def: { id: string; name: string; generator: string }) {
     try {
-      // Create a dynamic function from the generator string
-      // The string should look like: "return `const baseUrl = ${JSON.stringify(baseUrl)}; ...`"
-      const generatorFn = new Function('baseUrl', 'ua', def.generator)
-      
       this.templates.set(def.id, {
         id: def.id,
         name: def.name,
-        generate: (baseUrl: string, ua: string) => generatorFn(baseUrl, ua)
+        generate: (baseUrl: string, ua: string) => {
+          // 1. Extract the content inside the backticks of the return statement.
+          // A standard generator looks like: "return `content`"
+          const match = def.generator.match(/return\s*`([\s\S]*)`/);
+          if (!match) {
+            throw new Error('Invalid template generator format: must return a backtick string.');
+          }
+          let content = match[1];
+
+          // 2. Perform safe, non-eval substitution for known placeholders
+          content = content.replace(/\${JSON\.stringify\(baseUrl\)}/g, JSON.stringify(baseUrl));
+          content = content.replace(/\${JSON\.stringify\(ua\)}/g, JSON.stringify(ua));
+          content = content.replace(/\${baseUrl}/g, baseUrl);
+          content = content.replace(/\${ua}/g, ua);
+
+          // 3. Resolve any escaped backticks inside the JSON definition
+          content = content.replace(/\\`/g, '`');
+
+          return content;
+        }
       })
       
       console.log(`[TemplateService] Registered template: ${def.name}`)

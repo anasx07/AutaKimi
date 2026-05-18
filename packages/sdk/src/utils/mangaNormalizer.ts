@@ -1,8 +1,8 @@
-import { Manga } from '../types/manga'
-export type { Manga as NormalizedManga }
-export type { Manga }
+import { Manga, PartialManga } from '../types/manga'
+export type { PartialManga as NormalizedManga }
+export type { Manga, PartialManga }
 
-export interface Chapter {
+export interface TemplateChapter {
   id: string
   attributes: {
     chapter: string
@@ -12,7 +12,7 @@ export interface Chapter {
   }
 }
 
-export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = true): Manga => {
+export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = true): PartialManga => {
   if (!manga) {
     return {
       id: '',

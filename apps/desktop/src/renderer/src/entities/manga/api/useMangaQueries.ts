@@ -253,7 +253,7 @@ export function useChapterPages(mangaId: string, pkg: string, chapter: Chapter |
       // 2. Fetch from extension
       const runner = await ExtensionResolver.resolve(pkg)
       if (!runner) throw new Error('Extension not found')
-      const pages = await runner.fetchPages(chapter.url)
+      const pages = (await runner.fetchPages(chapter.url)) as string[]
       return pages.map((u: string) => u.replace(/^https?:\/\//, 'autakimi-cache://'))
     },
     enabled: !!chapter && !!pkg,

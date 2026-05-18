@@ -167,7 +167,7 @@ export class MadaraSource implements ISourceAdapter {
         node.find('.manga-excerpt').text().trim() ||
         node.find('.summary-content').text().trim() || ''
 
-      manga.push({ id: mangaUrl, title, coverUrl: cover, url: mangaUrl, status: status || 'Unknown', description })
+      manga.push({ id: mangaUrl, title, coverUrl: cover, url: mangaUrl, status: status || 'Unknown', description, pkg: this.id })
     })
 
     return manga
