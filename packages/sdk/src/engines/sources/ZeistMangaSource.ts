@@ -46,7 +46,8 @@ export class ZeistMangaSource implements ISourceAdapter {
           id: url.split('/').filter(Boolean).pop()?.replace('.html', '') || url,
           title: a.text().trim(),
           url: url.startsWith('http') ? url : `${this.baseUrl}${url}`,
-          coverUrl: img || ''
+          coverUrl: img || '',
+          pkg: this.id
         })
       }
     })
@@ -84,7 +85,8 @@ export class ZeistMangaSource implements ISourceAdapter {
         id: urlLink.split('/').filter(Boolean).pop()?.replace('.html', '') || urlLink,
         title: title.trim(),
         url: urlLink,
-        coverUrl
+        coverUrl,
+        pkg: this.id
       }
     })
 

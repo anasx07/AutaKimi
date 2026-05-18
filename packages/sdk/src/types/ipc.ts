@@ -133,7 +133,7 @@ export type IpcInvokeMap = {
     baseUrl?: string
     lang?: string
     icon?: string
-    nsfw?: number
+    nsfw?: boolean
   }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_GET_EXTENSION]: (pkg: string) => Promise<IpcResult<Extension | null>>
   [IpcChannel.DB_REMOVE_EXTENSION]: (pkg: string) => Promise<IpcResult<boolean>>

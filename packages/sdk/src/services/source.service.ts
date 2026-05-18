@@ -78,7 +78,12 @@ export class SourceService {
       const data = await res.value.json()
       let count = 0
       for (const [id, meta] of Object.entries(data)) {
-        this.sources.set(id, { ...(meta as any), type })
+        const item = meta as any
+        this.sources.set(id, {
+          ...item,
+          nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
+          type
+        })
         count++
       }
       return { success: true, count }
@@ -92,7 +97,7 @@ export class SourceService {
       const res = await networkClient.fetch(url)
       if (!res.ok) {
         // Silently fail for 404s as many repos won't have all source types
-        if (res.value?.status === 404) return { success: true, count: 0 }
+        if (res.status === 404) return { success: true, count: 0 }
         throw new Error(`Failed to fetch sources: ${res.error}`)
       }
       
@@ -111,7 +116,11 @@ export class SourceService {
       }
 
       for (const item of items) {
-        this.sources.set(item.id, { ...item, type })
+        this.sources.set(item.id, {
+          ...item,
+          nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
+          type
+        })
       }
 
       return { success: true, count: items.length }

@@ -4,7 +4,7 @@ export interface Extension {
   version: string
   lang: string
   icon?: string
-  nsfw?: number
+  nsfw?: boolean
   hasReadme?: boolean
   hasChangelog?: boolean
 }

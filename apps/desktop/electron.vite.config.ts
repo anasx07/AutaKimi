@@ -81,6 +81,7 @@ export default defineConfig({
     plugins: [
       react(),
       obfuscator({
+        exclude: [/extension\.store\.ts/],
         options: {
           compact: true,
           controlFlowFlattening: true,

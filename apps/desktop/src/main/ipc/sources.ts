@@ -121,7 +121,7 @@ export function registerSourceHandlers() {
         icon: `autakimi-cache://local-icon/${s.id}.png`,
         version: s.version || '0.0.0',
         baseUrl: s.baseUrl || s.url || '',
-        nsfw: s.nsfw ? 1 : 0,
+        nsfw: !!s.nsfw,
         repoUrl: 'remote' // Denotes it's managed via remote repository
       })) as any
     })

@@ -65,7 +65,8 @@ export class IkenSource implements ISourceAdapter {
         title: p.postTitle,
         coverUrl: p.featuredImage,
         url: `${this.baseUrl}/series/${p.slug}`,
-        status: p.seriesStatus || 'Unknown'
+        status: p.seriesStatus || 'Unknown',
+        pkg: this.id
       }))
 
     const hasNextPage = data.totalCount > data.posts.length + (data.page ? (data.page - 1) * 18 : 0)

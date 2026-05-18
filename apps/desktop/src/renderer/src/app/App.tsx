@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
-import { useBrowseCacheStore } from '@renderer/shared/model'
+import { useBrowseCacheStore, useExtensionStore } from '@renderer/shared/model'
 import { DownloadSync } from './components/DownloadSync'
 import { CfBypassOverlay } from './components/CfBypassOverlay'
 import { useEffect } from 'react'

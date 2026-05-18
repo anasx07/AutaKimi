@@ -17,6 +17,11 @@ export interface SourceFilterGroup {
   options: SourceFilterOption[]
 }
 
+export interface StreamingServer {
+  name: string
+  url: string
+}
+
 export interface ISourceAdapter {
   id: string // Internal ID for the source
   name: string
@@ -30,11 +35,11 @@ export interface ISourceAdapter {
 
   getFilters?(): SourceFilterGroup[]
   fetchPopular(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
-  fetchLatest?(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
+  fetchLatest(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   getFeedLabels?(): Record<string, string>
   isSupported?: boolean
   searchManga(query: string, page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   fetchMangaDetails(manga: Manga): Promise<Manga>
   fetchChapters(mangaUrl: string): Promise<Chapter[]>
-  fetchPages(chapterUrl: string): Promise<string[] | any>
+  fetchPages(chapterUrl: string): Promise<string[] | StreamingServer[] | any>
 }

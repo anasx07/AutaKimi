@@ -1,5 +1,5 @@
 import { AnimeSource } from '@common/engines/sources'
-import { Manga, MangaPage, Chapter } from '../../sources/types'
+import { Manga, MangaPage, Chapter, StreamingServer } from '../../sources/types'
 import * as cheerio from 'cheerio'
 
 /**
@@ -117,7 +117,8 @@ export class ShahiidAnimeSource extends AnimeSource {
           artist: '',
           description: '',
           genres: [],
-          mediaType: 'anime'
+          mediaType: 'anime',
+          pkg: this.id
         })
       }
     )
@@ -417,7 +418,7 @@ export class ShahiidAnimeSource extends AnimeSource {
    * Returns iframe/streaming URLs from the episode page.
    * The AnimePage will open the first URL in the internal browser.
    */
-  async fetchPages(episodeUrl: string): Promise<string[]> {
+  async fetchPages(episodeUrl: string): Promise<StreamingServer[]> {
     const html = await this.fetchHtml(episodeUrl)
     const servers = this._extractIframes(html, episodeUrl)
     return servers
