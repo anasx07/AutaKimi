@@ -28,6 +28,10 @@ export function registerSyncHandlers() {
   registerHandler(
     IpcChannel.SYNC_GET_PAIRING_PAYLOAD,
     wrapIpc(async (_, args: { ip: string; port: number }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      if (typeof args.ip !== 'string' || typeof args.port !== 'number') {
+        throw new Error('Invalid ip or port')
+      }
       return identityService.getPairingPayload(args.ip, args.port)
     })
   )

@@ -85,7 +85,7 @@ export default function DocsPage() {
 
         <div className="space-y-12">
           {sections.map((section) => (
-            <GlowCard key={section.id} customSize className="w-full p-8 md:p-10 group" glowColor="purple">
+            <GlowCard key={section.id} customSize className="w-full p-8 md:p-10 group" glowColor="orange">
               <div id={section.id} className="scroll-mt-32">
                 <div className="flex items-center gap-4 mb-6 border-b border-white/5 pb-6">
                   <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center relative z-10">

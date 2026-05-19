@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system'
+import * as FileSystem from 'expo-file-system/legacy'
 import { MobileDB } from './db.native'
 import { MobileNetwork } from './network.native'
 import { IpcResult, DownloadEntry } from '@common/types'
@@ -156,8 +156,10 @@ export const MobileDownload = {
 
   async getStatus(args: { mangaId: string; chapterId: string }): Promise<IpcResult<DownloadEntry | undefined>> {
     const key = `${args.mangaId}:${args.chapterId}`
-    const status = await MobileDB.getSetting(statusKey(args.mangaId, args.chapterId))
-    const metaRaw = await MobileDB.getSetting(metaKey(args.mangaId, args.chapterId))
+    const statusRes = await MobileDB.getSetting(statusKey(args.mangaId, args.chapterId))
+    const status = statusRes.ok ? statusRes.value : null
+    const metaRes = await MobileDB.getSetting(metaKey(args.mangaId, args.chapterId))
+    const metaRaw = metaRes.ok ? metaRes.value : null
     const meta = metaRaw ? JSON.parse(metaRaw) : null
     const isActive = this.activeDownloads.has(key)
     return {
@@ -165,7 +167,7 @@ export const MobileDownload = {
       value: {
         mangaId: args.mangaId,
         chapterId: args.chapterId,
-        status: isActive ? 'downloading' : (status || null),
+        status: isActive ? 'downloading' : (status || null) as any,
         totalPages: meta?.totalPages || null,
         cachedPages: meta?.totalPages || null,
         pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
@@ -177,7 +179,8 @@ export const MobileDownload = {
   },
 
   async getMangaDownloads(mangaId: string): Promise<IpcResult<DownloadEntry[]>> {
-    const allSettings = await MobileDB.getSettings()
+    const allSettingsRes = await MobileDB.getSettings()
+    const allSettings = allSettingsRes.ok ? allSettingsRes.value : {}
     const prefix = `dl_status_${mangaId}:`
     const metaPrefix = `dl_meta_${mangaId}:`
     const entries: any[] = []
@@ -189,7 +192,7 @@ export const MobileDownload = {
       entries.push({
         mangaId,
         chapterId,
-        status,
+        status: status as any,
         totalPages: meta?.totalPages || null,
         cachedPages: meta?.totalPages || null,
         pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
@@ -202,7 +205,8 @@ export const MobileDownload = {
   },
 
   async getAllMangaDownloads(type?: string): Promise<IpcResult<DownloadEntry[]>> {
-    const allSettings = await MobileDB.getSettings()
+    const allSettingsRes = await MobileDB.getSettings()
+    const allSettings = allSettingsRes.ok ? allSettingsRes.value : {}
     const entries: any[] = []
     const seen = new Set<string>()
     for (const [settingKey, status] of Object.entries(allSettings)) {
@@ -220,7 +224,7 @@ export const MobileDownload = {
       entries.push({
         mangaId,
         chapterId,
-        status,
+        status: status as any,
         totalPages: meta?.totalPages || null,
         cachedPages: meta?.totalPages || null,
         pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
@@ -234,7 +238,8 @@ export const MobileDownload = {
 
   async clearAll(type?: string): Promise<IpcResult<boolean>> {
     const entries = await this.getAllMangaDownloads(type)
-    for (const entry of entries.value || []) {
+    const list = entries.ok ? entries.value : []
+    for (const entry of list) {
       await this.remove({ mangaId: entry.mangaId, chapterId: entry.chapterId })
     }
     return { ok: true, value: true }

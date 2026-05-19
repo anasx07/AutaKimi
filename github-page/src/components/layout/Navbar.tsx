@@ -8,7 +8,7 @@ export function Navbar() {
       <nav className="w-full max-w-5xl flex items-center justify-between px-3 py-3 bg-[#0a0a14]/60 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative group/nav transition-colors duration-500 hover:bg-[#0f0f1d]/70 hover:border-white/20">
         {/* Subtle animated internal glow */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-purple-500/10 opacity-30 group-hover/nav:opacity-60 transition-opacity duration-500"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-orange-500/10 opacity-30 group-hover/nav:opacity-60 transition-opacity duration-500"></div>
         </div>
 
         {/* Logo Section */}

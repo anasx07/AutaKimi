@@ -3,7 +3,7 @@ import { NetworkConfig } from '../config/network'
 
 export interface IExtensionPlatform {
   fetch(url: string, init?: any, bypassCf?: boolean): Promise<{ ok: boolean; status: number; text(): Promise<string>; json(): Promise<any> }>
-  runSandbox(code: string, params: Record<string, any>): Promise<any>
+  runSandboxViaPool(code: string, params: Record<string, any>, pkg?: string, taskId?: string): Promise<any>
   getSetting(key: string): Promise<string | null>
   upsertExtension(ext: {
     pkg: string
@@ -63,15 +63,21 @@ export class ExtensionEngine {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
-    const baseUrl = repoUrl === 'local' ? '' : repoUrl.replace('/index.min.json', '')
-    let code = ''
+    let baseUrl = ''
+    if (repoUrl && repoUrl !== 'local') {
+      baseUrl = repoUrl.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
+      if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
+    }
 
+    let code = ''
     const bypassCf = (await this.platform.getSetting('bypass_cloudflare')) === 'true'
 
     try {
-      const response = await this.platform.fetch(`${baseUrl}/js/${ext.pkg}.js`, {}, bypassCf)
+      const response = await this.platform.fetch(`${baseUrl}js/${ext.pkg}.js`, {}, bypassCf)
       if (response.ok) code = await response.text()
-    } catch (e) {}
+    } catch (e) {
+      console.warn(`[ExtensionEngine] Failed to fetch JS for ${ext.pkg}:`, e)
+    }
 
     if (!code) {
       const extBaseUrl = ext.sources?.[0]?.baseUrl
@@ -99,7 +105,7 @@ export class ExtensionEngine {
     return { success: true }
   }
 
-  async execute(_pkg: string, code: string, params: Record<string, any> = {}): Promise<any> {
-      return this.platform.runSandbox(code, params)
+  async execute(pkg: string, code: string, params: Record<string, any> = {}, taskId?: string): Promise<any> {
+      return this.platform.runSandboxViaPool(code, params, pkg, taskId)
   }
 }

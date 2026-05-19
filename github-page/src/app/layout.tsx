@@ -56,9 +56,9 @@ export default function RootLayout({ children }) {
         {/* Deep Space high-performance background */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-black">
           {/* Subtle Deep Nebulae */}
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-900/15 rounded-full blur-[140px] animate-pulse" />
-          <div className="absolute bottom-[0%] right-[-10%] w-[45%] h-[45%] bg-indigo-950/10 rounded-full blur-[120px]" />
-          <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-blue-900/5 rounded-full blur-[100px]" />
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-orange-950/15 rounded-full blur-[140px] animate-pulse" />
+          <div className="absolute bottom-[0%] right-[-10%] w-[45%] h-[45%] bg-amber-950/10 rounded-full blur-[120px]" />
+          <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-red-950/5 rounded-full blur-[100px]" />
           
           {/* Static Stars (High Performance) */}
           <div className="absolute inset-0 opacity-30" 

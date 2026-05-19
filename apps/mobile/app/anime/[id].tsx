@@ -61,7 +61,7 @@ export default function AnimeDetailsScreen() {
     }).catch(() => {})
 
     router.push({
-      pathname: '/player/[animeId]/[episodeId]',
+      pathname: '/player/[animeId]/[episodeId]' as any,
       params: {
         animeId: id,
         episodeId: episode.id,

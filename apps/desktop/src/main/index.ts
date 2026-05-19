@@ -31,16 +31,18 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { cacheManager } from './services/cache.service'
-import { mangaCacheRepo } from './db'
 
 // Register Services
-import db, { runCleanupRoutine, settingsRepo } from './db'
+import db, { runCleanupRoutine, settingsRepo, mangaCacheRepo } from './db'
 import { extensionOrchestrator } from './services/extension.service'
 import { identityService } from './services/identity.service'
 import { syncServer } from './services/sync-server.service'
 import { cloudflareService } from './services/cloudflare.service'
 import { pluginManager } from './services/plugin.manager'
 import { broadcastService } from './services/broadcast.service'
+
+cacheManager.setMangaRepo(mangaCacheRepo)
+ServiceRegistry.register(cacheManager)
 ServiceRegistry.register(broadcastService)
 ServiceRegistry.register(identityService)
 ServiceRegistry.register(syncServer)
@@ -212,10 +214,6 @@ app.whenReady().then(async () => {
   registerDownloadHandlers()
   registerSyncHandlers()
   registerSourceHandlers()
-
-  // Connect Manga Cache Repo
-  cacheManager.setMangaRepo(mangaCacheRepo)
-  ServiceRegistry.register(cacheManager)
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))

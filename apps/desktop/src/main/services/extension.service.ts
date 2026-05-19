@@ -7,10 +7,11 @@ import * as crypto from 'crypto'
 import { AppService, ServicePriority } from './service.registry'
 
 class WorkerPool {
-  private workers: { worker: Worker; isBusy: boolean; id: number }[] = []
+  private workers: { worker: Worker; isBusy: boolean; id: number; pkg?: string; currentTaskId?: string }[] = []
   private maxWorkers = 4
   private taskQueue: {
     id: string
+    pkg: string
     code: string
     params: Record<string, any>
     resolve: (v: any) => void
@@ -22,60 +23,149 @@ class WorkerPool {
     this.initPool()
   }
 
+  private createWorker(id: number) {
+    const worker = new Worker(path.join(__dirname, 'extension-worker.js'))
+    const workerEntry: { worker: Worker; isBusy: boolean; id: number; pkg?: string; currentTaskId?: string } = {
+      worker,
+      isBusy: false,
+      id,
+      pkg: undefined,
+      currentTaskId: undefined
+    }
+
+    worker.on('message', async (msg) => {
+      if (msg.type) {
+        if (msg.type === 'WORKER_FETCH') {
+          try {
+            const res = await net.fetch(msg.url, msg.init)
+            const body = await res.text()
+            worker.postMessage({
+              type: 'FETCH_REPLY',
+              fetchId: msg.fetchId,
+              ok: res.ok,
+              status: res.status,
+              body
+            })
+          } catch (err: any) {
+            console.error(`[WorkerPool] WORKER_FETCH error for ${msg.url}:`, err)
+            worker.postMessage({
+              type: 'FETCH_REPLY',
+              fetchId: msg.fetchId,
+              ok: false,
+              status: 500,
+              body: err.message || String(err)
+            })
+          }
+        }
+        return
+      }
+
+      const resolver = this.activeResolvers.get(msg.id)
+      if (resolver) {
+        clearTimeout(resolver.timeout)
+        resolver.resolve(msg.result)
+        this.activeResolvers.delete(msg.id)
+      }
+      workerEntry.isBusy = false
+      workerEntry.pkg = undefined
+      workerEntry.currentTaskId = undefined
+      this.processQueue()
+    })
+
+    worker.on('error', (err) => {
+      console.error(`[WorkerPool] Worker ${id} error:`, err)
+      workerEntry.isBusy = false
+      workerEntry.pkg = undefined
+      workerEntry.currentTaskId = undefined
+      this.processQueue()
+    })
+
+    return workerEntry
+  }
+
   private initPool() {
     for (let i = 0; i < this.maxWorkers; i++) {
-      const worker = new Worker(path.join(__dirname, 'extension-worker.js'))
-      const workerEntry = { worker, isBusy: false, id: i }
-
-      worker.on('message', (msg) => {
-        const resolver = this.activeResolvers.get(msg.id)
-        if (resolver) {
-          clearTimeout(resolver.timeout)
-          resolver.resolve(msg.result)
-          this.activeResolvers.delete(msg.id)
-        }
-        workerEntry.isBusy = false
-        this.processQueue()
-      })
-
-      worker.on('error', (err) => {
-        console.error(`[WorkerPool] Worker ${i} error:`, err)
-        workerEntry.isBusy = false
-        this.processQueue()
-      })
-
-      this.workers.push(workerEntry)
+      this.workers.push(this.createWorker(i))
     }
     console.log(`[WorkerPool] Initialized with ${this.maxWorkers} workers.`)
   }
 
-  async runInSandbox(code: string, params: Record<string, any>): Promise<any> {
-    const id = crypto.randomUUID()
+  async runInSandbox(code: string, params: Record<string, any>, pkg?: string, taskId?: string): Promise<any> {
+    const id = taskId || crypto.randomUUID()
     return new Promise((resolve) => {
-      this.taskQueue.push({ id, code, params, resolve })
+      this.taskQueue.push({ id, pkg: pkg || '', code, params, resolve })
       this.processQueue()
     })
   }
 
+  cancelTask(id: string): boolean {
+    const queueIndex = this.taskQueue.findIndex((t) => t.id === id)
+    if (queueIndex !== -1) {
+      const task = this.taskQueue.splice(queueIndex, 1)[0]
+      task.resolve({ error: 'Cancelled' })
+      console.log(`[WorkerPool] Cancelled queued task ${id}`)
+      return true
+    }
+
+    const workerEntry = this.workers.find((w) => w.isBusy && w.currentTaskId === id)
+    if (workerEntry) {
+      const resolver = this.activeResolvers.get(id)
+      if (resolver) {
+        clearTimeout(resolver.timeout)
+        resolver.resolve({ error: 'Cancelled' })
+        this.activeResolvers.delete(id)
+      }
+
+      console.log(`[WorkerPool] Terminating worker ${workerEntry.id} due to task cancellation: ${id}`)
+      workerEntry.worker.terminate()
+      const index = this.workers.indexOf(workerEntry)
+      if (index !== -1) {
+        this.workers[index] = this.createWorker(workerEntry.id)
+      }
+
+      this.processQueue()
+      return true
+    }
+
+    return false
+  }
+
   private processQueue() {
     const availableWorker = this.workers.find((w) => !w.isBusy)
-    if (availableWorker && this.taskQueue.length > 0) {
-      const task = this.taskQueue.shift()!
-      availableWorker.isBusy = true
+    if (!availableWorker || this.taskQueue.length === 0) return
 
-      const timeout = setTimeout(() => {
-        const resolver = this.activeResolvers.get(task.id)
-        if (resolver) {
-          resolver.resolve({ error: 'Worker timed out' })
-          this.activeResolvers.delete(task.id)
-        }
-        availableWorker.isBusy = false
-        this.processQueue()
-      }, 30000)
+    // Limit concurrency: only run if no other busy worker is already executing the same extension pkg
+    const taskIndex = this.taskQueue.findIndex((task) => {
+      if (!task.pkg) return true
+      return !this.workers.some((w) => w.isBusy && w.pkg === task.pkg)
+    })
 
-      this.activeResolvers.set(task.id, { resolve: task.resolve, timeout })
-      availableWorker.worker.postMessage({ id: task.id, code: task.code, params: task.params })
-    }
+    if (taskIndex === -1) return
+
+    const task = this.taskQueue.splice(taskIndex, 1)[0]
+    availableWorker.isBusy = true
+    availableWorker.pkg = task.pkg
+    availableWorker.currentTaskId = task.id
+
+    const timeout = setTimeout(() => {
+      const resolver = this.activeResolvers.get(task.id)
+      if (resolver) {
+        resolver.resolve({ error: 'Worker timed out' })
+        this.activeResolvers.delete(task.id)
+      }
+      
+      // Terminate the timed-out worker and replace it with a fresh one
+      availableWorker.worker.terminate()
+      const index = this.workers.indexOf(availableWorker)
+      if (index !== -1) {
+        this.workers[index] = this.createWorker(availableWorker.id)
+      }
+
+      this.processQueue()
+    }, 30000)
+
+    this.activeResolvers.set(task.id, { resolve: task.resolve, timeout })
+    availableWorker.worker.postMessage({ id: task.id, code: task.code, params: task.params })
   }
 
   shutdown() {
@@ -109,8 +199,8 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
     throw new Error(res.error || `Fetch failed with status ${res.status}`)
   }
 
-  async runSandbox(code: string, params: Record<string, any>): Promise<any> {
-    return this.workerPool.runInSandbox(code, params)
+  async runSandboxViaPool(code: string, params: Record<string, any>, pkg?: string, taskId?: string): Promise<any> {
+    return this.workerPool.runInSandbox(code, params, pkg, taskId)
   }
 
   async getSetting(key: string): Promise<string | null> {
@@ -127,8 +217,12 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
 
   // --- Public Engine Accessors ---
 
-  async runInSandbox(code: string, params: Record<string, any> = {}): Promise<any> {
-    return this.engine.execute('', code, params)
+  async runInSandbox(pkg: string, code: string, params: Record<string, any> = {}, taskId?: string): Promise<any> {
+    return this.engine.execute(pkg, code, params, taskId)
+  }
+
+  cancelExtension(taskId: string): boolean {
+    return this.workerPool.cancelTask(taskId)
   }
 
   async detectTheme(url: string, bypassCf = true): Promise<'madara' | 'mangastream' | 'unknown'> {
@@ -154,17 +248,15 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
         // Find the remote repo baseUrl
         let baseUrl = ''
         if (repoUrl && repoUrl !== 'local' && repoUrl !== 'remote') {
-          baseUrl = repoUrl.endsWith('templates.json') 
-            ? repoUrl.replace('templates.json', '') 
-            : repoUrl.endsWith('/') ? repoUrl : `${repoUrl}/`
+          baseUrl = repoUrl.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
+          if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
         } else {
           const reposJson = await settingsRepo.get('source_repositories')
           const repos: string[] = reposJson ? JSON.parse(reposJson) : []
           if (repos.length > 0) {
             const firstRepo = repos[0]
-            baseUrl = firstRepo.endsWith('templates.json') 
-              ? firstRepo.replace('templates.json', '') 
-              : firstRepo.endsWith('/') ? firstRepo : `${firstRepo}/`
+            baseUrl = firstRepo.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
+            if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
           }
         }
 

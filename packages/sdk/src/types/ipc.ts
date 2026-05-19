@@ -48,6 +48,7 @@ export enum IpcChannel {
   DB_SAVE_MANGA_CACHE = 'db:save-manga-cache',
 
   EXECUTE_EXTENSION = 'execute-extension',
+  CANCEL_EXTENSION_EXECUTION = 'execute-extension:cancel',
   CLEAR_CACHE = 'clear-cache',
   CLEAR_COOKIES = 'clear-cookies',
   OPEN_EXTERNAL = 'open-external',
@@ -197,7 +198,9 @@ export type IpcInvokeMap = {
     pkg: string
     code: string
     contextArgs?: Record<string, unknown>
+    taskId?: string
   }) => Promise<IpcResult<any>>
+  [IpcChannel.CANCEL_EXTENSION_EXECUTION]: (taskId: string) => Promise<IpcResult<boolean>>
   [IpcChannel.EXTENSION_INSTALL]: (
     ext: Extension,
     repoUrl: string
@@ -317,6 +320,7 @@ export interface ElectronApi {
   clearCache: IpcInvokeMap[IpcChannel.CLEAR_CACHE]
   clearCookies: IpcInvokeMap[IpcChannel.CLEAR_COOKIES]
   executeExtension: IpcInvokeMap[IpcChannel.EXECUTE_EXTENSION]
+  cancelExtensionExecution: IpcInvokeMap[IpcChannel.CANCEL_EXTENSION_EXECUTION]
   installExtension: IpcInvokeMap[IpcChannel.EXTENSION_INSTALL]
   openExternal: IpcInvokeMap[IpcChannel.OPEN_EXTERNAL]
   download: {

@@ -19,11 +19,53 @@ export class SyncServer implements AppService {
     // Identity should already be initialized by ServiceRegistry order
   }
 
+  private startServer(startPort: number, endPort: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      let currentPort = startPort
+
+      const tryNext = () => {
+        let options: any = { port: currentPort }
+        if (currentPort > endPort) {
+          console.warn(`[SyncServer] Ports ${startPort}-${endPort} in use, falling back to OS-assigned port...`)
+          options = { port: 0 }
+        }
+
+        const server = new WebSocketServer(options)
+
+        const onListening = () => {
+          server.off('error', onError)
+          this.wss = server
+          const address = server.address()
+          const boundPort = typeof address === 'object' && address !== null ? address.port : currentPort
+          this.port = boundPort
+          resolve(boundPort)
+        }
+
+        const onError = (err: any) => {
+          server.off('listening', onListening)
+          server.close()
+          if (err.code === 'EADDRINUSE' && currentPort <= endPort) {
+            console.warn(`[SyncServer] Port ${currentPort} in use, trying next...`)
+            currentPort++
+            tryNext()
+          } else {
+            reject(err)
+          }
+        }
+
+        server.once('listening', onListening)
+        server.once('error', onError)
+      }
+
+      tryNext()
+    })
+  }
+
   async start(): Promise<{ success: boolean; port: number; ip: string }> {
     if (this.isRunning) return { success: true, port: this.port, ip: this.getLocalIp() }
 
     try {
-      this.wss = new WebSocketServer({ port: this.port })
+      await this.startServer(42069, 42079)
       this.setupWss()
 
       this.bonjour = new Bonjour()
@@ -62,33 +104,81 @@ export class SyncServer implements AppService {
     await this.stop()
   }
 
+  private failedAttempts = new Map<string, { count: number; lockedUntil?: number }>()
+
+  private isIpLocked(ip: string): boolean {
+    const record = this.failedAttempts.get(ip)
+    if (!record) return false
+    if (record.lockedUntil && record.lockedUntil > Date.now()) {
+      return true
+    }
+    if (record.lockedUntil && record.lockedUntil <= Date.now()) {
+      this.failedAttempts.delete(ip)
+    }
+    return false
+  }
+
+  private recordFailedAttempt(ip: string) {
+    const record = this.failedAttempts.get(ip) || { count: 0 }
+    record.count += 1
+    if (record.count >= 5) {
+      record.lockedUntil = Date.now() + 60 * 1000 // Lock for 60 seconds
+      console.warn(`[SyncServer] IP ${ip} has been locked out for 60 seconds due to too many failed auth attempts.`)
+    }
+    this.failedAttempts.set(ip, record)
+  }
+
+  private recordSuccessfulAuth(ip: string) {
+    this.failedAttempts.delete(ip)
+  }
+
   private setupWss() {
-    this.wss?.on('connection', (ws: WebSocket) => {
-      console.log('[SyncServer] New connection attempt')
+    this.wss?.on('connection', (ws: WebSocket, req: any) => {
+      const ip = req?.socket?.remoteAddress || 'unknown'
+      console.log(`[SyncServer] New connection attempt from ${ip}`)
+
+      if (this.isIpLocked(ip)) {
+        console.warn(`[SyncServer] Connection rejected: IP ${ip} is locked out`)
+        ws.close()
+        return
+      }
       
       ws.on('message', async (data: string) => {
+        if (this.isIpLocked(ip)) {
+          ws.close()
+          return
+        }
+
+        if (data && data.length > 64000) {
+          console.warn(`[SyncServer] Message from ${ip} rejected: size exceeds 64,000 limit (${data.length} chars)`)
+          ws.close()
+          return
+        }
+
         try {
           const message = JSON.parse(data)
-          await this.handleMessage(ws, message)
+          await this.handleMessage(ws, message, ip)
         } catch (e) {
           console.error('[SyncServer] Failed to parse message:', e)
         }
       })
 
       ws.on('close', () => {
-        console.log('[SyncServer] Connection closed')
+        console.log(`[SyncServer] Connection closed from ${ip}`)
       })
     })
   }
 
-  private async handleMessage(ws: WebSocket, message: any) {
+  private async handleMessage(ws: WebSocket, message: any, ip: string) {
     switch (message.type) {
       case 'auth':
         if (message.secret === identityService.getSyncSecret()) {
           (ws as any).authenticated = true
+          this.recordSuccessfulAuth(ip)
           ws.send(JSON.stringify({ type: 'auth_success', deviceId: identityService.getDeviceId() }))
           console.log('[SyncServer] Client authenticated:', message.id)
         } else {
+          this.recordFailedAttempt(ip)
           ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid secret' }))
           ws.close()
         }

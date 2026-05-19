@@ -318,7 +318,7 @@ export default function SettingsTab() {
           </View>
           <Card className="overflow-hidden mb-3">
             <TouchableOpacity
-              onPress={() => router.push('/more')}
+              onPress={() => router.push('/more' as any)}
               className="flex-row items-center justify-between px-4 py-4 active:bg-secondary"
             >
               <Typography className="text-base">More</Typography>
@@ -340,7 +340,7 @@ export default function SettingsTab() {
           </View>
           <Card className="overflow-hidden">
             <TouchableOpacity
-              onPress={() => router.push('/about')}
+              onPress={() => router.push('/about' as any)}
               className="px-4 py-4 active:bg-secondary"
             >
               <View className="flex-row justify-between mb-2">
