@@ -5,24 +5,34 @@ import { Extension } from '@common/types'
 type SuccessResult = IpcResult<{ success?: boolean; error?: string }>
 
 let db: SQLite.SQLiteDatabase | null = null
+let initPromise: Promise<IpcResult<void>> | null = null
 const DB_NAME = 'autakimi_db'
 
 export const MobileDB = {
-  async init(): Promise<IpcResult<void>> {
-    try {
-      db = await SQLite.openDatabaseAsync(DB_NAME)
-      await this.migrate(db)
-      return { ok: true, value: undefined }
-    } catch (err: any) {
-      console.error('[MobileDB Native] Initialization failed:', err)
-      return { ok: false, error: err.message || String(err) }
+  init(): Promise<IpcResult<void>> {
+    if (initPromise) {
+      return initPromise
     }
+
+    initPromise = (async () => {
+      try {
+        if (!db) {
+          db = await SQLite.openDatabaseAsync(DB_NAME)
+          await this.migrate(db)
+        }
+        return { ok: true, value: undefined }
+      } catch (err: any) {
+        console.error('[MobileDB Native] Initialization failed:', err)
+        initPromise = null
+        return { ok: false, error: err.message || String(err) }
+      }
+    })()
+
+    return initPromise
   },
 
   async ensureReady(): Promise<void> {
-    if (!db) {
-      await this.init()
-    }
+    await this.init()
   },
 
   async migrate(connection: SQLite.SQLiteDatabase): Promise<void> {

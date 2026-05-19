@@ -3,7 +3,7 @@ import {
   View, FlatList, Image, TouchableOpacity, ActivityIndicator,
   ScrollView, TextInput
 } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 import { Typography, Button, Card } from '@mobile/native/ui';
@@ -22,24 +22,48 @@ export default function BrowseTab() {
   const [searchQuery, setSearchQuery] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
 
-  useEffect(() => {
-    DataService.db.getExtensions()
-      .then((exts: any[]) => {
-        setExtensions(exts || [])
-        if (exts?.length > 0) setActivePkg(exts[0].pkg)
-      })
-      .catch(() => {})
-      .finally(() => setInitialLoading(false))
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      DataService.db.getExtensions()
+        .then((exts: any[]) => {
+          // Filter out corrupt extensions (numeric-only pkg IDs from old buggy catalog parser)
+          const validExts = (exts || []).filter(
+            (e) => e.pkg && !/^\d+$/.test(e.pkg)
+          )
+          setExtensions(validExts)
+          if (validExts.length > 0) {
+            setActivePkg((prev) => {
+              if (!prev || !validExts.some((e) => e.pkg === prev)) {
+                return validExts[0].pkg
+              }
+              return prev
+            })
+          } else {
+            setActivePkg(null)
+          }
+        })
+        .catch(() => {})
+        .finally(() => setInitialLoading(false))
+    }, [])
+  )
 
   const fetchResults = useCallback(async (pkg: string, feed: string, query?: string) => {
-    const ext = extensions.find((e) => e.pkg === pkg)
-    if (!ext?.code) return
+    // Fetch extension directly from DB to avoid stale closure issues
+    // (extensions state may not be updated yet when activePkg triggers this)
+    let ext = extensions.find((e) => e.pkg === pkg)
+    if (!ext) {
+      try {
+        const allExts = await DataService.db.getExtensions()
+        ext = (allExts || []).find((e: any) => e.pkg === pkg)
+      } catch (_) { /* ignore */ }
+    }
+    if (!ext) return
+    
     setLoading(true)
     try {
       const result = await DataService.executeExtension({
         pkg,
-        code: ext.code,
+        code: ext.code || '',
         contextArgs: {
           limit: 20,
           offset: 0,
@@ -59,7 +83,7 @@ export default function BrowseTab() {
 
   useEffect(() => {
     if (activePkg) fetchResults(activePkg, activeFeed)
-  }, [activePkg, activeFeed])
+  }, [activePkg, activeFeed, fetchResults])
 
   useEffect(() => {
     if (!searchQuery || !activePkg) return

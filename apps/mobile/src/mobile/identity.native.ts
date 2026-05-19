@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto'
 import { MobileDB } from './db.native'
-import { templateService } from '@common'
+import { templateService, sourceService } from '@common'
 
 export class IdentityService {
   private static instance: IdentityService
@@ -56,9 +56,15 @@ export class IdentityService {
       await MobileDB.setSetting('source_repositories', JSON.stringify(repos))
     }
 
-    // Trigger templates fetch for all repositories
-    templateService.loadAllRepositories(repos).then((res: { success: boolean; totalCount: number }) => {
-       if (res.success) console.log(`[MobileTemplates] Loaded ${res.totalCount} templates from ${repos.length} repos.`)
+    // Trigger templates and sources fetch for all repositories
+    Promise.all([
+      templateService.loadAllRepositories(repos),
+      sourceService.loadAllRepositories(repos)
+    ]).then(([tmplRes, srcRes]) => {
+      console.log(`[MobileTemplates] Loaded ${tmplRes.totalCount} templates from ${repos.length} repos.`)
+      console.log(`[MobileSources] Loaded ${srcRes.totalCount} sources from ${repos.length} repos.`)
+    }).catch((err) => {
+      console.error('[MobileTemplates/Sources] Initialization fetch failed:', err)
     })
   }
 

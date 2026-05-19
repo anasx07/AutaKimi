@@ -4,6 +4,7 @@ import { Typography, Button, Card } from '@mobile/native/ui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DataService } from '@renderer/shared/api';
 import { router } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import {
   Smartphone, BookOpen, Eye, Download, Database,
   Info, Trash2, Sun, Moon, Monitor,
@@ -16,6 +17,7 @@ export default function SettingsTab() {
   const [settings, setSettings] = useState<SettingsMap>({})
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
+  const { setColorScheme } = useColorScheme()
 
   useEffect(() => {
     DataService.db.getSettings()
@@ -29,7 +31,10 @@ export default function SettingsTab() {
   const set = useCallback((key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }))
     DataService.db.setSetting(key, value).catch(() => {})
-  }, [])
+    if (key === 'theme') {
+      setColorScheme(value as any)
+    }
+  }, [setColorScheme])
 
   const boolVal = (key: string): boolean => settings[key] === 'true'
 

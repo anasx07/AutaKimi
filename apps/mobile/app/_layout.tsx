@@ -3,12 +3,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { MobileApi } from '../src/mobile/api.native';
 import { View, ActivityIndicator } from 'react-native';
-import './global.css';
+import { useColorScheme } from 'nativewind';
+import { DataService } from '@renderer/shared/api';
+import '../global.css';
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const [initialized, setInitialized] = useState(false);
+  const { setColorScheme } = useColorScheme();
 
   useEffect(() => {
     // Register MobileApi as the platform bridge so shared DataService
@@ -16,10 +19,17 @@ export default function RootLayout() {
     ;(window as any).api = MobileApi
 
     // Initialize Database and Services
-    MobileApi.init().then(() => {
+    MobileApi.init().then(async () => {
+      try {
+        const settings = await DataService.db.getSettings();
+        const theme = settings?.theme || 'system';
+        setColorScheme(theme as any);
+      } catch (e) {
+        console.error('Failed to initialize theme setting:', e);
+      }
       setInitialized(true);
     });
-  }, []);
+  }, [setColorScheme]);
 
   if (!initialized) {
     return (

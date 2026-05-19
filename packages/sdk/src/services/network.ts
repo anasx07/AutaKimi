@@ -58,12 +58,13 @@ export class NetworkClient {
     const isNode = typeof process !== 'undefined' && process.versions && process.versions.node
     if (isNode && !url.startsWith('http://') && !url.startsWith('https://')) {
       try {
-        const fs = await import('fs')
-        const path = await import('path')
+        // Use runtime-evaluated dynamic imports to bypass Metro static analyzer checks on mobile
+        const fs = await new Function('return import("fs")')()
+        const path = await new Function('return import("path")')()
         
         let targetPath = url
         if (url.startsWith('file:///')) {
-          const { fileURLToPath } = await import('url')
+          const { fileURLToPath } = await new Function('return import("url")')()
           targetPath = fileURLToPath(url)
         } else {
           targetPath = path.resolve(url)
