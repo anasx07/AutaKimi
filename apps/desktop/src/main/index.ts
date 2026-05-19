@@ -57,7 +57,6 @@ import { registerSyncHandlers } from './ipc/sync'
 import { registerSourceHandlers } from './ipc/sources'
 import { registerHandler, wrapIpc } from './ipc/utils'
 import { IpcChannel } from './types/ipc'
-import { stateRegistry } from './services/state.service'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'autakimi-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }

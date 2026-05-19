@@ -27,8 +27,6 @@ export function registerDownloadHandlers(): void {
           chapterTitle?: string
         }
       ) => {
-        const webContents = _.sender
-        downloadManager.setWebContents(webContents)
         downloadManager.startDownload({
           mangaId,
           chapterId,

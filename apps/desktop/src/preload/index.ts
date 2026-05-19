@@ -7,10 +7,13 @@ const invoke = <K extends keyof IpcInvokeMap>(
   ...args: Parameters<IpcInvokeMap[K]>
 ): ReturnType<IpcInvokeMap[K]> => ipcRenderer.invoke(channel, ...args) as any
 
-const on = <K extends keyof IpcEventMap>(channel: string, callback: (...args: any[]) => void) => {
-  const subscription = (_event: any, data: any) => callback(data)
-  ipcRenderer.on(channel, subscription)
-  return () => ipcRenderer.removeListener(channel, subscription)
+const on = <K extends keyof IpcEventMap>(
+  channel: K,
+  callback: IpcEventMap[K]
+) => {
+  const subscription = (_event: any, data: any) => (callback as any)(data)
+  ipcRenderer.on(channel as string, subscription)
+  return () => ipcRenderer.removeListener(channel as string, subscription)
 }
 
 // Custom APIs for renderer
@@ -31,7 +34,8 @@ const api: ElectronApi = {
     removeRepo: (url: string) => invoke(IpcChannel.SOURCES_REMOVE_REPO, url),
     refreshAll: () => invoke(IpcChannel.SOURCES_REFRESH_ALL),
     getAllSources: () => invoke(IpcChannel.SOURCES_GET_ALL),
-    getCatalogExtensions: () => invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS)
+    getCatalogExtensions: () => invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS),
+    selectDirectory: () => invoke(IpcChannel.SOURCES_SELECT_DIRECTORY)
   },
   plugins: {
     getAll: () => invoke(IpcChannel.PLUGINS_GET_ALL),
@@ -71,7 +75,9 @@ const api: ElectronApi = {
     restore: () => invoke(IpcChannel.WINDOW_RESTORE),
     close: () => invoke(IpcChannel.WINDOW_CLOSE),
     isMaximized: () => invoke(IpcChannel.WINDOW_IS_MAXIMIZED),
-    updateOverlay: (options) => invoke(IpcChannel.WINDOW_UPDATE_OVERLAY, options)
+    updateOverlay: (options) => invoke(IpcChannel.WINDOW_UPDATE_OVERLAY, options),
+    openExternal: (url: string) => invoke(IpcChannel.OPEN_EXTERNAL, url),
+    openInternalBrowser: (url: string) => invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url)
   },
   download: {
     start: (args) => invoke(IpcChannel.DOWNLOAD_CHAPTER, args),

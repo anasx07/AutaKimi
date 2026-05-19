@@ -118,13 +118,13 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
     })
   },
 
-  loadCatalog: async (force = false) => {
+  loadCatalog: async () => {
     const { isRefreshingCatalog } = useExtensionStore.getState()
     if (isRefreshingCatalog) return
 
     set({ isRefreshingCatalog: true })
     try {
-      const sources = await DataService.sources.getAllSources(force)
+      const sources = await DataService.sources.getAllSources()
       const { setGeneratedSources } = await import(/* @vite-ignore */ '../api/sources/SourceRegistry')
       setGeneratedSources(sources)
 

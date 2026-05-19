@@ -126,5 +126,19 @@ export function registerSourceHandlers() {
       })) as any
     })
   )
+
+  registerHandler(
+    IpcChannel.SOURCES_SELECT_DIRECTORY,
+    wrapIpc(async () => {
+      const { dialog } = await import('electron')
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+      })
+      if (result.canceled || result.filePaths.length === 0) {
+        return null
+      }
+      return result.filePaths[0]
+    })
+  )
 }
 

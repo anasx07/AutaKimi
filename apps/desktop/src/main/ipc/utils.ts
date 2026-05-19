@@ -1,8 +1,8 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
-import { IpcInvokeMap } from '../types/ipc'
+import { IpcInvokeMap, IpcResult } from '../types/ipc'
 
 export function wrapIpc<T>(fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<T>) {
-  return async (event: IpcMainInvokeEvent, ...args: any[]) => {
+  return async (event: IpcMainInvokeEvent, ...args: any[]): Promise<IpcResult<T>> => {
     try {
       const value = await fn(event, ...args)
       return { ok: true, value }
@@ -16,8 +16,8 @@ export function registerHandler<K extends keyof IpcInvokeMap>(
   channel: K,
   handler: (
     event: IpcMainInvokeEvent,
-    ...args: Parameters<IpcInvokeMap[K]>
-  ) => ReturnType<IpcInvokeMap[K]>
+    ...args: any[]
+  ) => Promise<IpcResult<any>> | IpcResult<any> | any
 ) {
   ipcMain.handle(channel, handler as any)
 }

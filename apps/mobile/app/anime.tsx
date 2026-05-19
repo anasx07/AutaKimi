@@ -24,18 +24,6 @@ interface AnimeItem {
   [key: string]: any
 }
 
-interface AnimeSource {
-  pkg: string
-  name: string
-  lang: string
-  baseUrl: string
-}
-
-const ANIME_SOURCES: AnimeSource[] = [
-  { pkg: 'ma.autakimi.extension.ar.shahiidanime', name: 'Shahiid Anime', lang: 'ar', baseUrl: 'https://shahiid-anime.net' },
-  { pkg: 'ma.autakimi.extension.ar.ristoanime', name: 'RistoAnime', lang: 'ar', baseUrl: 'https://ristoanime.co' }
-]
-
 type FeedType = 'popular' | 'latest' | 'search'
 
 export default function AnimePage(): React.JSX.Element {
@@ -57,7 +45,7 @@ export default function AnimePage(): React.JSX.Element {
   // Load installed extensions on mount
   useEffect(() => {
     DataService.db.getExtensions().then((exts: any[]) => {
-      const installed = exts.filter((e: any) => e.pkg && ANIME_SOURCES.some((s) => s.pkg === e.pkg))
+      const installed = exts.filter((e: any) => e.pkg && (e.type === 'anime' || e.pkg.toLowerCase().includes('anime')))
       setExtensions(installed)
       setExtensionsLoading(false)
     }).catch(() => setExtensionsLoading(false))
@@ -66,9 +54,8 @@ export default function AnimePage(): React.JSX.Element {
   // Resolve source for the selected pkg
   const activeSource = useMemo(() => {
     if (!activePkg) return null
-    const meta = ANIME_SOURCES.find((s) => s.pkg === activePkg)
     const installed = extensions.find((e) => e.pkg === activePkg)
-    return { ...meta, code: installed?.code || null }
+    return installed ? { ...installed, code: installed.code || null } : null
   }, [activePkg, extensions])
 
   // Load extension code when source changes

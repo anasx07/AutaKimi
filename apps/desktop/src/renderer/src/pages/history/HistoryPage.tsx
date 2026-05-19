@@ -77,7 +77,7 @@ export default function HistoryPage(): React.JSX.Element {
     description: '',
     genres: [],
     mediaType: entry.type,
-    pkg: entry.pkg
+    pkg: entry.pkg || ''
   })
 
   const handleEntryClick = (entry: HistoryEntry): void => {
