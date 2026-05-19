@@ -34,7 +34,7 @@ import { cacheManager } from './services/cache.service'
 import { mangaCacheRepo } from './db'
 
 // Register Services
-import db, { runCleanupRoutine } from './db'
+import db, { runCleanupRoutine, settingsRepo } from './db'
 import { extensionOrchestrator } from './services/extension.service'
 import { identityService } from './services/identity.service'
 import { syncServer } from './services/sync-server.service'
@@ -247,6 +247,30 @@ app.whenReady().then(async () => {
         } catch (e) {
           console.error('Local icon load failed:', e)
         }
+
+        // Fallback: Check remote repositories for the icon
+        try {
+          const reposJson = await settingsRepo.get('source_repositories')
+          const repos: string[] = reposJson ? JSON.parse(reposJson) : []
+          
+          for (const repo of repos) {
+            const baseUrl = repo.endsWith('templates.json') 
+              ? repo.replace('templates.json', '') 
+              : repo.endsWith('/') ? repo : `${repo}/`
+              
+            const remoteUrl = `${baseUrl}icons/${filename}`
+            const res = await fetch(remoteUrl)
+            if (res.ok) {
+              const buffer = await res.arrayBuffer()
+              return new Response(buffer, {
+                headers: { 'Content-Type': 'image/png' }
+              })
+            }
+          }
+        } catch (e) {
+          console.error('Remote icon load failed:', e)
+        }
+
 
         // Block remote icon fetching
         return new Response('Icon not found locally', { status: 404 })

@@ -93,6 +93,12 @@ export class PluginService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('text/html')) {
+        console.debug?.(`[PluginService] Received HTML instead of JSON at ${url}, treating as 404.`)
+        return { success: true, count: 0 }
+      }
+
       const data = await response.json()
       if (!data.plugins || !Array.isArray(data.plugins)) {
         throw new Error('Invalid plugin repository format')
