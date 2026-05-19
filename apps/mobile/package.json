@@ -2,7 +2,7 @@
   "name": "@autakimi/mobile",
   "version": "2.0.10",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -15,7 +15,7 @@
     "@tanstack/react-query": "^5.96.0",
     "cheerio": "^1.2.0",
     "expo": "^55.0.9",
-    "expo-barcode-scanner": "^13.0.1",
+    "expo-camera": "^55.0.18",
     "expo-constants": "^55.0.9",
     "expo-crypto": "~55.0.14",
     "expo-file-system": "^55.0.12",

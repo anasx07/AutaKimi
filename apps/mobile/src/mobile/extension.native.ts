@@ -36,12 +36,24 @@ export const MobileExtension = {
       params: params || {}
     }
 
-    try {
-      // In React Native, Function / AsyncFunction constructor works if eval is allowed
-      // If using Hermes, this is generally supported in recent versions
-      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
-      const fn = new AsyncFunction('params', 'fetch', 'cheerio', 'console', code)
+    const sanitizedCode = code ? code.replace(/\r/g, '') : ''
+    console.log('[Native-Sandbox] Executing code (first 100 chars):', JSON.stringify(sanitizedCode.slice(0, 100)))
+    console.log('[Native-Sandbox] Full code length:', sanitizedCode.length)
 
+    try {
+      // Hermes does NOT support the AsyncFunction constructor (await keyword is rejected
+      // at parse time with "';' expected"). Instead, wrap the extension code inside an
+      // async IIFE within a regular Function constructor. Hermes can parse `async function`
+      // syntax in eval'd code — it just can't handle the AsyncFunction constructor itself.
+      const wrappedCode = `return (async function(__params, __fetch, __cheerio, __console) {
+  var params = __params;
+  var fetch = __fetch;
+  var cheerio = __cheerio;
+  var console = __console;
+  ${sanitizedCode}
+})(__params, __fetch, __cheerio, __console);`
+
+      const fn = new Function('__params', '__fetch', '__cheerio', '__console', wrappedCode)
       const result = await fn(sandbox.params, sandbox.fetch, sandbox.cheerio, sandbox.console)
 
       return { ok: true, value: result }

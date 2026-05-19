@@ -5,7 +5,7 @@ import { Stack, router } from 'expo-router'
 import { ArrowLeft, Library, Plus, Trash2, Globe, RefreshCw, AlertCircle } from 'lucide-react-native'
 import { Typography, Button, Card, CardContent } from '../src/native/ui'
 import { MobileDB } from '../src/mobile/db.native'
-import { templateService } from '@common'
+import { templateService, sourceService } from '@common'
 
 export default function RepositoriesPage() {
   const [repos, setRepos] = useState<string[]>([])
@@ -34,6 +34,7 @@ export default function RepositoriesPage() {
     try {
       const res = await templateService.fetchTemplates(newRepoUrl.trim())
       if (res.success) {
+        await sourceService.loadAllRepositories([newRepoUrl.trim()])
         const updated = [...repos, newRepoUrl.trim()]
         await MobileDB.setSetting('source_repositories', JSON.stringify(updated))
         setRepos(updated)
@@ -70,9 +71,12 @@ export default function RepositoriesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await templateService.loadAllRepositories(repos)
+    await Promise.all([
+      templateService.loadAllRepositories(repos),
+      sourceService.loadAllRepositories(repos)
+    ])
     setRefreshing(false)
-    Alert.alert('Success', 'All templates refreshed.')
+    Alert.alert('Success', 'All repositories refreshed.')
   }
 
   return (

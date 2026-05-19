@@ -1,11 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ['class'],
+  darkMode: 'class',
   content: [
-    './src/renderer/index.html',
-    './src/renderer/src/**/*.{js,ts,jsx,tsx}',
+    './app/**/*.{js,jsx,ts,tsx}',
+    './src/native/**/*.{js,jsx,ts,tsx}',
+    './src/mobile/**/*.{js,jsx,ts,tsx}',
     './App.{js,jsx,ts,tsx}',
-    './src/native/**/*.{js,jsx,ts,tsx}'
+    '../../apps/desktop/src/renderer/src/**/*.{js,jsx,ts,tsx}',
+    '../../packages/sdk/src/**/*.{js,jsx,ts,tsx}'
   ],
   presets: [require('nativewind/preset')],
   theme: {

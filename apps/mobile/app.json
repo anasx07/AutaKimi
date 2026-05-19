@@ -30,7 +30,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-barcode-scanner"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow AutaKimi to access your camera to scan pairing QR codes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -88,15 +88,34 @@ export class SourceService {
 
       const data = await res.value.json()
       let count = 0
-      for (const [id, meta] of Object.entries(data)) {
-        const item = meta as any
-        this.sources.set(id, {
-          ...item,
-          id, // Inject the key as the id property
-          nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
-          type
-        })
-        count++
+      
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          const id = item.pkg || item.id
+          if (!id) continue
+          
+          const firstSource = item.sources?.[0] || {}
+          this.sources.set(id, {
+            ...item,
+            id,
+            baseUrl: item.baseUrl || firstSource.baseUrl || '',
+            apiUrl: item.apiUrl || firstSource.apiUrl || firstSource.baseUrl || '',
+            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true' || firstSource.nsfw === 1 || firstSource.nsfw === true,
+            type
+          })
+          count++
+        }
+      } else {
+        for (const [id, meta] of Object.entries(data)) {
+          const item = meta as any
+          this.sources.set(id, {
+            ...item,
+            id, // Inject the key as the id property
+            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
+            type
+          })
+          count++
+        }
       }
       return { success: true, count }
     } catch (e: any) {
