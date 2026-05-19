@@ -86,7 +86,7 @@ export default function MangaDetailsScreen() {
   const openReader = (chapter: Chapter) => {
     addHistory.mutate(chapter)
     router.push({
-      pathname: '/reader/[mangaId]/[chapterId]',
+      pathname: '/reader/[mangaId]/[chapterId]' as any,
       params: {
         mangaId: id,
         chapterId: chapter.id,

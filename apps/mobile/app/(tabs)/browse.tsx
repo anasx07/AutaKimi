@@ -72,7 +72,7 @@ export default function BrowseTab() {
   const openMangaDetails = (item: any) => {
     const norm = normalizeManga(item)
     router.push({
-      pathname: '/manga/[id]',
+      pathname: '/manga/[id]' as any,
       params: {
         id: item.id,
         title: norm.title,
@@ -105,7 +105,7 @@ export default function BrowseTab() {
           <Button
             title="Extensions"
             variant="ghost"
-            onPress={() => router.push('/extensions')}
+            onPress={() => router.push('/extensions' as any)}
             icon={<Package size={18} color="#3b82f6" />}
           />
         </View>
@@ -185,7 +185,7 @@ export default function BrowseTab() {
                 title="Add Extensions"
                 variant="outline"
                 className="mt-4"
-                onPress={() => router.push('/extensions')}
+                onPress={() => router.push('/extensions' as any)}
               />
             )}
           </View>

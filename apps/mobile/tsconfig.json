@@ -5,6 +5,7 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["../../apps/desktop/src/renderer/src/*"],
+      "@common": ["../../packages/sdk/src/index.ts"],
       "@common/*": ["../../packages/sdk/src/*"],
       "@mobile/*": ["src/*"]
     }

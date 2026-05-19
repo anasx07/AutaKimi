@@ -5,6 +5,8 @@ import { stateRegistry } from './state.service'
 import { broadcastService } from './broadcast.service'
 import { cacheManager } from './cache.service'
 import { ReactiveQueue } from '../utils/reactive-queue'
+import crypto from 'crypto'
+import { networkClient } from '@common'
 
 export interface DownloadTask {
   mangaId: string
@@ -116,10 +118,36 @@ export class DownloadManager implements AppService {
         if (!this.activeDownloads.has(key)) return // Canceled
 
         const url = task.pageUrls[i]
+        const hash = crypto.createHash('md5').update(url).digest('hex')
+        const imageCache = cacheManager.getImageCache()
 
         try {
-          // Use the correct ImageCache instance method
-          await cacheManager.getImageCache().get(url)
+          const cachedBuffer = await imageCache.get(hash)
+          if (!cachedBuffer) {
+            let origin = 'https://'
+            try {
+              origin = new URL(url).origin + '/'
+            } catch {
+              /* ignore */
+            }
+
+            const { net, session } = await import('electron')
+            const res = await networkClient.fetch(url, {
+              headers: {
+                'User-Agent': session.defaultSession.getUserAgent(),
+                Referer: origin
+              },
+              attempts: 3,
+              delay: 1000,
+              fetchFn: net.fetch
+            })
+
+            if (!res.ok) throw new Error(res.error || `HTTP ${res.status}`)
+            const response = res.value
+            const buffer = Buffer.from(await response.arrayBuffer())
+            await imageCache.set(hash, buffer)
+          }
+
           cachedCount++
           this.notifyStatus(task, 'progress', cachedCount, task.pageUrls.length)
 

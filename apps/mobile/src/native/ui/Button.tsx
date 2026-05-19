@@ -1,9 +1,6 @@
 import React from 'react'
 import { TouchableOpacity, ActivityIndicator, View } from 'react-native'
-import { styled } from 'nativewind'
 import { Typography } from './Typography'
-
-const StyledTouchableOpacity = styled(TouchableOpacity)
 
 interface ButtonProps {
   onPress: () => void
@@ -50,7 +47,7 @@ export const Button: React.FC<ButtonProps> = ({
   }
 
   return (
-    <StyledTouchableOpacity
+    <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50' : ''} ${className}`}
@@ -63,6 +60,6 @@ export const Button: React.FC<ButtonProps> = ({
           <Typography className={textVariants[variant]}>{title}</Typography>
         </>
       )}
-    </StyledTouchableOpacity>
+    </TouchableOpacity>
   )
 }

@@ -2,9 +2,9 @@ import React from 'react'
 import { View, ScrollView, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
-import { ArrowLeft, Github, ExternalLink, Shield, Code, Heart, Info } from 'lucide-react-native'
+import { ArrowLeft, ExternalLink, Shield, Code, Heart, Info, GitBranch } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
-import { Typography, Card, CardContent, Button } from '../../src/native/ui'
+import { Typography, Card, CardContent, Button } from '../src/native/ui'
 
 export default function AboutPage(): React.JSX.Element {
   const version = DataService.version
@@ -66,7 +66,7 @@ export default function AboutPage(): React.JSX.Element {
               title="GitHub"
               variant="primary"
               size="sm"
-              icon={<Github size={16} color="#fff" />}
+              icon={<GitBranch size={16} color="#fff" />}
               onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release')}
             />
             <Button

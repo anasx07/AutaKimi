@@ -15,18 +15,25 @@ interface Release {
 export default function ChangelogPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('https://api.github.com/repos/anasx07/AutaKimi/releases')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data)) {
           setReleases(data);
+        } else {
+          throw new Error('Invalid release list format');
         }
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
+        console.warn('Failed to fetch releases from GitHub API:', err.message || err);
+        setError(err.message || 'Failed to load');
         setLoading(false);
       });
   }, []);
@@ -42,8 +49,20 @@ export default function ChangelogPage() {
       <div className="w-full space-y-8">
         {loading ? (
           <div className="flex justify-center text-zinc-500 py-12 animate-pulse font-medium">Synchronizing with GitHub...</div>
+        ) : error || releases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-12 bg-white/[0.02] border border-white/5 rounded-[24px]">
+            <p className="text-zinc-400 font-medium mb-6">Unable to retrieve release history from the GitHub API.</p>
+            <a 
+              href="https://github.com/anasx07/AutaKimi/releases" 
+              target="_blank" 
+              rel="noreferrer"
+              className="px-6 py-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 rounded-xl text-sm font-bold transition-all"
+            >
+              View Releases on GitHub
+            </a>
+          </div>
         ) : releases.map((release, i) => (
-          <GlowCard key={release.id || i} customSize className="w-full p-8 md:p-10 group" glowColor="purple">
+          <GlowCard key={release.id || i} customSize className="w-full p-8 md:p-10 group" glowColor="orange">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-white/5 pb-8">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white relative z-10">
@@ -52,7 +71,7 @@ export default function ChangelogPage() {
                 <div>
                   <h2 className="text-2xl font-bold flex items-center gap-3 relative z-10 text-white">
                     {release.name || release.tag_name}
-                    {i === 0 && <span className="bg-[#1E10C5]/30 text-[#9089E2] text-xs px-2.5 py-1 rounded-md border border-[#1E10C5]/50 uppercase tracking-widest font-black">Latest</span>}
+                    {i === 0 && <span className="bg-orange-500/10 text-orange-400 text-xs px-2.5 py-1 rounded-md border border-orange-500/20 uppercase tracking-widest font-black">Latest</span>}
                   </h2>
                   <div className="flex items-center gap-2 text-sm text-zinc-500 mt-1 relative z-10 font-bold">
                     <Calendar className="w-4 h-4" />

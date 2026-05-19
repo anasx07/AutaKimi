@@ -1,4 +1,4 @@
-import { ElectronApi, IpcResult, FetchOptions, Extension, StateUpdateEvent, SystemState } from '@common/types'
+import { ElectronApi, IpcResult, FetchOptions, Extension, StateUpdateEvent, SystemState, ActiveTaskState } from '@common/types'
 import { MobileDB } from './db.native'
 import { MobileNetwork, setCfStatusCallback } from './network.native'
 import { MobileExtension } from './extension.native'
@@ -31,6 +31,7 @@ export const MobileApi: ElectronApi = {
     await MobileDB.init()
     await identityService.initialize()
     mobileBypassProvider.initialize()
+    return { ok: true, value: undefined }
   },
   db: MobileDB as unknown as ElectronApi['db'],
 
@@ -39,6 +40,10 @@ export const MobileApi: ElectronApi = {
 
   executeExtension: (args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }) =>
     MobileExtension.execute(args),
+
+  cancelExtensionExecution: async (taskId: string) => {
+    return { ok: true, value: true }
+  },
 
   installExtension: async (ext: Extension, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
     const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
@@ -51,7 +56,7 @@ export const MobileApi: ElectronApi = {
           pkg: ext.pkg,
           code: res.value.data,
           name: ext.name,
-          baseUrl: ext.sources?.[0]?.baseUrl,
+          baseUrl: ext.baseUrl,
           lang: ext.lang,
           icon: ext.icon,
           version: ext.version
@@ -75,10 +80,12 @@ export const MobileApi: ElectronApi = {
 
   openExternal: async (url: string) => {
     await WebBrowser.openBrowserAsync(url)
+    return { ok: true, value: undefined }
   },
 
   openInternalBrowser: async (url: string) => {
     await WebBrowser.openBrowserAsync(url)
+    return { ok: true, value: undefined }
   },
 
   cfBypass: (url: string) => MobileNetwork.cfBypass(url),
@@ -91,30 +98,57 @@ export const MobileApi: ElectronApi = {
   download: MobileDownload as unknown as ElectronApi['download'],
 
   window: {
-    minimize: async () => {},
-    maximize: async () => {},
-    restore: async () => {},
-    close: async () => {},
+    minimize: async () => ({ ok: true, value: undefined }),
+    maximize: async () => ({ ok: true, value: undefined }),
+    restore: async () => ({ ok: true, value: undefined }),
+    close: async () => ({ ok: true, value: undefined }),
     isMaximized: async () => ({ ok: true, value: true }),
-    updateOverlay: async () => {}
+    updateOverlay: async () => ({ ok: true, value: undefined }),
+    openExternal: async (url: string) => {
+      await WebBrowser.openBrowserAsync(url)
+      return { ok: true, value: undefined }
+    },
+    openInternalBrowser: async (url: string) => {
+      await WebBrowser.openBrowserAsync(url)
+      return { ok: true, value: undefined }
+    }
   },
 
   getSystemState: async (): Promise<IpcResult<SystemState>> => {
-    const activeDownloads: Record<string, { status: string; cached: number; total: number; type: string }> = {}
+    const activeDownloads: Record<string, ActiveTaskState> = {}
     for (const [key, active] of MobileDownload.activeDownloads) {
       const [mangaId, chapterId] = key.split(':')
-      activeDownloads[key] = { status: active ? 'downloading' : 'canceled', cached: 0, total: 0, type: 'manga' }
+      activeDownloads[key] = {
+        mangaId,
+        chapterId,
+        status: active ? 'downloading' : 'canceled',
+        cached: 0,
+        total: 0,
+        type: 'manga'
+      }
     }
-    return { ok: true, value: { activeDownloads } }
+    return { 
+      ok: true, 
+      value: { 
+        activeDownloads, 
+        cloudflareBypasses: {}, 
+        activeBypass: null 
+      } 
+    }
   },
 
   onSystemStateUpdate: (callback: (data: StateUpdateEvent) => void) => {
     MobileDownload.onEvent((data) => {
       callback({
-        type: 'download',
-        mangaId: data.mangaId,
-        chapterId: data.chapterId,
-        downloadStatus: data.type
+        type: 'active_tasks_update',
+        task: {
+          mangaId: data.mangaId,
+          chapterId: data.chapterId,
+          status: (data.type === 'start' || data.type === 'progress') ? 'downloading' : (data.type === 'completed' ? 'completed' : 'canceled'),
+          cached: data.cached || 0,
+          total: data.total || 0,
+          type: 'manga'
+        }
       })
     })
     return () => MobileDownload.onEvent(() => {})
@@ -137,13 +171,13 @@ export const MobileApi: ElectronApi = {
       return 'unknown'
     }
 
-    let theme = await check(baseUrl)
+    let theme: 'madara' | 'mangastream' | 'unknown' = await check(baseUrl)
     if (theme === 'unknown') {
       const cleanUrl = baseUrl.replace(/\/$/, '')
-      theme = await check(`${cleanUrl}/series`) as 'madara' | 'mangastream'
-      if (theme === 'unknown') theme = await check(`${cleanUrl}/manga`) as 'madara' | 'mangastream'
+      theme = await check(`${cleanUrl}/series`)
+      if (theme === 'unknown') theme = await check(`${cleanUrl}/manga`)
     }
-    return { ok: true, value: theme as string }
+    return { ok: true, value: theme }
   },
 
   onAppUpdate: () => () => {},
@@ -160,8 +194,35 @@ export const MobileApi: ElectronApi = {
     return () => { cacheInvalidateCallbacks.delete(callback) }
   },
 
-  installUpdate: async () => {},
-  checkForUpdates: async () => {},
+  installUpdate: async () => ({ ok: true, value: undefined }),
+  checkForUpdates: async () => ({ ok: true, value: undefined }),
+
+  sync: {
+    startServer: async () => ({ ok: false, error: 'Not supported on mobile' }),
+    stopServer: async () => ({ ok: true, value: undefined }),
+    getStatus: async () => ({
+      ok: true,
+      value: { isRunning: false, port: 0, ip: '', deviceId: identityService.getDeviceId() }
+    }),
+    getPairingPayload: async () => ({ ok: false, error: 'Not supported on mobile' })
+  },
+
+  sources: {
+    getRepos: async () => ({ ok: true, value: [] }),
+    addRepo: async () => ({ ok: true, value: { success: true, count: 0 } }),
+    removeRepo: async () => ({ ok: true, value: undefined }),
+    refreshAll: async () => ({ ok: true, value: { totalCount: 0 } }),
+    getAllSources: async () => ({ ok: true, value: [] }),
+    getCatalogExtensions: async () => ({ ok: true, value: [] }),
+    selectDirectory: async () => ({ ok: true, value: '' })
+  },
+
+  plugins: {
+    getAll: async () => ({ ok: true, value: [] }),
+    toggle: async () => ({ ok: true, value: undefined }),
+    install: async () => ({ ok: true, value: undefined }),
+    uninstall: async () => ({ ok: true, value: undefined })
+  },
 
   platform: 'android',
   version: Constants.expoConfig?.version || '1.0.0'

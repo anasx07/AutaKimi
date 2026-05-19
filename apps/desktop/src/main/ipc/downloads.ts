@@ -9,15 +9,7 @@ export function registerDownloadHandlers(): void {
     wrapIpc(
       async (
         _,
-        {
-          mangaId,
-          chapterId,
-          pageUrls,
-          type,
-          mangaTitle,
-          extensionName,
-          chapterTitle
-        }: {
+        args: {
           mangaId: string
           chapterId: string
           pageUrls: string[]
@@ -27,6 +19,17 @@ export function registerDownloadHandlers(): void {
           chapterTitle?: string
         }
       ) => {
+        if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+        const { mangaId, chapterId, pageUrls, type, mangaTitle, extensionName, chapterTitle } = args
+        if (typeof mangaId !== 'string' || typeof chapterId !== 'string') {
+          throw new Error('Invalid mangaId or chapterId')
+        }
+        if (!Array.isArray(pageUrls)) throw new Error('Invalid pageUrls array')
+        if (type !== 'manga' && type !== 'anime') throw new Error('Invalid type')
+        if (mangaTitle !== undefined && typeof mangaTitle !== 'string') throw new Error('Invalid mangaTitle')
+        if (extensionName !== undefined && typeof extensionName !== 'string') throw new Error('Invalid extensionName')
+        if (chapterTitle !== undefined && typeof chapterTitle !== 'string') throw new Error('Invalid chapterTitle')
+
         downloadManager.startDownload({
           mangaId,
           chapterId,
@@ -43,7 +46,12 @@ export function registerDownloadHandlers(): void {
 
   registerHandler(
     IpcChannel.CANCEL_DOWNLOAD,
-    wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => {
+    wrapIpc(async (_, args: { mangaId: string; chapterId: string }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      const { mangaId, chapterId } = args
+      if (typeof mangaId !== 'string' || typeof chapterId !== 'string') {
+        throw new Error('Invalid mangaId or chapterId')
+      }
       downloadManager.cancelDownload(mangaId, chapterId)
       return true
     })
@@ -51,7 +59,12 @@ export function registerDownloadHandlers(): void {
 
   registerHandler(
     IpcChannel.REMOVE_DOWNLOAD,
-    wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => {
+    wrapIpc(async (_, args: { mangaId: string; chapterId: string }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      const { mangaId, chapterId } = args
+      if (typeof mangaId !== 'string' || typeof chapterId !== 'string') {
+        throw new Error('Invalid mangaId or chapterId')
+      }
       await downloadManager.deleteDownload(mangaId, chapterId)
       return true
     })
@@ -59,24 +72,38 @@ export function registerDownloadHandlers(): void {
 
   registerHandler(
     IpcChannel.GET_DOWNLOAD_STATUS,
-    wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) =>
-      downloadManager.getStatus(mangaId, chapterId)
-    )
+    wrapIpc(async (_, args: { mangaId: string; chapterId: string }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      const { mangaId, chapterId } = args
+      if (typeof mangaId !== 'string' || typeof chapterId !== 'string') {
+        throw new Error('Invalid mangaId or chapterId')
+      }
+      return downloadManager.getStatus(mangaId, chapterId)
+    })
   )
 
   registerHandler(
     IpcChannel.GET_MANGA_DOWNLOADS,
-    wrapIpc((_, mangaId: string) => downloadManager.getMangaDownloads(mangaId))
+    wrapIpc((_, mangaId: string) => {
+      if (typeof mangaId !== 'string') throw new Error('Invalid mangaId')
+      return downloadManager.getMangaDownloads(mangaId)
+    })
   )
 
   registerHandler(
     IpcChannel.DOWNLOAD_GET_ALL_MANGA,
-    wrapIpc((_, type?: string) => downloadManager.getDownloadedManga(type as any))
+    wrapIpc((_, type?: string) => {
+      if (type !== undefined && type !== 'manga' && type !== 'anime') throw new Error('Invalid type')
+      return downloadManager.getDownloadedManga(type as any)
+    })
   )
 
   registerHandler(
     IpcChannel.DOWNLOAD_CLEAR_ALL,
-    wrapIpc((_, type?: string) => downloadManager.clearAll(type as any))
+    wrapIpc((_, type?: string) => {
+      if (type !== undefined && type !== 'manga' && type !== 'anime') throw new Error('Invalid type')
+      return downloadManager.clearAll(type as any)
+    })
   )
 
   registerHandler(IpcChannel.GET_SYSTEM_STATE, wrapIpc(async () => stateRegistry.getState()))

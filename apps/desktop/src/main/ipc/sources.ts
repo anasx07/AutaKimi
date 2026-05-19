@@ -17,6 +17,7 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.SOURCES_ADD_REPO,
     wrapIpc(async (_, url: string) => {
+      if (typeof url !== 'string') throw new Error('Invalid URL')
       const reposJson = await settingsRepo.get('source_repositories')
       const repos: string[] = reposJson ? JSON.parse(reposJson) : []
 
@@ -41,6 +42,7 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.SOURCES_REMOVE_REPO,
     wrapIpc(async (_, url: string) => {
+      if (typeof url !== 'string') throw new Error('Invalid URL')
       const reposJson = await settingsRepo.get('source_repositories')
       let repos: string[] = reposJson ? JSON.parse(reposJson) : []
       repos = repos.filter((r) => r !== url)
@@ -105,6 +107,8 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.PLUGINS_TOGGLE,
     wrapIpc(async (_, id: string, enabled: boolean) => {
+      if (typeof id !== 'string') throw new Error('Invalid id')
+      if (typeof enabled !== 'boolean') throw new Error('Invalid enabled flag')
       const { pluginService } = await import('@common/services/plugin.service')
 
       let enabledIds = pluginService.getEnabledPluginIds()
@@ -122,16 +126,21 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.PLUGINS_INSTALL,
     wrapIpc(async (_, plugin: any) => {
+      if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin data')
+      if (typeof plugin.id !== 'string') throw new Error('Invalid plugin ID')
+      if (typeof plugin.name !== 'string') throw new Error('Invalid plugin name')
+      if (typeof plugin.code !== 'string') throw new Error('Invalid plugin code')
+
       const installedJson = await settingsRepo.get('installed_plugins')
       let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
       
       const fullPlugin = {
         id: plugin.id,
         name: plugin.name,
-        description: plugin.description,
-        author: plugin.author,
-        version: plugin.version,
-        target: plugin.target,
+        description: plugin.description || '',
+        author: plugin.author || '',
+        version: plugin.version || '0.0.0',
+        target: plugin.target || 'unknown',
         code: plugin.code
       }
 
@@ -150,6 +159,7 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.PLUGINS_UNINSTALL,
     wrapIpc(async (_, id: string) => {
+      if (typeof id !== 'string') throw new Error('Invalid id')
       const installedJson = await settingsRepo.get('installed_plugins')
       let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
       

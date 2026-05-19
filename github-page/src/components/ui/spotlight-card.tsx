@@ -26,10 +26,18 @@ const sizeMap = {
   lg: 'w-80 h-96'
 };
 
+const glowMaskColorMap = {
+  blue: 'bg-blue-500/30',
+  purple: 'bg-purple-500/30',
+  green: 'bg-green-500/30',
+  red: 'bg-red-500/30',
+  orange: 'bg-orange-500/30'
+};
+
 const GlowCard = ({ 
   children, 
   className = '', 
-  glowColor = 'purple',
+  glowColor = 'orange',
   size = 'md',
   width,
   height,
@@ -190,7 +198,7 @@ const GlowCard = ({
           ${className}
         `}
       >
-        <div className="glow-pattern-mask bg-purple-500/30"></div>
+        <div className={`glow-pattern-mask ${glowMaskColorMap[glowColor]}`}></div>
         <div ref={innerRef} data-glow></div>
         <div className="relative z-10 w-full h-full">
           {children}

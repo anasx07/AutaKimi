@@ -22,7 +22,32 @@ const repos = {
 } as const
 
 function dbHandler(repo: keyof typeof repos, method: string) {
-  return wrapIpc((_, ...args: any[]) => (repos[repo] as any)[method](...args))
+  return wrapIpc((_, ...args: any[]) => {
+    if (method === 'getByPkg' || method === 'get' || method === 'deleteByManga' || method === 'getByManga') {
+      if (typeof args[0] !== 'string') throw new Error('Invalid arguments: expected a string')
+    }
+    if (method === 'toggle') {
+      if (typeof args[0] !== 'string' || !args[1] || typeof args[1] !== 'object') {
+        throw new Error('Invalid arguments: expected (string, object)')
+      }
+    }
+    if (method === 'getProgress') {
+      if (typeof args[0] !== 'string' || typeof args[1] !== 'string') {
+        throw new Error('Invalid arguments: expected (string, string)')
+      }
+    }
+    if (method === 'updateProgress') {
+      if (typeof args[0] !== 'string' || typeof args[1] !== 'string' || typeof args[2] !== 'number') {
+        throw new Error('Invalid arguments: expected (string, string, number)')
+      }
+    }
+    if (method === 'deleteEntry') {
+      if (typeof args[0] !== 'string' && typeof args[0] !== 'number') {
+        throw new Error('Invalid arguments: expected string or number')
+      }
+    }
+    return (repos[repo] as any)[method](...args)
+  })
 }
 
 export function registerDatabaseHandlers() {
@@ -33,6 +58,7 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_ADD_EXTENSION,
     wrapIpc(async (_, data) => {
+      if (!data || typeof data !== 'object') throw new Error('Invalid extension data')
       await extensionRepo.upsert({ ...data, installedAt: new Date().toISOString() })
       return { success: true }
     })
@@ -43,6 +69,7 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_REMOVE_EXTENSION,
     wrapIpc(async (_, pkg: string) => {
+      if (typeof pkg !== 'string') throw new Error('Invalid package name')
       await extensionRepo.remove(pkg)
       return true
     })
@@ -51,9 +78,14 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_GET_LIBRARY,
     wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: string }) => {
+      if (args && typeof args !== 'object') throw new Error('Invalid arguments')
       const limit = args?.limit
       const offset = args?.offset
       const type = args?.type as 'manga' | 'anime' | undefined
+      if (limit !== undefined && typeof limit !== 'number') throw new Error('Invalid limit')
+      if (offset !== undefined && typeof offset !== 'number') throw new Error('Invalid offset')
+      if (type !== undefined && typeof type !== 'string') throw new Error('Invalid type')
+
       const rows = await libraryRepo.getAll(limit, offset, type)
       return rows.map((r) => {
         let meta: Record<string, unknown> = {}
@@ -95,6 +127,8 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_SET_SETTING,
     wrapIpc(async (_, key, value) => {
+      if (typeof key !== 'string') throw new Error('Invalid key')
+      if (value !== null && value !== undefined && typeof value !== 'string') throw new Error('Invalid value')
       await settingsRepo.set(key, value)
       return { success: true }
     })
@@ -107,6 +141,7 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_ADD_HISTORY,
     wrapIpc(async (_, data) => {
+      if (!data || typeof data !== 'object') throw new Error('Invalid history data')
       return historyRepo.addEntry(data)
     })
   )
@@ -115,6 +150,9 @@ export function registerDatabaseHandlers() {
     IpcChannel.DB_GET_HISTORY,
     wrapIpc(
       async (_, args?: { limit?: number; offset?: number; type?: string } | number) => {
+        if (args !== undefined && typeof args !== 'number' && typeof args !== 'object') {
+          throw new Error('Invalid arguments')
+        }
         let limit = 50,
           offset = 0,
           type: 'manga' | 'anime' | undefined = undefined
@@ -123,6 +161,9 @@ export function registerDatabaseHandlers() {
           limit = args.limit ?? 50
           offset = args.offset ?? 0
           type = args.type as any
+          if (typeof limit !== 'number') throw new Error('Invalid limit')
+          if (typeof offset !== 'number') throw new Error('Invalid offset')
+          if (type !== undefined && typeof type !== 'string') throw new Error('Invalid type')
         }
         return historyRepo.getHistory(limit, offset, type)
       }
@@ -139,7 +180,12 @@ export function registerDatabaseHandlers() {
 
   registerHandler(
     IpcChannel.DB_SAVE_CHAPTERS,
-    wrapIpc(async (_, { mangaId, chapters }: { mangaId: string; chapters: any[] }) => {
+    wrapIpc(async (_, args: { mangaId: string; chapters: any[] }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      const { mangaId, chapters } = args
+      if (typeof mangaId !== 'string' || !Array.isArray(chapters)) {
+        throw new Error('Invalid mangaId or chapters array')
+      }
       await chapterRepo.upsertMany(mangaId, chapters)
       return { success: true }
     })
@@ -150,6 +196,7 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_SAVE_MANGA_CACHE,
     wrapIpc(async (_, manga) => {
+      if (!manga || typeof manga !== 'object') throw new Error('Invalid manga cache data')
       const expiresAt = cacheManager.getExpiryDate(CacheGroup.MANGA_METADATA)
       await mangaCacheRepo.upsert({ ...manga, expiresAt })
       return { success: true }

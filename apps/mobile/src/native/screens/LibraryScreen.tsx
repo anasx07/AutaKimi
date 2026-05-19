@@ -24,7 +24,7 @@ export const LibraryScreen = () => {
       return (
         <TouchableOpacity className="flex-1 m-2">
           <Card className="aspect-[2/3]">
-            <Image source={{ uri: norm.coverUrl }} className="flex-1" resizeMode="cover" />
+            <Image source={{ uri: norm.coverUrl || undefined }} className="flex-1" resizeMode="cover" />
             <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/60">
               <Typography className="text-white text-xs font-semibold" numberOfLines={2}>
                 {norm.title}
@@ -38,7 +38,7 @@ export const LibraryScreen = () => {
     return (
       <TouchableOpacity className="flex-row items-center p-3 border-b border-border">
         <Image
-          source={{ uri: norm.coverUrl }}
+          source={{ uri: norm.coverUrl || undefined }}
           className="w-16 h-24 rounded-md"
           resizeMode="cover"
         />

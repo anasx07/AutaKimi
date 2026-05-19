@@ -57,7 +57,7 @@ export class IdentityService {
     }
 
     // Trigger templates fetch for all repositories
-    templateService.loadAllRepositories(repos).then(res => {
+    templateService.loadAllRepositories(repos).then((res: { success: boolean; totalCount: number }) => {
        if (res.success) console.log(`[MobileTemplates] Loaded ${res.totalCount} templates from ${repos.length} repos.`)
     })
   }

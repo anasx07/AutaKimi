@@ -14,7 +14,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
 import { Search, Play, Loader2 } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
-import { Typography, Card, Button } from '../../src/native/ui'
+import { Typography, Card, Button } from '../src/native/ui'
+
+const ANIME_SOURCES = [
+  { pkg: 'en.allanime', name: 'AllAnime', lang: 'en' },
+  { pkg: 'en.gogoanime', name: 'Gogoanime', lang: 'en' },
+  { pkg: 'ar.anime4up', name: 'Anime4Up', lang: 'ar' },
+  { pkg: 'ar.witanime', name: 'WitAnime', lang: 'ar' }
+]
 
 interface AnimeItem {
   id: string
@@ -136,7 +143,7 @@ export default function AnimePage(): React.JSX.Element {
   }, [activeFeed, searchQuery, fetchAnime])
 
   const handleAnimePress = useCallback((item: AnimeItem) => {
-    router.push({ pathname: '/anime/[id]', params: { id: item.id, pkg: activePkg!, title: item.title, coverUrl: item.coverUrl } })
+    router.push({ pathname: '/anime/[id]' as any, params: { id: item.id, pkg: activePkg!, title: item.title, coverUrl: item.coverUrl } })
   }, [activePkg])
 
   const feedTabs: { key: FeedType; label: string }[] = [
@@ -201,7 +208,7 @@ export default function AnimePage(): React.JSX.Element {
             })
           )}
           <TouchableOpacity
-            onPress={() => router.push('/extensions')}
+            onPress={() => router.push('/extensions' as any)}
             className="mt-2"
           >
             <Card>

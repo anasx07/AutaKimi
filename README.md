@@ -13,6 +13,9 @@
 - **📱 P2P Syncing:** Seamlessly synchronize your history and library between Desktop and Mobile via local Wi-Fi pairing.
 - **🧩 Dynamic Extensions:** A powerful "Empty Shell" architecture that allows you to add your own content sources via remote repositories.
 - **🔌 Sandboxed Plugins:** Secure, community-driven JavaScript modules for specialized automation and site interactions (e.g., automated Cloudflare solving).
+- **💾 Offline Plugin Caching:** One-click plugin installation caches executable source code in a local SQLite database for complete offline use.
+- **🔄 Smart Hot-Updates:** Direct, online-only plugins support zero-intervention Hot Updates—delivering hotfixes for scrapers and bypasses instantly without manual user updates.
+- **🔔 Proactive Update Alerts:** Smart Toast notifications warn you when installable plugins need updates or online sources/plugins require a repository refresh.
 - **☁️ Cloudflare Bypass:** Built-in "User-Solved" verification system and automated solver plugins to navigate protected websites reliably.
 - **⚡ High Performance:** Native-speed performance powered by Electron (Desktop) and Expo/React Native (Mobile).
 
@@ -40,6 +43,8 @@ AutaKimi implements a strict multi-layer sandbox environment to guarantee host p
    - Workers are scoped with restricted, zero-access globals. Network access is routed through a monitored network manager with built-in case-insensitive Cloudflare and header scrubbers.
 3. **Plugin Isolation**:
    - Automated helper plugins run inside scoped, highly-restricted `vm.createContext` contexts in the Electron process, isolated from core Electron internals via secure `BrowserWindow` proxies.
+4. **Permanent Local Plugin Vault**:
+   - Installed plugins have their metadata and executable source code securely stored inside local, persistent SQLite databases via Drizzle ORM. At boot, the SDK hydrates and registers these plugins instantly offline, guaranteeing execution integrity and availability without online dependencies.
 
 ---
 
@@ -78,6 +83,9 @@ AutaKimi provides a built-in **Developer Mode** designed for creators working on
 3. **Visual Indicators & Execution**:
    * AutaKimi's network layer implements a **Local File System Interceptor** that detects absolute paths and `file:///` protocol URIs, loading files directly from your hard drive via Node `fs` APIs.
    * Active local directories are visually distinguished in your source list with sleek, amber **"Local Dev"** folder badges.
+
+> [!NOTE]
+> For a full comprehensive guide on building scrapers, extensions templates, and system plugins, check out our [Developer Extensibility Guide](./ExtensionsGuides.md).
 
 ---
 
