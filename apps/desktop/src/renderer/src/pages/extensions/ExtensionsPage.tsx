@@ -32,7 +32,8 @@ import {
 
 const ANIME_SOURCE_PKGS = ['en.allanime', 'en.gogoanime', 'ar.anime4up', 'ar.witanime']
 
-const isFullySupported = (pkg: string): boolean => {
+const isFullySupported = (pkg?: string): boolean => {
+  if (!pkg) return false
   return pkg.startsWith('en.') || pkg.startsWith('ar.') || pkg.startsWith('es.')
 }
 
@@ -95,7 +96,7 @@ export default function ExtensionsPage(): React.JSX.Element {
       .filter((ext) => {
         if (!searchQuery) return true
         const lowQuery = searchQuery.toLowerCase()
-        return ext.name.toLowerCase().includes(lowQuery) || ext.pkg.toLowerCase().includes(lowQuery)
+        return ext.name.toLowerCase().includes(lowQuery) || (ext.pkg && ext.pkg.toLowerCase().includes(lowQuery))
       })
       .filter((ext) => showNsfw || !ext.nsfw)
 
