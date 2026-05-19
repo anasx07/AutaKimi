@@ -1,5 +1,5 @@
-import { Manga, Chapter, FetchOptions } from '@common/types'
-export type { Manga, Chapter, FetchOptions }
+import { Manga, PartialManga, Chapter, FetchOptions, StreamingServer } from '@common/types'
+export type { Manga, PartialManga, Chapter, FetchOptions, StreamingServer }
 
 export interface MangaPage {
   manga: Manga[]
@@ -31,11 +31,11 @@ export interface ISourceAdapter {
 
   getFilters?(): SourceFilterGroup[]
   fetchPopular(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
-  fetchLatest?(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
+  fetchLatest(page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   getFeedLabels?(): Record<string, string>
   isSupported?: boolean
   searchManga(query: string, page: number, extraArgs?: FetchOptions): Promise<MangaPage>
   fetchMangaDetails(manga: Manga): Promise<Manga>
   fetchChapters(mangaUrl: string): Promise<Chapter[]>
-  fetchPages(chapterUrl: string): Promise<string[] | any>
+  fetchPages(chapterUrl: string): Promise<string[] | StreamingServer[] | any>
 }

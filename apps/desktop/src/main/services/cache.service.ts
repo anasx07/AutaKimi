@@ -1,6 +1,7 @@
 import { MangaCacheRepository } from '../db/repositories/manga_cache.repo'
-import { AppService } from './service.registry'
-import { WebContents, app } from 'electron'
+import { AppService, ServicePriority } from './service.registry'
+import { app } from 'electron'
+import { broadcastService } from './broadcast.service'
 import { DiskCache } from '../cache/DiskCache'
 import path from 'path'
 
@@ -28,23 +29,11 @@ export const DEFAULT_TTL: CacheTTL = {
 }
 
 export class CacheManager implements AppService {
-  private static instance: CacheManager
-  private webContents: WebContents | null = null
+  public priority = ServicePriority.STORAGE
   private mangaRepo: MangaCacheRepository | null = null
   private imageCache: DiskCache | null = null
 
-  private constructor() {}
-
-  static getInstance(): CacheManager {
-    if (!CacheManager.instance) {
-      CacheManager.instance = new CacheManager()
-    }
-    return CacheManager.instance
-  }
-
-  setWebContents(wc: WebContents): void {
-    this.webContents = wc
-  }
+  constructor() {}
 
   setMangaRepo(repo: MangaCacheRepository): void {
     this.mangaRepo = repo
@@ -116,9 +105,7 @@ export class CacheManager implements AppService {
   }
 
   private broadcastInvalidation(group: CacheGroup, key?: string) {
-    if (this.webContents) {
-      this.webContents.send('CACHE_INVALIDATE', { group, key })
-    }
+    broadcastService.send('CACHE_INVALIDATE', { group, key })
   }
 
   getExpiryDate(group: CacheGroup): string {
@@ -126,3 +113,5 @@ export class CacheManager implements AppService {
     return new Date(Date.now() + ttl).toISOString()
   }
 }
+
+export const cacheManager = new CacheManager()

@@ -109,7 +109,7 @@ export function useMangaPagination({
 
         if (activeFeed === 'popular') {
           res = await runner.fetchPopular(page, { ...filters })
-        } else if (activeFeed === 'latest' && runner.fetchLatest) {
+        } else if (activeFeed === 'latest') {
           res = await runner.fetchLatest(page, { ...filters })
         } else if (activeFeed === 'search') {
           res = await runner.searchManga(searchToWatch, page, { ...filters })

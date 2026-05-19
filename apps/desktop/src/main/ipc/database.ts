@@ -1,4 +1,3 @@
-import { ipcMain } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import {
   extensionRepo,
@@ -9,8 +8,8 @@ import {
   chapterRepo,
   mangaCacheRepo
 } from '../db'
-import { wrapIpc } from './utils'
-import { CacheManager, CacheGroup } from '../services/cache.service'
+import { registerHandler, wrapIpc } from './utils'
+import { cacheManager, CacheGroup } from '../services/cache.service'
 
 const repos = {
   extension: extensionRepo,
@@ -27,19 +26,21 @@ function dbHandler(repo: keyof typeof repos, method: string) {
 }
 
 export function registerDatabaseHandlers() {
-  ipcMain.handle(IpcChannel.DB_GET_EXTENSIONS, dbHandler('extension', 'getAll'))
+  registerHandler(IpcChannel.INIT, wrapIpc(async () => {}))
 
-  ipcMain.handle(
+  registerHandler(IpcChannel.DB_GET_EXTENSIONS, dbHandler('extension', 'getAll'))
+
+  registerHandler(
     IpcChannel.DB_ADD_EXTENSION,
     wrapIpc(async (_, data) => {
       await extensionRepo.upsert({ ...data, installedAt: new Date().toISOString() })
-      return true
+      return { success: true }
     })
   )
 
-  ipcMain.handle(IpcChannel.DB_GET_EXTENSION, dbHandler('extension', 'getByPkg'))
+  registerHandler(IpcChannel.DB_GET_EXTENSION, dbHandler('extension', 'getByPkg'))
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_REMOVE_EXTENSION,
     wrapIpc(async (_, pkg: string) => {
       await extensionRepo.remove(pkg)
@@ -47,12 +48,12 @@ export function registerDatabaseHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_GET_LIBRARY,
-    wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: 'manga' | 'anime' }) => {
+    wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: string }) => {
       const limit = args?.limit
       const offset = args?.offset
-      const type = args?.type
+      const type = args?.type as 'manga' | 'anime' | undefined
       const rows = await libraryRepo.getAll(limit, offset, type)
       return rows.map((r) => {
         let meta: Record<string, unknown> = {}
@@ -69,17 +70,17 @@ export function registerDatabaseHandlers() {
           coverUrl: r.coverUrl,
           status: r.status
         }
-      })
+      }) as any
     })
   )
 
-  ipcMain.handle(IpcChannel.DB_TOGGLE_LIBRARY, dbHandler('library', 'toggle'))
+  registerHandler(IpcChannel.DB_TOGGLE_LIBRARY, dbHandler('library', 'toggle'))
 
-  ipcMain.handle(IpcChannel.DB_CLEAR_LIBRARY, dbHandler('library', 'clear'))
+  registerHandler(IpcChannel.DB_CLEAR_LIBRARY, dbHandler('library', 'clear'))
 
-  ipcMain.handle(IpcChannel.DB_GET_SETTING, dbHandler('settings', 'get'))
+  registerHandler(IpcChannel.DB_GET_SETTING, dbHandler('settings', 'get'))
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_GET_SETTINGS,
     wrapIpc(async () => {
       const rows = await settingsRepo.getAll()
@@ -91,29 +92,29 @@ export function registerDatabaseHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_SET_SETTING,
-    wrapIpc(async (_, { key, value }: { key: string; value: string }) => {
+    wrapIpc(async (_, key, value) => {
       await settingsRepo.set(key, value)
-      return true
+      return { success: true }
     })
   )
 
-  ipcMain.handle(IpcChannel.DB_GET_PROGRESS, dbHandler('progress', 'getProgress'))
+  registerHandler(IpcChannel.DB_GET_PROGRESS, dbHandler('progress', 'getProgress'))
 
-  ipcMain.handle(IpcChannel.DB_UPDATE_PROGRESS, dbHandler('progress', 'updateProgress'))
+  registerHandler(IpcChannel.DB_UPDATE_PROGRESS, dbHandler('progress', 'updateProgress'))
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_ADD_HISTORY,
     wrapIpc(async (_, data) => {
       return historyRepo.addEntry(data)
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_GET_HISTORY,
     wrapIpc(
-      async (_, args?: { limit?: number; offset?: number; type?: 'manga' | 'anime' } | number) => {
+      async (_, args?: { limit?: number; offset?: number; type?: string } | number) => {
         let limit = 50,
           offset = 0,
           type: 'manga' | 'anime' | undefined = undefined
@@ -128,30 +129,30 @@ export function registerDatabaseHandlers() {
     )
   )
 
-  ipcMain.handle(IpcChannel.DB_DELETE_HISTORY_ENTRY, dbHandler('history', 'deleteEntry'))
+  registerHandler(IpcChannel.DB_DELETE_HISTORY_ENTRY, dbHandler('history', 'deleteEntry'))
 
-  ipcMain.handle(IpcChannel.DB_DELETE_HISTORY_BY_MANGA, dbHandler('history', 'deleteByManga'))
+  registerHandler(IpcChannel.DB_DELETE_HISTORY_BY_MANGA, dbHandler('history', 'deleteByManga'))
 
-  ipcMain.handle(IpcChannel.DB_CLEAR_HISTORY, dbHandler('history', 'clearHistory'))
+  registerHandler(IpcChannel.DB_CLEAR_HISTORY, dbHandler('history', 'clearHistory'))
 
-  ipcMain.handle(IpcChannel.DB_GET_CHAPTERS, dbHandler('chapter', 'getByManga'))
+  registerHandler(IpcChannel.DB_GET_CHAPTERS, dbHandler('chapter', 'getByManga'))
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_SAVE_CHAPTERS,
     wrapIpc(async (_, { mangaId, chapters }: { mangaId: string; chapters: any[] }) => {
       await chapterRepo.upsertMany(mangaId, chapters)
-      return true
+      return { success: true }
     })
   )
 
-  ipcMain.handle(IpcChannel.DB_GET_MANGA_CACHE, dbHandler('mangaCache', 'get'))
+  registerHandler(IpcChannel.DB_GET_MANGA_CACHE, dbHandler('mangaCache', 'get'))
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DB_SAVE_MANGA_CACHE,
     wrapIpc(async (_, manga) => {
-      const expiresAt = CacheManager.getInstance().getExpiryDate(CacheGroup.MANGA_METADATA)
-      await mangaCacheRepo.upsert(manga, expiresAt)
-      return true
+      const expiresAt = cacheManager.getExpiryDate(CacheGroup.MANGA_METADATA)
+      await mangaCacheRepo.upsert({ ...manga, expiresAt })
+      return { success: true }
     })
   )
 }

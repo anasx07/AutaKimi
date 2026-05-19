@@ -1,4 +1,4 @@
-export interface Manga {
+export interface PartialManga {
   id: string
   title: string
   coverUrl?: string | null
@@ -11,4 +11,9 @@ export interface Manga {
   pkg?: string
   mediaType?: 'manga' | 'anime'
   _raw?: any
+}
+
+export interface Manga extends Omit<PartialManga, 'url' | 'pkg'> {
+  url: string
+  pkg: string
 }

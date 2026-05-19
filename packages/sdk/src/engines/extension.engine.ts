@@ -63,8 +63,7 @@ export class ExtensionEngine {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
-    const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
-    const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
+    const baseUrl = repoUrl === 'local' ? '' : repoUrl.replace('/index.min.json', '')
     let code = ''
 
     const bypassCf = (await this.platform.getSetting('bypass_cloudflare')) === 'true'

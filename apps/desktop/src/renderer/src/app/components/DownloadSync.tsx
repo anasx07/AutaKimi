@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useDownloadStore } from '@renderer/shared/model'
+import { useDownloadStore, useUIStore } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 
 export const DownloadSync = (): null => {
@@ -10,6 +10,20 @@ export const DownloadSync = (): null => {
     const unsubscribe = DataService.onSystemStateUpdate((event) => {
       if (event.type === 'full_state_update') {
         hydrateTasks(event.state.activeDownloads as any)
+        
+        // Sync active bypass status
+        const { activeBypass } = event.state
+        const { setIsCfBypassing } = useUIStore.getState()
+        if (activeBypass) {
+          setIsCfBypassing(true, activeBypass.domain)
+        } else {
+          setIsCfBypassing(false)
+        }
+        return
+      }
+
+      if (event.type === 'cf_bypass_update') {
+        // Handle individual bypass updates if needed (e.g. for a bypass history view)
         return
       }
 

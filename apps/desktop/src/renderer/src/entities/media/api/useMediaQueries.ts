@@ -34,7 +34,8 @@ export function useMediaDetails(type: MediaType, id: string, pkg: string | null,
             const fresh = await runner.fetchMangaDetails({
               id,
               url: urlToFetch,
-              title: cached?.title || ''
+              title: cached?.title || '',
+              pkg
             })
             if (fresh) {
               const hasValidTitle =
@@ -47,7 +48,7 @@ export function useMediaDetails(type: MediaType, id: string, pkg: string | null,
                 mediaType: type
               } as Media
               // Save to cache asynchronously
-              DataService.db.saveMangaCache(finalMedia)
+              DataService.db.saveMangaCache(finalMedia as any)
               return finalMedia
             }
           }
@@ -127,7 +128,7 @@ export function useToggleMediaLibrary(type: MediaType) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (media: Media) => DataService.db.toggleLibrary({ ...media, mediaType: type }),
+    mutationFn: (media: Media) => DataService.db.toggleLibrary({ ...media, mediaType: type } as any),
     onMutate: async (media) => {
       const checkKey = mediaKeys.libraryCheck(type, media.id)
       await queryClient.cancelQueries({ queryKey: checkKey })

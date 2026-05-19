@@ -3,7 +3,9 @@ import { app } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
+import { is } from '@electron-toolkit/utils'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema'
 import { ExtensionRepository } from './repositories/extension.repo'
 import { LibraryRepository } from './repositories/library.repo'
@@ -25,218 +27,56 @@ sqlite.pragma('journal_mode = WAL')
 
 // === Versioned Migrations (Raw SQL for legacy compatibility) ===
 
-const isDuplicateColumnError = (e: unknown): boolean =>
-  e instanceof Error && e.message.includes('duplicate column')
-
-const safeAddColumn = (sql: string): void => {
-  try {
-    sqlite.exec(sql)
-  } catch (e) {
-    if (!isDuplicateColumnError(e)) throw e
-  }
-}
-
-const migrate = () => {
-  let currentVersion = sqlite.pragma('user_version', { simple: true }) as number
-
-  if (currentVersion < 1) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS extensions (
-        pkg TEXT PRIMARY KEY,
-        installed_at TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS library (
-        id TEXT PRIMARY KEY,
-        title TEXT,
-        cover_url TEXT,
-        status TEXT,
-        metadata TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
-      );
-    `)
-    sqlite.pragma('user_version = 1')
-    currentVersion = 1
-  }
-
-  // Hotfix: If user_version was prematurely set to 12 or 13, but older tables are missing
-  if (currentVersion >= 12) {
-    try {
-      sqlite.prepare('SELECT 1 FROM downloads LIMIT 1').get()
-    } catch {
-      console.log(
-        '[DB] Detected prematurely set user_version. Resetting migration pipeline to v1 to create missing tables.'
-      )
-      currentVersion = 1
-    }
-  }
-
-  // Migration 2: Fix extension columns (already in initial schema but for legacy v1 users)
-  if (currentVersion < 2) {
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN code TEXT;`)
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN name TEXT;`)
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN baseUrl TEXT;`)
-    sqlite.pragma('user_version = 2')
-    currentVersion = 2
-  }
-
-  if (currentVersion < 3) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS reading_progress (
-        manga_id TEXT,
-        chapter_id TEXT,
-        is_read INTEGER DEFAULT 0,
-        last_page INTEGER DEFAULT 0,
-        updated_at TEXT,
-        PRIMARY KEY (manga_id, chapter_id)
-      );
-    `)
-    sqlite.pragma('user_version = 3')
-    currentVersion = 3
-  }
-
-  if (currentVersion < 4) {
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN lang TEXT;`)
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN icon TEXT;`)
-    sqlite.pragma('user_version = 4')
-    currentVersion = 4
-  }
-
-  if (currentVersion < 6) {
-    safeAddColumn(`ALTER TABLE extensions ADD COLUMN version TEXT;`)
-    sqlite.pragma('user_version = 6')
-    currentVersion = 6
-  }
-
-  if (currentVersion < 7) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS reading_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        manga_id TEXT NOT NULL,
-        manga_title TEXT,
-        manga_cover TEXT,
-        chapter_id TEXT NOT NULL,
-        chapter_title TEXT,
-        started_at TEXT NOT NULL,
-        duration_seconds INTEGER DEFAULT 0,
-        pkg TEXT
-      );
-    `)
-    sqlite.pragma('user_version = 7')
-    currentVersion = 7
-  }
-
-  if (currentVersion < 8) {
-    safeAddColumn(`ALTER TABLE reading_history ADD COLUMN manga_url TEXT;`)
-    sqlite.pragma('user_version = 8')
-    currentVersion = 8
-  }
-
-  if (currentVersion < 9) {
-    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_progress_manga ON reading_progress(manga_id);`)
-    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_history_manga ON reading_history(manga_id);`)
-    sqlite.exec(
-      `CREATE INDEX IF NOT EXISTS idx_history_started ON reading_history(started_at DESC);`
-    )
-    sqlite.pragma('user_version = 9')
-    currentVersion = 9
-  }
-
-  if (currentVersion < 10) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS downloads (
-        manga_id TEXT NOT NULL,
-        chapter_id TEXT NOT NULL,
-        total_pages INTEGER DEFAULT 0,
-        cached_pages INTEGER DEFAULT 0,
-        status TEXT,
-        error_message TEXT,
-        updated_at TEXT,
-        PRIMARY KEY (manga_id, chapter_id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
-    `)
-    sqlite.pragma('user_version = 10')
-    currentVersion = 10
-  }
-
-  if (currentVersion < 11) {
-    safeAddColumn(`ALTER TABLE downloads ADD COLUMN page_urls TEXT;`)
-    sqlite.pragma('user_version = 11')
-    currentVersion = 11
-  }
-
-  if (currentVersion < 12) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS chapters (
-        manga_id TEXT NOT NULL,
-        id TEXT NOT NULL,
-        number TEXT,
-        title TEXT,
-        date TEXT,
-        scanlator TEXT,
-        url TEXT,
-        PRIMARY KEY (manga_id, id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id);
-    `)
-    sqlite.pragma('user_version = 12')
-    currentVersion = 12
-  }
-
-  if (currentVersion < 13) {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS manga_cache (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        cover_url TEXT,
-        description TEXT,
-        author TEXT,
-        artist TEXT,
-        status TEXT,
-        genres TEXT,
-        url TEXT,
-        updated_at TEXT
-      );
-    `)
-    sqlite.pragma('user_version = 13')
-    currentVersion = 13
-  }
-
-  if (currentVersion < 14) {
-    sqlite.pragma('user_version = 14')
-    currentVersion = 14
-  }
-
-  if (currentVersion < 15) {
-    safeAddColumn(`ALTER TABLE library ADD COLUMN type TEXT DEFAULT 'manga';`)
-    safeAddColumn(`ALTER TABLE downloads ADD COLUMN type TEXT DEFAULT 'manga';`)
-    safeAddColumn(`ALTER TABLE manga_cache ADD COLUMN type TEXT DEFAULT 'manga';`)
-    sqlite.pragma('user_version = 15')
-    currentVersion = 15
-  }
-
-  if (currentVersion < 16) {
-    safeAddColumn(`ALTER TABLE reading_history ADD COLUMN type TEXT DEFAULT 'manga';`)
-    sqlite.pragma('user_version = 16')
-    currentVersion = 16
-  }
-
-  if (currentVersion < 17) {
-    safeAddColumn(`ALTER TABLE manga_cache ADD COLUMN expires_at TEXT;`)
-    sqlite.pragma('user_version = 17')
-    currentVersion = 17
-  }
-}
-
-migrate()
 
 // Initialize Drizzle
 export const ddb = drizzle(sqlite, { schema })
+
+// === Drizzle Migrations ===
+const runMigrations = () => {
+  const currentVersion = sqlite.pragma('user_version', { simple: true }) as number
+  
+  // Transition legacy users to Drizzle migrations
+  if (currentVersion >= 17) {
+    try {
+      // Check if drizzle migrations table exists
+      const tableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'").get()
+      if (!tableExists) {
+        console.log('[DB] Transitioning legacy user to Drizzle migrations...')
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hash TEXT NOT NULL,
+            created_at INTEGER
+          );
+          -- Mark the initial migration as already completed
+          -- Note: The hash here doesn't strictly matter as long as it exists for the first migration
+          -- Drizzle will skip 0000 if it's already in the table.
+          INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES ('legacy_transition_v17', ${Date.now()});
+        `)
+      }
+    } catch (err) {
+      console.error('[DB] Legacy transition failed:', err)
+    }
+  }
+
+  try {
+    // Determine migrations path relative to the app bundle
+    const migrationsPath = is.dev 
+      ? path.join(__dirname, '../../src/main/db/migrations')
+      : path.join(process.resourcesPath, 'migrations')
+    
+    // In production, electron-vite might bundle it differently. 
+    // We should check if the folder exists, otherwise fallback to a common location.
+    const finalPath = fs.existsSync(migrationsPath) ? migrationsPath : path.join(__dirname, 'migrations')
+
+    migrate(ddb, { migrationsFolder: finalPath })
+    console.log('[DB] Migrations completed successfully.')
+  } catch (err) {
+    console.error('[DB] Migrations failed:', err)
+  }
+}
+
+runMigrations()
 
 // Export Repositories
 export const extensionRepo = new ExtensionRepository(ddb)

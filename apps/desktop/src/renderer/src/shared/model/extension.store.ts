@@ -9,6 +9,8 @@ type ExtensionState = SettingsSchema['extensions'] & {
   installedExtensions: Extension[]
   activeExtension: string | null
   installingPkgs: Set<string>
+  availableExtensions: Extension[]
+  isRefreshingCatalog: boolean
 
   // Actions
   setInstalledExtensions: (exts: Extension[]) => void
@@ -21,6 +23,7 @@ type ExtensionState = SettingsSchema['extensions'] & {
   uninstallExtension: (pkg: string) => Promise<void>
   installExtension: (ext: Extension) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
+  loadCatalog: (force?: boolean) => Promise<void>
 
   // Init
   _init: (installed: Extension[], settings: SettingsSchema['extensions']) => void
@@ -35,6 +38,9 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   extensionSortBy: 'supported',
   extensionSortOrder: 'asc',
   domainOverrides: {},
+  availableExtensions: [],
+  isRefreshingCatalog: false,
+  pluginsEnabled: [],
 
   setInstalledExtensions: (installedExtensions) => set({ installedExtensions }),
   setActiveExtension: (activeExtension) => set({ activeExtension }),
@@ -110,6 +116,31 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
 
       return { pinnedExtensions: nextPinned }
     })
+  },
+
+  loadCatalog: async () => {
+    const { isRefreshingCatalog } = useExtensionStore.getState()
+    if (isRefreshingCatalog) return
+
+    set({ isRefreshingCatalog: true })
+    try {
+      const sources = await DataService.sources.getAllSources()
+      const { setGeneratedSources } = await import(/* @vite-ignore */ '../api/sources/SourceRegistry')
+      setGeneratedSources(sources)
+
+      const extensions = sources.map((ext: any) => ({
+        ...ext,
+        pkg: ext.pkg || ext.id,
+        baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
+        icon: ext.icon || ''
+      }))
+
+      set({ availableExtensions: extensions })
+    } catch (e) {
+      console.error('Failed to load catalog:', e)
+    } finally {
+      set({ isRefreshingCatalog: false })
+    }
   },
 
   _init: (installed, settings) => {

@@ -1,11 +1,10 @@
-import { ipcMain } from 'electron'
 import { IpcChannel } from '../types/ipc'
 import { downloadManager } from '../services/download.service'
 import { stateRegistry } from '../services/state.service'
-import { wrapIpc } from './utils'
+import { registerHandler, wrapIpc } from './utils'
 
 export function registerDownloadHandlers(): void {
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DOWNLOAD_CHAPTER,
     wrapIpc(
       async (
@@ -28,8 +27,6 @@ export function registerDownloadHandlers(): void {
           chapterTitle?: string
         }
       ) => {
-        const webContents = _.sender
-        downloadManager.setWebContents(webContents)
         downloadManager.startDownload({
           mangaId,
           chapterId,
@@ -44,7 +41,7 @@ export function registerDownloadHandlers(): void {
     )
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.CANCEL_DOWNLOAD,
     wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => {
       downloadManager.cancelDownload(mangaId, chapterId)
@@ -52,7 +49,7 @@ export function registerDownloadHandlers(): void {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.REMOVE_DOWNLOAD,
     wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) => {
       await downloadManager.deleteDownload(mangaId, chapterId)
@@ -60,26 +57,28 @@ export function registerDownloadHandlers(): void {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.GET_DOWNLOAD_STATUS,
-    wrapIpc(async (_, mangaId: string, chapterId: string) =>
+    wrapIpc(async (_, { mangaId, chapterId }: { mangaId: string; chapterId: string }) =>
       downloadManager.getStatus(mangaId, chapterId)
     )
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.GET_MANGA_DOWNLOADS,
     wrapIpc((_, mangaId: string) => downloadManager.getMangaDownloads(mangaId))
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DOWNLOAD_GET_ALL_MANGA,
-    wrapIpc((_, type?: 'manga' | 'anime') => downloadManager.getDownloadedManga(type))
+    wrapIpc((_, type?: string) => downloadManager.getDownloadedManga(type as any))
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.DOWNLOAD_CLEAR_ALL,
-    wrapIpc((_, type?: 'manga' | 'anime') => downloadManager.clearAll(type))
+    wrapIpc((_, type?: string) => downloadManager.clearAll(type as any))
   )
-  ipcMain.handle(IpcChannel.GET_SYSTEM_STATE, wrapIpc(async () => stateRegistry.getState()))
+
+  registerHandler(IpcChannel.GET_SYSTEM_STATE, wrapIpc(async () => stateRegistry.getState()))
 }
+

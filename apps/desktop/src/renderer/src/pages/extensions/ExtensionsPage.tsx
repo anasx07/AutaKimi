@@ -285,7 +285,7 @@ export default function ExtensionsPage(): React.JSX.Element {
     const isPinned = pinnedExtensions.includes(ext.pkg)
     const isInstalling = installingPkgs.has(ext.pkg)
     const updateAvailable = updates.some((u) => u.pkg === ext.pkg)
-    const iconUrl = DataService.getExtensionIcon(ext.pkg, ext.icon)
+    const iconUrl = DataService.getExtensionIcon(ext.pkg)
 
     const handleBrowse = (): void => {
       navigate(`/browse/${ext.pkg}`)
@@ -339,7 +339,7 @@ export default function ExtensionsPage(): React.JSX.Element {
                     )}
                   </div>
                 </div>
-                {ext.nsfw === 1 && (
+                {ext.nsfw && (
                   <Badge
                     variant="outline"
                     className="bg-destructive/10 text-destructive border-destructive/20 text-[8px] h-4 px-1 uppercase font-black shrink-0"

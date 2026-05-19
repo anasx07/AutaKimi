@@ -1,28 +1,62 @@
-import { WebContents } from 'electron'
 import { IpcChannel } from '@common/types/ipc'
+import { broadcastService } from './broadcast.service'
 import { SystemState, ActiveTaskState, StateUpdateEvent } from '@common/types/state'
 
 export class StateRegistryService {
-  private static instance: StateRegistryService
-  private webContents: WebContents | null = null
-  
   private state: SystemState = {
-    activeDownloads: {}
+    activeDownloads: {},
+    cloudflareBypasses: {},
+    activeBypass: null
   }
 
-  public static getInstance(): StateRegistryService {
-    if (!StateRegistryService.instance) {
-      StateRegistryService.instance = new StateRegistryService()
-    }
-    return StateRegistryService.instance
-  }
-
-  public setWebContents(webContents: WebContents): void {
-    this.webContents = webContents
-  }
+  constructor() {}
 
   public getState(): SystemState {
     return this.state
+  }
+
+  /**
+   * Sets the currently active bypass (for UI overlay).
+   */
+  public setActiveBypass(bypass: { domain: string; url: string } | null): void {
+    this.state.activeBypass = bypass
+    this.broadcast({
+      type: 'full_state_update',
+      state: this.state
+    })
+  }
+
+  /**
+   * Updates or adds a Cloudflare bypass state.
+   */
+  public updateBypassState(bypass: { domain: string; baseUrl: string; resolvedAt?: number; lastUsedAt?: number; status?: 'active' | 'expiring' | 'resolved' }): void {
+    const existing = this.state.cloudflareBypasses[bypass.domain]
+    
+    this.state.cloudflareBypasses[bypass.domain] = {
+      domain: bypass.domain,
+      baseUrl: bypass.baseUrl,
+      resolvedAt: bypass.resolvedAt ?? (existing?.resolvedAt ?? Date.now()),
+      lastUsedAt: bypass.lastUsedAt ?? (existing?.lastUsedAt ?? Date.now()),
+      status: bypass.status ?? 'resolved'
+    }
+
+    this.broadcast({
+      type: 'cf_bypass_update',
+      bypass: this.state.cloudflareBypasses[bypass.domain]
+    })
+  }
+
+  /**
+   * Removes a bypass entry.
+   */
+  public removeBypassState(domain: string): void {
+    if (this.state.cloudflareBypasses[domain]) {
+      delete this.state.cloudflareBypasses[domain]
+      this.broadcast({
+        type: 'full_state_update',
+        state: this.state
+      })
+    }
   }
 
   /**
@@ -79,10 +113,8 @@ export class StateRegistryService {
   }
 
   private broadcast(event: StateUpdateEvent): void {
-    if (this.webContents) {
-      this.webContents.send(IpcChannel.SYSTEM_STATE_UPDATE, event)
-    }
+    broadcastService.send(IpcChannel.SYSTEM_STATE_UPDATE, event)
   }
 }
 
-export const stateRegistry = StateRegistryService.getInstance()
+export const stateRegistry = new StateRegistryService()

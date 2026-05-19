@@ -142,7 +142,7 @@ export function MangaDetailsView({
       setDownloadStatuses((prev) => ({ ...prev, [chapter.id]: 'downloading' }))
       const runner = await ExtensionResolver.resolve(activeExtension)
       if (!runner) throw new Error('Extension not found')
-      const pages = await runner.fetchPages(chapter.url)
+      const pages = (await runner.fetchPages(chapter.url)) as string[]
       if (!pages || pages.length === 0) throw new Error('No pages found')
       await DataService.download.start({
         mangaId: mergedMedia.id,

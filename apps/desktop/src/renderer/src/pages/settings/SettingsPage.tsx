@@ -23,9 +23,10 @@ import { AnimeSettings } from './tabs/AnimeSettings'
 import { AdvancedSettings } from './tabs/AdvancedSettings'
 import { SyncSettings } from './tabs/SyncSettings'
 import { SourceSettings } from './tabs/SourceSettings'
-import { Share2, Globe } from 'lucide-react'
+import { PluginSettings } from './tabs/PluginSettings'
+import { Share2, Globe, Puzzle } from 'lucide-react'
 
-type SettingsTab = 'general' | 'reading' | 'anime' | 'sync' | 'sources' | 'advanced'
+type SettingsTab = 'general' | 'reading' | 'anime' | 'sync' | 'sources' | 'plugins' | 'advanced'
 
 const sidebarItems: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
@@ -33,6 +34,7 @@ const sidebarItems: { id: SettingsTab; label: string; icon: React.ComponentType<
   { id: 'anime', label: 'Anime', icon: Zap },
   { id: 'sync', label: 'Sync', icon: Share2 },
   { id: 'sources', label: 'Sources', icon: Globe },
+  { id: 'plugins', label: 'Plugins', icon: Puzzle },
   { id: 'advanced', label: 'Advanced', icon: Zap }
 ]
 
@@ -122,6 +124,8 @@ export default function SettingsPage(): React.JSX.Element {
         return <SyncSettings />
       case 'sources':
         return <SourceSettings />
+      case 'plugins':
+        return <PluginSettings />
       case 'advanced':
         return <AdvancedSettings setStatusMessage={setStatusMessage} />
     }

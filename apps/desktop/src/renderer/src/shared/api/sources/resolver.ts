@@ -1,5 +1,5 @@
 import { DataService } from '@renderer/shared/api'
-import { ISourceAdapter, Manga, Chapter, MangaPage } from './types'
+import { ISourceAdapter, Manga, Chapter, MangaPage, StreamingServer } from './types'
 import { SourceRegistry } from './SourceRegistry'
 import { useExtensionStore } from '@renderer/shared/model'
 import { compareVersions } from '@renderer/shared/lib/version'
@@ -20,8 +20,13 @@ export class SandboxRunner implements ISourceAdapter {
   icon: string
   isSupported: boolean = true
 
-  getFeedLabels?(): Record<string, string> {
-    return { popular: 'Popular', latest: 'Latest', search: 'Search' }
+  getFeedLabels(): Record<string, string> {
+    const hasLatest = this.extensionCode.includes('latest') || this.extensionCode.includes('fetchLatest')
+    return {
+      popular: 'Popular',
+      latest: hasLatest ? 'Latest' : 'Popular',
+      search: 'Search'
+    }
   }
 
   private extensionCode: string
@@ -39,57 +44,48 @@ export class SandboxRunner implements ISourceAdapter {
     this.theme = ''
     this.baseUrl = ''
     this.lang = 'all'
-    this.nsfw = false
+    this.nsfw = !!resExt?.nsfw
     this.icon = ''
   }
 
-  async fetchPopular(page: number, extraArgs: any = {}): Promise<MangaPage> {
+  private async executeFeed(activeFeed: string, page: number, extraArgs: any = {}, debouncedSearch?: string): Promise<MangaPage> {
     const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
       contextArgs: {
         limit: 15,
         offset: (page - 1) * 15,
-        activeFeed: 'popular',
+        activeFeed,
         lang: this.lang,
+        ...(debouncedSearch !== undefined ? { debouncedSearch } : {}),
         ...extraArgs
       }
     })
-    const manga = (res?.data || []).map((m: any) => normalizeManga(m))
+    const manga = (res?.data || []).map((m: any) => {
+      const norm = normalizeManga(m)
+      return {
+        ...norm,
+        pkg: norm.pkg || this.pkg,
+        url: norm.url || m.url || ''
+      } as Manga
+    })
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
+  }
+
+  async fetchPopular(page: number, extraArgs: any = {}): Promise<MangaPage> {
+    return this.executeFeed('popular', page, extraArgs)
   }
 
   async fetchLatest(page: number, extraArgs: any = {}): Promise<MangaPage> {
-    const res: any = await DataService.executeExtension({
-      pkg: this.pkg,
-      code: this.extensionCode,
-      contextArgs: {
-        limit: 15,
-        offset: (page - 1) * 15,
-        activeFeed: 'latest',
-        lang: this.lang,
-        ...extraArgs
-      }
-    })
-    const manga = (res?.data || []).map((m: any) => normalizeManga(m))
-    return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
+    const hasLatest = this.extensionCode.includes('latest') || this.extensionCode.includes('fetchLatest')
+    if (!hasLatest) {
+      return this.fetchPopular(page, extraArgs)
+    }
+    return this.executeFeed('latest', page, extraArgs)
   }
 
   async searchManga(query: string, page: number, extraArgs: any = {}): Promise<MangaPage> {
-    const res: any = await DataService.executeExtension({
-      pkg: this.pkg,
-      code: this.extensionCode,
-      contextArgs: {
-        limit: 15,
-        offset: (page - 1) * 15,
-        debouncedSearch: query,
-        activeFeed: 'search',
-        lang: this.lang,
-        ...extraArgs
-      }
-    })
-    const manga = (res?.data || []).map((m: any) => normalizeManga(m) as any as Manga)
-    return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
+    return this.executeFeed('search', page, extraArgs, query)
   }
 
   async fetchMangaDetails(manga: Manga): Promise<Manga> {
@@ -99,7 +95,13 @@ export class SandboxRunner implements ISourceAdapter {
       contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
     })
     if (res && res.data) {
-      return { ...manga, ...normalizeManga(res.data) }
+      const details = normalizeManga(res.data)
+      return {
+        ...manga,
+        ...details,
+        url: details.url || manga.url,
+        pkg: details.pkg || manga.pkg
+      }
     }
     return manga
   }
@@ -113,7 +115,7 @@ export class SandboxRunner implements ISourceAdapter {
     return res?.data || []
   }
 
-  async fetchPages(chapterUrl: string): Promise<string[]> {
+  async fetchPages(chapterUrl: string): Promise<string[] | StreamingServer[]> {
     const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
@@ -127,7 +129,7 @@ export const ExtensionResolver = {
   async resolve(pkg: string): Promise<ISourceAdapter | null> {
     const resExt = await DataService.db.getExtension(pkg)
     const overrides = useExtensionStore.getState().domainOverrides
-    const native = SourceRegistry.resolveNative(pkg, overrides)
+    const native = SourceRegistry.resolve(pkg, overrides)
 
     // 1. Check native compatibility
     if (native) {

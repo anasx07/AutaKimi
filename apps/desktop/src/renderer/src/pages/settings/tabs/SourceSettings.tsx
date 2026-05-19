@@ -1,7 +1,8 @@
-import { Library, Plus, Trash2, Globe, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Library, Plus, Trash2, Globe, RefreshCw, AlertCircle, CheckCircle2, Folder } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Button, Card, SectionHeader, Badge } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
+import { useSettingsStore } from '@renderer/shared/model'
 
 export function SourceSettings(): React.JSX.Element {
   const [repos, setRepos] = useState<string[]>([])
@@ -9,6 +10,7 @@ export function SourceSettings(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const { devMode } = useSettingsStore()
 
   const fetchRepos = async () => {
     try {
@@ -34,6 +36,26 @@ export function SourceSettings(): React.JSX.Element {
         fetchRepos()
       } else {
         setError((res as any).error || 'Failed to add repository')
+      }
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSelectLocalDir = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const localPath = await (window.api as any).sources.selectDirectory()
+      if (localPath) {
+        const res = await DataService.sources.addRepo(localPath)
+        if (res.success) {
+          fetchRepos()
+        } else {
+          setError((res as any).error || 'Failed to load local directory')
+        }
       }
     } catch (e: any) {
       setError(e.message)
@@ -102,11 +124,22 @@ export function SourceSettings(): React.JSX.Element {
             <Button 
               onClick={handleAddRepo} 
               disabled={isLoading || !newRepoUrl}
-              className="gap-2 font-bold px-6"
+              className="gap-2 font-bold px-6 shrink-0"
             >
               {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Add Repository
             </Button>
+            {devMode && (
+              <Button
+                variant="outline"
+                onClick={handleSelectLocalDir}
+                disabled={isLoading}
+                className="gap-2 font-bold px-6 border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:border-primary shrink-0"
+              >
+                <Folder className="h-4 w-4" />
+                Load Local Directory
+              </Button>
+            )}
           </div>
 
           {error && (
@@ -123,23 +156,34 @@ export function SourceSettings(): React.JSX.Element {
                 <p className="text-sm text-muted-foreground">No repositories added yet.</p>
               </div>
             ) : (
-              repos.map((url) => (
-                <div 
-                  key={url}
-                  className="flex items-center justify-between p-4 bg-secondary/20 border border-border/50 rounded-2xl group hover:border-primary/30 transition-all"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                      <Globe className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold truncate pr-4">{url}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge className="bg-green-500/10 text-green-500 border-none text-[10px] uppercase font-black px-1.5 py-0">Active</Badge>
-                        <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tighter">Verified Provider</span>
+              repos.map((url) => {
+                const isLocal = !url.startsWith('http://') && !url.startsWith('https://')
+                return (
+                  <div 
+                    key={url}
+                    className="flex items-center justify-between p-4 bg-secondary/20 border border-border/50 rounded-2xl group hover:border-primary/30 transition-all"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        {isLocal ? <Folder className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate pr-4">{url}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {isLocal ? (
+                            <>
+                              <Badge className="bg-amber-500/10 text-amber-500 border-none text-[10px] uppercase font-black px-1.5 py-0">Local Dev</Badge>
+                              <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tighter">Developer Extension Repository</span>
+                            </>
+                          ) : (
+                            <>
+                              <Badge className="bg-green-500/10 text-green-500 border-none text-[10px] uppercase font-black px-1.5 py-0">Active</Badge>
+                              <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tighter">Verified Provider</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -149,7 +193,7 @@ export function SourceSettings(): React.JSX.Element {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))
+              )})
             )}
           </div>
         </Card>

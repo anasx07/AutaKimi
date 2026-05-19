@@ -36,7 +36,9 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
     userAgent,
     setUserAgent,
     timeoutInterval,
-    setTimeoutInterval
+    setTimeoutInterval,
+    devMode,
+    setDevMode
   } = useSettingsStore()
 
   const handleClearCache = async () => {
@@ -114,6 +116,18 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
               ]}
               className="w-32"
             />
+          </SettingsRow>
+
+          <SettingsRow
+            title={
+              <div className="flex items-center gap-2">
+                <Terminal className="h-4 w-4" />
+                <span>Developer Mode</span>
+              </div>
+            }
+            description="Enable local extensions development and advanced diagnostics"
+          >
+            <Switch checked={devMode} onCheckedChange={setDevMode} />
           </SettingsRow>
         </Card>
       </section>

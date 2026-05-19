@@ -43,7 +43,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
 
   toggleLibrary: async (manga: NormalizedManga) => {
     try {
-      await DataService.db.toggleLibrary(manga)
+      await DataService.db.toggleLibrary(manga as any)
       set((state) => {
         const exists = state.library.find((m) => m.id === manga.id)
         const updated = exists
