@@ -34,10 +34,25 @@ export class TemplateService {
    */
   async fetchTemplates(url: string): Promise<{ success: boolean; count: number; error?: string }> {
     try {
-      const res = await networkClient.fetch(url)
+      let fetchUrl = url
+      if (!fetchUrl.endsWith('templates.json') && !fetchUrl.endsWith('.json')) {
+        fetchUrl = fetchUrl.endsWith('/') ? `${fetchUrl}templates.json` : `${fetchUrl}/templates.json`
+      }
+
+      const res = await networkClient.fetch(fetchUrl)
       if (!res.ok) throw new Error(`Failed to fetch templates: ${res.error}`)
       
-      const data = await res.value.json()
+      const response = res.value
+      if (!response.ok) {
+        throw new Error(`HTTP Error ${response.status}: Failed to retrieve file`)
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('text/html')) {
+        throw new Error('Expected JSON response, but received HTML. Please make sure the URL points to a valid templates.json file.')
+      }
+
+      const data = await response.json()
       if (!data.templates || !Array.isArray(data.templates)) {
         throw new Error('Invalid template repository format')
       }

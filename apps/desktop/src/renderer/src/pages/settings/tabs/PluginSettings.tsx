@@ -21,14 +21,24 @@ export function PluginSettings(): React.JSX.Element {
   const loadPlugins = async () => {
     try {
       setLoading(true)
-      const [data, repos] = await Promise.all([
-        DataService.plugins.getAll(),
-        DataService.sources.getRepos()
-      ])
-      setPlugins(data)
-      setRepoCount(repos.length)
+      
+      let repos: string[] = []
+      try {
+        repos = await DataService.sources.getRepos()
+        setRepoCount(repos.length)
+      } catch (err) {
+        console.error('Failed to load repos:', err)
+      }
+
+      try {
+        const data = await DataService.plugins.getAll()
+        setPlugins(data)
+      } catch (err) {
+        console.error('Failed to load plugins:', err)
+      }
+      
     } catch (e) {
-      console.error('Failed to load plugins:', e)
+      console.error('Fatal load error:', e)
     } finally {
       setLoading(false)
     }
