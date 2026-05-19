@@ -2,10 +2,10 @@
   "name": "@autakimi/desktop",
   "productName": "AutaKimi",
   "version": "2.0.11",
-  "description": "An Electron application with React and TypeScript",
+  "description": "A professional, privacy-first, cross-platform media framework for organized content viewing.",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "AutaKimi Team <https://github.com/anasx07>",
+  "homepage": "https://anasx07.github.io/AutaKimi/",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

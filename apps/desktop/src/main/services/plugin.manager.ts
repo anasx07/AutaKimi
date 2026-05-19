@@ -85,16 +85,69 @@ export class PluginManager implements AppService {
       }
     }
 
+    const activeTimeouts = new Set<any>()
+    const activeIntervals = new Set<any>()
+
+    const wrappedSetTimeout = (callback: (...args: any[]) => void, ms?: number, ...args: any[]) => {
+      const id = setTimeout(() => {
+        activeTimeouts.delete(id)
+        try {
+          callback(...args)
+        } catch (err) {
+          console.error(`[Plugin:${plugin.id}] setTimeout error:`, err)
+        }
+      }, ms, ...args)
+      activeTimeouts.add(id)
+      return id
+    }
+
+    const wrappedClearTimeout = (id: any) => {
+      if (id) {
+        clearTimeout(id)
+        activeTimeouts.delete(id)
+      }
+    }
+
+    const wrappedSetInterval = (callback: (...args: any[]) => void, ms?: number, ...args: any[]) => {
+      const id = setInterval(() => {
+        try {
+          callback(...args)
+        } catch (err) {
+          console.error(`[Plugin:${plugin.id}] setInterval error:`, err)
+        }
+      }, ms, ...args)
+      activeIntervals.add(id)
+      return id
+    }
+
+    const wrappedClearInterval = (id: any) => {
+      if (id) {
+        clearInterval(id)
+        activeIntervals.delete(id)
+      }
+    }
+
+    const cleanupTimers = () => {
+      for (const id of activeTimeouts) {
+        clearTimeout(id)
+      }
+      activeTimeouts.clear()
+      for (const id of activeIntervals) {
+        clearInterval(id)
+      }
+      activeIntervals.clear()
+    }
+
     const sandbox: any = {
       context: safeContext,
       console: {
         log: (...args: any[]) => console.log(`[Plugin:${plugin.id}]`, ...args),
         error: (...args: any[]) => console.error(`[Plugin:${plugin.id}] Error:`, ...args)
       },
-      setTimeout,
-      setInterval,
-      clearTimeout,
-      clearInterval,
+      setTimeout: wrappedSetTimeout,
+      setInterval: wrappedSetInterval,
+      clearTimeout: wrappedClearTimeout,
+      clearInterval: wrappedClearInterval,
       Promise,
       Buffer: {
          from: (arg: any, enc?: any) => Buffer.from(arg, enc)
@@ -145,9 +198,10 @@ export class PluginManager implements AppService {
         clearTimeout(timeoutId!)
       }
       
-      // If the plugin returned a disposer, wrap it for the host
-      if (sandbox.__disposer) {
-        return () => {
+      // Return host wrapper disposer that clears all timers
+      return () => {
+        cleanupTimers()
+        if (sandbox.__disposer) {
           try {
             const disposerScript = new vm.Script('if (typeof __disposer === "function") __disposer()')
             disposerScript.runInContext(vmContext)
@@ -157,6 +211,7 @@ export class PluginManager implements AppService {
         }
       }
     } catch (e: any) {
+      cleanupTimers()
       console.error(`[PluginManager] VM Critical Error for ${plugin.id}:`, e.message)
     }
   }

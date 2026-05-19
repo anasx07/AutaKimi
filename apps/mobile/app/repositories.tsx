@@ -90,7 +90,7 @@ export default function RepositoriesPage() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 p-4" contentContainerStyle={{ pb: 40 }}>
+      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="mb-6">
           <Typography variant="h1" className="mb-1">Extensions</Typography>
           <Typography variant="muted">Manage community scraper repositories</Typography>

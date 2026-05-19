@@ -73,6 +73,8 @@ export class StateRegistryService {
     })
   }
 
+  private taskRemovalTimeouts = new Map<string, any>()
+
   /**
    * Updates an active download task and broadcasts the change.
    */
@@ -89,8 +91,24 @@ export class StateRegistryService {
     })
 
     // If task is final, we might want to keep it in registry for a bit or let UI handle removal
-    if (task.status === 'completed' || task.status === 'error' || task.status === 'canceled') {
-      console.log(`[StateRegistry] Task moved to terminal state: ${key} (${task.status})`)
+    const currentStatus = this.state.activeDownloads[key].status
+    if (currentStatus === 'completed' || currentStatus === 'error' || currentStatus === 'canceled') {
+      console.log(`[StateRegistry] Task moved to terminal state: ${key} (${currentStatus})`)
+      
+      if (this.taskRemovalTimeouts.has(key)) {
+        clearTimeout(this.taskRemovalTimeouts.get(key))
+      }
+
+      const timeout = setTimeout(() => {
+        this.taskRemovalTimeouts.delete(key)
+        this.removeDownloadTask(task.mangaId, task.chapterId)
+      }, 30000)
+      this.taskRemovalTimeouts.set(key, timeout)
+    } else {
+      if (this.taskRemovalTimeouts.has(key)) {
+        clearTimeout(this.taskRemovalTimeouts.get(key))
+        this.taskRemovalTimeouts.delete(key)
+      }
     }
   }
 
@@ -99,6 +117,10 @@ export class StateRegistryService {
    */
   public removeDownloadTask(mangaId: string, chapterId: string): void {
     const key = `${mangaId}:${chapterId}`
+    if (this.taskRemovalTimeouts.has(key)) {
+      clearTimeout(this.taskRemovalTimeouts.get(key))
+      this.taskRemovalTimeouts.delete(key)
+    }
     if (this.state.activeDownloads[key]) {
       delete this.state.activeDownloads[key]
       console.log(`[StateRegistry] Task removed: ${key}`)

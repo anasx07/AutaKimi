@@ -9,7 +9,7 @@ export function registerNetworkHandlers() {
   registerHandler(
     IpcChannel.FETCH_REPO,
     wrapIpc(async (_, url: string) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
       const headers = { 'User-Agent': NetworkConfig.DEFAULT_UA }
       const response = await extensionOrchestrator.fetch(url, { headers })
       if (!response.ok)
@@ -21,7 +21,8 @@ export function registerNetworkHandlers() {
   registerHandler(
     IpcChannel.FETCH_TEXT,
     wrapIpc(async (_, url: string, options?: any) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
+      if (options !== undefined && typeof options !== 'object') throw new Error('Invalid options')
       console.log(`[FetchText] → ${url}`)
       try {
         const response = await extensionOrchestrator.fetch(url, options || {})

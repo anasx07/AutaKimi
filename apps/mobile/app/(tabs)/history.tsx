@@ -97,7 +97,7 @@ export default function HistoryTab() {
 
   const openManga = (entry: any) => {
     router.push({
-      pathname: '/manga/[id]',
+      pathname: '/manga/[id]' as any,
       params: {
         id: entry.mangaId,
         title: entry.mangaTitle,
@@ -165,7 +165,7 @@ export default function HistoryTab() {
                   >
                     {entry.mangaCover ? (
                       <Image
-                        source={{ uri: entry.mangaCover }}
+                        source={{ uri: entry.mangaCover || undefined }}
                         className="w-12 h-16 rounded-lg"
                         resizeMode="cover"
                       />
