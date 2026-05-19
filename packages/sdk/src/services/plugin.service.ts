@@ -9,6 +9,7 @@ export interface PluginManifest {
   author: string
   version: string
   target: PluginTarget
+  installable?: boolean
 }
 
 export interface AutakimiPlugin extends PluginManifest {
@@ -115,7 +116,7 @@ export class PluginService {
     }
   }
 
-  private registerDynamicPlugin(def: any) {
+  registerDynamicPlugin(def: any) {
     try {
       this.plugins.set(def.id, {
         id: def.id,
@@ -124,12 +125,18 @@ export class PluginService {
         author: def.author,
         version: def.version,
         target: def.target,
-        code: def.code
+        code: def.code,
+        installable: def.installable
       })
       console.log(`[PluginService] Registered plugin metadata: ${def.name}`)
     } catch (err) {
       console.error(`[PluginService] Failed to register plugin ${def.name}:`, err)
     }
+  }
+
+  removePlugin(id: string) {
+    this.plugins.delete(id)
+    this.enabledPlugins.delete(id)
   }
 
   getAllPlugins(): AutakimiPlugin[] {

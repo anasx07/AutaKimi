@@ -24,6 +24,22 @@ export class PluginManager implements AppService {
         } catch (e) {}
       }
 
+      // Offline Cache Hydration: Load permanently installed plugins so they work completely offline
+      const installedJson = await settingsRepo.get('installed_plugins')
+      if (installedJson) {
+        try {
+          const installed = JSON.parse(installedJson)
+          if (Array.isArray(installed)) {
+            for (const p of installed) {
+              pluginService.registerDynamicPlugin(p)
+            }
+            console.log(`[PluginManager] Hydrated ${installed.length} installed plugins from offline cache.`)
+          }
+        } catch (e) {
+          console.error('[PluginManager] Failed to parse installed plugins from offline cache:', e)
+        }
+      }
+
       if (reposJson) {
         const repos = JSON.parse(reposJson)
         if (Array.isArray(repos) && repos.length > 0) {
