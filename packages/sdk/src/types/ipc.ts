@@ -99,7 +99,9 @@ export enum IpcChannel {
 
   // Plugins
   PLUGINS_GET_ALL = 'plugins:get-all',
-  PLUGINS_TOGGLE = 'plugins:toggle'
+  PLUGINS_TOGGLE = 'plugins:toggle',
+  PLUGINS_INSTALL = 'plugins:install',
+  PLUGINS_UNINSTALL = 'plugins:uninstall'
 }
 
 /**
@@ -126,6 +128,8 @@ export type IpcInvokeMap = {
 
   [IpcChannel.PLUGINS_GET_ALL]: () => Promise<IpcResult<any[]>>
   [IpcChannel.PLUGINS_TOGGLE]: (id: string, enabled: boolean) => Promise<IpcResult<void>>
+  [IpcChannel.PLUGINS_INSTALL]: (plugin: any) => Promise<IpcResult<void>>
+  [IpcChannel.PLUGINS_UNINSTALL]: (id: string) => Promise<IpcResult<void>>
 
   [IpcChannel.DB_GET_EXTENSIONS]: () => Promise<IpcResult<Extension[]>>
   [IpcChannel.DB_ADD_EXTENSION]: (args: {
@@ -284,6 +288,8 @@ export interface ElectronApi {
   plugins: {
     getAll: IpcInvokeMap[IpcChannel.PLUGINS_GET_ALL]
     toggle: IpcInvokeMap[IpcChannel.PLUGINS_TOGGLE]
+    install: IpcInvokeMap[IpcChannel.PLUGINS_INSTALL]
+    uninstall: IpcInvokeMap[IpcChannel.PLUGINS_UNINSTALL]
   }
   db: {
     getExtensions: IpcInvokeMap[IpcChannel.DB_GET_EXTENSIONS]

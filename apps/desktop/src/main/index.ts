@@ -231,6 +231,22 @@ app.whenReady().then(async () => {
         url.endsWith('.png')
       ) {
         const filename = path.basename(url)
+        const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
+        if (!fs.existsSync(userDataIconsDir)) {
+          fs.mkdirSync(userDataIconsDir, { recursive: true })
+        }
+        const cachedIconPath = path.join(userDataIconsDir, filename)
+
+        // 1. Check userData/icons cache first
+        try {
+          if (fs.existsSync(cachedIconPath)) {
+            return new Response(fs.readFileSync(cachedIconPath))
+          }
+        } catch (e) {
+          console.error('Cached icon load failed:', e)
+        }
+
+        // 2. Check bundled local icon (dev workspace or resourcesPath)
         const localIconPath = is.dev
           ? path.join(
               process.cwd(),
@@ -248,7 +264,7 @@ app.whenReady().then(async () => {
           console.error('Local icon load failed:', e)
         }
 
-        // Fallback: Check remote repositories for the icon
+        // 3. Fallback: Check remote repositories for the icon, and cache it!
         try {
           const reposJson = await settingsRepo.get('source_repositories')
           const repos: string[] = reposJson ? JSON.parse(reposJson) : []
@@ -262,6 +278,14 @@ app.whenReady().then(async () => {
             const res = await fetch(remoteUrl)
             if (res.ok) {
               const buffer = await res.arrayBuffer()
+              
+              // Cache it locally so it works offline
+              try {
+                fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
+              } catch (writeErr) {
+                console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
+              }
+
               return new Response(buffer, {
                 headers: { 'Content-Type': 'image/png' }
               })
@@ -271,9 +295,8 @@ app.whenReady().then(async () => {
           console.error('Remote icon load failed:', e)
         }
 
-
-        // Block remote icon fetching
-        return new Response('Icon not found locally', { status: 404 })
+        // Block remote icon fetching if all failed
+        return new Response('Icon not found', { status: 404 })
       }
 
       const hash = crypto.createHash('md5').update(url).digest('hex')

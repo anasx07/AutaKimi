@@ -39,7 +39,9 @@ const api: ElectronApi = {
   },
   plugins: {
     getAll: () => invoke(IpcChannel.PLUGINS_GET_ALL),
-    toggle: (id: string, enabled: boolean) => invoke(IpcChannel.PLUGINS_TOGGLE, id, enabled)
+    toggle: (id: string, enabled: boolean) => invoke(IpcChannel.PLUGINS_TOGGLE, id, enabled),
+    install: (plugin: any) => invoke(IpcChannel.PLUGINS_INSTALL, plugin),
+    uninstall: (id: string) => invoke(IpcChannel.PLUGINS_UNINSTALL, id)
   },
   db: {
     getExtensions: () => invoke(IpcChannel.DB_GET_EXTENSIONS),

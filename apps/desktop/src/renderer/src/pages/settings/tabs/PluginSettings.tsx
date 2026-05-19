@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Puzzle, RefreshCcw } from 'lucide-react'
 import { DataService } from '@renderer/shared/api'
 import { SectionHeader, Card, SettingsRow, Switch } from '@renderer/shared/ui'
+import { useUIStore } from '@renderer/shared/model'
 
 interface PluginManifest {
   id: string
@@ -11,6 +12,10 @@ interface PluginManifest {
   version: string
   target: string
   enabled: boolean
+  installed?: boolean
+  updateAvailable?: boolean
+  installable?: boolean
+  code?: string
 }
 
 export function PluginSettings(): React.JSX.Element {
@@ -30,11 +35,49 @@ export function PluginSettings(): React.JSX.Element {
         console.error('Failed to load repos:', err)
       }
 
+      let data: PluginManifest[] = []
       try {
-        const data = await DataService.plugins.getAll()
+        data = await DataService.plugins.getAll()
         setPlugins(data)
       } catch (err) {
         console.error('Failed to load plugins:', err)
+      }
+
+      // Proactive Update & Refresh Toast Notification Checks
+      try {
+        const { addToast } = useUIStore.getState()
+        
+        // 1. Toast for Installable Plugins / Sources needing manual updates
+        const installableUpdates = data.filter((p) => p.installed && p.updateAvailable && p.installable)
+        if (installableUpdates.length > 0) {
+          addToast({
+            type: 'info',
+            title: 'Plugin Updates Available',
+            message: 'Available plugins/sources need to be updated. Please click the Update button.',
+            duration: 7000
+          })
+        }
+
+        // 2. Toast for Non-Installable (online-only) Plugins & Scrapers requiring a repository refresh
+        const catalog = await DataService.getExtensionsCatalog()
+        const installed = await DataService.db.getExtensions()
+        const hasSourceUpdates = installed.some((inst) => {
+          const remote = catalog.find((c) => c.pkg === inst.pkg)
+          return remote && remote.version !== inst.version
+        })
+        
+        const hasNonInstallableUpdates = data.some((p) => !p.installable && p.updateAvailable)
+
+        if (hasSourceUpdates || hasNonInstallableUpdates) {
+          addToast({
+            type: 'info',
+            title: 'Refresh Required',
+            message: 'Manga/Anime sources and online plugins need a refresh. Please go and click the "Refresh Repositories" button.',
+            duration: 9000
+          })
+        }
+      } catch (err) {
+        console.error('Failed to analyze updates for toast notifications:', err)
       }
       
     } catch (e) {
@@ -59,18 +102,63 @@ export function PluginSettings(): React.JSX.Element {
     }
   }
 
+  const handleInstall = async (plugin: PluginManifest) => {
+    try {
+      setLoading(true)
+      await DataService.plugins.install(plugin)
+      await loadPlugins()
+    } catch (e) {
+      console.error('Failed to install plugin:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUninstall = async (id: string) => {
+    try {
+      setLoading(true)
+      await DataService.plugins.uninstall(id)
+      await loadPlugins()
+    } catch (e) {
+      console.error('Failed to uninstall plugin:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <SectionHeader title="Plugins" icon={Puzzle} />
-          <button 
-            onClick={loadPlugins} 
-            className="p-2 hover:bg-secondary rounded-lg transition-colors group"
-            disabled={loading}
-          >
-            <RefreshCcw className={`w-4 h-4 text-muted-foreground group-hover:text-foreground ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            {repoCount > 0 && (
+              <button 
+                onClick={async () => {
+                  try {
+                    setLoading(true)
+                    await DataService.sources.refreshAll()
+                    await loadPlugins()
+                  } catch (e) {
+                    console.error('Failed to refresh repositories:', e)
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-secondary hover:bg-secondary/80 text-foreground border border-border/40 flex items-center gap-1.5 transition-all"
+              >
+                Refresh Repositories <RefreshCcw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+            <button 
+              onClick={loadPlugins} 
+              className="p-2 hover:bg-secondary rounded-lg transition-colors group"
+              disabled={loading}
+            >
+              <RefreshCcw className={`w-4 h-4 text-muted-foreground group-hover:text-foreground ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         <Card className="p-1 border-border/40 bg-card/30 backdrop-blur-md">
@@ -117,6 +205,11 @@ export function PluginSettings(): React.JSX.Element {
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono font-bold uppercase">
                         v{plugin.version}
                       </span>
+                      {plugin.installed && plugin.updateAvailable && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-mono font-bold uppercase animate-pulse border border-amber-500/20">
+                          Update Available
+                        </span>
+                      )}
                     </div>
                   </div>
                 }
@@ -131,10 +224,45 @@ export function PluginSettings(): React.JSX.Element {
                   </div>
                 }
               >
-                <Switch 
-                  checked={plugin.enabled} 
-                  onCheckedChange={(val) => handleToggle(plugin.id, !!val)} 
-                />
+                <div className="flex items-center gap-4">
+                  {!plugin.installable ? (
+                    <Switch 
+                      checked={plugin.enabled} 
+                      onCheckedChange={(val) => handleToggle(plugin.id, !!val)} 
+                    />
+                  ) : plugin.installed ? (
+                    <>
+                      {plugin.updateAvailable && (
+                        <button
+                          onClick={() => handleInstall(plugin)}
+                          disabled={loading}
+                          className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-amber-500 hover:bg-amber-500/90 text-black font-bold transition-all shadow-lg shadow-amber-500/20 animate-pulse"
+                        >
+                          Update
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleUninstall(plugin.id)}
+                        disabled={loading}
+                        className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 transition-all"
+                      >
+                        Uninstall
+                      </button>
+                      <Switch 
+                        checked={plugin.enabled} 
+                        onCheckedChange={(val) => handleToggle(plugin.id, !!val)} 
+                      />
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleInstall(plugin)}
+                      disabled={loading}
+                      className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-lg shadow-primary/20"
+                    >
+                      Install
+                    </button>
+                  )}
+                </div>
               </SettingsRow>
             ))
           )}
