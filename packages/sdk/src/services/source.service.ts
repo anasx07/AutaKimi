@@ -31,8 +31,10 @@ export class SourceService {
 
       // 1. Fetch manga catalogs index
       const mangaCatalogsUrl = `${baseUrl}manga_catalogs.json`
-      const mcRes = await networkClient.fetch(mangaCatalogsUrl)
-      if (mcRes.ok) {
+      console.log(`[SourceService] Fetching catalogs from: ${mangaCatalogsUrl}`)
+      const mcRes = await networkClient.fetch(mangaCatalogsUrl, { cache: 'no-store' })
+      console.log(`[SourceService] manga_catalogs.json fetch result: ok=${mcRes.ok}, status=${mcRes.ok ? mcRes.value.status : 'N/A'}`)
+      if (mcRes.ok && mcRes.value.ok) {
         const mcData = await mcRes.value.json()
         if (mcData.catalogs && Array.isArray(mcData.catalogs)) {
           for (const catalogFile of mcData.catalogs) {
@@ -45,8 +47,8 @@ export class SourceService {
 
       // 2. Fetch anime catalogs index
       const animeCatalogsUrl = `${baseUrl}anime_catalogs.json`
-      const acRes = await networkClient.fetch(animeCatalogsUrl)
-      if (acRes.ok) {
+      const acRes = await networkClient.fetch(animeCatalogsUrl, { cache: 'no-store' })
+      if (acRes.ok && acRes.value.ok) {
         const acData = await acRes.value.json()
         if (acData.catalogs && Array.isArray(acData.catalogs)) {
           for (const catalogFile of acData.catalogs) {
@@ -72,29 +74,40 @@ export class SourceService {
 
   async fetchCatalog(url: string, type: 'manga' | 'anime'): Promise<{ success: boolean; count: number }> {
     try {
-      const res = await networkClient.fetch(url)
-      if (!res.ok) return { success: false, count: 0 }
+      const res = await networkClient.fetch(url, { cache: 'no-store' })
+      if (!res.ok || !res.value.ok) {
+        console.error(`[SourceService] fetchCatalog failed for ${url}: Network error or bad status. ok=${res.ok}, value.ok=${res.ok ? res.value.ok : false}`)
+        return { success: false, count: 0 }
+      }
       
+      const contentType = res.value.headers.get('content-type') || ''
+      if (contentType.includes('text/html')) {
+        console.error(`[SourceService] fetchCatalog returned HTML for ${url}`)
+        return { success: false, count: 0 }
+      }
+
       const data = await res.value.json()
       let count = 0
       for (const [id, meta] of Object.entries(data)) {
         const item = meta as any
         this.sources.set(id, {
           ...item,
+          id, // Inject the key as the id property
           nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
           type
         })
         count++
       }
       return { success: true, count }
-    } catch (e) {
+    } catch (e: any) {
+      console.error(`[SourceService] fetchCatalog Exception on ${url}:`, e.message)
       return { success: false, count: 0 }
     }
   }
 
   async fetchSources(url: string, type: 'manga' | 'anime'): Promise<{ success: boolean; count: number; error?: string }> {
     try {
-      const res = await networkClient.fetch(url)
+      const res = await networkClient.fetch(url, { cache: 'no-store' })
       if (!res.ok) {
         // Silently fail for 404s as many repos won't have all source types
         if (res.status === 404) return { success: true, count: 0 }
@@ -105,6 +118,11 @@ export class SourceService {
       if (!response.ok) {
         if (response.status === 404) return { success: true, count: 0 }
         throw new Error(`HTTP ${response.status}`)
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('text/html')) {
+        return { success: true, count: 0 }
       }
 
       const data = await response.json()
@@ -125,7 +143,7 @@ export class SourceService {
 
       return { success: true, count: items.length }
     } catch (err: any) {
-      console.warn(`[SourceService] Could not load ${type} sources from ${url}:`, err.message)
+      console.error(`[SourceService] fetchSources HTTP Exception on ${url}:`, err.message)
       return { success: false, count: 0, error: err.message }
     }
   }

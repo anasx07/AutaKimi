@@ -1,6 +1,8 @@
 import { IpcChannel } from '@common/types/ipc'
 import { settingsRepo } from '../db'
 import { templateService } from '@common/services/template.service'
+import { sourceService } from '@common/services/source.service'
+import { pluginService } from '@common/services/plugin.service'
 import { registerHandler, wrapIpc } from './utils'
 
 export function registerSourceHandlers() {
@@ -27,6 +29,10 @@ export function registerSourceHandlers() {
       if (res.success) {
         repos.push(url)
         await settingsRepo.set('source_repositories', JSON.stringify(repos))
+
+        // Instantly load plugins and sources from this new repository
+        await sourceService.loadAllRepositories([url])
+        await pluginService.loadAllRepositories([url])
       }
       return res as any
     })
@@ -47,11 +53,9 @@ export function registerSourceHandlers() {
     wrapIpc(async () => {
       const reposJson = await settingsRepo.get('source_repositories')
       const repos: string[] = reposJson ? JSON.parse(reposJson) : []
-      const { sourceService } = await import('@common/services/source.service')
       const templatesRes = await templateService.loadAllRepositories(repos)
       await sourceService.loadAllRepositories(repos)
 
-      const { pluginService } = await import('@common/services/plugin.service')
       const enabledJson = await settingsRepo.get('pluginsEnabled')
       if (enabledJson) {
         try {
@@ -67,18 +71,17 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.PLUGINS_GET_ALL,
     wrapIpc(async () => {
-      const { pluginService } = await import('@common/services/plugin.service')
-      const plugins = pluginService.getAllPlugins()
-      const enabledIds = pluginService.getEnabledPluginIds()
+      const plugins = pluginService.getAllPlugins() || []
+      const enabledIds = pluginService.getEnabledPluginIds() || []
 
       return plugins.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        author: p.author,
-        version: p.version,
-        target: p.target,
-        enabled: enabledIds.includes(p.id)
+        id: p?.id || 'unknown',
+        name: p?.name || 'Unknown',
+        description: p?.description || '',
+        author: p?.author || '',
+        version: p?.version || '0.0.0',
+        target: p?.target || 'unknown',
+        enabled: enabledIds.includes(p?.id)
       }))
     })
   )
@@ -103,7 +106,6 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.SOURCES_GET_ALL,
     wrapIpc(async () => {
-      const { sourceService } = await import('@common/services/source.service')
       return sourceService.getAllSources()
     })
   )
@@ -111,14 +113,13 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS,
     wrapIpc(async () => {
-      const { sourceService } = await import('@common/services/source.service')
       const sources = sourceService.getAllSources()
 
       return sources.map((s: any) => ({
         pkg: s.id,
         name: s.name,
         lang: s.lang || s.language || 'all',
-        icon: `autakimi-cache://local-icon/${s.id}.png`,
+        icon: `autakimi-cache://local-icon/ma.autakimi.extension.${s.id}.png`,
         version: s.version || '0.0.0',
         baseUrl: s.baseUrl || s.url || '',
         nsfw: !!s.nsfw,

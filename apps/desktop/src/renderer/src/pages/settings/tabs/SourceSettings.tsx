@@ -2,7 +2,7 @@ import { Library, Plus, Trash2, Globe, RefreshCw, AlertCircle, CheckCircle2, Fol
 import { useState, useEffect } from 'react'
 import { Button, Card, SectionHeader, Badge } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
-import { useSettingsStore } from '@renderer/shared/model'
+import { useSettingsStore, useExtensionStore } from '@renderer/shared/model'
 
 export function SourceSettings(): React.JSX.Element {
   const [repos, setRepos] = useState<string[]>([])
@@ -11,6 +11,8 @@ export function SourceSettings(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const { devMode } = useSettingsStore()
+
+  const [suggestion, setSuggestion] = useState<string | null>(null)
 
   const fetchRepos = async () => {
     try {
@@ -25,15 +27,40 @@ export function SourceSettings(): React.JSX.Element {
     fetchRepos()
   }, [])
 
-  const handleAddRepo = async () => {
-    if (!newRepoUrl.trim()) return
+  const getGithubRawSuggestion = (url: string): string | null => {
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname === 'github.com') {
+        const parts = parsed.pathname.split('/').filter(Boolean)
+        if (parts.length >= 2) {
+          const user = parts[0]
+          const repo = parts[1]
+          if (parts[2] === 'blob' && parts.length >= 4) {
+            const branchAndPath = parts.slice(3).join('/')
+            return `https://raw.githubusercontent.com/${user}/${repo}/${branchAndPath}`
+          } else if (parts.length === 2 || (parts.length >= 3 && parts[2] === 'tree')) {
+            const branch = parts.length >= 4 && parts[2] === 'tree' ? parts[3] : 'main'
+            return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/templates.json`
+          }
+        }
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  const submitRepo = async (url: string) => {
     setIsLoading(true)
     setError(null)
+    setSuggestion(null)
     try {
-      const res = await DataService.sources.addRepo(newRepoUrl.trim())
+      const res = await DataService.sources.addRepo(url)
       if (res.success) {
         setNewRepoUrl('')
         fetchRepos()
+        await DataService.sources.refreshAll()
+        await useExtensionStore.getState().loadCatalog()
       } else {
         setError((res as any).error || 'Failed to add repository')
       }
@@ -42,6 +69,17 @@ export function SourceSettings(): React.JSX.Element {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleAddRepo = async () => {
+    if (!newRepoUrl.trim()) return
+    const url = newRepoUrl.trim()
+    const rawSuggestion = getGithubRawSuggestion(url)
+    if (rawSuggestion) {
+      setSuggestion(rawSuggestion)
+      return
+    }
+    await submitRepo(url)
   }
 
   const handleSelectLocalDir = async () => {
@@ -118,7 +156,11 @@ export function SourceSettings(): React.JSX.Element {
                 placeholder="https://example.com/templates.json"
                 className="w-full bg-secondary/30 border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 value={newRepoUrl}
-                onChange={(e) => setNewRepoUrl(e.target.value)}
+                onChange={(e) => {
+                  setNewRepoUrl(e.target.value)
+                  if (suggestion) setSuggestion(null)
+                  if (error) setError(null)
+                }}
               />
             </div>
             <Button 
@@ -146,6 +188,43 @@ export function SourceSettings(): React.JSX.Element {
             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-center gap-3 text-destructive text-sm animate-in shake duration-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {suggestion && (
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-primary">Bad URL Format Detected</p>
+                  <p className="text-xs text-primary/80">
+                    We noticed you typed a GitHub URL with a bad format. Do you want to accept the correct raw URL fix?
+                  </p>
+                  <p className="text-xs font-mono bg-background/50 p-1.5 rounded text-primary/70 mt-2 break-all">
+                    {suggestion}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-2 ml-8">
+                <Button 
+                  size="sm" 
+                  className="h-8 text-xs font-bold"
+                  onClick={() => {
+                    setNewRepoUrl(suggestion)
+                    submitRepo(suggestion)
+                  }}
+                >
+                  Fix
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-8 text-xs font-bold border-primary/20 text-primary hover:bg-primary/10"
+                  onClick={() => submitRepo(newRepoUrl.trim())}
+                >
+                  Add Anyway
+                </Button>
+              </div>
             </div>
           )}
 
