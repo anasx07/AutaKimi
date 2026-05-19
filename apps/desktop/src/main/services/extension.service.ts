@@ -136,6 +136,52 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
+    // Proactively download and cache the extension's icon for offline mode
+    try {
+      const { app } = await import('electron')
+      const fs = await import('fs')
+      const path = await import('path')
+      const { settingsRepo } = await import('../db')
+
+      const filename = `ma.autakimi.extension.${ext.pkg}.png`
+      const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
+      if (!fs.existsSync(userDataIconsDir)) {
+        fs.mkdirSync(userDataIconsDir, { recursive: true })
+      }
+      const cachedIconPath = path.join(userDataIconsDir, filename)
+
+      if (!fs.existsSync(cachedIconPath)) {
+        // Find the remote repo baseUrl
+        let baseUrl = ''
+        if (repoUrl && repoUrl !== 'local' && repoUrl !== 'remote') {
+          baseUrl = repoUrl.endsWith('templates.json') 
+            ? repoUrl.replace('templates.json', '') 
+            : repoUrl.endsWith('/') ? repoUrl : `${repoUrl}/`
+        } else {
+          const reposJson = await settingsRepo.get('source_repositories')
+          const repos: string[] = reposJson ? JSON.parse(reposJson) : []
+          if (repos.length > 0) {
+            const firstRepo = repos[0]
+            baseUrl = firstRepo.endsWith('templates.json') 
+              ? firstRepo.replace('templates.json', '') 
+              : firstRepo.endsWith('/') ? firstRepo : `${firstRepo}/`
+          }
+        }
+
+        if (baseUrl) {
+          const remoteUrl = `${baseUrl}icons/${filename}`
+          const res = await fetch(remoteUrl)
+          if (res.ok) {
+            const buffer = await res.arrayBuffer()
+            fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
+            console.log(`[ExtensionOrchestrator] Successfully pre-downloaded icon for offline mode: ${ext.pkg}`)
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[ExtensionOrchestrator] Failed to pre-download icon during installation:', err.message)
+    }
+
     return this.engine.install(ext, repoUrl)
   }
 
