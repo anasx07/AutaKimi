@@ -17,8 +17,7 @@ export function useExtensionsCatalog() {
     queryKey: extensionKeys.catalog(),
     queryFn: async () => {
       const res = await DataService.getExtensionsCatalog()
-      if (!res.ok) throw new Error(res.error)
-      return res.value as ExtensionMetadata[]
+      return res as any as ExtensionMetadata[]
     },
     staleTime: 1000 * 60 * 15, // 15 minutes cache
     gcTime: 1000 * 60 * 60 // 1 hour memory

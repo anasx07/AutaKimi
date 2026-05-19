@@ -40,6 +40,8 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
 
         // 1. Settings & UI (Applied first to fix theme flickering)
         useSettingsStore.getState()._init(schema)
+        const devModeVal = (settingsMap as Record<string, string>)['devMode'] === 'true'
+        useSettingsStore.setState({ devMode: devModeVal })
         useUIStore.getState()._init(schema.ui)
 
         // 2. Extensions (Registry and domain overrides)

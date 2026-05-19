@@ -36,6 +36,6 @@ export const DatabaseService = {
   getMangaCache: (mangaId: string) => callIpc(() => getApi().db.getMangaCache(mangaId)),
   saveMangaCache: async (manga: Manga) => {
     const normalized = normalizeManga(manga)
-    return callIpc(() => getApi().db.saveMangaCache({ ...normalized, pkg: manga.pkg }))
+    return callIpc(() => getApi().db.saveMangaCache({ ...normalized, pkg: manga.pkg } as Manga))
   }
 }

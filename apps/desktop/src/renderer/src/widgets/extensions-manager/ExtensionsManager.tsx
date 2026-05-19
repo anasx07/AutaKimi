@@ -47,15 +47,13 @@ export default function ExtensionsManager(): React.JSX.Element {
   const {
     installedExtensions,
     availableExtensions: extensions,
-    isRefreshingCatalog,
     uninstallExtension,
     setActiveExtension,
     extensionSortBy,
     extensionSortOrder,
     setExtensionSortBy,
     setExtensionSortOrder,
-    loadInstalled,
-    loadCatalog
+    loadInstalled
   } = useExtensionStore()
   const { setActiveTab: setGlobalActiveTab } = useUIStore()
 
@@ -636,7 +634,7 @@ export default function ExtensionsManager(): React.JSX.Element {
           pkg={editingExt.pkg}
           name={editingExt.name}
           defaultDomain={
-            localExtensions.find((e) => e.pkg === editingExt.pkg)?.sources?.[0]?.baseUrl || ''
+            extensions.find((e) => e.pkg === editingExt.pkg)?.baseUrl || ''
           }
         />
       )}

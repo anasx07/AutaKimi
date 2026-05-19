@@ -54,6 +54,37 @@ export class NetworkClient {
       silent?: boolean
     } & RequestInit = {}
   ): Promise<Result<Response>> {
+    // Intercept local filesystem paths when running in Node/Electron environment
+    const isNode = typeof process !== 'undefined' && process.versions && process.versions.node
+    if (isNode && !url.startsWith('http://') && !url.startsWith('https://')) {
+      try {
+        const fs = await import('fs')
+        const path = await import('path')
+        
+        let targetPath = url
+        if (url.startsWith('file:///')) {
+          const { fileURLToPath } = await import('url')
+          targetPath = fileURLToPath(url)
+        } else {
+          targetPath = path.resolve(url)
+        }
+        
+        if (fs.existsSync(targetPath) && !fs.statSync(targetPath).isDirectory()) {
+          const fileContent = fs.readFileSync(targetPath, 'utf8')
+          const mockResponse = {
+            ok: true,
+            status: 200,
+            text: async () => fileContent,
+            json: async () => JSON.parse(fileContent),
+            clone() { return this }
+          } as unknown as Response
+          return { ok: true, value: mockResponse }
+        }
+      } catch (e: any) {
+        return { ok: false, error: `Local filesystem error: ${e.message}`, status: 500 }
+      }
+    }
+
     const { attempts = 1, delay = 1000, fetchFn = fetch, ...init } = options
 
     return NetworkClient.executeWithRetry(

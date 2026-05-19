@@ -8,7 +8,6 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useUIStore } from '@renderer/shared/model/ui.store'
 import { DataService } from '../shared/api/data.service'
-import { setGeneratedSources } from '../shared/api/sources/SourceRegistry'
 
 // Lazy load page components
 const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))

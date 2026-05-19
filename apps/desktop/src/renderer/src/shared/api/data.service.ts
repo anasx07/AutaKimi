@@ -25,6 +25,8 @@ export const DataService = {
   detectTheme: SystemService.detectTheme,
   clearCache: SystemService.clearCache,
   clearCookies: SystemService.clearCookies,
+  openExternal: WindowService.openExternal,
+  openInternalBrowser: WindowService.openInternalBrowser,
   get version() {
     return SystemService.version
   },

@@ -37,7 +37,8 @@ export function useAnimeDetails(animeId: string, pkg: string | null, animeUrl?: 
             const fresh = await runner.fetchMangaDetails({
               id: animeId,
               url: urlToFetch,
-              title: cached?.title || ''
+              title: cached?.title || '',
+              pkg
             })
             if (fresh) {
               // Preserve existing title if fresh one is missing or "Untitled" or purely numeric
@@ -51,7 +52,7 @@ export function useAnimeDetails(animeId: string, pkg: string | null, animeUrl?: 
                 mediaType: 'anime' as const
               } as NormalizedAnime
               // Save to cache asynchronously
-              DataService.db.saveMangaCache(finalAnime)
+              DataService.db.saveMangaCache(finalAnime as any)
               return finalAnime
             }
           }
@@ -217,7 +218,7 @@ export function useToggleAnimeLibrary() {
 
   return useMutation({
     mutationFn: (anime: NormalizedAnime) =>
-      DataService.db.toggleLibrary({ ...anime, mediaType: 'anime' }),
+      DataService.db.toggleLibrary({ ...anime, mediaType: 'anime' } as any),
     onMutate: async (anime) => {
       const checkKey = animeKeys.libraryCheck(anime.id)
 

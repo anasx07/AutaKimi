@@ -6,6 +6,7 @@ type SettingsState = SettingsSchema['app'] &
   SettingsSchema['network'] &
   SettingsSchema['download'] & {
     displayMode: ViewMode
+    devMode: boolean
     // Actions
     setBypassCloudflare: (val: boolean) => Promise<void>
     setUserAgent: (val: string) => Promise<void>
@@ -15,6 +16,7 @@ type SettingsState = SettingsSchema['app'] &
     setMinimizeToTray: (val: boolean) => Promise<void>
     setAutoNextAnime: (val: boolean) => Promise<void>
     setAutoSwitchServer: (val: boolean) => Promise<void>
+    setDevMode: (val: boolean) => Promise<void>
 
     // UI Actions (App category)
     setTheme: (theme: ThemeType) => Promise<void>
@@ -59,6 +61,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   selectedLangs: ['all'],
   autoNextAnime: true,
   autoSwitchServer: true,
+  devMode: false,
 
   // Network
   bypassCloudflare: true,
@@ -118,6 +121,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ autoSwitchServer: val })
     } catch (e) {
       console.error('Failed to save autoSwitchServer:', e)
+    }
+  },
+
+  setDevMode: async (val) => {
+    try {
+      await DataService.db.setSetting('devMode', val ? 'true' : 'false')
+      set({ devMode: val })
+    } catch (e) {
+      console.error('Failed to save devMode:', e)
     }
   },
 

@@ -95,6 +95,7 @@ export enum IpcChannel {
   SOURCES_REFRESH_ALL = 'sources:refresh-all',
   SOURCES_GET_ALL = 'sources:get-all',
   SOURCES_GET_CATALOG_EXTENSIONS = 'sources:get-catalog-extensions',
+  SOURCES_SELECT_DIRECTORY = 'sources:select-directory',
 
   // Plugins
   PLUGINS_GET_ALL = 'plugins:get-all',
@@ -121,6 +122,7 @@ export type IpcInvokeMap = {
   [IpcChannel.SOURCES_REFRESH_ALL]: () => Promise<IpcResult<{ totalCount: number }>>
   [IpcChannel.SOURCES_GET_ALL]: () => Promise<IpcResult<any[]>>
   [IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS]: () => Promise<IpcResult<Extension[]>>
+  [IpcChannel.SOURCES_SELECT_DIRECTORY]: () => Promise<IpcResult<string | null>>
 
   [IpcChannel.PLUGINS_GET_ALL]: () => Promise<IpcResult<any[]>>
   [IpcChannel.PLUGINS_TOGGLE]: (id: string, enabled: boolean) => Promise<IpcResult<void>>
@@ -277,6 +279,7 @@ export interface ElectronApi {
     refreshAll: IpcInvokeMap[IpcChannel.SOURCES_REFRESH_ALL]
     getAllSources: IpcInvokeMap[IpcChannel.SOURCES_GET_ALL]
     getCatalogExtensions: IpcInvokeMap[IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS]
+    selectDirectory: IpcInvokeMap[IpcChannel.SOURCES_SELECT_DIRECTORY]
   }
   plugins: {
     getAll: IpcInvokeMap[IpcChannel.PLUGINS_GET_ALL]
@@ -326,6 +329,8 @@ export interface ElectronApi {
     close: IpcInvokeMap[IpcChannel.WINDOW_CLOSE]
     isMaximized: IpcInvokeMap[IpcChannel.WINDOW_IS_MAXIMIZED]
     updateOverlay: IpcInvokeMap[IpcChannel.WINDOW_UPDATE_OVERLAY]
+    openExternal: IpcInvokeMap[IpcChannel.OPEN_EXTERNAL]
+    openInternalBrowser: IpcInvokeMap[IpcChannel.OPEN_INTERNAL_BROWSER]
   }
   onAppUpdate: (callback: IpcEventMap[IpcChannel.APP_UPDATE]) => () => void
   onDownloadEvent: (callback: IpcEventMap[IpcChannel.DOWNLOAD_EVENT]) => () => void

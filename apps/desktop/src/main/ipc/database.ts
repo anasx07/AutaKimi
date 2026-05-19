@@ -53,7 +53,7 @@ export function registerDatabaseHandlers() {
     wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: string }) => {
       const limit = args?.limit
       const offset = args?.offset
-      const type = args?.type
+      const type = args?.type as 'manga' | 'anime' | undefined
       const rows = await libraryRepo.getAll(limit, offset, type)
       return rows.map((r) => {
         let meta: Record<string, unknown> = {}
