@@ -6,6 +6,7 @@ import { MobileDownload } from './download.native'
 import { MobileCache, setCacheInvalidateCallback } from './cache.native'
 import { identityService } from './identity.native'
 import { mobileBypassProvider } from './bypass.native'
+import { sourceService, templateService, ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
 
@@ -25,6 +26,31 @@ function notifyCacheInvalidate(group: string, key?: string): void {
 // Wire callbacks from backend modules to the event registries
 setCfStatusCallback((data) => notifyCfStatus(data.status, data.domain))
 setCacheInvalidateCallback((data) => notifyCacheInvalidate(data.group, data.key))
+const mobileExtensionPlatform: IExtensionPlatform = {
+  fetch: async (url: string, init?: any) => {
+    const res = await networkClient.fetch(url, init)
+    if (res.ok) {
+      return res.value
+    }
+    throw new Error(res.error || `Fetch failed with status ${res.status}`)
+  },
+  runSandboxViaPool: async (code: string, params: Record<string, any>, pkg?: string, taskId?: string) => {
+    const res = await MobileExtension.execute({ pkg: pkg || '', code, contextArgs: params })
+    if (res.ok) {
+      return res.value
+    }
+    throw new Error(res.error)
+  },
+  getSetting: async (key: string) => {
+    const res = await MobileDB.getSetting(key)
+    return res.ok ? res.value : null
+  },
+  upsertExtension: async (ext: any) => {
+    await MobileDB.addExtension(ext)
+  }
+}
+
+const extensionEngine = new ExtensionEngine(mobileExtensionPlatform)
 
 export const MobileApi: ElectronApi = {
   init: async () => {
@@ -38,32 +64,121 @@ export const MobileApi: ElectronApi = {
   fetchRepo: (url: string) => MobileNetwork.fetchRepo(url),
   fetchText: (url: string, options?: FetchOptions) => MobileNetwork.fetchText(url, options),
 
-  executeExtension: (args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }) =>
-    MobileExtension.execute(args),
+  executeExtension: async (args: { pkg: string; code: string; contextArgs?: Record<string, unknown> }) => {
+    let { pkg, code, contextArgs } = args
+
+    // Reject corrupt package IDs (e.g. numeric-only IDs like "41" from old buggy catalog parsing)
+    if (/^\d+$/.test(pkg)) {
+      console.warn(`[MobileApi] Rejecting corrupt numeric-only package ID: "${pkg}". Removing from database.`)
+      try { await MobileDB.removeExtension(pkg) } catch (_) { /* ignore */ }
+      return { ok: false, error: `Invalid package ID: ${pkg}` }
+    }
+
+    const getTheme = async (extBaseUrl: string): Promise<string> => {
+      // 1. Try checking catalog source first (fast, offline-capable, and completely reliable)
+      const catalogSource = sourceService.getSource(pkg) as any
+      if (catalogSource) {
+        if (catalogSource.templateId) return catalogSource.templateId
+        const baseClass = catalogSource.baseClass || catalogSource.base_class
+        if (baseClass) {
+          if (baseClass === 'Madara') return 'madara'
+          if (baseClass === 'Mangastream' || baseClass === 'MangaThemesia' || baseClass === 'Iken') {
+            return 'mangastream'
+          }
+        }
+      }
+
+      // 2. Fallback: try online theme detection if extBaseUrl is available
+      if (extBaseUrl) {
+        try {
+          const theme = await extensionEngine.detectTheme(extBaseUrl)
+          if (theme && theme !== 'unknown') {
+            return theme
+          }
+        } catch (e) {
+          console.warn(`[MobileApi] detectTheme online check failed for ${extBaseUrl}:`, e)
+        }
+      }
+
+      // 3. Last resort fallback: default to 'madara'
+      return 'madara'
+    }
+
+    const regenerateCode = async (dbExtValue: any): Promise<string | null> => {
+      let extBaseUrl = dbExtValue.baseUrl || dbExtValue.baseurl
+      const catalogSource = sourceService.getSource(pkg) as any
+      if (!extBaseUrl && catalogSource) {
+        extBaseUrl = catalogSource.baseUrl || catalogSource.url
+      }
+
+      if (!extBaseUrl) {
+        console.warn(`[MobileApi] Cannot regenerate code: extBaseUrl is missing for ${pkg}`)
+        return null
+      }
+
+      const theme = await getTheme(extBaseUrl)
+      console.log(`[MobileApi] Theme resolved: ${theme} for ${pkg} (${extBaseUrl})`)
+      const template = templateService.getTemplate(theme)
+      if (template) {
+        const generated = template.generate(extBaseUrl, 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36')
+        await MobileDB.addExtension({
+          ...dbExtValue,
+          baseUrl: extBaseUrl, // Update or inject baseUrl in the database record
+          code: generated
+        })
+        console.log(`[MobileApi] Successfully regenerated and saved code for ${pkg} using theme ${theme}`)
+        return generated
+      } else {
+        console.warn(`[MobileApi] No template found for theme: ${theme}`)
+        return null
+      }
+    }
+
+    if (!code || code.trim().startsWith('404:') || code.trim() === 'Not Found') {
+      console.warn(`[MobileApi] Extension code for ${pkg} is invalid/missing. Attempting to regenerate from template...`)
+      try {
+        const dbExt = await MobileDB.getExtension(pkg)
+        console.log(`[MobileApi] dbExt query result:`, JSON.stringify(dbExt))
+        if (dbExt.ok && dbExt.value) {
+          const regenerated = await regenerateCode(dbExt.value)
+          if (regenerated) {
+            code = regenerated
+          }
+        } else {
+          console.warn(`[MobileApi] dbExt query failed or returned no value:`, dbExt)
+        }
+      } catch (err) {
+        console.error(`[MobileApi] Failed to auto-regenerate code for ${pkg}:`, err)
+      }
+    }
+    
+    let result = await MobileExtension.execute({ pkg, code, contextArgs })
+    if (!result.ok && result.error && (result.error.includes('SyntaxError') || result.error.includes('ReferenceError'))) {
+      console.warn(`[MobileApi] Execution failed with syntax/reference error for ${pkg}. Attempting recovery by regeneration...`)
+      try {
+        const dbExt = await MobileDB.getExtension(pkg)
+        if (dbExt.ok && dbExt.value) {
+          const regenerated = await regenerateCode(dbExt.value)
+          if (regenerated) {
+            code = regenerated
+            result = await MobileExtension.execute({ pkg, code, contextArgs })
+          }
+        }
+      } catch (err) {
+        console.error(`[MobileApi] Failed to auto-regenerate code on error recovery for ${pkg}:`, err)
+      }
+    }
+    return result
+  },
 
   cancelExtensionExecution: async (taskId: string) => {
     return { ok: true, value: true }
   },
 
   installExtension: async (ext: Extension, repoUrl: string): Promise<IpcResult<{ success: boolean }>> => {
-    const KEI_REPO = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main'
-    const baseUrl = repoUrl === 'local' ? KEI_REPO : repoUrl.replace('/index.min.json', '')
-
     try {
-      const res = await MobileNetwork.fetchText(`${baseUrl}/js/${ext.pkg}.js`)
-      if (res.ok) {
-        await MobileDB.addExtension({
-          pkg: ext.pkg,
-          code: res.value.data,
-          name: ext.name,
-          baseUrl: ext.baseUrl,
-          lang: ext.lang,
-          icon: ext.icon,
-          version: ext.version
-        })
-        return { ok: true, value: { success: true } }
-      }
-      return { ok: false, error: res.error || 'Failed to fetch extension code' }
+      const res = await extensionEngine.install(ext, repoUrl)
+      return { ok: true, value: res }
     } catch (err: any) {
       return { ok: false, error: err.message || String(err) }
     }
@@ -208,13 +323,63 @@ export const MobileApi: ElectronApi = {
   },
 
   sources: {
-    getRepos: async () => ({ ok: true, value: [] }),
-    addRepo: async () => ({ ok: true, value: { success: true, count: 0 } }),
-    removeRepo: async () => ({ ok: true, value: undefined }),
-    refreshAll: async () => ({ ok: true, value: { totalCount: 0 } }),
-    getAllSources: async () => ({ ok: true, value: [] }),
-    getCatalogExtensions: async () => ({ ok: true, value: [] }),
-    selectDirectory: async () => ({ ok: true, value: '' })
+    getRepos: async () => {
+      const reposJson = await MobileDB.getSetting('source_repositories')
+      const value = reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : []
+      return { ok: true, value }
+    },
+    addRepo: async (url: string) => {
+      if (typeof url !== 'string') throw new Error('Invalid URL')
+      const reposJson = await MobileDB.getSetting('source_repositories')
+      const repos: string[] = reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : []
+
+      if (repos.includes(url)) {
+        return { ok: true, value: { success: true, count: 0 } }
+      }
+
+      const res = await templateService.fetchTemplates(url)
+      if (res.success) {
+        repos.push(url)
+        await MobileDB.setSetting('source_repositories', JSON.stringify(repos))
+        await sourceService.loadAllRepositories([url])
+      }
+      return { ok: true, value: res }
+    },
+    removeRepo: async (url: string) => {
+      if (typeof url !== 'string') throw new Error('Invalid URL')
+      const reposJson = await MobileDB.getSetting('source_repositories')
+      let repos: string[] = reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : []
+      repos = repos.filter((r) => r !== url)
+      await MobileDB.setSetting('source_repositories', JSON.stringify(repos))
+      return { ok: true, value: undefined }
+    },
+    refreshAll: async () => {
+      const reposJson = await MobileDB.getSetting('source_repositories')
+      const repos: string[] = reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : []
+      const templatesRes = await templateService.loadAllRepositories(repos)
+      await sourceService.loadAllRepositories(repos)
+      return { ok: true, value: templatesRes }
+    },
+    getAllSources: async () => {
+      return { ok: true, value: sourceService.getAllSources() }
+    },
+    getCatalogExtensions: async () => {
+      const sources = sourceService.getAllSources()
+      const value = sources.map((s: any) => ({
+        pkg: s.id,
+        name: s.name,
+        lang: s.lang || s.language || 'all',
+        icon: `autakimi-cache://local-icon/ma.autakimi.extension.${s.id}.png`,
+        version: s.version || '0.0.0',
+        baseUrl: s.baseUrl || s.url || '',
+        nsfw: !!s.nsfw,
+        repoUrl: 'remote'
+      }))
+      return { ok: true, value }
+    },
+    selectDirectory: async () => {
+      return { ok: false, error: 'Not supported on mobile' }
+    }
   },
 
   plugins: {

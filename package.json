@@ -18,7 +18,8 @@
     "format": "prettier --write .",
     "android:studio": "scripts\\open_in_android_studio.bat",
     "start:desktop": "scripts\\Start_dev.bat",
-    "start:mobile": "scripts\\Start_mobile_dev.bat"
+    "start:mobile": "scripts\\Start_mobile_dev.bat",
+    "emulator": "node scripts/run-emulator.cjs"
   },
   "devDependencies": {
     "eslint": "^9.39.1",
@@ -27,7 +28,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "better-sqlite3": "^12.9.0"
+    "better-sqlite3": "^12.9.0",
+    "expo": "^55.0.9",
+    "expo-router": "^55.0.8"
   },
   "version": "2.0.11"
 }
