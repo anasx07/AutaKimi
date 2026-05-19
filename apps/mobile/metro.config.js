@@ -3,7 +3,7 @@ const { withNativeWind } = require('nativewind/metro');
 const path = require('path');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, '..');
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -20,6 +20,17 @@ config.resolver.nodeModulesPaths = [
 config.resolver.alias = {
   '@renderer': path.resolve(workspaceRoot, 'src/renderer/src'),
   '@common': path.resolve(workspaceRoot, 'src/common'),
+};
+
+// Redirect all cheerio imports to the browser-compatible entry
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'cheerio') {
+    return {
+      filePath: path.resolve(workspaceRoot, 'node_modules/cheerio/dist/browser/index.js'),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = withNativeWind(config, { 

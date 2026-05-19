@@ -12,7 +12,6 @@ import {
   Loader2, Globe, Search
 } from 'lucide-react-native'
 
-const CATALOG_URL = 'https://raw.githubusercontent.com/keiyoushi/extensions-source/main/index.min.json'
 
 const LANG_FLAGS: Record<string, string> = {
   all: '🌐', en: '🇬🇧', ar: '🇸🇦', es: '🇪🇸', fr: '🇫🇷',
@@ -49,7 +48,7 @@ export default function ExtensionsScreen() {
     try {
       const [installedExts, catalogRes] = await Promise.all([
         DataService.db.getExtensions(),
-        DataService.fetchRepo(CATALOG_URL)
+        DataService.getExtensionsCatalog()
       ])
       setInstalled(installedExts || [])
       const cat = Array.isArray(catalogRes) ? catalogRes : []

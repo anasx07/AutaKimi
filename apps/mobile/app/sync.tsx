@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native'
-import { BarCodeScanner } from 'expo-barcode-scanner'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
 import { ArrowLeft, Smartphone, ShieldCheck, RefreshCw } from 'lucide-react-native'
@@ -8,17 +8,15 @@ import { Typography, Button, Card, CardContent } from '../src/native/ui'
 import { syncClient } from '../src/mobile/sync-client.native'
 
 export default function SyncPage() {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
+  const [permission, requestPermission] = useCameraPermissions()
   const [scanned, setScanned] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
 
   useEffect(() => {
-    const getBarCodeScannerPermissions = async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync()
-      setHasPermission(status === 'granted')
+    if (!permission || !permission.granted) {
+      requestPermission()
     }
-    getBarCodeScannerPermissions()
-  }, [])
+  }, [permission])
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned || isConnecting) return
@@ -56,7 +54,7 @@ export default function SyncPage() {
     }
   }
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <Typography>Requesting camera permission...</Typography>
@@ -64,7 +62,7 @@ export default function SyncPage() {
     )
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-6">
         <Typography className="text-center mb-4">No access to camera. Please enable it in settings to use sync.</Typography>
@@ -87,9 +85,12 @@ export default function SyncPage() {
       </View>
 
       <View className="flex-1 relative">
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        <CameraView
           style={StyleSheet.absoluteFillObject}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr'],
+          }}
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         />
         
         {/* Overlay */}
@@ -120,3 +121,4 @@ export default function SyncPage() {
     </SafeAreaView>
   )
 }
+
