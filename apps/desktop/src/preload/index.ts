@@ -69,6 +69,7 @@ const api: ElectronApi = {
   clearCache: () => invoke(IpcChannel.CLEAR_CACHE),
   clearCookies: () => invoke(IpcChannel.CLEAR_COOKIES),
   executeExtension: (args) => invoke(IpcChannel.EXECUTE_EXTENSION, args),
+  cancelExtensionExecution: (taskId) => invoke(IpcChannel.CANCEL_EXTENSION_EXECUTION, taskId),
   installExtension: (ext, repoUrl) => invoke(IpcChannel.EXTENSION_INSTALL, ext, repoUrl),
   openExternal: (url: string) => invoke(IpcChannel.OPEN_EXTERNAL, url),
   window: {

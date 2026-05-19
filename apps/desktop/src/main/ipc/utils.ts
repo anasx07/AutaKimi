@@ -1,5 +1,17 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
-import { IpcInvokeMap, IpcResult } from '../types/ipc'
+import { IpcInvokeMap, IpcResult, IpcChannel } from '../types/ipc'
+
+const callTimestamps: Map<string, number[]> = new Map()
+
+// Default limits: max 30 requests per 5 seconds
+const DEFAULT_MAX = 30
+const DEFAULT_WINDOW_MS = 5000
+
+// Custom channel limits
+const CHANNEL_LIMITS: Record<string, { max: number; windowMs: number }> = {
+  [IpcChannel.EXECUTE_EXTENSION]: { max: 10, windowMs: 5000 },
+  [IpcChannel.DETECT_THEME]: { max: 10, windowMs: 5000 }
+}
 
 export function wrapIpc<T>(fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<T>) {
   return async (event: IpcMainInvokeEvent, ...args: any[]): Promise<IpcResult<T>> => {
@@ -19,7 +31,26 @@ export function registerHandler<K extends keyof IpcInvokeMap>(
     ...args: any[]
   ) => Promise<IpcResult<any>> | IpcResult<any> | any
 ) {
-  ipcMain.handle(channel, handler as any)
+  ipcMain.handle(channel, async (event, ...args) => {
+    const now = Date.now()
+    const limit = CHANNEL_LIMITS[channel as string] || { max: DEFAULT_MAX, windowMs: DEFAULT_WINDOW_MS }
+    
+    let timestamps = callTimestamps.get(channel as string) || []
+    timestamps = timestamps.filter((t) => now - t < limit.windowMs)
+    
+    if (timestamps.length >= limit.max) {
+      console.warn(`[IPC Rate Limit] Channel "${String(channel)}" rate limit exceeded (${limit.max} req / ${limit.windowMs}ms)`)
+      return {
+        ok: false,
+        error: `Rate limit exceeded for channel ${String(channel)}. Please wait before trying again.`
+      }
+    }
+    
+    timestamps.push(now)
+    callTimestamps.set(channel as string, timestamps)
+    
+    return handler(event, ...args)
+  })
 }
 
 export function isValidUrl(url: string | any = ''): boolean {

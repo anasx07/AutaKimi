@@ -59,7 +59,7 @@ export default function DownloadsTab() {
 
   const openManga = (mangaId: string) => {
     router.push({
-      pathname: '/manga/[id]',
+      pathname: '/manga/[id]' as any,
       params: { id: mangaId }
     })
   }

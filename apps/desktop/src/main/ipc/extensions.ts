@@ -7,18 +7,34 @@ import { registerHandler, wrapIpc } from './utils'
 export function registerExtensionHandlers() {
   registerHandler(
     IpcChannel.EXTENSION_INSTALL,
-    wrapIpc((_, ext: any, repoUrl: string) => extensionOrchestrator.install(ext, repoUrl))
+    wrapIpc((_, ext: any, repoUrl: string) => {
+      if (!ext || typeof ext !== 'object') throw new Error('Invalid extension data')
+      if (typeof repoUrl !== 'string') throw new Error('Invalid repository URL')
+      return extensionOrchestrator.install(ext, repoUrl)
+    })
   )
 
   interface ExecuteExtensionArgs {
     pkg: string
     code: string
     contextArgs: Record<string, any>
+    taskId?: string
   }
 
   registerHandler(
     IpcChannel.EXECUTE_EXTENSION,
-    wrapIpc(async (_, { pkg, code, contextArgs }: ExecuteExtensionArgs) => {
+    wrapIpc(async (_, args: ExecuteExtensionArgs) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid execution arguments')
+      const { pkg, code, contextArgs, taskId } = args
+      if (typeof pkg !== 'string' || typeof code !== 'string') {
+        throw new Error('Invalid pkg or code parameter')
+      }
+      if (contextArgs && typeof contextArgs !== 'object') {
+        throw new Error('Invalid contextArgs parameter')
+      }
+      if (taskId !== undefined && typeof taskId !== 'string') {
+        throw new Error('Invalid taskId parameter')
+      }
       console.log(`[ExtIPC] Executing pkg: ${pkg}, activeFeed: ${contextArgs?.activeFeed}`)
 
       let bypassCf = true
@@ -64,7 +80,7 @@ export function registerExtensionHandlers() {
       }
 
       console.log('[ExtIPC] Sending to sandbox...')
-      const result = await extensionOrchestrator.runInSandbox(code, enhancedArgs)
+      const result = await extensionOrchestrator.runInSandbox(pkg, code, enhancedArgs, taskId)
       console.log(
         `[ExtIPC] Sandbox result: items=${result?.data?.length ?? 'N/A'}, error=${result?.error ?? 'none'}`
       )
@@ -73,8 +89,17 @@ export function registerExtensionHandlers() {
   )
 
   registerHandler(
+    IpcChannel.CANCEL_EXTENSION_EXECUTION,
+    wrapIpc(async (_, taskId: string) => {
+      if (typeof taskId !== 'string') throw new Error('Invalid taskId parameter')
+      return extensionOrchestrator.cancelExtension(taskId)
+    })
+  )
+
+  registerHandler(
     IpcChannel.DETECT_THEME,
     wrapIpc(async (_, url) => {
+      if (typeof url !== 'string') throw new Error('Invalid URL')
       const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
       return extensionOrchestrator.detectTheme(url, bypassCf)
     })

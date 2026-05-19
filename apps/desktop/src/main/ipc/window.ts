@@ -42,6 +42,10 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.WINDOW_UPDATE_OVERLAY,
     wrapIpc(async (event, options: { color: string; symbolColor: string }) => {
+      if (!options || typeof options !== 'object') throw new Error('Invalid options')
+      if (typeof options.color !== 'string' || typeof options.symbolColor !== 'string') {
+        throw new Error('Invalid color or symbolColor')
+      }
       const win = BrowserWindow.fromWebContents(event.sender)
       if (win && process.platform === 'win32') {
         win.setTitleBarOverlay(options)
@@ -52,7 +56,7 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.OPEN_EXTERNAL,
     wrapIpc(async (_, url: string) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL: only http/https is allowed')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL: only http/https is allowed')
       await shell.openExternal(url)
     })
   )
@@ -60,7 +64,7 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.OPEN_INTERNAL_BROWSER,
     wrapIpc(async (_, url: string) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
 
       const allowedHost = new URL(url).hostname
 
@@ -97,7 +101,8 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.CF_BYPASS,
     wrapIpc(async (_, url: string, silent: boolean = false) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof silent !== 'boolean') throw new Error('Invalid silent flag')
       // For backward compat: just fetch HTML to trigger bypass, return success boolean
       const html = await cloudflareService.fetchHtmlViaBrowser(url, silent)
       return html !== null
@@ -107,7 +112,8 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.CF_FETCH_HTML,
     wrapIpc(async (_, url: string, silent: boolean = false) => {
-      if (!isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
+      if (typeof silent !== 'boolean') throw new Error('Invalid silent flag')
       return cloudflareService.fetchHtmlViaBrowser(url, silent)
     })
   )

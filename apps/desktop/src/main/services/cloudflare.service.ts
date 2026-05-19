@@ -8,7 +8,8 @@ import path from 'path'
 export class CloudflareService implements IBypassProvider, AppService {
   public priority = ServicePriority.NETWORK
   private _cfSession?: Electron.Session
-  private _activeChallenge: Promise<Result<{ userAgent: string; cookies: string }>> | null = null
+  private _activeChallenges: Map<string, Promise<Result<{ userAgent: string; cookies: string }>>> = new Map()
+  private _isHeadersListenerRegistered = false
   private _heartbeatInterval: NodeJS.Timeout | null = null
   private _isProcessingHeartbeat = false
 
@@ -74,6 +75,7 @@ export class CloudflareService implements IBypassProvider, AppService {
     try {
       const bypasses = stateRegistry.getState().cloudflareBypasses
       const now = Date.now()
+      const promises: Promise<any>[] = []
 
       for (const domain in bypasses) {
         const entry = bypasses[domain]
@@ -88,13 +90,20 @@ export class CloudflareService implements IBypassProvider, AppService {
 
         if (isActive && isExpiring) {
           console.log(`[CloudflareService] Preemptively refreshing session for ${entry.domain}...`)
-          try {
-            // Trigger a silent bypass in the background
-            await this.resolveChallenge(entry.baseUrl)
-          } catch (e) {
-            console.warn(`[CloudflareService] Background refresh failed for ${entry.domain}:`, e)
-          }
+          const refreshPromise = (async () => {
+            try {
+              // Trigger a silent bypass in the background
+              await this.resolveChallenge(entry.baseUrl, true)
+            } catch (e) {
+              console.warn(`[CloudflareService] Background refresh failed for ${entry.domain}:`, e)
+            }
+          })()
+          promises.push(refreshPromise)
         }
+      }
+
+      if (promises.length > 0) {
+        await Promise.allSettled(promises)
       }
     } catch (err) {
       console.error('[CloudflareService] Heartbeat loop error:', err)
@@ -155,20 +164,31 @@ export class CloudflareService implements IBypassProvider, AppService {
    * Opens a visible BrowserWindow for the user to solve a Cloudflare challenge.
    */
   async resolveChallenge(url: string, silent: boolean = false): Promise<Result<{ userAgent: string; cookies: string }>> {
-    if (this._activeChallenge) {
-      console.log('[CloudflareService] Reusing active challenge for:', url)
-      return this._activeChallenge
+    let targetDomain = ''
+    try {
+      targetDomain = new URL(url).hostname
+    } catch (e) {
+      console.warn('[CloudflareService] Failed to parse target domain for CSP strip:', e)
+    }
+
+    if (!targetDomain) {
+      return { ok: false, error: 'Invalid URL / target domain' }
+    }
+
+    const active = this._activeChallenges.get(targetDomain)
+    if (active) {
+      console.log('[CloudflareService] Reusing active challenge for:', targetDomain)
+      return active
     }
 
     // Set active bypass in state registry for UI overlay (only if not silent)
     if (!silent) {
       try {
-        const domain = new URL(url).hostname
-        stateRegistry.setActiveBypass({ domain, url })
+        stateRegistry.setActiveBypass({ domain: targetDomain, url })
       } catch (e) {}
     }
 
-    this._activeChallenge = new Promise((resolve) => {
+    const challengePromise = new Promise<Result<{ userAgent: string; cookies: string }>>((resolve) => {
       const win = new BrowserWindow({
         width: 800,
         height: 600,
@@ -185,23 +205,38 @@ export class CloudflareService implements IBypassProvider, AppService {
       })
 
       // Aggressively strip CSP and TrustedTypes headers (Case-Insensitive)
-      this.cfSession.webRequest.onHeadersReceived((details, callback) => {
-        const responseHeaders = { ...details.responseHeaders }
-        
-        for (const key in responseHeaders) {
-          const lowerKey = key.toLowerCase()
-          if (
-            lowerKey === 'content-security-policy' ||
-            lowerKey === 'content-security-policy-report-only' ||
-            lowerKey === 'require-trusted-types-for' ||
-            lowerKey === 'x-frame-options'
-          ) {
-            delete responseHeaders[key]
+      if (!this._isHeadersListenerRegistered) {
+        this._isHeadersListenerRegistered = true
+        this.cfSession.webRequest.onHeadersReceived((details, callback) => {
+          const responseHeaders = { ...details.responseHeaders }
+          
+          let shouldStrip = false
+          try {
+            const requestHost = new URL(details.url).hostname
+            shouldStrip = Array.from(this._activeChallenges.keys()).some(
+              (domain) => requestHost === domain || requestHost.endsWith('.' + domain)
+            )
+          } catch (e) {
+            // Ignore URL parse errors
           }
-        }
-        
-        callback({ cancel: false, responseHeaders })
-      })
+
+          if (shouldStrip) {
+            for (const key in responseHeaders) {
+              const lowerKey = key.toLowerCase()
+              if (
+                lowerKey === 'content-security-policy' ||
+                lowerKey === 'content-security-policy-report-only' ||
+                lowerKey === 'require-trusted-types-for' ||
+                lowerKey === 'x-frame-options'
+              ) {
+                delete responseHeaders[key]
+              }
+            }
+          }
+          
+          callback({ cancel: false, responseHeaders })
+        })
+      }
 
       // Handle load failures
       win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
@@ -211,17 +246,13 @@ export class CloudflareService implements IBypassProvider, AppService {
       // Remove menu to keep it clean
       win.setMenuBarVisibility(false)
 
-      // The stealth payload is now executed robustly via the preload script (index.ts)
-      // which automatically configures TrustedTypes and masks the environment before
-      // any Cloudflare Turnstile scripts have a chance to load.
-
       win.loadURL(url)
       
       const disposers: any[] = []
       const cfPlugins = pluginService.getEnabledPluginsByTarget('main-cloudflare')
       for (const plugin of cfPlugins) {
          pluginService.runPlugin(plugin.id, { win }).then(disposer => {
-           if (typeof disposer === 'function') disposers.push(disposer)
+            if (typeof disposer === 'function') disposers.push(disposer)
          })
       }
 
@@ -237,9 +268,6 @@ export class CloudflareService implements IBypassProvider, AppService {
           const cookies = await this.cfSession.cookies.get({ url })
           const clearance = cookies.find((c) => c.name === 'cf_clearance')
 
-          // Stricter solved detection:
-          // 1. Must have cf_clearance cookie
-          // 2. OR the title changed away from challenge keywords AND it's a real page title
           const title = win.getTitle()
           const pageLoaded = !title.includes('Cloudflare') && 
                             !title.includes('Just a moment') && 
@@ -259,15 +287,14 @@ export class CloudflareService implements IBypassProvider, AppService {
 
             // Small delay to ensure cookies are fully persisted and redirects finished
             setTimeout(() => {
-              this._activeChallenge = null
+              this._activeChallenges.delete(targetDomain)
               stateRegistry.setActiveBypass(null) // Clear active bypass on success
               if (!win.isDestroyed()) win.close()
               
               // Register success in the state registry
               try {
-                const domain = new URL(url).hostname
                 stateRegistry.updateBypassState({
-                  domain,
+                  domain: targetDomain,
                   baseUrl: url,
                   resolvedAt: Date.now(),
                   lastUsedAt: Date.now()
@@ -285,7 +312,7 @@ export class CloudflareService implements IBypassProvider, AppService {
       // Safety timeout (2 minutes)
       const safetyTimeout = setTimeout(() => {
         if (!win.isDestroyed()) {
-          this._activeChallenge = null
+          this._activeChallenges.delete(targetDomain)
           clearInterval(checkInterval)
           win.close()
           resolve({ ok: false, error: 'Challenge timed out' })
@@ -293,17 +320,22 @@ export class CloudflareService implements IBypassProvider, AppService {
       }, 120000)
 
       win.on('closed', () => {
-        this._activeChallenge = null
+        this._activeChallenges.delete(targetDomain)
         stateRegistry.setActiveBypass(null) // Clear active bypass on window close
         clearInterval(checkInterval)
         clearTimeout(safetyTimeout)
+        if (this._activeChallenges.size === 0) {
+          this.cfSession.webRequest.onHeadersReceived(null)
+          this._isHeadersListenerRegistered = false
+        }
         disposers.forEach(d => {
           try { d() } catch(e) {}
         })
       })
     })
 
-    return this._activeChallenge
+    this._activeChallenges.set(targetDomain, challengePromise)
+    return challengePromise
   }
 }
 

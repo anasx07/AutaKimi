@@ -28,7 +28,7 @@ export class MobileBypassProvider implements IBypassProvider {
       if (silent) return { ok: false, error: 'Silent bypass not supported on mobile' }
 
       // Navigate to the CF bypass screen and wait for the user to solve
-      router.push('/cf-bypass')
+      router.push('/cf-bypass' as any)
       const cookie = await CfBypassFlow.start(url)
 
       if (cookie) {

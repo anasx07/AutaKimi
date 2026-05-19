@@ -2,9 +2,9 @@ import React from 'react'
 import { View, TouchableOpacity, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Settings, Tv, Info, ChevronRight, Github, Heart, Share2 } from 'lucide-react-native'
+import { Settings, Tv, Info, ChevronRight, Heart, Share2, Globe, GitBranch } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
-import { Typography, Card, CardContent } from '../../src/native/ui'
+import { Typography, Card, CardContent } from '../src/native/ui'
 
 interface MoreItem {
   id: string
@@ -59,7 +59,7 @@ export default function MorePage(): React.JSX.Element {
       id: 'github',
       label: 'GitHub',
       description: 'Source code, releases, and issue tracking',
-      icon: Github,
+      icon: GitBranch,
       onPress: () => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release')
     },
     {

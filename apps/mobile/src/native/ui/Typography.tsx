@@ -1,9 +1,5 @@
 import React from 'react'
 import { Text, TextProps } from 'react-native'
-import { styled } from 'nativewind'
-
-const StyledText = styled(Text)
-
 interface TypographyProps extends TextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'muted'
   className?: string
@@ -26,8 +22,8 @@ export const Typography: React.FC<TypographyProps> = ({
   }
 
   return (
-    <StyledText className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>
+    <Text className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>
       {children}
-    </StyledText>
+    </Text>
   )
 }
