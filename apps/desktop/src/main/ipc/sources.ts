@@ -73,16 +73,32 @@ export function registerSourceHandlers() {
     wrapIpc(async () => {
       const plugins = pluginService.getAllPlugins() || []
       const enabledIds = pluginService.getEnabledPluginIds() || []
+      const installedJson = await settingsRepo.get('installed_plugins')
+      const installedList: any[] = installedJson ? JSON.parse(installedJson) : []
 
-      return plugins.map((p) => ({
-        id: p?.id || 'unknown',
-        name: p?.name || 'Unknown',
-        description: p?.description || '',
-        author: p?.author || '',
-        version: p?.version || '0.0.0',
-        target: p?.target || 'unknown',
-        enabled: enabledIds.includes(p?.id)
-      }))
+      return plugins.map((p) => {
+        const installedPlugin = installedList.find((x: any) => x.id === p?.id)
+        const isInstalled = !!installedPlugin
+        const isUpdateAvailable = installedPlugin ? installedPlugin.version !== p?.version : false
+
+        // A plugin is installable if p.installable !== false AND it is not targeted to Cloudflare (online-only/direct)
+        const isCloudflare = p?.target === 'main-cloudflare' || p?.id === 'auto-solve-cloudflare' || p?.name?.toLowerCase().includes('cloudflare')
+        const isInstallable = p?.installable !== false && !isCloudflare
+
+        return {
+          id: p?.id || 'unknown',
+          name: p?.name || 'Unknown',
+          description: p?.description || '',
+          author: p?.author || '',
+          version: p?.version || '0.0.0',
+          target: p?.target || 'unknown',
+          code: p?.code || '',
+          enabled: enabledIds.includes(p?.id),
+          installed: isInstalled,
+          updateAvailable: isUpdateAvailable,
+          installable: isInstallable
+        }
+      })
     })
   )
 
@@ -100,6 +116,54 @@ export function registerSourceHandlers() {
 
       pluginService.setEnabledPlugins(enabledIds)
       await settingsRepo.set('pluginsEnabled', JSON.stringify(enabledIds))
+    })
+  )
+
+  registerHandler(
+    IpcChannel.PLUGINS_INSTALL,
+    wrapIpc(async (_, plugin: any) => {
+      const installedJson = await settingsRepo.get('installed_plugins')
+      let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
+      
+      const fullPlugin = {
+        id: plugin.id,
+        name: plugin.name,
+        description: plugin.description,
+        author: plugin.author,
+        version: plugin.version,
+        target: plugin.target,
+        code: plugin.code
+      }
+
+      const index = installedList.findIndex((p: any) => p.id === plugin.id)
+      if (index !== -1) {
+        installedList[index] = fullPlugin
+      } else {
+        installedList.push(fullPlugin)
+      }
+
+      await settingsRepo.set('installed_plugins', JSON.stringify(installedList))
+      pluginService.registerDynamicPlugin(fullPlugin)
+    })
+  )
+
+  registerHandler(
+    IpcChannel.PLUGINS_UNINSTALL,
+    wrapIpc(async (_, id: string) => {
+      const installedJson = await settingsRepo.get('installed_plugins')
+      let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
+      
+      installedList = installedList.filter((p: any) => p.id !== id)
+      await settingsRepo.set('installed_plugins', JSON.stringify(installedList))
+      
+      pluginService.removePlugin(id)
+      
+      let enabledIds = pluginService.getEnabledPluginIds()
+      if (enabledIds.includes(id)) {
+        enabledIds = enabledIds.filter((x) => x !== id)
+        pluginService.setEnabledPlugins(enabledIds)
+        await settingsRepo.set('pluginsEnabled', JSON.stringify(enabledIds))
+      }
     })
   )
 
