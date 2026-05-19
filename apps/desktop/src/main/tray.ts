@@ -1,18 +1,10 @@
 import { app, Menu, Tray, BrowserWindow, nativeImage } from 'electron'
 
 export class TrayManager {
-  private static instance: TrayManager
   private tray: Tray | null = null
   private mainWindow: BrowserWindow | null = null
 
-  private constructor() {}
-
-  public static getInstance(): TrayManager {
-    if (!TrayManager.instance) {
-      TrayManager.instance = new TrayManager()
-    }
-    return TrayManager.instance
-  }
+  constructor() {}
 
   public createTray(mainWindow: BrowserWindow, iconPath: string): void {
     this.mainWindow = mainWindow
@@ -59,3 +51,5 @@ export class TrayManager {
     }
   }
 }
+
+export const trayManager = new TrayManager()

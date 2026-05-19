@@ -20,16 +20,6 @@ import { useExtensionMetadata } from '@renderer/entities/extension/model/useExte
 import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
 import { DataService } from '@renderer/shared/api'
 import { SourceRegistry } from '@renderer/shared/api/sources/SourceRegistry'
-import animeExtensions from '@renderer/shared/api/anime-sources/Anime.json'
-
-interface AnimeExtensionJSON {
-  pkg: string
-  name: string
-  lang: string
-  version: string
-  isSupported?: boolean
-  sources: { name: string; baseUrl: string }[]
-}
 
 export default function AnimePage(): React.JSX.Element {
   const mobile = isMobile()
@@ -43,24 +33,20 @@ export default function AnimePage(): React.JSX.Element {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
 
-  // Display all anime extensions defined in our metadata
+  // Display all anime extensions dynamically installed
   const displayExtensions = useMemo(
     () =>
-      (animeExtensions as AnimeExtensionJSON[])
-        .map((ae) => {
-          const installed = installedExtensions.find((ie) => ie.pkg === ae.pkg)
-          return {
-            ...(installed || {
-              pkg: ae.pkg,
-              name: ae.name,
-              lang: ae.lang,
-              baseUrl: ae.sources[0]?.baseUrl || '',
-              version: ae.version,
-              icon: ae.pkg
-            }),
-            isSupported: ae.isSupported
-          }
-        })
+      installedExtensions
+        .filter((ie: any) => ie.type === 'anime' || ie.pkg.toLowerCase().includes('anime'))
+        .map((ie: any) => ({
+          pkg: ie.pkg,
+          name: ie.name,
+          lang: ie.lang,
+          baseUrl: ie.baseUrl,
+          version: ie.version,
+          icon: ie.pkg,
+          isSupported: true
+        }))
         .sort((a, b) => {
           const aPinned = pinnedAnimeSources.includes(a.pkg)
           const bPinned = pinnedAnimeSources.includes(b.pkg)

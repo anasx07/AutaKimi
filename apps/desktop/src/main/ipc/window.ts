@@ -1,45 +1,45 @@
-import { ipcMain, BrowserWindow, shell } from 'electron'
+import { BrowserWindow, shell } from 'electron'
 import { IpcChannel } from '../types/ipc'
-import { wrapIpc, isValidUrl } from './utils'
+import { registerHandler, wrapIpc, isValidUrl } from './utils'
 import { cloudflareService } from '../services/cloudflare.service'
 
 export function registerWindowHandlers() {
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_MINIMIZE,
     wrapIpc(async (event) => {
       BrowserWindow.fromWebContents(event.sender)?.minimize()
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_MAXIMIZE,
     wrapIpc(async (event) => {
       BrowserWindow.fromWebContents(event.sender)?.maximize()
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_RESTORE,
     wrapIpc(async (event) => {
       BrowserWindow.fromWebContents(event.sender)?.unmaximize()
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_CLOSE,
     wrapIpc(async (event) => {
       BrowserWindow.fromWebContents(event.sender)?.close()
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_IS_MAXIMIZED,
     wrapIpc(async (event) => {
       return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.WINDOW_UPDATE_OVERLAY,
     wrapIpc(async (event, options: { color: string; symbolColor: string }) => {
       const win = BrowserWindow.fromWebContents(event.sender)
@@ -49,7 +49,7 @@ export function registerWindowHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.OPEN_EXTERNAL,
     wrapIpc(async (_, url: string) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL: only http/https is allowed')
@@ -57,7 +57,7 @@ export function registerWindowHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.OPEN_INTERNAL_BROWSER,
     wrapIpc(async (_, url: string) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL')
@@ -85,7 +85,8 @@ export function registerWindowHandlers() {
 
       // Block new windows entirely — open them externally instead
       win.webContents.setWindowOpenHandler(({ url: newUrl }) => {
-        if (isValidUrl(newUrl)) shell.openExternal(newUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
+        if (isValidUrl(newUrl))
+          shell.openExternal(newUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
         return { action: 'deny' }
       })
 
@@ -93,21 +94,22 @@ export function registerWindowHandlers() {
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.CF_BYPASS,
-    wrapIpc(async (_, url: string) => {
+    wrapIpc(async (_, url: string, silent: boolean = false) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL')
       // For backward compat: just fetch HTML to trigger bypass, return success boolean
-      const html = await cloudflareService.fetchHtmlViaBrowser(url)
+      const html = await cloudflareService.fetchHtmlViaBrowser(url, silent)
       return html !== null
     })
   )
 
-  ipcMain.handle(
+  registerHandler(
     IpcChannel.CF_FETCH_HTML,
-    wrapIpc(async (_, url: string) => {
+    wrapIpc(async (_, url: string, silent: boolean = false) => {
       if (!isValidUrl(url)) throw new Error('Invalid URL')
-      return cloudflareService.fetchHtmlViaBrowser(url)
+      return cloudflareService.fetchHtmlViaBrowser(url, silent)
     })
   )
 }
+

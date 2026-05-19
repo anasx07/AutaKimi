@@ -32,12 +32,14 @@ export default function DownloadQueueProcessor(): null {
         const pages = await runner.fetchPages(nextItem.chapter.url || nextItem.chapter.id)
         if (!pages || pages.length === 0) throw new Error('No pages found')
 
+        const pageUrls = pages.map((p: any) => (typeof p === 'object' ? p.url : p))
+
         if (mounted) {
           // Send to main process
           await DataService.download.start({
             mangaId: nextItem.mangaId,
             chapterId: nextItem.chapter.id,
-            pageUrls: pages,
+            pageUrls,
             type: nextItem.type,
             mangaTitle: nextItem.mangaTitle,
             extensionName: nextItem.extensionName || nextItem.extension,

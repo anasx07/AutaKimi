@@ -1,7 +1,7 @@
-import { IpcChannel, ElectronApi } from '@common/types/ipc'
+import { IpcChannel, ElectronApi, IpcInvokeMap, IpcEventMap, IpcResult } from '@common/types/ipc'
 
 export { IpcChannel }
-export type { ElectronApi }
+export type { ElectronApi, IpcInvokeMap, IpcEventMap, IpcResult }
 
 /**
  * Any additional main-specific types can go here,

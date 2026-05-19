@@ -37,7 +37,8 @@ export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: 
             const fresh = await runner.fetchMangaDetails({
               id: mangaId,
               url: urlToFetch,
-              title: cached?.title || ''
+              title: cached?.title || '',
+              pkg
             })
             if (fresh) {
               // Preserve existing title if fresh one is missing or "Untitled" or purely numeric
@@ -50,7 +51,7 @@ export function useMangaDetails(mangaId: string, pkg: string | null, mangaUrl?: 
                 pkg
               } as NormalizedManga
               // Save to cache asynchronously
-              DataService.db.saveMangaCache(finalManga)
+              DataService.db.saveMangaCache(finalManga as any)
               return finalManga
             }
           }
@@ -253,7 +254,7 @@ export function useChapterPages(mangaId: string, pkg: string, chapter: Chapter |
       // 2. Fetch from extension
       const runner = await ExtensionResolver.resolve(pkg)
       if (!runner) throw new Error('Extension not found')
-      const pages = await runner.fetchPages(chapter.url)
+      const pages = (await runner.fetchPages(chapter.url)) as string[]
       return pages.map((u: string) => u.replace(/^https?:\/\//, 'autakimi-cache://'))
     },
     enabled: !!chapter && !!pkg,
@@ -268,7 +269,7 @@ export function useToggleLibrary() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (manga: NormalizedManga) => DataService.db.toggleLibrary(manga),
+    mutationFn: (manga: NormalizedManga) => DataService.db.toggleLibrary(manga as any),
     onMutate: async (manga) => {
       const checkKey = mangaKeys.libraryCheck(manga.id)
 
