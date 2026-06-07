@@ -34,7 +34,7 @@ const api: ElectronApi = {
     removeRepo: (url: string) => invoke(IpcChannel.SOURCES_REMOVE_REPO, url),
     refreshAll: () => invoke(IpcChannel.SOURCES_REFRESH_ALL),
     getAllSources: () => invoke(IpcChannel.SOURCES_GET_ALL),
-    getCatalogExtensions: () => invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS),
+    getCatalogExtensions: (lang?: string) => invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS, lang),
     selectDirectory: () => invoke(IpcChannel.SOURCES_SELECT_DIRECTORY)
   },
   plugins: {

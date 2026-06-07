@@ -29,7 +29,7 @@ export class IdentityService implements AppService {
       const oldUrl = await settingsRepo.get('template_repo_url')
       const initialRepos = oldUrl 
         ? [oldUrl] 
-        : ['https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/templates.json']
+        : []
       
       await settingsRepo.set('source_repositories', JSON.stringify(initialRepos))
     }

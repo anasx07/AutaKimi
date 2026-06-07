@@ -48,21 +48,19 @@ AutaKimi implements a strict multi-layer sandbox environment to guarantee host p
 
 ---
 
-## 📡 Subscribing to Extensions
-To add content sources to your local AutaKimi app, paste any compatible community-maintained repository URL in the **Repositories** page:
+## 📖 Quick Guide: Adding Extensions (Repositories)
+
+AutaKimi is an empty shell by default. To add content sources to your local AutaKimi app, you need to subscribe to an extension repository. Follow these simple steps:
+
+1. Open the AutaKimi app and navigate to the **Repositories** or **Sources** page.
+2. Copy the official community repository URL below:
+   ```http
+   https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json
+   ```
+3. Paste the URL into the input field and confirm to add it.
+4. AutaKimi will automatically parse, fetch, and register all available catalogs, scraping templates, icons, and helper plugins!
 
 **Disclaimer:** The developer of this application does not have any affiliation with the content providers available.
-
-* **GitHub Pages URL (Recommended)**:
-  ```http
-  https://autakimi-ecosystem.github.io/autakimi-extensions/
-  ```
-* **Raw Git CDN URL**:
-  ```http
-  https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/
-  ```
-
-AutaKimi will automatically parse, fetch, and register all the catalogs, scraping templates, icons, and helper plugins defined in the remote index.
 
 ---
 

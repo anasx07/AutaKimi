@@ -357,13 +357,28 @@ export const MobileApi: ElectronApi = {
       const reposJson = await MobileDB.getSetting('source_repositories')
       const repos: string[] = reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : []
       const templatesRes = await templateService.loadAllRepositories(repos)
-      await sourceService.loadAllRepositories(repos)
+      
+      let installedLangs: string[] = []
+      try {
+        const installedDb = await MobileDB.getExtensions()
+        if (installedDb.ok && installedDb.value) {
+          installedLangs = Array.from(new Set(installedDb.value.map((e) => e.lang || 'en')))
+        }
+      } catch (e) {
+        console.warn('[MobileApi] Failed to get installed languages:', e)
+      }
+
+      await sourceService.loadAllRepositories(repos, installedLangs)
       return { ok: true, value: templatesRes }
     },
     getAllSources: async () => {
       return { ok: true, value: sourceService.getAllSources() }
     },
-    getCatalogExtensions: async () => {
+    getCatalogExtensions: async (lang?: string) => {
+      if (lang && lang !== 'all') {
+        await sourceService.fetchCatalogByLang(lang, 'manga')
+        await sourceService.fetchCatalogByLang(lang, 'anime')
+      }
       const sources = sourceService.getAllSources()
       const value = sources.map((s: any) => ({
         pkg: s.id,

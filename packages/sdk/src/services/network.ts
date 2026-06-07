@@ -60,7 +60,7 @@ export class NetworkClient {
     // the implementation entirely. The module itself uses only static imports
     // of Node built-ins — no `new Function`, no `eval`, no `vm`.
     const isNode = typeof process !== 'undefined' && !!process.versions?.node
-    if (isNode && !url.startsWith('http://') && !url.startsWith('https://')) {
+    if (isNode && (url.startsWith('autakimi-local://') || (!url.startsWith('http://') && !url.startsWith('https://')))) {
       // The import argument is intentionally a static string.
       // The `isNode` guard above ensures this code path only runs in the main process where the
       // module is always resolvable.

@@ -23,7 +23,7 @@ type ExtensionState = SettingsSchema['extensions'] & {
   uninstallExtension: (pkg: string) => Promise<void>
   installExtension: (ext: Extension) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
-  loadCatalog: (force?: boolean) => Promise<void>
+  loadCatalog: (lang?: string) => Promise<void>
 
   // Init
   _init: (installed: Extension[], settings: SettingsSchema['extensions']) => void
@@ -118,13 +118,13 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
     })
   },
 
-  loadCatalog: async () => {
+  loadCatalog: async (lang?: string) => {
     const { isRefreshingCatalog } = useExtensionStore.getState()
     if (isRefreshingCatalog) return
 
     set({ isRefreshingCatalog: true })
     try {
-      const sources = await DataService.sources.getAllSources()
+      const sources = await DataService.getExtensionsCatalog(lang) as any[]
       const { setGeneratedSources } = await import(/* @vite-ignore */ '../api/sources/SourceRegistry')
       setGeneratedSources(sources)
 
