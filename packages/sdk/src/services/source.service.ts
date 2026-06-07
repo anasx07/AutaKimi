@@ -94,25 +94,29 @@ export class SourceService {
           const id = item.pkg || item.id
           if (!id) continue
           
+          const existing = (this.sources.get(id) || {}) as any
           const firstSource = item.sources?.[0] || {}
           this.sources.set(id, {
+            ...existing,
             ...item,
             id,
-            baseUrl: item.baseUrl || firstSource.baseUrl || '',
-            apiUrl: item.apiUrl || firstSource.apiUrl || firstSource.baseUrl || '',
-            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true' || firstSource.nsfw === 1 || firstSource.nsfw === true,
-            type
+            baseUrl: item.baseUrl || firstSource.baseUrl || existing.baseUrl || '',
+            apiUrl: item.apiUrl || firstSource.apiUrl || firstSource.baseUrl || existing.apiUrl || '',
+            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true' || firstSource.nsfw === 1 || firstSource.nsfw === true || !!existing.nsfw,
+            type: existing.type || type
           })
           count++
         }
       } else {
         for (const [id, meta] of Object.entries(data)) {
           const item = meta as any
+          const existing = (this.sources.get(id) || {}) as any
           this.sources.set(id, {
+            ...existing,
             ...item,
             id, // Inject the key as the id property
-            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true',
-            type
+            nsfw: item.nsfw === 1 || item.nsfw === true || item.nsfw === 'true' || !!existing.nsfw,
+            type: existing.type || type
           })
           count++
         }

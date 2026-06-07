@@ -65,7 +65,7 @@ export class ExtensionEngine {
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
     let baseUrl = ''
     if (repoUrl && repoUrl !== 'local') {
-      baseUrl = repoUrl.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
+      baseUrl = repoUrl.replace(/\/?([^/]+\.json)$/, '')
       if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
     }
 
