@@ -17,12 +17,15 @@ export default defineConfig({
         external: ['electron', 'path', 'fs', 'crypto', 'os', 'worker_threads', 'vm', 'http', 'better-sqlite3'],
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          'extension-worker': resolve(__dirname, 'src/main/extension-worker.ts')
+          'extension-worker': resolve(__dirname, 'src/main/extension-worker.ts'),
+          'plugin-worker': resolve(__dirname, 'src/main/plugin-worker.ts'),
+          'localFileInterceptor': resolve(__dirname, '../../packages/sdk/src/services/localFileInterceptor.ts')
         }
       }
     },
     plugins: [
       obfuscator({
+        exclude: [/network\.ts/],
         options: {
           compact: true,
           controlFlowFlattening: true,
@@ -51,6 +54,7 @@ export default defineConfig({
     },
     plugins: [
       obfuscator({
+        exclude: [/network\.ts/],
         options: {
           compact: true,
           controlFlowFlattening: true,
@@ -81,7 +85,7 @@ export default defineConfig({
     plugins: [
       react(),
       obfuscator({
-        exclude: [/extension\.store\.ts/],
+        exclude: [/extension\.store\.ts/, /network\.ts/],
         options: {
           compact: true,
           controlFlowFlattening: true,

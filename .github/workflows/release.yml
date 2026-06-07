@@ -43,21 +43,30 @@ jobs:
           npx electron-builder --win --publish never
 
       - name: Generate Mobile Android Project (Prebuild)
-        continue-on-error: true
         id: mobile_prebuild
         working-directory: apps/mobile
         run: npx expo prebuild --platform android --non-interactive
 
+      - name: Decode Keystore
+        if: steps.mobile_prebuild.outcome == 'success'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/release.keystore
+
       - name: Generate Android APK
-        continue-on-error: true
         id: mobile_build
         shell: bash
+        env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -d "apps/mobile/android" ]; then
             cd apps/mobile/android
-            ./gradlew assembleDebug
+            ./gradlew assembleRelease
           else
             echo "⚠️ Android folder not found, skipping compilation."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish Release
@@ -73,20 +82,32 @@ jobs:
           done
           
           # 2. Add Android APK if it exists
-          APK_PATH="apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_PATH" ]; then
-            echo "✅ Found Android APK: $APK_PATH"
-            FILES+=("$APK_PATH")
+          ANDROID_APK_PATH="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          HAS_APK=false
+          if [ -f "$ANDROID_APK_PATH" ]; then
+            echo "✅ Found Android APK: $ANDROID_APK_PATH"
+            FILES+=("$ANDROID_APK_PATH")
+            HAS_APK=true
           else
             echo "⚠️ Android APK not found."
           fi
           
-          # 3. Create Release
+          # 3. Build release notes
+          NOTES="Automated release of AutaKimi Monorepo (Windows & Android)."
+          if [ "$HAS_APK" = false ]; then
+            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Android APK is missing from this release.** Build may have failed."
+          fi
+          
+          # 4. Create Release
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "❌ No artifacts found at all. Aborting release."
+            exit 1
+          fi
           echo "🚀 Creating GitHub Release v${{ github.ref_name }}..."
           gh release create "${{ github.ref_name }}" "${FILES[@]}" \
             --repo ${{ github.repository }} \
             --target main \
             --title "Release ${{ github.ref_name }}" \
-            --notes "Automated release of AutaKimi Monorepo (Windows & Android)."
+            --notes "$NOTES"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

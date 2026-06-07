@@ -49,8 +49,9 @@ AutaKimi implements a strict multi-layer sandbox environment to guarantee host p
 ---
 
 ## 📡 Subscribing to Extensions
-
 To add content sources to your local AutaKimi app, paste any compatible community-maintained repository URL in the **Repositories** page:
+
+**Disclaimer:** The developer of this application does not have any affiliation with the content providers available.
 
 * **GitHub Pages URL (Recommended)**:
   ```http

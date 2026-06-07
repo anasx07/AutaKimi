@@ -5,7 +5,7 @@ echo 🚀 Starting Fast Build for AutaKimi (Unpacked)...
 
 :: 1. Build Desktop
 echo 📦 Building Desktop...
-npm run build:desktop
+call npm run build:desktop
 if %errorlevel% neq 0 goto error
 
 :: 3. Run Electron Builder (Unpacked Only - skips installer)

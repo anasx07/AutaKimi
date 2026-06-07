@@ -1,4 +1,4 @@
-import { Subject, BehaviorSubject, filter, take, mergeMap, from, takeUntil, finalize } from 'rxjs'
+import { Subject, BehaviorSubject, filter, take, mergeMap, from, takeUntil, switchMap, distinctUntilChanged, finalize } from 'rxjs'
 
 export type TaskRunner<T> = () => Promise<T>
 
@@ -13,45 +13,53 @@ export interface QueueOptions {
 export class ReactiveQueue {
   private tasks$ = new Subject<{ id: string; run: TaskRunner<any> }>()
   private isPaused$ = new BehaviorSubject<boolean>(false)
+  private concurrency$ = new BehaviorSubject<number>(3)
   private cancelSignals = new Map<string, Subject<void>>()
-  private concurrency: number
+  private subscription: import('rxjs').Subscription | null = null
 
   constructor(options: QueueOptions = {}) {
-    this.concurrency = options.concurrency || 3
+    if (options.concurrency) this.concurrency$.next(options.concurrency)
     this.init()
   }
 
   /**
    * Initializes the reactive pipeline.
-   * Tasks are processed through mergeMap which enforces the concurrency limit.
+   * When concurrency changes, the pipeline is torn down and re-created
+   * with the new value. Any in-flight tasks complete naturally; tasks
+   * that were queued but not yet picked up carry over via the shared
+   * tasks$ Subject.
    */
   private init(): void {
-    this.tasks$
+    if (this.subscription) {
+      this.subscription.unsubscribe()
+    }
+
+    this.subscription = this.concurrency$
       .pipe(
-        mergeMap((task) => {
-          // 1. Wait if the queue is paused
-          return this.isPaused$.pipe(
-            filter((paused) => !paused),
-            take(1),
-            // 2. Execute the task with cancellation support
-            mergeMap(() => {
-              const cancel$ = this.getCancelSignal(task.id)
-              return from(task.run()).pipe(
-                takeUntil(cancel$),
-                // Clean up signal map when task finishes
-                finalize(() => {
-                  // We don't delete immediately here to avoid race conditions 
-                  // with the cancel() method itself if called exactly at completion
+        distinctUntilChanged(),
+        switchMap((concurrency) =>
+          this.tasks$.pipe(
+            mergeMap((task) => {
+              return this.isPaused$.pipe(
+                filter((paused) => !paused),
+                take(1),
+                mergeMap(() => {
+                  const cancel$ = this.getCancelSignal(task.id)
+                  return from(task.run()).pipe(
+                    takeUntil(cancel$),
+                    finalize(() => {
+                      this.cancelSignals.delete(task.id)
+                    })
+                  )
                 })
               )
-            })
+            }, concurrency)
           )
-        }, this.concurrency)
+        )
       )
       .subscribe({
         error: (err) => {
           console.error('[ReactiveQueue] Fatal Stream Error:', err)
-          // Attempt recovery
           this.init()
         }
       })
@@ -112,15 +120,12 @@ export class ReactiveQueue {
   }
 
   /**
-   * Updates the concurrency limit. 
-   * Note: This currently requires a re-initialization to apply to the mergeMap operator.
+   * Updates the concurrency limit.
+   * The pipeline is restarted with the new concurrency value.
+   * In-flight tasks continue; queued tasks are picked up under the new limit.
    */
   public setConcurrency(n: number): void {
-    if (this.concurrency !== n) {
-      this.concurrency = n
-      // We don't restart existing stream as it might lose pending tasks in Subject buffer 
-      // if not handled carefully. In DownloadManager use case, concurrency is mostly stable.
-    }
+    this.concurrency$.next(n)
   }
 
   /**
@@ -132,6 +137,19 @@ export class ReactiveQueue {
       signal.complete()
     })
     this.cancelSignals.clear()
+  }
+
+  /**
+   * Tears down the pipeline. Call when the queue is no longer needed.
+   */
+  public destroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe()
+      this.subscription = null
+    }
+    this.tasks$.complete()
+    this.isPaused$.complete()
+    this.concurrency$.complete()
   }
 
   private getCancelSignal(id: string): Subject<void> {

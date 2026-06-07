@@ -31,6 +31,16 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { cacheManager } from './services/cache.service'
+import {
+  buildOriginAllowlist,
+  isAllowedImageContentType,
+  isIconUrl,
+  isPathInside,
+  validateGenericCacheUrl,
+  validateIconUrl,
+  MAX_GENERIC_CACHE_RESPONSE_BYTES,
+  MAX_ICON_REMOTE_BYTES
+} from './utils/cacheProtocol'
 
 // Register Services
 import db, { runCleanupRoutine, settingsRepo, mangaCacheRepo } from './db'
@@ -221,87 +231,140 @@ app.whenReady().then(async () => {
   // === Cache Protocol Handler ===
   protocol.handle('autakimi-cache', async (request) => {
     try {
-      const url = request.url.replace('autakimi-cache://', 'https://')
+      const rawUrl = request.url
+
+      // Build the registered-repository allowlist once per request. Repos are
+      // user-configured, so trusting them gates both the generic cache branch
+      // and the remote-icon fallback in the icon branch.
+      const reposJson = await settingsRepo.get('source_repositories')
+      const repos: unknown = reposJson ? JSON.parse(reposJson) : []
+      const allowlist = buildOriginAllowlist(repos)
 
       // Prioritize local extension icons (match /icon/, /icons/, or /local-icon/)
-      if (
-        (url.includes('/icons/') || url.includes('/icon/') || url.includes('/local-icon/')) &&
-        url.endsWith('.png')
-      ) {
-        const filename = path.basename(url)
+      if (isIconUrl(rawUrl.replace(/^autakimi-cache:\/\//i, 'https://'))) {
+        const iconCheck = validateIconUrl(rawUrl)
+        if (!iconCheck.ok) {
+          return new Response(`Forbidden: ${iconCheck.reason}`, { status: iconCheck.status })
+        }
+
+        const filename = path.basename(iconCheck.url.toString())
         const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
         if (!fs.existsSync(userDataIconsDir)) {
           fs.mkdirSync(userDataIconsDir, { recursive: true })
         }
         const cachedIconPath = path.join(userDataIconsDir, filename)
 
-        // 1. Check userData/icons cache first
+        // 1. Check userData/icons cache first (defense in depth: ensure path
+        //    stays inside the icons directory even though basename + join
+        //    already prevents traversal).
         try {
-          if (fs.existsSync(cachedIconPath)) {
-            return new Response(fs.readFileSync(cachedIconPath))
+          if (
+            isPathInside(cachedIconPath, userDataIconsDir) &&
+            fs.existsSync(cachedIconPath)
+          ) {
+            return new Response(fs.readFileSync(cachedIconPath), {
+              headers: {
+                'Content-Type': 'image/png',
+                'X-Content-Type-Options': 'nosniff'
+              }
+            })
           }
         } catch (e) {
           console.error('Cached icon load failed:', e)
         }
 
         // 2. Check bundled local icon (dev workspace or resourcesPath)
-        const localIconPath = is.dev
-          ? path.join(
-              process.cwd(),
-              'autakimi-extensions',
-              'icons',
-              filename
-            )
-          : path.join(process.resourcesPath, 'icons', filename)
+        const localIconBase = is.dev
+          ? path.join(process.cwd(), 'autakimi-extensions', 'icons')
+          : path.join(process.resourcesPath, 'icons')
+        const localIconPath = path.join(localIconBase, filename)
 
         try {
-          if (fs.existsSync(localIconPath)) {
-            return new Response(fs.readFileSync(localIconPath))
+          if (isPathInside(localIconPath, localIconBase) && fs.existsSync(localIconPath)) {
+            return new Response(fs.readFileSync(localIconPath), {
+              headers: {
+                'Content-Type': 'image/png',
+                'X-Content-Type-Options': 'nosniff'
+              }
+            })
           }
         } catch (e) {
           console.error('Local icon load failed:', e)
         }
 
-        // 3. Fallback: Check remote repositories for the icon, and cache it!
-        try {
-          const reposJson = await settingsRepo.get('source_repositories')
-          const repos: string[] = reposJson ? JSON.parse(reposJson) : []
-          
-          for (const repo of repos) {
-            const baseUrl = repo.endsWith('templates.json') 
-              ? repo.replace('templates.json', '') 
+        // 3. Fallback: Check remote repositories for the icon, and cache it.
+        //    The remote URL is constructed from the registered repo's baseUrl,
+        //    so we never fetch an attacker-controlled host directly.
+        if (allowlist.size > 0) {
+          for (const repo of Array.isArray(repos) ? repos : []) {
+            if (typeof repo !== 'string') continue
+            const baseUrl = repo.endsWith('templates.json')
+              ? repo.replace('templates.json', '')
               : repo.endsWith('/') ? repo : `${repo}/`
-              
-            const remoteUrl = `${baseUrl}icons/${filename}`
-            const res = await fetch(remoteUrl)
-            if (res.ok) {
-              const buffer = await res.arrayBuffer()
-              
-              // Cache it locally so it works offline
-              try {
-                fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
-              } catch (writeErr) {
-                console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
-              }
 
-              return new Response(buffer, {
-                headers: { 'Content-Type': 'image/png' }
-              })
+            const remoteUrl = `${baseUrl}icons/${filename}`
+            try {
+              const remoteCheck = validateGenericCacheUrl(remoteUrl, allowlist)
+              if (!remoteCheck.ok) continue
+
+              const res = await fetch(remoteUrl, { redirect: 'error' })
+              if (res.ok) {
+                const declared = res.headers.get('content-length')
+                if (declared && parseInt(declared, 10) > MAX_ICON_REMOTE_BYTES) {
+                  console.warn(`[autakimi-cache] Icon too large, skipping: ${remoteUrl}`)
+                  continue
+                }
+                const buffer = await res.arrayBuffer()
+                if (buffer.byteLength > MAX_ICON_REMOTE_BYTES) {
+                  console.warn(`[autakimi-cache] Icon body too large, skipping: ${remoteUrl}`)
+                  continue
+                }
+
+                // Cache it locally so it works offline. The cache path has
+                // already been validated against the icons directory above.
+                try {
+                  if (isPathInside(cachedIconPath, userDataIconsDir)) {
+                    fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
+                  }
+                } catch (writeErr) {
+                  console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
+                }
+
+                return new Response(buffer, {
+                  headers: {
+                    'Content-Type': 'image/png',
+                    'X-Content-Type-Options': 'nosniff'
+                  }
+                })
+              }
+            } catch (e) {
+              console.error('Remote icon load failed:', e)
             }
           }
-        } catch (e) {
-          console.error('Remote icon load failed:', e)
         }
 
         // Block remote icon fetching if all failed
         return new Response('Icon not found', { status: 404 })
       }
 
+      // ─── Generic cache branch ──────────────────────────────────────────────
+      const genericCheck = validateGenericCacheUrl(rawUrl, allowlist)
+      if (!genericCheck.ok) {
+        return new Response(`Forbidden: ${genericCheck.reason}`, { status: genericCheck.status })
+      }
+      const url = genericCheck.url.toString()
+
       const hash = crypto.createHash('md5').update(url).digest('hex')
       const imageCache = cacheManager.getImageCache()
 
       const buffer = await imageCache.get(hash)
-      if (buffer) return new Response(new Uint8Array(buffer))
+      if (buffer) {
+        return new Response(new Uint8Array(buffer), {
+          headers: {
+            'X-Content-Type-Options': 'nosniff'
+          }
+        })
+      }
 
       let origin = 'https://'
       try {
@@ -317,16 +380,41 @@ app.whenReady().then(async () => {
         },
         attempts: NetworkConfig.DEFAULT_RETRY_ATTEMPTS,
         delay: NetworkConfig.DEFAULT_RETRY_DELAY,
-        fetchFn: net.fetch
+        fetchFn: net.fetch,
+        // Refuse upstream redirects so the response cannot pivot to a host
+        // outside the allowlist via a 30x chain.
+        redirect: 'error'
       })
 
       if (!res.ok) return new Response('Error loading resource', { status: res.status || 500 })
       const response = res.value
 
+      // Reject non-image responses so the cached body cannot be used as
+      // script/HTML via the bypassCSP privilege of this protocol.
+      const upstreamType = response.headers.get('content-type')
+      if (!isAllowedImageContentType(upstreamType)) {
+        return new Response('Unsupported content type', { status: 415 })
+      }
+
+      // Enforce a size cap before fully buffering the response to prevent
+      // OOM in the main process from a hostile or compromised upstream.
+      const declared = response.headers.get('content-length')
+      if (declared && parseInt(declared, 10) > MAX_GENERIC_CACHE_RESPONSE_BYTES) {
+        return new Response('Response too large', { status: 413 })
+      }
       const resBuffer = Buffer.from(await response.arrayBuffer())
+      if (resBuffer.length > MAX_GENERIC_CACHE_RESPONSE_BYTES) {
+        return new Response('Response too large', { status: 413 })
+      }
       await imageCache.set(hash, resBuffer)
 
-      return new Response(new Uint8Array(resBuffer))
+      const safeType = (upstreamType ?? 'application/octet-stream').split(';')[0].trim()
+      return new Response(new Uint8Array(resBuffer), {
+        headers: {
+          'Content-Type': safeType,
+          'X-Content-Type-Options': 'nosniff'
+        }
+      })
     } catch (error) {
       console.error('Cache Protocol Error:', error)
       return new Response('Error loading resource', { status: 500 })

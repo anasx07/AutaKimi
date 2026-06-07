@@ -15,6 +15,7 @@ export default function DownloadsTab() {
   const [downloads, setDownloads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [activeProgress, setActiveProgress] = useState<Record<string, { cached: number, total: number, status: string }>>({})
 
   const loadDownloads = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -31,7 +32,32 @@ export default function DownloadsTab() {
     }
   }, [])
 
-  useEffect(() => { loadDownloads() }, [])
+  useEffect(() => {
+    loadDownloads()
+    const api = (window as any).api
+    if (api?.download?.onEvent) {
+      const unsub = api.download.onEvent((data: any) => {
+        if (data.type === 'progress' || data.type === 'start' || data.type === 'queued') {
+          setActiveProgress(prev => ({
+            ...prev,
+            [`${data.mangaId}:${data.chapterId}`]: {
+              cached: data.cached || 0,
+              total: data.total || 0,
+              status: data.type === 'queued' ? 'queued' : 'downloading'
+            }
+          }))
+        } else if (data.type === 'completed' || data.type === 'error' || data.type === 'canceled') {
+          loadDownloads()
+          setActiveProgress(prev => {
+            const next = { ...prev }
+            delete next[`${data.mangaId}:${data.chapterId}`]
+            return next
+          })
+        }
+      })
+      return () => unsub()
+    }
+  }, [loadDownloads])
 
   const grouped = downloads.reduce<Record<string, any[]>>((acc, d) => {
     if (!acc[d.mangaId]) acc[d.mangaId] = []
@@ -105,32 +131,51 @@ export default function DownloadsTab() {
                 </Typography>
               </TouchableOpacity>
               <View className="bg-card rounded-xl border border-border overflow-hidden">
-                {chapters.map((dl: any, idx: number) => (
-                  <View
-                    key={dl.chapterId}
-                    className={`flex-row items-center px-4 py-3 ${idx !== chapters.length - 1 ? 'border-b border-border/50' : ''}`}
-                  >
-                    <View className="mr-3">
-                      {statusIcon(dl.status)}
-                    </View>
-                    <View className="flex-1">
-                      <Typography className="text-sm font-medium" numberOfLines={1}>
-                        Chapter {dl.chapterId?.split('-')?.pop() || dl.chapterId?.slice(0, 8) || '?'}
-                      </Typography>
-                      {dl.totalPages && (
-                        <Typography className="text-xs text-muted-foreground">
-                          {dl.totalPages} pages · {dl.mediaType}
-                        </Typography>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      className="p-2"
-                      onPress={() => removeDownload(mangaId, dl.chapterId)}
+                {chapters.map((dl: any, idx: number) => {
+                  const progressKey = `${mangaId}:${dl.chapterId}`
+                  const progress = activeProgress[progressKey]
+                  const status = progress ? progress.status : dl.status
+                  const total = progress ? progress.total : dl.totalPages
+                  const cached = progress ? progress.cached : dl.cachedPages
+
+                  return (
+                    <View
+                      key={dl.chapterId}
+                      className={`flex-row items-center px-4 py-3 ${idx !== chapters.length - 1 ? 'border-b border-border/50' : ''}`}
                     >
-                      <Trash2 size={16} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                      <View className="mr-3">
+                        {statusIcon(status)}
+                      </View>
+                      <View className="flex-1">
+                        <Typography className="text-sm font-medium" numberOfLines={1}>
+                          Chapter {dl.chapterId?.split('-')?.pop() || dl.chapterId?.slice(0, 8) || '?'}
+                        </Typography>
+                        {total > 0 && (
+                          <Typography className="text-xs text-muted-foreground mt-0.5">
+                            {status === 'downloading' || status === 'queued'
+                              ? `${cached || 0} / ${total} pages (${Math.round(((cached || 0) / total) * 100)}%)`
+                              : `${total} pages`}
+                            {' · '}{dl.mediaType}
+                          </Typography>
+                        )}
+                        {(status === 'downloading' || status === 'queued') && total > 0 && (
+                          <View className="h-1 bg-border rounded-full mt-1.5 overflow-hidden">
+                            <View 
+                              className="h-full bg-primary" 
+                              style={{ width: `${((cached || 0) / total) * 100}%` }}
+                            />
+                          </View>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        className="p-2 ml-2"
+                        onPress={() => removeDownload(mangaId, dl.chapterId)}
+                      >
+                        <Trash2 size={16} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  )
+                })}
               </View>
             </View>
           )}
