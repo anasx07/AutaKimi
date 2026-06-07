@@ -1,4 +1,5 @@
 import { networkClient } from './network'
+import { repositoryService } from './repository.service'
 
 export type PluginTarget = 'main-cloudflare' | 'renderer-reader' | (string & {})
 
@@ -60,14 +61,8 @@ export class PluginService {
     let totalCount = 0
     for (const url of urls) {
       try {
-        // If the URL ends with templates.json, fetch plugins.json from the same directory
-        let pluginUrl = url
-        if (url.endsWith('templates.json')) {
-          pluginUrl = url.replace('templates.json', 'plugins.json')
-        } else if (!url.endsWith('plugins.json')) {
-          pluginUrl = url.endsWith('/') ? `${url}plugins.json` : `${url}/plugins.json`
-        }
-        
+        const manifest = await repositoryService.resolveManifest(url)
+        const pluginUrl = `${manifest.baseUrl}${manifest.plugins}`
         const res = await this.fetchPlugins(pluginUrl)
         if (res.success) totalCount += res.count
       } catch (e) {
