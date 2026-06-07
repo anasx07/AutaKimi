@@ -4,6 +4,7 @@ import {
   Dimensions, TouchableWithoutFeedback, ViewToken
 } from 'react-native'
 import { useLocalSearchParams, router, Stack } from 'expo-router'
+import * as FileSystem from 'expo-file-system/legacy'
 import { useQuery } from '@tanstack/react-query'
 import { Typography, Button } from '@mobile/native/ui';
 import { DataService } from '@renderer/shared/api'
@@ -88,6 +89,25 @@ export default function ReaderScreen() {
   const { data: pages, isLoading, error } = useQuery({
     queryKey: ['chapter-pages', mangaId, chapterId],
     queryFn: async (): Promise<string[]> => {
+      // 1. Check offline downloaded files
+      try {
+        const targetDirSub = `manga/${mangaId}/${chapterId}`
+        const targetDirUri = `${FileSystem.documentDirectory}Downloads/${targetDirSub}/`
+        const dirInfo = await FileSystem.getInfoAsync(targetDirUri)
+        
+        if (dirInfo.exists) {
+          const files = await FileSystem.readDirectoryAsync(targetDirUri)
+          const imageFiles = files.filter(f => f.endsWith('.jpg')).sort()
+          if (imageFiles.length > 0) {
+            console.log(`[Reader] Loaded ${imageFiles.length} pages offline from ${targetDirUri}`)
+            return imageFiles.map(f => `${targetDirUri}${f}`)
+          }
+        }
+      } catch (err) {
+        console.log('[Reader] Offline check failed or directory empty:', err)
+      }
+
+      // 2. Fallback to network extension
       if (!pkg || !chapterUrl) throw new Error('Missing extension info')
 
       const allExts = await DataService.db.getExtensions()

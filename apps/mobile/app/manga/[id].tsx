@@ -4,12 +4,12 @@ import {
   RefreshControl, Dimensions
 } from 'react-native'
 import { useLocalSearchParams, router, Stack } from 'expo-router'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Typography, Button, Card, CardContent } from '@mobile/native/ui';
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   ArrowLeft, BookOpen, ChevronRight, AlignLeft,
-  Download, CheckCircle, Loader2
+  Download, CheckCircle, Loader2, Bookmark
 } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { Chapter } from '@common/types'
@@ -29,12 +29,23 @@ export default function MangaDetailsScreen() {
   const [descExpanded, setDescExpanded] = useState(false)
   const [downloadStatuses, setDownloadStatuses] = useState<Record<string, string>>({})
   const [downloadingChapters, setDownloadingChapters] = useState<Set<string>>(new Set())
+  const [activeProgress, setActiveProgress] = useState<Record<string, { cached: number, total: number, status: string }>>({})
   const [extCode, setExtCode] = useState<string | null>(null)
 
   const { data: chapters, isLoading: chaptersLoading, refetch } = useQuery({
     queryKey: ['manga-chapters', id],
     queryFn: () => DataService.db.getChapters(id),
     enabled: !!id,
+  })
+
+  const { data: history } = useQuery({
+    queryKey: ['manga-history', id],
+    queryFn: async () => {
+      const res = await DataService.db.getHistory({ limit: 500 })
+      const entries = (res as any)?.value || res || []
+      return entries.find((e: any) => String(e.mangaId || e.manga_id) === String(id))
+    },
+    enabled: !!id
   })
 
   useEffect(() => {
@@ -62,6 +73,37 @@ export default function MangaDetailsScreen() {
         setDownloadStatuses(statuses)
       })
       .catch(() => {})
+
+    const api = (window as any).api
+    if (api?.download?.onEvent) {
+      const unsub = api.download.onEvent((data: any) => {
+        if (data.mangaId !== id) return
+        if (data.type === 'progress' || data.type === 'start' || data.type === 'queued') {
+          setActiveProgress(prev => ({
+            ...prev,
+            [data.chapterId]: {
+              cached: data.cached || 0,
+              total: data.total || 0,
+              status: data.type === 'queued' ? 'queued' : 'downloading'
+            }
+          }))
+          setDownloadStatuses(prev => ({ ...prev, [data.chapterId]: data.type === 'queued' ? 'queued' : 'downloading' }))
+        } else if (data.type === 'completed' || data.type === 'error' || data.type === 'canceled') {
+          setActiveProgress(prev => {
+            const next = { ...prev }
+            delete next[data.chapterId]
+            return next
+          })
+          setDownloadStatuses(prev => ({ ...prev, [data.chapterId]: data.type === 'canceled' ? '' : data.type }))
+          setDownloadingChapters(prev => {
+            const next = new Set(prev)
+            next.delete(data.chapterId)
+            return next
+          })
+        }
+      })
+      return () => unsub()
+    }
   }, [id])
 
   const addHistory = useMutation({
@@ -82,6 +124,29 @@ export default function MangaDetailsScreen() {
   const sortedChapters = chapters
     ? [...chapters].sort((a, b) => Number(b.number || 0) - Number(a.number || 0))
     : []
+
+  const queryClient = useQueryClient()
+  const { data: libraryItems } = useQuery({
+    queryKey: ['library'],
+    queryFn: () => DataService.db.getLibrary()
+  })
+  const isInLibrary = libraryItems?.some((item: any) => item.id === id) || false
+
+  const toggleLibrary = useMutation({
+    mutationFn: async () => {
+      return DataService.db.toggleLibrary({
+        id,
+        title: paramTitle,
+        coverUrl: paramCover,
+        url,
+        pkg,
+        mediaType: 'manga'
+      } as any)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+    }
+  })
 
   const openReader = (chapter: Chapter) => {
     addHistory.mutate(chapter)
@@ -125,11 +190,9 @@ export default function MangaDetailsScreen() {
         chapterTitle: chapter.title || `Ch. ${chapter.number}`
       })
 
-      setDownloadStatuses(prev => ({ ...prev, [chapterId]: 'completed' }))
     } catch (e) {
       console.error('[MangaDetails] Download failed:', e)
       setDownloadStatuses(prev => ({ ...prev, [chapterId]: 'error' }))
-    } finally {
       setDownloadingChapters(prev => {
         const next = new Set(prev)
         next.delete(chapterId)
@@ -180,14 +243,31 @@ export default function MangaDetailsScreen() {
         {/* Quick Actions */}
         <View className="px-4 mt-4 flex-row gap-3">
           <Button
-            title="Start Reading"
+            title={history ? "Continue Reading" : "Start Reading"}
             variant="primary"
             className="flex-1"
             onPress={() => {
-              if (sortedChapters.length > 0) openReader(sortedChapters[0])
+              if (history && sortedChapters.length > 0) {
+                 const ch = sortedChapters.find(c => String(c.id) === String(history.chapterId || history.chapter_id))
+                 if (ch) openReader(ch)
+                 else openReader(sortedChapters[0])
+              } else if (sortedChapters.length > 0) {
+                 openReader(sortedChapters[0])
+              }
             }}
             disabled={sortedChapters.length === 0}
           />
+          <TouchableOpacity
+            className={`w-12 h-12 rounded-xl items-center justify-center border border-border ${isInLibrary ? 'bg-primary/20 border-primary' : 'bg-card'}`}
+            onPress={() => toggleLibrary.mutate()}
+            disabled={toggleLibrary.isPending}
+          >
+            {toggleLibrary.isPending ? (
+              <ActivityIndicator size="small" color="#3b82f6" />
+            ) : (
+              <Bookmark size={24} color={isInLibrary ? "#3b82f6" : "#94a3b8"} fill={isInLibrary ? "#3b82f6" : "none"} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Genres */}
@@ -285,8 +365,15 @@ export default function MangaDetailsScreen() {
                     <View className="ml-2">
                       {dlStatus === 'completed' ? (
                         <CheckCircle size={18} color="#22c55e" />
-                      ) : isDownloading ? (
-                        <Loader2 size={18} color="#3b82f6" />
+                      ) : isDownloading || dlStatus === 'queued' || dlStatus === 'downloading' ? (
+                        <View className="flex-row items-center">
+                          {activeProgress[chapter.id]?.total > 0 && (
+                            <Typography className="text-xs text-primary mr-2">
+                              {Math.round(((activeProgress[chapter.id].cached || 0) / activeProgress[chapter.id].total) * 100)}%
+                            </Typography>
+                          )}
+                          <Loader2 size={18} color="#3b82f6" />
+                        </View>
                       ) : (
                         <TouchableOpacity
                           onPress={() => downloadChapter(chapter)}
