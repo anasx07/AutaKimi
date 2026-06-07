@@ -54,36 +54,26 @@ export class NetworkClient {
       silent?: boolean
     } & RequestInit = {}
   ): Promise<Result<Response>> {
-    // Intercept local filesystem paths when running in Node/Electron environment
-    const isNode = typeof process !== 'undefined' && process.versions && process.versions.node
+    // Local File System Interceptor: route file:// and absolute paths through
+    // a Node-only helper module. The dynamic import is statically analysable
+    // by Vite/Rollup, so non-Node bundles (renderer, React Native) tree-shake
+    // the implementation entirely. The module itself uses only static imports
+    // of Node built-ins — no `new Function`, no `eval`, no `vm`.
+    const isNode = typeof process !== 'undefined' && !!process.versions?.node
     if (isNode && !url.startsWith('http://') && !url.startsWith('https://')) {
-      try {
-        // Use runtime-evaluated dynamic imports to bypass Metro static analyzer checks on mobile
-        const fs = await new Function('return import("fs")')()
-        const path = await new Function('return import("path")')()
-        
-        let targetPath = url
-        if (url.startsWith('file:///')) {
-          const { fileURLToPath } = await new Function('return import("url")')()
-          targetPath = fileURLToPath(url)
-        } else {
-          targetPath = path.resolve(url)
+      // The import argument is intentionally a static string.
+      // The `isNode` guard above ensures this code path only runs in the main process where the
+      // module is always resolvable.
+      const { tryReadLocalFileSafe } = await import('./localFileInterceptor')
+      const localResult = tryReadLocalFileSafe(url)
+      if (localResult) {
+        if (localResult.ok) {
+          return { ok: true, value: localResult.value }
         }
-        
-        if (fs.existsSync(targetPath) && !fs.statSync(targetPath).isDirectory()) {
-          const fileContent = fs.readFileSync(targetPath, 'utf8')
-          const mockResponse = {
-            ok: true,
-            status: 200,
-            text: async () => fileContent,
-            json: async () => JSON.parse(fileContent),
-            clone() { return this }
-          } as unknown as Response
-          return { ok: true, value: mockResponse }
-        }
-      } catch (e: any) {
-        return { ok: false, error: `Local filesystem error: ${e.message}`, status: 500 }
+        return { ok: false, error: localResult.error, status: localResult.status }
       }
+      // localResult === null → not a local file or not on disk; fall through
+      // to the regular HTTP fetch below.
     }
 
     const { attempts = 1, delay = 1000, fetchFn = fetch, ...init } = options

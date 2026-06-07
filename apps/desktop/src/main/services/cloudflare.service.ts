@@ -2,6 +2,7 @@ import { BrowserWindow, session } from 'electron'
 import { IBypassProvider, Result, networkClient } from '@common'
 import { pluginService } from '@common/services/plugin.service'
 import { AppService, ServicePriority } from './service.registry'
+import { pluginManager, WinActionHandler } from './plugin.manager'
 import { stateRegistry } from './state.service'
 import path from 'path'
 
@@ -247,11 +248,30 @@ export class CloudflareService implements IBypassProvider, AppService {
       win.setMenuBarVisibility(false)
 
       win.loadURL(url)
-      
+
+      const winId = `win-cf-${targetDomain}-${Date.now()}`
+      const winActionHandler: WinActionHandler = async (action, payload) => {
+        if (win.isDestroyed()) {
+          if (action === 'isDestroyed') return true
+          return undefined
+        }
+        switch (action) {
+          case 'isDestroyed':
+            return win.isDestroyed()
+          case 'getTitle':
+            return win.getTitle()
+          case 'executeJavaScript':
+            return win.webContents.executeJavaScript(payload?.script ?? '')
+          case 'sendInputEvent':
+            win.webContents.sendInputEvent(payload?.event as Parameters<typeof win.webContents.sendInputEvent>[0])
+            return undefined
+        }
+      }
+
       const disposers: any[] = []
       const cfPlugins = pluginService.getEnabledPluginsByTarget('main-cloudflare')
       for (const plugin of cfPlugins) {
-         pluginService.runPlugin(plugin.id, { win }).then(disposer => {
+         pluginService.runPlugin(plugin.id, { winId, winActionHandler }).then(disposer => {
             if (typeof disposer === 'function') disposers.push(disposer)
          })
       }
@@ -328,6 +348,8 @@ export class CloudflareService implements IBypassProvider, AppService {
           this.cfSession.webRequest.onHeadersReceived(null)
           this._isHeadersListenerRegistered = false
         }
+        // Tell the plugin worker the window is gone so its sync isDestroyed() shim returns true
+        pluginManager.notifyWindowDestroyed(winId)
         disposers.forEach(d => {
           try { d() } catch(e) {}
         })

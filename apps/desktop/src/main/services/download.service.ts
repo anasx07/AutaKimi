@@ -31,7 +31,7 @@ export class DownloadManager implements AppService {
   }
 
   async shutdown(): Promise<void> {
-    this.queue.clear()
+    this.queue.destroy()
   }
 
   async startDownload(task: DownloadTask) {

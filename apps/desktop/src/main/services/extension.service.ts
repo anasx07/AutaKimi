@@ -2,6 +2,8 @@ import { net } from 'electron'
 import { Worker } from 'worker_threads'
 import path from 'path'
 import { extensionRepo, settingsRepo } from '../db'
+import fs from 'fs'
+import { app } from 'electron'
 import { ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import * as crypto from 'crypto'
 import { AppService, ServicePriority } from './service.registry'
@@ -230,13 +232,19 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
+    let actualRepoUrl = repoUrl
+
+    // Find the remote repo actual URL if a pseudo-value was passed
+    if (!actualRepoUrl || actualRepoUrl === 'local' || actualRepoUrl === 'remote') {
+      const reposJson = await settingsRepo.get('source_repositories')
+      const repos: string[] = reposJson ? JSON.parse(reposJson) : []
+      if (repos.length > 0) {
+        actualRepoUrl = repos[0]
+      }
+    }
+
     // Proactively download and cache the extension's icon for offline mode
     try {
-      const { app } = await import('electron')
-      const fs = await import('fs')
-      const path = await import('path')
-      const { settingsRepo } = await import('../db')
-
       const filename = `ma.autakimi.extension.${ext.pkg}.png`
       const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
       if (!fs.existsSync(userDataIconsDir)) {
@@ -245,19 +253,10 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
       const cachedIconPath = path.join(userDataIconsDir, filename)
 
       if (!fs.existsSync(cachedIconPath)) {
-        // Find the remote repo baseUrl
         let baseUrl = ''
-        if (repoUrl && repoUrl !== 'local' && repoUrl !== 'remote') {
-          baseUrl = repoUrl.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
+        if (actualRepoUrl && actualRepoUrl !== 'local' && actualRepoUrl !== 'remote') {
+          baseUrl = actualRepoUrl.replace(/\/?([^/]+\.json)$/, '')
           if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
-        } else {
-          const reposJson = await settingsRepo.get('source_repositories')
-          const repos: string[] = reposJson ? JSON.parse(reposJson) : []
-          if (repos.length > 0) {
-            const firstRepo = repos[0]
-            baseUrl = firstRepo.replace(/\/?(index\.min\.json|templates\.json|plugins\.json)$/, '')
-            if (baseUrl && !baseUrl.endsWith('/')) baseUrl += '/'
-          }
         }
 
         if (baseUrl) {
@@ -274,7 +273,7 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
       console.warn('[ExtensionOrchestrator] Failed to pre-download icon during installation:', err.message)
     }
 
-    return this.engine.install(ext, repoUrl)
+    return this.engine.install(ext, actualRepoUrl)
   }
 
   // --- Electron Specific Utilities ---

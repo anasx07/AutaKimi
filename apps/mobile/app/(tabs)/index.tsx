@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Typography, Button, Card } from '@mobile/native/ui';
 import { Trash2, BookOpen, Play, Search, LayoutGrid, List } from 'lucide-react-native';
 import { normalizeManga } from '@common/utils/mangaNormalizer';
 import { DataService } from '@renderer/shared/api';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -48,6 +48,21 @@ export default function LibraryTab() {
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } =
     useLibraryItems(activeTab);
 
+  const { data: historyData } = useQuery({
+    queryKey: ['history', activeTab],
+    queryFn: () => DataService.db.getHistory({ type: activeTab })
+  });
+
+  const historyMap = useMemo(() => {
+    const map = new Map<string, any>();
+    historyData?.forEach((h: any) => {
+      if (!map.has(h.manga_id)) {
+        map.set(h.manga_id, h);
+      }
+    });
+    return map;
+  }, [historyData]);
+
   const allItems = data?.pages?.flat() || [];
 
   const openMangaDetails = (item: any) => {
@@ -67,15 +82,20 @@ export default function LibraryTab() {
 
   const renderItem = ({ item }: { item: any; index: number }) => {
     const norm = normalizeManga(item);
+    const history = historyMap.get(item.id);
+    const chapterText = history?.chapter_title ? history.chapter_title : 'Unread';
 
     if (viewMode === 'grid') {
       return (
         <TouchableOpacity className="flex-1 m-2" onPress={() => openMangaDetails(item)}>
-          <Card className="aspect-[2/3]">
+          <Card className="aspect-[2/3] overflow-hidden">
             <Image source={{ uri: norm.coverUrl || undefined }} className="flex-1" resizeMode="cover" />
-            <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/60">
+            <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/70">
               <Typography className="text-white text-xs font-semibold" numberOfLines={2}>
                 {norm.title}
+              </Typography>
+              <Typography className="text-white/70 text-[10px] mt-0.5" numberOfLines={1}>
+                {chapterText}
               </Typography>
             </View>
           </Card>
@@ -94,8 +114,8 @@ export default function LibraryTab() {
           <Typography variant="h3" numberOfLines={2}>
             {norm.title}
           </Typography>
-          <Typography variant="muted" className="mt-1">
-            {norm.status || 'Unknown Status'}
+          <Typography variant="muted" className="mt-1 text-sm">
+            {chapterText}
           </Typography>
         </View>
       </TouchableOpacity>

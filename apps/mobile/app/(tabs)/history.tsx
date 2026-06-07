@@ -108,6 +108,36 @@ export default function HistoryTab() {
     })
   }
 
+  const continueReading = async (entry: any) => {
+    try {
+      setLoading(true)
+      const res = await DataService.db.getChapters(entry.mangaId)
+      const chapters = (res as any)?.value || res || []
+      const chapter = chapters.find((c: any) => c.id === entry.chapterId || c.id === Number(entry.chapterId))
+      
+      if (chapter && chapter.url) {
+        router.push({
+          pathname: '/reader/[mangaId]/[chapterId]' as any,
+          params: {
+            mangaId: entry.mangaId,
+            chapterId: entry.chapterId,
+            pkg: entry.pkg || '',
+            chapterUrl: chapter.url,
+            chapterTitle: entry.chapterTitle || chapter.title || `Ch. ${chapter.number}`,
+            mangaTitle: entry.mangaTitle
+          }
+        })
+      } else {
+        Alert.alert('Error', 'Chapter URL not found. The chapter may have been deleted.')
+      }
+    } catch (e) {
+      console.error('[History] continueReading failed:', e)
+      Alert.alert('Error', 'Failed to load chapter.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const groupEntries = Object.entries(groups) as [string, any[]][]
 
   return (
@@ -187,8 +217,19 @@ export default function HistoryTab() {
                         </Typography>
                       )}
                     </View>
-                    <View className="flex-row items-center gap-2">
-                      <ChevronRight size={16} color="#94a3b8" />
+                    <View className="flex-row items-center gap-1">
+                      <TouchableOpacity
+                        className="p-2"
+                        onPress={() => continueReading(entry)}
+                      >
+                        <Play size={18} color="#3b82f6" fill="#3b82f6" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="p-2"
+                        onPress={() => deleteEntry(entry.id)}
+                      >
+                        <Trash2 size={16} color="#ef4444" />
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 ))}
