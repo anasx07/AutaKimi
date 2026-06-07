@@ -83,6 +83,9 @@ function isPathAllowed(resolvedPath: string, allowedDirs: string[]): boolean {
 }
 
 function resolveTargetPath(targetUrl: string): string {
+  if (targetUrl.startsWith('autakimi-local://')) {
+    return decodeURIComponent(targetUrl.replace('autakimi-local://', ''))
+  }
   if (targetUrl.startsWith('file:///')) {
     return url.fileURLToPath(targetUrl)
   }
@@ -101,35 +104,21 @@ function resolveTargetPath(targetUrl: string): string {
  *    Callers are expected to surface this as a structured error.
  */
 export function tryReadLocalFile(urlStr: string): Response | null {
-  const isGithubIntercept = urlStr.startsWith('https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/')
+  const isAutakimiLocal = urlStr.startsWith('autakimi-local://')
   
-  if (!isGithubIntercept && (urlStr.startsWith('http://') || urlStr.startsWith('https://'))) {
+  if (!isAutakimiLocal && !urlStr.startsWith('file://') && (urlStr.startsWith('http://') || urlStr.startsWith('https://'))) {
     return null
   }
 
   const allowedDirs = getAllowedDirectories()
-  if (allowedDirs.length === 0) {
+  if (!isAutakimiLocal && allowedDirs.length === 0) {
     return null
   }
 
-  let resolved: string
+  const resolved = path.resolve(resolveTargetPath(urlStr))
 
-  if (isGithubIntercept) {
-    const relativePath = urlStr.replace('https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/', '')
-    const decodedPath = decodeURIComponent(relativePath)
-    // Find the allowed directory ending with 'autakimi-extensions'
-    const extDir = allowedDirs.find(d => path.basename(d) === 'autakimi-extensions')
-    if (!extDir) {
-      console.warn('[localFileInterceptor] autakimi-extensions dir not found in allowlist')
-      return null
-    }
-    resolved = path.resolve(extDir, decodedPath)
-    console.log(`[localFileInterceptor] Redirecting remote fetch to local file: ${resolved}`)
-  } else {
-    resolved = path.resolve(resolveTargetPath(urlStr))
-  }
-
-  if (!isPathAllowed(resolved, allowedDirs)) {
+  // Bypass path allowlist ONLY for explicit autakimi-local:// protocols
+  if (!isAutakimiLocal && !isPathAllowed(resolved, allowedDirs)) {
     console.error('[localFileInterceptor] Access denied:', {
       url: urlStr,
       resolvedPath: resolved,

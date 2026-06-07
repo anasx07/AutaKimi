@@ -4,7 +4,7 @@ import { ExtensionMetadata, useExtensionStore } from '@renderer/shared/model'
 
 export const extensionKeys = {
   all: ['extensions'] as const,
-  catalog: () => [...extensionKeys.all, 'catalog'] as const,
+  catalog: (lang?: string) => [...extensionKeys.all, 'catalog', lang || 'all'] as const,
   installed: () => [...extensionKeys.all, 'installed'] as const,
   updates: () => [...extensionKeys.all, 'updates'] as const
 }
@@ -12,11 +12,11 @@ export const extensionKeys = {
 /**
  * Hook for fetching and managing the universal extension catalog.
  */
-export function useExtensionsCatalog() {
+export function useExtensionsCatalog(lang?: string) {
   return useQuery({
-    queryKey: extensionKeys.catalog(),
+    queryKey: extensionKeys.catalog(lang),
     queryFn: async () => {
-      const res = await DataService.getExtensionsCatalog()
+      const res = await DataService.getExtensionsCatalog(lang)
       return res as any as ExtensionMetadata[]
     },
     staleTime: 1000 * 60 * 15, // 15 minutes cache

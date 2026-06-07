@@ -145,7 +145,7 @@ export function SourceSettings(): React.JSX.Element {
               Extension Repositories
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
-              AutaKimi is a neutral browser. Add community-maintained repository URLs below to load scraping templates and extensions.
+              AutaKimi is a neutral browser. Add community-maintained repository URLs (ending in manifest.json) below to load scraping templates and extensions.
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export function SourceSettings(): React.JSX.Element {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="https://example.com/templates.json"
+                placeholder="https://example.com/manifest.json"
                 className="w-full bg-secondary/30 border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 value={newRepoUrl}
                 onChange={(e) => {
@@ -179,7 +179,7 @@ export function SourceSettings(): React.JSX.Element {
                 className="gap-2 font-bold px-6 border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:border-primary shrink-0"
               >
                 <Folder className="h-4 w-4" />
-                Load Local Directory
+                Load Local Extensions (manifest.json)
               </Button>
             )}
           </div>

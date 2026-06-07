@@ -13,5 +13,5 @@ export const ExtensionService = {
     callIpc(() => getApi().executeExtension(args)),
   installExtension: (ext: Extension, repoUrl: string) =>
     callIpc(() => getApi().installExtension(ext, repoUrl)),
-  getExtensionsCatalog: () => callIpc(() => getApi().sources.getCatalogExtensions())
+  getExtensionsCatalog: (lang?: string) => callIpc(() => getApi().sources.getCatalogExtensions(lang))
 }

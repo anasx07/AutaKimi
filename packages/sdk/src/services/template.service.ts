@@ -1,4 +1,5 @@
 import { networkClient } from './network'
+import { repositoryService } from './repository.service'
 
 export interface ScrapingTemplate {
   id: string
@@ -23,8 +24,14 @@ export class TemplateService {
   async loadAllRepositories(urls: string[]): Promise<{ success: boolean; totalCount: number }> {
     let totalCount = 0
     for (const url of urls) {
-      const res = await this.fetchTemplates(url)
-      if (res.success) totalCount += res.count
+      try {
+        const manifest = await repositoryService.resolveManifest(url)
+        const fetchUrl = `${manifest.baseUrl}${manifest.templates}`
+        const res = await this.fetchTemplates(fetchUrl)
+        if (res.success) totalCount += res.count
+      } catch (e) {
+        console.error(`[TemplateService] Error resolving manifest for ${url}:`, e)
+      }
     }
     return { success: true, totalCount }
   }
@@ -34,12 +41,7 @@ export class TemplateService {
    */
   async fetchTemplates(url: string): Promise<{ success: boolean; count: number; error?: string }> {
     try {
-      let fetchUrl = url
-      if (!fetchUrl.endsWith('templates.json') && !fetchUrl.endsWith('.json')) {
-        fetchUrl = fetchUrl.endsWith('/') ? `${fetchUrl}templates.json` : `${fetchUrl}/templates.json`
-      }
-
-      const res = await networkClient.fetch(fetchUrl)
+      const res = await networkClient.fetch(url)
       if (!res.ok) throw new Error(`Failed to fetch templates: ${res.error}`)
       
       const response = res.value

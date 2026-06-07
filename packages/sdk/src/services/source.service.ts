@@ -1,19 +1,17 @@
+import { Extension } from '../types'
 import { networkClient } from './network'
+import { repositoryService } from './repository.service'
 
-export interface ContentSource {
-  id: string
-  name: string
-  url: string
-  templateId: string
-  icon?: string
-  nsfw: boolean
-  language: string
-  type: 'manga' | 'anime'
+export interface AutakimiSource extends Extension {
+  baseUrl: string
+  apiUrl: string
+  type?: 'manga' | 'anime'
 }
 
 export class SourceService {
   private static instance: SourceService
-  private sources = new Map<string, ContentSource>()
+  private sources = new Map<string, AutakimiSource>()
+  private catalogFiles: { manga: { baseUrl: string; file: string }[]; anime: { baseUrl: string; file: string }[] } = { manga: [], anime: [] }
 
   public static getInstance(): SourceService {
     if (!SourceService.instance) {
@@ -22,54 +20,85 @@ export class SourceService {
     return SourceService.instance
   }
 
-  async loadAllRepositories(urls: string[]): Promise<{ success: boolean; totalCount: number }> {
+  async loadAllRepositories(urls: string[], installedLangs: string[] = []): Promise<{ success: boolean; totalCount: number }> {
     let totalCount = 0
+    this.catalogFiles = { manga: [], anime: [] }
     for (const url of urls) {
-      const baseUrl = url.endsWith('templates.json') 
-        ? url.replace('templates.json', '') 
-        : url.endsWith('/') ? url : `${url}/`
+      try {
+        const manifest = await repositoryService.resolveManifest(url)
+        const baseUrl = manifest.baseUrl
 
-      // 1. Fetch manga catalogs index
-      const mangaCatalogsUrl = `${baseUrl}manga_catalogs.json`
-      console.log(`[SourceService] Fetching catalogs from: ${mangaCatalogsUrl}`)
-      const mcRes = await networkClient.fetch(mangaCatalogsUrl, { cache: 'no-store' })
-      console.log(`[SourceService] manga_catalogs.json fetch result: ok=${mcRes.ok}, status=${mcRes.ok ? mcRes.value.status : 'N/A'}`)
-      if (mcRes.ok && mcRes.value.ok) {
-        const mcData = await mcRes.value.json()
-        if (mcData.catalogs && Array.isArray(mcData.catalogs)) {
-          for (const catalogFile of mcData.catalogs) {
-            const catalogUrl = `${baseUrl}MangaCatalogs/${catalogFile}`
-            const catRes = await this.fetchCatalog(catalogUrl, 'manga')
-            if (catRes.success) totalCount += catRes.count
+        // 1. Fetch manga catalogs index
+        const mangaCatalogsUrl = `${baseUrl}${manifest.catalogs.manga}`
+        console.log(`[SourceService] Fetching catalogs from: ${mangaCatalogsUrl}`)
+        const mcRes = await networkClient.fetch(mangaCatalogsUrl, { cache: 'no-store' })
+        console.log(`[SourceService] ${manifest.catalogs.manga} fetch result: ok=${mcRes.ok}, status=${mcRes.ok ? mcRes.value.status : 'N/A'}`)
+        if (mcRes.ok && mcRes.value.ok) {
+          const mcData = await mcRes.value.json()
+          if (mcData.catalogs && Array.isArray(mcData.catalogs)) {
+            for (const catalogFile of mcData.catalogs) {
+              this.catalogFiles.manga.push({ baseUrl, file: catalogFile })
+            }
           }
         }
-      }
 
-      // 2. Fetch anime catalogs index
-      const animeCatalogsUrl = `${baseUrl}anime_catalogs.json`
-      const acRes = await networkClient.fetch(animeCatalogsUrl, { cache: 'no-store' })
-      if (acRes.ok && acRes.value.ok) {
-        const acData = await acRes.value.json()
-        if (acData.catalogs && Array.isArray(acData.catalogs)) {
-          for (const catalogFile of acData.catalogs) {
-            const catalogUrl = `${baseUrl}AnimeCatalogs/${catalogFile}`
-            const catRes = await this.fetchCatalog(catalogUrl, 'anime')
-            if (catRes.success) totalCount += catRes.count
+        // 2. Fetch anime catalogs index
+        const animeCatalogsUrl = `${baseUrl}${manifest.catalogs.anime}`
+        const acRes = await networkClient.fetch(animeCatalogsUrl, { cache: 'no-store' })
+        if (acRes.ok && acRes.value.ok) {
+          const acData = await acRes.value.json()
+          if (acData.catalogs && Array.isArray(acData.catalogs)) {
+            for (const catalogFile of acData.catalogs) {
+              this.catalogFiles.anime.push({ baseUrl, file: catalogFile })
+            }
           }
         }
+
+        // Fetch installed languages immediately if requested
+        if (installedLangs.length > 0) {
+          for (const lang of installedLangs) {
+            await this.fetchCatalogByLang(lang, 'manga')
+            await this.fetchCatalogByLang(lang, 'anime')
+          }
+        }
+      } catch (e) {
+        console.error(`[SourceService] Error loading repo ${url}:`, e)
       }
-
-      // 2. Fetch manga sources
-      const mangaUrl = `${baseUrl}manga_sources.json`
-      const mRes = await this.fetchSources(mangaUrl, 'manga')
-      if (mRes.success) totalCount += mRes.count
-
-      // 3. Fetch anime sources
-      const animeUrl = `${baseUrl}anime_sources.json`
-      const aRes = await this.fetchSources(animeUrl, 'anime')
-      if (aRes.success) totalCount += aRes.count
     }
     return { success: true, totalCount }
+  }
+
+  async fetchCatalogByLang(lang: string, type: 'manga' | 'anime' = 'manga'): Promise<{ success: boolean; count: number }> {
+    let total = 0
+    const targetLang = lang.toLowerCase()
+    
+    // Map lang code to full filename matching logic
+    const matchesLang = (file: string) => {
+      const f = file.toLowerCase()
+      if (targetLang === 'all') return f.includes('global') || f.includes('english')
+      
+      const langMap: Record<string, string> = {
+        'en': 'english', 'ar': 'arabic', 'es': 'spanish', 'fr': 'french',
+        'id': 'indonesian', 'ja': 'japanese', 'ko': 'korean', 'pt': 'portuguese',
+        'pt-br': 'portuguese-brazil', 'ru': 'russian', 'th': 'thai', 'tr': 'turkish',
+        'vi': 'vietnamese', 'zh': 'zh', 'de': 'de', 'it': 'italian', 'pl': 'polish',
+        'nl': 'dutch', 'cs': 'czech', 'bg': 'bg', 'ca': 'ca', 'uk': 'ukrainian'
+      }
+      const mapped = langMap[targetLang] || targetLang
+      
+      return f === `${mapped}.json` || f.endsWith(`/${mapped}.json`) || 
+             f === `${targetLang}.json` || f.endsWith(`/${targetLang}.json`)
+    }
+
+    const targets = this.catalogFiles[type].filter(c => matchesLang(c.file))
+    
+    for (const target of targets) {
+      const url = `${target.baseUrl}${type === 'manga' ? 'MangaCatalogs' : 'AnimeCatalogs'}/${target.file}`
+      const res = await this.fetchCatalog(url, type)
+      if (res.success) total += res.count
+    }
+    
+    return { success: true, count: total }
   }
 
   async fetchCatalog(url: string, type: 'manga' | 'anime'): Promise<{ success: boolean; count: number }> {
@@ -171,13 +200,13 @@ export class SourceService {
     }
   }
 
-  getAllSources(type?: 'manga' | 'anime'): ContentSource[] {
+  getAllSources(type?: 'manga' | 'anime'): AutakimiSource[] {
     const all = Array.from(this.sources.values())
     if (type) return all.filter(s => s.type === type)
     return all
   }
 
-  getSource(id: string): ContentSource | undefined {
+  getSource(id: string): AutakimiSource | undefined {
     return this.sources.get(id)
   }
 }

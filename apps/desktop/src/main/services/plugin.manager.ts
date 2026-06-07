@@ -2,7 +2,7 @@ import { AutakimiPlugin, pluginService } from '@common'
 import path from 'path'
 import { Worker } from 'worker_threads'
 import { AppService, ServicePriority } from './service.registry'
-import { settingsRepo } from '../db'
+import { extensionRepo, settingsRepo } from '../db'
 import { sourceService, templateService } from '@common'
 
 /**
@@ -143,10 +143,19 @@ export class PluginManager implements AppService {
         const repos = JSON.parse(reposJson)
         if (Array.isArray(repos) && repos.length > 0) {
           console.log(`[PluginManager] Hydrating ${repos.length} repositories...`)
+          
+          let installedLangs: string[] = []
+          try {
+            const installedDb = await extensionRepo.getAll()
+            installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+          } catch (e) {
+            console.warn('[PluginManager] Failed to get installed languages:', e)
+          }
+
           await Promise.all([
             pluginService.loadAllRepositories(repos),
             templateService.loadAllRepositories(repos),
-            sourceService.loadAllRepositories(repos)
+            sourceService.loadAllRepositories(repos, installedLangs)
           ])
         }
       }

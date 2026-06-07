@@ -124,7 +124,7 @@ export type IpcInvokeMap = {
   [IpcChannel.SOURCES_REMOVE_REPO]: (url: string) => Promise<IpcResult<void>>
   [IpcChannel.SOURCES_REFRESH_ALL]: () => Promise<IpcResult<{ totalCount: number }>>
   [IpcChannel.SOURCES_GET_ALL]: () => Promise<IpcResult<any[]>>
-  [IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS]: () => Promise<IpcResult<Extension[]>>
+  [IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS]: (lang?: string) => Promise<IpcResult<Extension[]>>
   [IpcChannel.SOURCES_SELECT_DIRECTORY]: () => Promise<IpcResult<string | null>>
 
   [IpcChannel.PLUGINS_GET_ALL]: () => Promise<IpcResult<any[]>>
