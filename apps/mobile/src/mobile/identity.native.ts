@@ -51,7 +51,7 @@ export class IdentityService {
       const oldUrlRes = await MobileDB.getSetting('template_repo_url')
       repos = (oldUrlRes.ok && oldUrlRes.value) 
         ? [oldUrlRes.value] 
-        : ['https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/templates.json']
+        : []
       
       await MobileDB.setSetting('source_repositories', JSON.stringify(repos))
     }

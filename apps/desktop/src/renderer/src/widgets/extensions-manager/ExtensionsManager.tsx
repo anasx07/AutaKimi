@@ -53,9 +53,16 @@ export default function ExtensionsManager(): React.JSX.Element {
     extensionSortOrder,
     setExtensionSortBy,
     setExtensionSortOrder,
-    loadInstalled
+    loadInstalled,
+    loadCatalog
   } = useExtensionStore()
   const { setActiveTab: setGlobalActiveTab } = useUIStore()
+
+  React.useEffect(() => {
+    if (selectedLangs[0]) {
+      loadCatalog(selectedLangs[0])
+    }
+  }, [selectedLangs, loadCatalog])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'installed' | 'all'>('installed')

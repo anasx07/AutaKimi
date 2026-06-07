@@ -1,5 +1,5 @@
 import { IpcChannel } from '@common/types/ipc'
-import { settingsRepo } from '../db'
+import { extensionRepo, settingsRepo } from '../db'
 import { templateService } from '@common/services/template.service'
 import { sourceService } from '@common/services/source.service'
 import { pluginService } from '@common/services/plugin.service'
@@ -26,16 +26,22 @@ export function registerSourceHandlers() {
       }
 
       // Test fetch before adding
-      const res = await templateService.fetchTemplates(url)
-      if (res.success) {
+      const templatesRes = await templateService.fetchTemplates(url)
+      if (templatesRes.success) {
         repos.push(url)
         await settingsRepo.set('source_repositories', JSON.stringify(repos))
 
+        let installedLangs: string[] = []
+        try {
+          const installedDb = await extensionRepo.getAll()
+          installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+        } catch (e) {}
+
         // Instantly load plugins and sources from this new repository
-        await sourceService.loadAllRepositories([url])
+        await sourceService.loadAllRepositories([url], installedLangs)
         await pluginService.loadAllRepositories([url])
       }
-      return res as any
+      return templatesRes as any
     })
   )
 
@@ -186,7 +192,11 @@ export function registerSourceHandlers() {
 
   registerHandler(
     IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS,
-    wrapIpc(async () => {
+    wrapIpc(async (_, lang?: string) => {
+      if (lang && lang !== 'all') {
+        await sourceService.fetchCatalogByLang(lang, 'manga')
+        await sourceService.fetchCatalogByLang(lang, 'anime')
+      }
       const sources = sourceService.getAllSources()
 
       return sources.map((s: any) => ({
@@ -207,12 +217,29 @@ export function registerSourceHandlers() {
     wrapIpc(async () => {
       const { dialog } = await import('electron')
       const result = await dialog.showOpenDialog({
-        properties: ['openDirectory']
+        title: 'Select Extension Manifest',
+        message: 'Select the manifest.json file',
+        properties: ['openFile'],
+        filters: [{ name: 'Manifest File', extensions: ['json'] }]
       })
       if (result.canceled || result.filePaths.length === 0) {
         return null
       }
-      return result.filePaths[0]
+      
+      const { dirname, basename } = await import('path')
+      const filePath = result.filePaths[0]
+      
+      if (basename(filePath).toLowerCase() !== 'manifest.json') {
+        const { dialog: errDialog } = await import('electron')
+        errDialog.showErrorBox('Invalid File', 'You must select a file exactly named "manifest.json".')
+        return null
+      }
+
+      const dirPath = dirname(filePath)
+
+      // Encode the local path to ensure safe URI characters (e.g. spaces)
+      const encodedPath = encodeURIComponent(dirPath.replace(/\\/g, '/'))
+      return `autakimi-local://${encodedPath}`
     })
   )
 }
