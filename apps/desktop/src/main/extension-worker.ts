@@ -45,13 +45,12 @@ parentPort.on(
 
     const sandbox: Record<string, unknown> = {
       __extensionCode: code,
+      __serializedParams: JSON.stringify(params),
 
-      console: {
-        log: (...args: unknown[]) => console.log('[Worker-VM]:', ...args),
-        error: (...args: unknown[]) => console.error('[Worker-VM Error]:', ...args)
-      },
+      __rawConsoleLog: (...args: unknown[]) => console.log('[Worker-VM]:', ...args),
+      __rawConsoleError: (...args: unknown[]) => console.error('[Worker-VM Error]:', ...args),
 
-      fetch: async (url: string, init?: RequestInit) => {
+      __rawFetch: async (url: string, init?: RequestInit) => {
         // ── Security: restrict to the extension's registered domain ──────────
         const baseUrl = params._baseUrl as string | undefined
         if (baseUrl) {
@@ -63,7 +62,8 @@ parentPort.on(
           }
           const allowedHost = new URL(baseUrl).hostname
           const baseRootHost = allowedHost.split('.').slice(-2).join('.')
-          if (!reqHost.endsWith(baseRootHost) && reqHost !== allowedHost) {
+          const isSubdomain = reqHost.endsWith('.' + baseRootHost)
+          if (reqHost !== baseRootHost && !isSubdomain && reqHost !== allowedHost) {
             throw new Error(
               `Security Exception: fetch "${reqHost}" not allowed for extension "${allowedHost}"`
             )
@@ -132,11 +132,7 @@ parentPort.on(
         }
       },
 
-      cheerio: {
-        load: (html: string) => cheerio.load(html)
-      },
-
-      params
+      __rawCheerioLoad: (html: string) => cheerio.load(html)
     }
 
     const context = vm.createContext(sandbox)
@@ -148,6 +144,24 @@ parentPort.on(
     const wrapperScript = new vm.Script(`
       new Promise(function __runExtension(resolve) {
         try {
+          var safeParams = JSON.parse(__serializedParams);
+          var safeFetch = async function(url, init) {
+            return __rawFetch(url, init);
+          };
+          var safeCheerio = {
+            load: function(html) {
+              return __rawCheerioLoad(html);
+            }
+          };
+          var safeConsole = {
+            log: function(...args) {
+              __rawConsoleLog(...args);
+            },
+            error: function(...args) {
+              __rawConsoleError(...args);
+            }
+          };
+
           var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
           var fn = new AsyncFunction(
             'params',
@@ -156,7 +170,7 @@ parentPort.on(
             'console',
             __extensionCode
           );
-          Promise.resolve(fn(params, fetch, cheerio, console))
+          Promise.resolve(fn(safeParams, safeFetch, safeCheerio, safeConsole))
             .then(function(res) { resolve({ result: res }); })
             .catch(function(e)  { resolve({ error: e.message }); });
         } catch (e) {

@@ -1,6 +1,6 @@
 {
   "name": "@autakimi/mobile",
-  "version": "2.0.15",
+  "version": "2.0.16",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {

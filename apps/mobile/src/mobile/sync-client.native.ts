@@ -42,7 +42,17 @@ export class SyncClient {
 
         this.ws.onmessage = (e) => {
           const message = JSON.parse(e.data)
-          this.handleMessage(message, resolve)
+          this.handleMessage(message, async (success) => {
+            if (success) {
+              try {
+                await MobileDB.setSetting('last_paired_device', JSON.stringify(info))
+                console.log('[SyncClient] Connection info saved for background sync')
+              } catch (err) {
+                console.error('[SyncClient] Failed to save connection info:', err)
+              }
+            }
+            resolve(success)
+          })
         }
 
         this.ws.onerror = (e) => {
@@ -62,14 +72,62 @@ export class SyncClient {
     })
   }
 
-  private handleMessage(message: any, resolve: (val: boolean) => void) {
+  async autoSyncBackground(): Promise<void> {
+    try {
+      const savedDevice = await MobileDB.getSetting('last_paired_device')
+      if (!savedDevice.ok || !savedDevice.value) {
+        console.log('[SyncClient] No paired device found for background sync.')
+        return
+      }
+
+      const info: SyncConnectionInfo = JSON.parse(savedDevice.value)
+      console.log('[SyncClient] Found paired device, starting silent background sync...')
+      
+      const success = await this.connect(info)
+      if (success) {
+        console.log('[SyncClient] Silent background sync completed successfully!')
+        setTimeout(() => {
+          this.disconnect()
+        }, 5000)
+      } else {
+        console.log('[SyncClient] Background sync failed to connect (device offline/different Wi-Fi).')
+      }
+    } catch (e) {
+      console.error('[SyncClient] Silent background sync error:', e)
+    }
+  }
+
+  private async handleMessage(message: any, resolve: (val: boolean) => void) {
     switch (message.type) {
       case 'auth_success':
         console.log('[SyncClient] Authenticated successfully')
         this.isConnected = true
-        // Automatically request data after pairing
-        this.ws?.send(JSON.stringify({ type: 'pull_history' }))
-        this.ws?.send(JSON.stringify({ type: 'pull_library' }))
+        
+        try {
+          // Get the last synced timestamp from settings
+          const lastSyncedResult = await MobileDB.getSetting('last_sync_timestamp')
+          const lastSynced = lastSyncedResult.ok ? lastSyncedResult.value : null
+          
+          // Automatically request data after pairing (only delta for history)
+          this.ws?.send(JSON.stringify({ 
+            type: 'pull_history', 
+            lastSynced: lastSynced 
+          }))
+          this.ws?.send(JSON.stringify({ type: 'pull_library' }))
+          
+          // Push local library and history to desktop for bidirectional syncing!
+          await this.pushLocalData(lastSynced)
+          
+          // After sending the requests, update the last sync timestamp to NOW
+          await MobileDB.setSetting('last_sync_timestamp', new Date().toISOString())
+        } catch (err) {
+          console.error('[SyncClient] Error during sync start:', err)
+          // Fallback to full sync if settings retrieval fails
+          this.ws?.send(JSON.stringify({ type: 'pull_history' }))
+          this.ws?.send(JSON.stringify({ type: 'pull_library' }))
+          await this.pushLocalData(null)
+        }
+        
         resolve(true)
         break
       
@@ -93,6 +151,34 @@ export class SyncClient {
     }
   }
 
+  private async pushLocalData(lastSynced: string | null) {
+    try {
+      const historyResult = await MobileDB.getHistory()
+      if (historyResult.ok && historyResult.value.length > 0) {
+        // Filter local history to only push items newer than lastSynced
+        const filteredHistory = lastSynced
+          ? historyResult.value.filter(h => {
+              const start = (h as any).started_at || h.startedAt
+              return start && start > lastSynced
+            })
+          : historyResult.value
+
+        if (filteredHistory.length > 0) {
+          console.log(`[SyncClient] Pushing local history: ${filteredHistory.length} items (after ${lastSynced})`)
+          this.ws?.send(JSON.stringify({ type: 'push_history', data: filteredHistory }))
+        }
+      }
+      
+      const libraryResult = await MobileDB.getLibrary()
+      if (libraryResult.ok && libraryResult.value.length > 0) {
+        console.log(`[SyncClient] Pushing local library: ${libraryResult.value.length} items`)
+        this.ws?.send(JSON.stringify({ type: 'push_library', data: libraryResult.value }))
+      }
+    } catch (e) {
+      console.error('[SyncClient] Failed to push local data:', e)
+    }
+  }
+
   private async syncHistory(data: any[]) {
     if (!data || !Array.isArray(data)) return
     for (const entry of data) {
@@ -102,10 +188,13 @@ export class SyncClient {
 
   private async syncLibrary(data: any[]) {
     if (!data || !Array.isArray(data)) return
+    const libResult = await MobileDB.getLibrary()
+    if (!libResult.ok) return
+
+    const existingIds = new Set(libResult.value.map(m => m.id))
     for (const manga of data) {
       // Check if already in library to avoid duplicates or unnecessary toggles
-      const lib = await MobileDB.getLibrary()
-      if (lib.ok && !lib.value.find(m => m.id === manga.id)) {
+      if (!existingIds.has(manga.id)) {
         await MobileDB.toggleLibrary(manga)
       }
     }
