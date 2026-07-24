@@ -187,8 +187,11 @@ export class SyncServer implements AppService {
       case 'pull_history':
         if (!(ws as any).authenticated) return ws.close()
         try {
-          const history = await historyRepo.getHistory(100)
-          ws.send(JSON.stringify({ type: 'history_data', data: history }))
+          const history = await historyRepo.getHistory(500)
+          const filteredHistory = message.lastSynced
+            ? history.filter((h) => h.startedAt > message.lastSynced)
+            : history
+          ws.send(JSON.stringify({ type: 'history_data', data: filteredHistory }))
         } catch (e) {
           console.error('[SyncServer] Failed to fetch history for sync:', e)
         }
@@ -201,6 +204,58 @@ export class SyncServer implements AppService {
           ws.send(JSON.stringify({ type: 'library_data', data: library }))
         } catch (e) {
           console.error('[SyncServer] Failed to fetch library for sync:', e)
+        }
+        break
+
+      case 'push_library':
+        if (!(ws as any).authenticated) return ws.close()
+        try {
+          const library = await libraryRepo.getAll()
+          const existingIds = new Set(library.map((m) => m.id))
+          const pushed = message.data || []
+          for (const item of pushed) {
+            if (item && !existingIds.has(item.id)) {
+              const mangaObj = item.metadata ? JSON.parse(item.metadata) : item
+              await libraryRepo.add(mangaObj)
+            }
+          }
+          console.log('[SyncServer] Library push merged successfully')
+        } catch (e) {
+          console.error('[SyncServer] Failed to merge pushed library:', e)
+        }
+        break
+
+      case 'push_history':
+        if (!(ws as any).authenticated) return ws.close()
+        try {
+          const desktopHistory = await historyRepo.getHistory(500)
+          const existingKeys = new Set(desktopHistory.map((h) => `${h.mangaId}_${h.chapterId}_${h.startedAt}`))
+          const pushed = message.data || []
+          for (const entry of pushed) {
+            const mangaId = entry.mangaId || entry.manga_id
+            const chapterId = entry.chapterId || entry.chapter_id
+            const startedAt = entry.startedAt || entry.started_at
+            if (mangaId && chapterId && startedAt) {
+              const key = `${mangaId}_${chapterId}_${startedAt}`
+              if (!existingKeys.has(key)) {
+                await historyRepo.addEntry({
+                  mangaId,
+                  mangaTitle: entry.mangaTitle || entry.manga_title,
+                  mangaCover: entry.mangaCover || entry.manga_cover,
+                  mangaUrl: entry.mangaUrl || entry.manga_url,
+                  chapterId,
+                  chapterTitle: entry.chapterTitle || entry.chapter_title,
+                  startedAt,
+                  durationSeconds: entry.durationSeconds || entry.duration_seconds,
+                  pkg: entry.pkg,
+                  type: entry.type || entry.mediaType
+                })
+              }
+            }
+          }
+          console.log('[SyncServer] History push merged successfully')
+        } catch (e) {
+          console.error('[SyncServer] Failed to merge pushed history:', e)
         }
         break
       
@@ -233,7 +288,8 @@ export class SyncServer implements AppService {
       isRunning: this.isRunning,
       port: this.port,
       ip: this.getLocalIp(),
-      deviceId: identityService.getDeviceId()
+      deviceId: identityService.getDeviceId(),
+      secret: identityService.getSyncSecret()
     }
   }
 }
