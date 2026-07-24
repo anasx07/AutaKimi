@@ -76,9 +76,11 @@ class WorkerPool {
 
     worker.on('error', (err) => {
       console.error(`[WorkerPool] Worker ${id} error:`, err)
-      workerEntry.isBusy = false
-      workerEntry.pkg = undefined
-      workerEntry.currentTaskId = undefined
+      worker.terminate()
+      const index = this.workers.indexOf(workerEntry)
+      if (index !== -1) {
+        this.workers[index] = this.createWorker(id)
+      }
       this.processQueue()
     })
 

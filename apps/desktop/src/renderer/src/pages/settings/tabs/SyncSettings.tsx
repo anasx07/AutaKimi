@@ -94,10 +94,14 @@ export function SyncSettings(): React.JSX.Element {
           </div>
 
           {status?.isRunning && (
-            <div className="pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Local Endpoint</p>
                 <p className="font-mono text-sm">{status.ip}:{status.port}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Shared Secret</p>
+                <p className="font-mono text-sm">{(status as any).secret || '••••••••'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Discovery Name</p>

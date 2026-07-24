@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { View, StyleSheet, TouchableOpacity, Alert, Modal, TextInput } from 'react-native'
 import { CameraView, useCameraPermissions } from 'expo-camera'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
@@ -11,6 +11,46 @@ export default function SyncPage() {
   const [permission, requestPermission] = useCameraPermissions()
   const [scanned, setScanned] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualIp, setManualIp] = useState('')
+  const [manualPort, setManualPort] = useState('42069')
+  const [manualSecret, setManualSecret] = useState('')
+
+  const handleManualConnect = async () => {
+    if (!manualIp || !manualPort || !manualSecret) {
+      Alert.alert('Error', 'Please fill in all fields.')
+      return
+    }
+
+    const portNum = parseInt(manualPort)
+    if (isNaN(portNum)) {
+      Alert.alert('Error', 'Port must be a valid number.')
+      return
+    }
+
+    setIsConnecting(true)
+    setShowManualModal(false)
+    try {
+      const success = await syncClient.connect({
+        ip: manualIp.trim(),
+        port: portNum,
+        secret: manualSecret.trim(),
+        deviceId: 'manual-pairing'
+      })
+
+      if (success) {
+        Alert.alert('Success', 'Devices paired successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ])
+      } else {
+        Alert.alert('Error', 'Failed to connect. Double check IP, Port, Secret and Wi-Fi connection.')
+      }
+    } catch (err) {
+      Alert.alert('Error', 'An error occurred during manual connection.')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
 
   useEffect(() => {
     if (!permission || !permission.granted) {
@@ -80,8 +120,10 @@ export default function SyncPage() {
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <ArrowLeft size={22} color="#3b82f6" />
         </TouchableOpacity>
-        <Typography variant="h3" className="font-bold text-lg">Sync with Desktop</Typography>
-        <View className="w-10" />
+        <Typography variant="h3" className="font-bold text-lg text-center flex-1 ml-4">Sync with Desktop</Typography>
+        <TouchableOpacity onPress={() => setShowManualModal(true)} className="px-3 py-1.5 bg-primary/10 rounded-full">
+          <Typography className="text-primary text-xs font-bold">Manual</Typography>
+        </TouchableOpacity>
       </View>
 
       <View className="flex-1 relative">
@@ -118,6 +160,69 @@ export default function SyncPage() {
            </Card>
         </View>
       </View>
+
+      <Modal
+        visible={showManualModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowManualModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="bg-background border-t border-white/10 rounded-t-3xl p-6 pb-10 space-y-6">
+            <View className="flex-row items-center justify-between">
+              <Typography variant="h3" className="font-bold text-lg">Manual Pairing</Typography>
+              <TouchableOpacity onPress={() => setShowManualModal(false)}>
+                <Typography className="text-zinc-500 font-bold text-sm">Cancel</Typography>
+              </TouchableOpacity>
+            </View>
+
+            <View className="space-y-4">
+              <View>
+                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">IP Address</Typography>
+                <TextInput
+                  placeholder="e.g. 192.168.1.15"
+                  placeholderTextColor="#71717a"
+                  value={manualIp}
+                  onChangeText={setManualIp}
+                  keyboardType="numeric"
+                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                />
+              </View>
+
+              <View>
+                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Port</Typography>
+                <TextInput
+                  placeholder="e.g. 42069"
+                  placeholderTextColor="#71717a"
+                  value={manualPort}
+                  onChangeText={setManualPort}
+                  keyboardType="numeric"
+                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                />
+              </View>
+
+              <View>
+                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Shared Secret Key</Typography>
+                <TextInput
+                  placeholder="Paste secret key from Desktop"
+                  placeholderTextColor="#71717a"
+                  value={manualSecret}
+                  onChangeText={setManualSecret}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                />
+              </View>
+            </View>
+
+            <Button
+              title="Establish Connection"
+              onPress={handleManualConnect}
+              className="py-4 rounded-xl font-bold"
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }

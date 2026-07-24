@@ -285,7 +285,8 @@ export class CloudflareService implements IBypassProvider, AppService {
         }
 
         try {
-          const cookies = await this.cfSession.cookies.get({ url })
+          const currentUrl = win.webContents.getURL() || url
+          const cookies = await this.cfSession.cookies.get({ url: currentUrl })
           const clearance = cookies.find((c) => c.name === 'cf_clearance')
 
           const title = win.getTitle()
