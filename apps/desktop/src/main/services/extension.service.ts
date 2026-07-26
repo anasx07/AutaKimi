@@ -76,6 +76,14 @@ class WorkerPool {
 
     worker.on('error', (err) => {
       console.error(`[WorkerPool] Worker ${id} error:`, err)
+      if (workerEntry.currentTaskId) {
+        const resolver = this.activeResolvers.get(workerEntry.currentTaskId)
+        if (resolver) {
+          clearTimeout(resolver.timeout)
+          resolver.resolve({ error: err.message || 'Worker crashed' })
+          this.activeResolvers.delete(workerEntry.currentTaskId)
+        }
+      }
       worker.terminate()
       const index = this.workers.indexOf(workerEntry)
       if (index !== -1) {
