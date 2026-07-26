@@ -22,11 +22,16 @@
     "emulator": "node scripts/run-emulator.cjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.8.0",
     "husky": "^9.1.7",
     "prettier": "^3.7.4",
-    "typescript": "^5.9.3"
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0"
   },
-  "dependencies": {},
   "version": "2.0.18"
 }
