@@ -5,13 +5,55 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Target Tag / Release version (e.g. v2.1.0)'
+        required: false
+        default: 'v2.1.0'
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-desktop:
+    name: Build Desktop (Windows)
     runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Dependencies
+        shell: bash
+        run: npm ci
+
+      - name: Rebuild Native Modules
+        working-directory: apps/desktop
+        run: npm run rebuild
+
+      - name: Build Desktop Application
+        working-directory: apps/desktop
+        run: |
+          npm run build
+          npx electron-builder --win --publish never
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-artifacts
+          path: |
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.blockmap
+            apps/desktop/dist/latest.yml
+
+  build-android:
+    name: Build Android (Linux)
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -34,40 +76,19 @@ jobs:
           cache-read-only: false
 
       - name: Install Dependencies
-        shell: bash
         run: npm ci
 
-      - name: Rebuild Native Modules
-        working-directory: apps/desktop
-        run: npm run rebuild
-
-      - name: Build Desktop Application
-        working-directory: apps/desktop
-        run: |
-          npm run build
-          npx electron-builder --win --publish never
-
-      - name: Generate Mobile Android Project (Prebuild)
-        id: mobile_prebuild
-        continue-on-error: true
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform android --non-interactive
-
       - name: Decode Keystore
-        if: steps.mobile_prebuild.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
           if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/release.keystore
           else
-            echo "⚠️ ANDROID_KEYSTORE_BASE64 secret is empty. Skipping keystore decode."
+            echo "⚠️ ANDROID_KEYSTORE_BASE64 secret is empty. Falling back to default debug keystore."
           fi
 
       - name: Generate Android APK
-        id: mobile_build
-        if: steps.mobile_prebuild.outcome == 'success'
-        continue-on-error: true
         shell: bash
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
@@ -75,54 +96,82 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -d "apps/mobile/android" ]; then
-            cd apps/mobile/android
-            ./gradlew assembleRelease
-          else
-            echo "⚠️ Android folder not found, skipping compilation."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          fi
+          cd apps/mobile/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
-      - name: Publish Release
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+
+  publish:
+    name: Publish Release
+    needs: [build-desktop, build-android]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Desktop Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: desktop-artifacts
+          path: release-artifacts
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: android-artifacts
+          path: release-artifacts
+
+      - name: Publish to GitHub Releases
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Gather Desktop Artifacts
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "Processing release for tag: $TAG"
+          
+          # Inspect collected artifacts
+          ls -la release-artifacts/
+          
           FILES=()
-          for f in apps/desktop/dist/*.exe apps/desktop/dist/*.blockmap apps/desktop/dist/latest.yml; do
+          for f in release-artifacts/*; do
             if [ -f "$f" ]; then
-              echo "✅ Found Desktop file: $f"
+              echo "✅ Found file: $f"
               FILES+=("$f")
             fi
           done
           
-          # 2. Add Android APK if it exists
-          ANDROID_APK_PATH="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
-          HAS_APK=false
-          if [ -f "$ANDROID_APK_PATH" ]; then
-            echo "✅ Found Android APK: $ANDROID_APK_PATH"
-            FILES+=("$ANDROID_APK_PATH")
-            HAS_APK=true
-          else
-            echo "⚠️ Android APK not found."
-          fi
-          
-          # 3. Build release notes
-          NOTES="Automated release of AutaKimi Monorepo (Windows & Android)."
-          if [ "$HAS_APK" = false ]; then
-            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Android APK is missing from this release.** Build may have failed."
-          fi
-          
-          # 4. Create Release
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "❌ No artifacts found at all. Aborting release."
+            echo "❌ No artifacts found to publish. Aborting."
             exit 1
           fi
-          echo "🚀 Creating GitHub Release v${{ github.ref_name }}..."
-          gh release create "${{ github.ref_name }}" "${FILES[@]}" \
-            --repo ${{ github.repository }} \
-            --target main \
-            --title "Release ${{ github.ref_name }}" \
-            --notes "$NOTES" \
-            --generate-notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          HAS_APK=false
+          for f in release-artifacts/*.apk; do
+            if [ -f "$f" ]; then
+              HAS_APK=true
+              break
+            fi
+          done
+          
+          NOTES="Automated release of AutaKimi Monorepo (Windows & Android)."
+          if [ "$HAS_APK" = false ]; then
+            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Android APK is missing from this release.**"
+          fi
+          
+          # Check if the release already exists
+          if gh release view "$TAG" --repo ${{ github.repository }} >/dev/null 2>&1; then
+            echo "🚀 Release $TAG already exists. Uploading new/updated artifacts..."
+            gh release upload "$TAG" "${FILES[@]}" --repo ${{ github.repository }} --clobber
+          else
+            echo "🚀 Creating new GitHub Release $TAG..."
+            gh release create "$TAG" "${FILES[@]}" \
+              --repo ${{ github.repository }} \
+              --title "Release $TAG" \
+              --notes "$NOTES" \
+              --generate-notes
+          fi
