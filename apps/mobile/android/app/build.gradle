@@ -116,7 +116,7 @@ android {
         }
         release {
             def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
-            if (keystorePath != null && keystorePath != '') {
+            if (keystorePath != null && keystorePath != '' && file(keystorePath).exists()) {
                 storeFile file(keystorePath)
                 storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: ''
                 keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''
