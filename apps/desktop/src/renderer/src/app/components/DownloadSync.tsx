@@ -1,13 +1,15 @@
 import { useEffect } from 'react'
 import { useDownloadStore, useUIStore } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
+import { getApi } from '@renderer/shared/api/base'
 
 export const DownloadSync = (): null => {
   const { updateActiveTask, removeActiveTask, removeFromDownloadQueue, hydrateTasks } =
     useDownloadStore()
 
   useEffect(() => {
-    const unsubscribe = DataService.onSystemStateUpdate((event) => {
+    // 1. Central System State update listener
+    const unsubscribeState = DataService.onSystemStateUpdate((event) => {
       if (event.type === 'full_state_update') {
         hydrateTasks(event.state.activeDownloads as any)
         
@@ -36,6 +38,8 @@ export const DownloadSync = (): null => {
 
       switch (status) {
         case 'downloading':
+        case 'progress' as any:
+        case 'start' as any:
           updateActiveTask({
             mangaId,
             chapterId,
@@ -49,7 +53,9 @@ export const DownloadSync = (): null => {
           updateActiveTask({
             mangaId,
             chapterId,
-            status: 'completed'
+            status: 'completed',
+            cached: total || cached,
+            total
           })
           removeFromDownloadQueue(chapterId)
           // Keep in UI for a moment
@@ -63,19 +69,63 @@ export const DownloadSync = (): null => {
             mangaId,
             chapterId,
             status: 'error',
-            error
+            error,
+            cached,
+            total
           })
           break
 
         case 'canceled':
           console.log(`[DownloadSync] Task canceled: ${mangaId}:${chapterId}`)
           removeActiveTask(mangaId, chapterId)
+          removeFromDownloadQueue(chapterId)
           break
       }
     })
 
+    // 2. Direct DOWNLOAD_EVENT listener for zero-latency progress updates
+    const unsubscribeDownloadEvent = getApi().onDownloadEvent?.((data: any) => {
+      if (!data) return
+      const { type, mangaId, chapterId, cached, total, error } = data
+
+      if (type === 'start' || type === 'progress') {
+        updateActiveTask({
+          mangaId,
+          chapterId,
+          status: 'downloading',
+          cached: cached ?? 0,
+          total: total ?? 0
+        })
+      } else if (type === 'completed') {
+        updateActiveTask({
+          mangaId,
+          chapterId,
+          status: 'completed',
+          cached: total || cached,
+          total
+        })
+        removeFromDownloadQueue(chapterId)
+        setTimeout(() => {
+          removeActiveTask(mangaId, chapterId)
+        }, 5000)
+      } else if (type === 'error') {
+        updateActiveTask({
+          mangaId,
+          chapterId,
+          status: 'error',
+          error,
+          cached,
+          total
+        })
+      } else if (type === 'canceled') {
+        removeActiveTask(mangaId, chapterId)
+        removeFromDownloadQueue(chapterId)
+      }
+    })
+
     return () => {
-      unsubscribe()
+      unsubscribeState()
+      unsubscribeDownloadEvent?.()
     }
   }, [updateActiveTask, removeActiveTask, removeFromDownloadQueue, hydrateTasks])
 

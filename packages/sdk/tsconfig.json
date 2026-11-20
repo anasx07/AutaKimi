@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "declaration": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@autakimi/sdk": ["src/index.ts"],
+      "@autakimi/sdk/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

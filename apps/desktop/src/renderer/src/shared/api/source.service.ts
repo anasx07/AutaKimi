@@ -5,5 +5,6 @@ export const SourceService = {
   addRepo: (url: string) => callIpc(() => getApi().sources.addRepo(url)),
   removeRepo: (url: string) => callIpc(() => getApi().sources.removeRepo(url)),
   refreshAll: () => callIpc(() => getApi().sources.refreshAll()),
-  getAllSources: () => callIpc(() => getApi().sources.getAllSources())
+  getAllSources: () => callIpc(() => getApi().sources.getAllSources()),
+  selectDirectory: () => callIpc(() => getApi().sources.selectDirectory())
 }

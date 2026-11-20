@@ -181,17 +181,24 @@ function buildSandbox(winId: string): {
     debug: (...args: unknown[]) => send({ type: 'LOG', level: 'debug', args })
   }
 
+  function makeSafeFn<T extends (...args: any[]) => any>(fn: T): T {
+    Object.setPrototypeOf(fn, null)
+    Object.defineProperty(fn, 'constructor', { value: undefined, writable: false, configurable: false })
+    return fn
+  }
+
+  const safeSetTimeout = makeSafeFn(wrappedSetTimeout)
+  const safeSetInterval = makeSafeFn(wrappedSetInterval)
+  const safeClearTimeout = makeSafeFn(wrappedClearTimeout)
+  const safeClearInterval = makeSafeFn(wrappedClearInterval)
+
   const sandbox: Record<string, unknown> = {
     console: consoleProxy,
-    setTimeout: wrappedSetTimeout,
-    setInterval: wrappedSetInterval,
-    clearTimeout: wrappedClearTimeout,
-    clearInterval: wrappedClearInterval,
-    Promise,
-    URL,
-    Math,
-    Date,
-    JSON,
+    setTimeout: safeSetTimeout,
+    setInterval: safeSetInterval,
+    clearTimeout: safeClearTimeout,
+    clearInterval: safeClearInterval,
+    // Do NOT pass host Promise, URL, Math, Date, JSON to prevent host realm escape
     __winId: winId,
     __winAction: winAction,
     __win: win,
@@ -240,6 +247,9 @@ async function executePlugin(msg: ExecuteMessage): Promise<void> {
   const wrapper = `
     (async () => {
       try {
+        Object.freeze(Object.prototype);
+        Object.freeze(Function.prototype);
+
         var AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
         var getExecutor = new AsyncFunction('context', 'console', __pluginCode);
         var executor = await getExecutor({ win: __win }, console);

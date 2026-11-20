@@ -32,19 +32,28 @@ export class ExtensionEngine {
         )
         const html = await response.text()
         
+        if (testUrl.includes('meshmanga') || testUrl.includes('appswat') || html.includes('Swat Manga') || html.includes('swatmanga')) {
+          return 'mangaswat'
+        }
+
         // Dynamic detection: Loop through loaded templates and check for their markers
-        // For now, we still have some hardcoded logic but it's based on loaded templates
         if (templateService.getTemplate('madara') && (
           html.includes('madara') ||
           html.includes('wp-content/themes/madara') ||
-          html.includes('Madara')
+          html.includes('Madara') ||
+          html.includes('wp-manga') ||
+          html.includes('c-tabs-item') ||
+          html.includes('page-item-detail')
         )) return 'madara'
 
         if (templateService.getTemplate('mangastream') && (
           html.includes('mangastream') ||
           html.includes('wp-content/themes/mangastream') ||
+          html.includes('mangathemesia') ||
           html.includes('class="bsx"') ||
-          html.includes('class="listupd"')
+          html.includes('class="listupd"') ||
+          html.includes('bsx') ||
+          html.includes('listupd')
         )) return 'mangastream'
 
       } catch (e) {
@@ -73,19 +82,48 @@ export class ExtensionEngine {
     const bypassCf = (await this.platform.getSetting('bypass_cloudflare')) === 'true'
 
     try {
-      const response = await this.platform.fetch(`${baseUrl}js/${ext.pkg}.js`, {}, bypassCf)
-      if (response.ok) code = await response.text()
+      if (baseUrl) {
+        const response = await this.platform.fetch(`${baseUrl}js/${ext.pkg}.js`, {}, bypassCf)
+        if (response.ok) code = await response.text()
+      }
     } catch (e) {
       console.warn(`[ExtensionEngine] Failed to fetch JS for ${ext.pkg}:`, e)
     }
 
-    if (!code) {
-      const extBaseUrl = ext.sources?.[0]?.baseUrl
-      if (extBaseUrl) {
-        const theme = await this.detectTheme(extBaseUrl, bypassCf)
-        const template = templateService.getTemplate(theme)
-        if (template) code = template.generate(extBaseUrl, NetworkConfig.DEFAULT_UA)
+    // If not found in primary repo, check the community JavaScript extensions ecosystem
+    if (!code || code.startsWith('404:') || code === 'Not Found') {
+      const cleanPkg = (ext.pkg || '')
+        .replace(/^ma\.autakimi\.extension\./, '')
+        .replace(/^eu\.kanade\.tachiyomi\.extension\./, '')
+      const candidateNames = [
+        ext.pkg,
+        `ma.autakimi.extension.${cleanPkg}`,
+        `ma.autakimi.extension.eu.kanade.tachiyomi.extension.${cleanPkg}`
+      ]
+      const COMMUNITY_JS_REPO = 'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/js/'
+
+      for (const name of candidateNames) {
+        if (!name) continue
+        try {
+          const resp = await this.platform.fetch(`${COMMUNITY_JS_REPO}${name}.js`, {}, bypassCf)
+          if (resp.ok) {
+            const text = await resp.text()
+            if (text && !text.startsWith('404') && text.length > 50) {
+              code = text
+              console.log(`[ExtensionEngine] Resolved community JS scraper for ${ext.pkg} -> ${name}.js`)
+              break
+            }
+          }
+        } catch (_) { /* ignore */ }
       }
+    }
+
+    const extBaseUrl = ext.baseUrl || ext.sources?.[0]?.baseUrl || ext.sources?.[0]?.homeUrl || ext.url || ''
+
+    if (!code && extBaseUrl) {
+      const theme = await this.detectTheme(extBaseUrl, bypassCf)
+      const template = templateService.getTemplate(theme)
+      if (template) code = template.generate(extBaseUrl, NetworkConfig.DEFAULT_UA)
     }
 
     // Use a clean local-only URL format (this is a convention handled by the cache protocol)
@@ -96,10 +134,10 @@ export class ExtensionEngine {
       installedAt: new Date().toISOString(),
       code,
       name: ext.name,
-      baseUrl: ext.sources?.[0]?.baseUrl,
+      baseUrl: extBaseUrl,
       lang: ext.lang,
       icon: iconUrl,
-      version: ext.version
+      version: ext.version || '1.0.0'
     })
 
     return { success: true }

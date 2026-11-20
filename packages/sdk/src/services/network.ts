@@ -1,9 +1,5 @@
-/**
- * Unified Result type for robust error handling
- */
-export type Result<T, E = string> =
-  | { ok: true; value: T }
-  | { ok: false; error: E; status?: number }
+import { Result } from '../types/result'
+export type { Result }
 
 /**
  * Interface for platform-specific bypass handling (Electron, WebView, etc.)
@@ -34,6 +30,32 @@ export class NetworkClient {
 
   constructor(provider?: IBypassProvider) {
     if (provider) this.provider = provider
+  }
+
+  /**
+   * Helper to merge existing headers safely regardless of whether they are a Headers instance,
+   * an array of pairs, or a plain Record object.
+   */
+  static mergeHeaders(
+    existingHeaders: HeadersInit | undefined,
+    additional: Record<string, string>
+  ): Record<string, string> {
+    const merged: Record<string, string> = {}
+    if (existingHeaders) {
+      if (typeof Headers !== 'undefined' && existingHeaders instanceof Headers) {
+        existingHeaders.forEach((val, key) => {
+          merged[key] = val
+        })
+      } else if (Array.isArray(existingHeaders)) {
+        for (const [key, val] of existingHeaders) {
+          merged[key] = val
+        }
+      } else if (typeof existingHeaders === 'object') {
+        Object.assign(merged, existingHeaders)
+      }
+    }
+    Object.assign(merged, additional)
+    return merged
   }
 
   setProvider(provider: IBypassProvider) {
@@ -72,8 +94,9 @@ export class NetworkClient {
         }
         return { ok: false, error: localResult.error, status: localResult.status }
       }
-      // localResult === null → not a local file or not on disk; fall through
-      // to the regular HTTP fetch below.
+      if (url.startsWith('autakimi-local://')) {
+        return { ok: false, error: 'Local file not found on disk', status: 404 }
+      }
     }
 
     const { attempts = 1, delay = 1000, fetchFn = fetch, ...init } = options
@@ -84,11 +107,10 @@ export class NetworkClient {
           // 1. Get existing credentials if provider is available
           if (this.provider) {
             const { userAgent, cookies } = await this.provider.getCredentials(url)
-            init.headers = {
-              ...init.headers,
+            init.headers = NetworkClient.mergeHeaders(init.headers, {
               'User-Agent': userAgent,
               'Cookie': cookies
-            }
+            })
           }
 
           // 2. Perform initial request
@@ -108,11 +130,10 @@ export class NetworkClient {
                 const bypassRes = await this.provider.resolveChallenge(url, options.silent)
                 if (bypassRes.ok) {
                   // Update headers for retry (this specific attempt's retry)
-                  init.headers = {
-                    ...init.headers,
+                  init.headers = NetworkClient.mergeHeaders(init.headers, {
                     'User-Agent': bypassRes.value.userAgent,
                     'Cookie': bypassRes.value.cookies
-                  }
+                  })
                   response = await fetchFn(url, init)
                 } else {
                   return {
@@ -136,8 +157,29 @@ export class NetworkClient {
         }
       },
       (res: Result<Response>) => {
-        // Retry logic: retry if not OK AND (it's a 5xx error OR rate limited)
-        if (!res.ok) return true // Generic error (network level)
+        // Never retry client error statuses (404, 401, 403, etc.)
+        if (!res.ok) {
+          if (res.status === 404 || res.status === 401 || res.status === 403) {
+            return false
+          }
+          if (typeof res.status === 'number' && res.status >= 400 && res.status < 500 && res.status !== 429) {
+            return false
+          }
+          const errStr = (res.error || '').toLowerCase()
+          if (
+            errStr.includes('404') ||
+            errStr.includes('401') ||
+            errStr.includes('403') ||
+            errStr.includes('not found') ||
+            errStr.includes('unauthorized') ||
+            errStr.includes('forbidden') ||
+            errStr.includes('access denied')
+          ) {
+            return false
+          }
+          return true
+        }
+
         const response = res.value
         return !response.ok && (response.status >= 500 || response.status === 429)
       },

@@ -1,4 +1,4 @@
-import { eq, and, inArray, SQL } from 'drizzle-orm'
+import { eq, and, or, inArray, SQL } from 'drizzle-orm'
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../schema'
 import { DownloadEntry, DownloadedMedia } from '@common/types/download'
@@ -125,23 +125,50 @@ export class DownloadRepository {
       .run()
   }
 
-  async clear(type?: 'manga' | 'anime'): Promise<any> {
+  async clear(type?: 'manga' | 'anime'): Promise<string[]> {
     if (!type) {
-      return this.db.delete(schema.downloads).run()
+      const allRows = this.db
+        .select({ mangaId: schema.downloads.mangaId })
+        .from(schema.downloads)
+        .all()
+      const allIds = Array.from(new Set(allRows.map((r) => r.mangaId)))
+      this.db.delete(schema.downloads).run()
+      return allIds
     }
 
-    const mangaIdsToClear = this.db
+    const directRows = this.db
+      .select({ mangaId: schema.downloads.mangaId })
+      .from(schema.downloads)
+      .where(eq(schema.downloads.mediaType, type))
+      .all()
+      .map((m) => m.mangaId)
+
+    const cacheRows = this.db
       .select({ id: schema.mangaCache.id })
       .from(schema.mangaCache)
       .where(eq(schema.mangaCache.mediaType, type))
       .all()
       .map((m) => m.id)
 
-    if (mangaIdsToClear.length === 0) return
+    const mangaIdsToClear = Array.from(new Set([...directRows, ...cacheRows]))
 
-    return this.db
-      .delete(schema.downloads)
-      .where(inArray(schema.downloads.mangaId, mangaIdsToClear))
-      .run()
+    if (mangaIdsToClear.length > 0) {
+      this.db
+        .delete(schema.downloads)
+        .where(
+          or(
+            eq(schema.downloads.mediaType, type),
+            inArray(schema.downloads.mangaId, mangaIdsToClear)
+          )
+        )
+        .run()
+    } else {
+      this.db
+        .delete(schema.downloads)
+        .where(eq(schema.downloads.mediaType, type))
+        .run()
+    }
+
+    return mangaIdsToClear
   }
 }

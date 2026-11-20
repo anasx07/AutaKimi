@@ -7,7 +7,6 @@ import {
   Info,
   Clock,
   Download,
-  ChartBarIncreasing,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
@@ -33,8 +32,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
       { id: 'library', path: '/library', label: 'Library', icon: BookOpen },
       { id: 'downloads', path: '/downloads', label: 'Downloads', icon: Download },
       { id: 'history', path: '/history', label: 'History', icon: Clock },
-      { id: 'browse', path: '/browse', label: 'Manga Browser', icon: Compass },
-      { id: 'anime', path: '/anime', label: 'Anime (BETA)', icon: ChartBarIncreasing },
+      { id: 'browse', path: '/browse', label: 'Browse', icon: Compass },
       { id: 'settings', path: '/settings', label: 'Settings', icon: Settings },
       { id: 'about', path: '/about', label: 'About', icon: Info }
     ],
@@ -50,7 +48,7 @@ export function Sidebar({ onCollapseToggle }: SidebarProps): React.JSX.Element {
     >
       <div className={cn('p-6 flex items-center justify-between', isSidebarCollapsed && 'px-4')}>
         {!isSidebarCollapsed && (
-          <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent animate-in fade-in duration-500">
+          <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-rose-400 bg-clip-text text-transparent animate-in fade-in duration-500 pr-2 inline-block">
             AutaKimi
           </h2>
         )}

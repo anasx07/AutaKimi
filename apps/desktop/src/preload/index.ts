@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webFrame } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { IpcChannel, type ElectronApi, type IpcInvokeMap, type IpcEventMap } from '../main/types/ipc'
 import type { FetchOptions } from '@common/types/network'
 
@@ -55,7 +55,9 @@ const api: ElectronApi = {
     setSetting: (key, value) => invoke(IpcChannel.DB_SET_SETTING, key, value),
     getProgress: (mangaId: string) => invoke(IpcChannel.DB_GET_PROGRESS, mangaId),
     updateProgress: (args) => invoke(IpcChannel.DB_UPDATE_PROGRESS, args),
+    updateProgressBatch: (args) => invoke(IpcChannel.DB_UPDATE_PROGRESS_BATCH, args),
     addHistory: (args) => invoke(IpcChannel.DB_ADD_HISTORY, args),
+    updateHistoryDuration: (args) => invoke(IpcChannel.DB_UPDATE_HISTORY_DURATION, args),
     getHistory: (limit) => invoke(IpcChannel.DB_GET_HISTORY, limit),
     deleteHistoryEntry: (id) => invoke(IpcChannel.DB_DELETE_HISTORY_ENTRY, id),
     deleteHistoryByManga: (mangaId) => invoke(IpcChannel.DB_DELETE_HISTORY_BY_MANGA, mangaId),
@@ -100,8 +102,26 @@ const api: ElectronApi = {
   openInternalBrowser: (url: string) => invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url),
   cfBypass: (url, silent) => invoke(IpcChannel.CF_BYPASS, url, silent),
   cfFetchHtml: (url, silent) => invoke(IpcChannel.CF_FETCH_HTML, url, silent),
+  setStreamHeaders: (args) => invoke(IpcChannel.SET_STREAM_HEADERS, args),
+  probeStream: (args) => invoke(IpcChannel.PROBE_STREAM, args),
   getSystemState: () => invoke(IpcChannel.GET_SYSTEM_STATE),
   onSystemStateUpdate: (callback) => on(IpcChannel.SYSTEM_STATE_UPDATE, callback),
+  trackers: {
+    getByManga: (mangaId) => invoke(IpcChannel.DB_GET_TRACKERS, mangaId),
+    save: (tracker) => invoke(IpcChannel.DB_SAVE_TRACKER, tracker),
+    delete: (args) => invoke(IpcChannel.DB_DELETE_TRACKER, args),
+    authAniList: () => invoke(IpcChannel.TRACKER_AUTH_ANILIST),
+    getUserAniList: () => invoke(IpcChannel.TRACKER_GET_USER_ANILIST),
+    setTokenAniList: (token) => invoke(IpcChannel.TRACKER_SET_TOKEN_ANILIST, token),
+    logoutAniList: () => invoke(IpcChannel.TRACKER_LOGOUT_ANILIST),
+    searchAniList: (args) => invoke(IpcChannel.TRACKER_SEARCH_ANILIST, args),
+    getMediaAniList: (mediaId) => invoke(IpcChannel.TRACKER_GET_MEDIA_ANILIST, mediaId),
+    updateAniList: (args) => invoke(IpcChannel.TRACKER_UPDATE_ANILIST, args)
+  },
+  backup: {
+    export: () => invoke(IpcChannel.BACKUP_EXPORT),
+    import: () => invoke(IpcChannel.BACKUP_IMPORT)
+  },
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }
@@ -113,97 +133,3 @@ try {
 } catch (error) {
   console.error('[Preload] Failed to expose API via contextBridge:', error)
 }
-
-// ============================================================================
-// Cloudflare Stealth & Security Bypass (Executes immediately in Main World)
-// ============================================================================
-webFrame.executeJavaScript(`
-  try {
-    const w = window;
-    const n = navigator;
-
-    // 1. Bypass TrustedTypes/TrustedHTML requirement
-    if (w.trustedTypes && w.trustedTypes.createPolicy) {
-      if (!w.trustedTypes.defaultPolicy) {
-        w.trustedTypes.createPolicy('default', {
-          createHTML: s => s,
-          createScript: s => s,
-          createScriptURL: s => s
-        });
-      }
-    }
-
-    // 2. Hide automation (Must be false, not undefined, to match retail browsers)
-    Object.defineProperty(n, 'webdriver', { get: () => false });
-
-    // 3. Mimic retail Chrome UserAgentData dynamically based on the actual engine version
-    if (n.userAgentData) {
-      const match = n.userAgent.match(/Chrome\\/([0-9]+)\\./);
-      const version = match ? match[1] : '120';
-
-      Object.defineProperty(n, 'userAgentData', {
-        get: () => ({
-          brands: [
-            { brand: 'Google Chrome', version: version },
-            { brand: 'Chromium', version: version },
-            { brand: 'Not:A-Brand', version: '24' }
-          ],
-          mobile: false,
-          platform: 'Windows'
-        })
-      });
-    }
-
-    // 4. Mimic languages, vendor, and platform
-    Object.defineProperty(n, 'languages', { get: () => ['en-US', 'en'] });
-    Object.defineProperty(n, 'vendor', { get: () => 'Google Inc.' });
-    Object.defineProperty(n, 'platform', { get: () => 'Win32' });
-
-    // 5. Mimic hardware specs
-    Object.defineProperty(n, 'deviceMemory', { get: () => 8 });
-    Object.defineProperty(n, 'hardwareConcurrency', { get: () => 8 });
-
-    // 6. Shim chrome object
-    w.chrome = {
-      runtime: {},
-      loadTimes: function () {},
-      csi: function () {},
-      app: {}
-    };
-
-    // 7. Shim plugins
-    const mockPlugins = [
-      { name: 'PDF Viewer', filename: 'internal-pdf-viewer' },
-      { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer' },
-      { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer' },
-      { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer' },
-      { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer' }
-    ];
-    Object.defineProperty(n, 'plugins', { get: () => mockPlugins });
-    Object.defineProperty(n, 'mimeTypes', { get: () => ({ length: 0 }) });
-
-    // 8. Ensure window dimensions look realistic
-    if (w.outerWidth === 0) w.outerWidth = w.innerWidth || 1024;
-    if (w.outerHeight === 0) w.outerHeight = w.innerHeight || 768;
-
-    // 9. Shim Notification permissions
-    const originalQuery = n.permissions.query;
-    n.permissions.query = function (parameters) {
-      return parameters.name === 'notifications'
-        ? Promise.resolve({ state: Notification.permission })
-        : originalQuery.call(this, parameters);
-    };
-
-    // 10. Inject TrustedTypes policy into dynamically created iframes (about:srcdoc)
-    const originalSetAttribute = Element.prototype.setAttribute;
-    Element.prototype.setAttribute = function(name, value) {
-      if (this.tagName === 'IFRAME' && name === 'srcdoc') {
-        const injection = '<script>if(window.trustedTypes && window.trustedTypes.createPolicy && !window.trustedTypes.defaultPolicy) { window.trustedTypes.createPolicy("default", { createHTML: s => s, createScript: s => s, createScriptURL: s => s }); }<\\/script>';
-        value = injection + value;
-      }
-      return originalSetAttribute.call(this, name, value);
-    };
-  } catch (e) {
-    console.error('Stealth injection failed:', e);
-  }
-`);

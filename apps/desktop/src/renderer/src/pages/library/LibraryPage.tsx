@@ -13,17 +13,16 @@ import {
   MediaListItem,
   MobilePage
 } from '@renderer/shared/ui'
-import { useLibraryStore } from '@renderer/shared/model'
+import { useLibraryStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
 import { useState } from 'react'
 import { useInfiniteScroll } from '@renderer/shared/lib'
 import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
-import { useUIStore } from '@renderer/shared/model'
 
-import { useInfiniteLibraryItems, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
+import { useInfiniteLibraryItems, mediaKeys } from '@renderer/entities/media/api/useMediaQueries'
 
 export default function LibraryPage() {
-  const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
+  const { libraryMediaType: activeTab, setLibraryMediaType: setActiveTab } = useSettingsStore()
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
   const queryClient = useQueryClient()
   const { setSelectedManga } = useLibraryStore()
@@ -40,8 +39,8 @@ export default function LibraryPage() {
   const handleClearLibrary = async () => {
     try {
       await DataService.db.clearLibrary(activeTab)
-      queryClient.invalidateQueries({ queryKey: mangaKeys.libraryInfinite(activeTab) })
-      queryClient.invalidateQueries({ queryKey: mangaKeys.library(activeTab) })
+      queryClient.invalidateQueries({ queryKey: mediaKeys.libraryInfinite(activeTab) })
+      queryClient.invalidateQueries({ queryKey: mediaKeys.library(activeTab) })
       setIsConfirmClearOpen(false)
     } catch (error) {
       console.error('Failed to clear library:', error)
@@ -74,7 +73,7 @@ export default function LibraryPage() {
               onTabChange={(t) => setActiveTab(t as any)}
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0 bg-secondary/30 p-1 rounded-xl border border-border/50">
+          <div className="shrink-0">
             <LayoutSwitcher />
           </div>
         </div>
@@ -117,7 +116,12 @@ export default function LibraryPage() {
                       mediaType={activeTab}
                       status={norm.status}
                       index={idx}
-                      onClick={() => setSelectedManga(manga)}
+                      onClick={() =>
+                        setSelectedManga({
+                          ...manga,
+                          mediaType: manga.mediaType || activeTab
+                        })
+                      }
                     />
                   )
                 })}
@@ -134,7 +138,12 @@ export default function LibraryPage() {
                       mediaType={activeTab}
                       status={norm.status}
                       index={idx}
-                      onClick={() => setSelectedManga(manga)}
+                      onClick={() =>
+                        setSelectedManga({
+                          ...manga,
+                          mediaType: manga.mediaType || activeTab
+                        })
+                      }
                     />
                   )
                 })}

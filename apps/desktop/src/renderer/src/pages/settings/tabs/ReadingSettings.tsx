@@ -27,7 +27,9 @@ export function ReadingSettings(): React.JSX.Element {
     autoScrollShortcuts,
     setShortcut,
     readerTheme,
-    setReaderTheme
+    setReaderTheme,
+    cropBorders,
+    setCropBorders
   } = useReaderStore()
 
   const readingModes = [
@@ -86,7 +88,7 @@ export function ReadingSettings(): React.JSX.Element {
                 Select your preferred navigation engine.
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {readingModes.map((mode) => (
                 <button
                   key={mode.id}
@@ -120,6 +122,12 @@ export function ReadingSettings(): React.JSX.Element {
             description="Automatically track your reading progress."
           >
             <Switch checked={autoMarkRead} onCheckedChange={setAutoMarkRead} />
+          </SettingsRow>
+          <SettingsRow
+            title="Crop Borders / Smart Trim"
+            description="Trim side margins and seamless border gaps for Webtoon reading."
+          >
+            <Switch checked={cropBorders} onCheckedChange={setCropBorders} />
           </SettingsRow>
           <SettingsRow
             title="Predictive Preloading"

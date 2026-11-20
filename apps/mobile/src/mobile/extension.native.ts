@@ -1,8 +1,22 @@
+import { NativeModules, Platform } from 'react-native'
 import * as cheerio from 'cheerio'
 import { MobileNetwork } from './network.native'
 import { IpcResult } from '@common/types'
 
+const { KeiyoushiBridge } = NativeModules
+
 export const MobileExtension = {
+  async loadKeiyoushiApk(apkUrl: string, className: string, pkg: string): Promise<IpcResult<any>> {
+    if (Platform.OS !== 'android' || !KeiyoushiBridge) {
+      return { ok: false, error: 'Keiyoushi native DEX loading is only supported on Android' }
+    }
+    try {
+      const res = await KeiyoushiBridge.loadKeiyoushiApk(apkUrl, className, pkg)
+      return { ok: true, value: res }
+    } catch (e: any) {
+      return { ok: false, error: e.message || String(e) }
+    }
+  },
   async execute(args: { pkg: string; code: string; contextArgs?: any }): Promise<IpcResult<any>> {
     const { code, contextArgs: params } = args
 
@@ -50,13 +64,31 @@ export const MobileExtension = {
   var fetch = __fetch;
   var cheerio = __cheerio;
   var console = __console;
+  var require = function(m) {
+    if (m === 'cheerio') return __cheerio;
+    throw new Error('Module not found in mobile sandbox: ' + m);
+  };
   ${sanitizedCode}
 })(__params, __fetch, __cheerio, __console);`
 
       const fn = new Function('__params', '__fetch', '__cheerio', '__console', wrappedCode)
-      const result = await fn(sandbox.params, sandbox.fetch, sandbox.cheerio, sandbox.console)
 
-      return { ok: true, value: result }
+      let timer: ReturnType<typeof setTimeout> | null = null
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`Extension execution timed out after 15000ms for ${args.pkg}`))
+        }, 15000)
+      })
+
+      try {
+        const executionPromise = Promise.resolve().then(() =>
+          fn(sandbox.params, sandbox.fetch, sandbox.cheerio, sandbox.console)
+        )
+        const result = await Promise.race([executionPromise, timeoutPromise])
+        return { ok: true, value: result }
+      } finally {
+        if (timer) clearTimeout(timer)
+      }
     } catch (err: any) {
       console.error(`[Native-Sandbox] Execution failed for ${args.pkg}:`, err)
       return { ok: false, error: err.message || String(err) }

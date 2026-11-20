@@ -40,8 +40,34 @@ export const StoreInitializer: React.FC<StoreInitializerProps> = ({ children }) 
 
         // 1. Settings & UI (Applied first to fix theme flickering)
         useSettingsStore.getState()._init(schema)
-        const devModeVal = (settingsMap as Record<string, string>)['devMode'] === 'true'
-        useSettingsStore.setState({ devMode: devModeVal })
+        const rawSettings = (settingsMap as Record<string, string>) || {}
+        const devModeVal = rawSettings['devMode'] === 'true'
+        const lockMediaTabsVal = rawSettings['lock_media_tabs'] === 'true'
+        const savedBrowseMediaType = rawSettings['browse_media_type'] as 'manga' | 'anime'
+        const savedBrowseSection = rawSettings['browse_section'] as 'sources' | 'extensions'
+        const effectiveBaseMedia = (savedBrowseMediaType === 'anime' || savedBrowseMediaType === 'manga') ? savedBrowseMediaType : 'manga'
+        const savedLibraryMediaType = lockMediaTabsVal ? effectiveBaseMedia : ((rawSettings['library_media_type'] as 'manga' | 'anime') || (savedBrowseMediaType === 'anime' ? 'anime' : undefined))
+        const savedDownloadsMediaType = lockMediaTabsVal ? effectiveBaseMedia : ((rawSettings['downloads_media_type'] as 'manga' | 'anime') || (savedBrowseMediaType === 'anime' ? 'anime' : undefined))
+        const savedHistoryMediaType = lockMediaTabsVal ? effectiveBaseMedia : ((rawSettings['history_media_type'] as 'manga' | 'anime') || (savedBrowseMediaType === 'anime' ? 'anime' : undefined))
+        useSettingsStore.setState({
+          devMode: devModeVal,
+          lockMediaTabs: lockMediaTabsVal,
+          ...(savedBrowseMediaType === 'anime' || savedBrowseMediaType === 'manga'
+            ? { browseMediaType: savedBrowseMediaType }
+            : {}),
+          ...(savedBrowseSection === 'sources' || savedBrowseSection === 'extensions' || savedBrowseSection === 'repositories'
+            ? { browseSection: savedBrowseSection }
+            : {}),
+          ...(savedLibraryMediaType === 'anime' || savedLibraryMediaType === 'manga'
+            ? { libraryMediaType: savedLibraryMediaType }
+            : {}),
+          ...(savedDownloadsMediaType === 'anime' || savedDownloadsMediaType === 'manga'
+            ? { downloadsMediaType: savedDownloadsMediaType }
+            : {}),
+          ...(savedHistoryMediaType === 'anime' || savedHistoryMediaType === 'manga'
+            ? { historyMediaType: savedHistoryMediaType }
+            : {})
+        })
         useUIStore.getState()._init(schema.ui)
 
         // 2. Extensions (Registry and domain overrides)

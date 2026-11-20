@@ -23,7 +23,7 @@ const CF_CHECK_JS = `
 `
 
 export default function CfBypassScreen() {
-  const webViewRef = useRef<WebView>(null)
+  const webViewRef = useRef<any>(null)
   const [status, setStatus] = useState<'loading' | 'waiting' | 'solved' | 'error'>('loading')
   const [url, setUrl] = useState('')
 
@@ -33,6 +33,11 @@ export default function CfBypassScreen() {
       setStatus('loading')
     } else {
       setStatus('error')
+    }
+
+    return () => {
+      // If screen is dismissed without solving, cancel pending flow
+      CfBypassFlow.cancel()
     }
   }, [])
 

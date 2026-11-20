@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  View, FlatList, Image, TouchableOpacity, ActivityIndicator,
+  View, FlatList, TouchableOpacity, ActivityIndicator,
   RefreshControl, Alert
 } from 'react-native'
+import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
@@ -197,7 +198,8 @@ export default function HistoryTab() {
                       <Image
                         source={{ uri: entry.mangaCover || undefined }}
                         className="w-12 h-16 rounded-lg"
-                        resizeMode="cover"
+                        contentFit="cover"
+                        transition={150}
                       />
                     ) : (
                       <View className="w-12 h-16 rounded-lg bg-card items-center justify-center">

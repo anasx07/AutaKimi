@@ -1,6 +1,8 @@
 export type ReadingMode =
   | 'paged-ltr'
   | 'paged-rtl'
+  | 'paged-double-ltr'
+  | 'paged-double-rtl'
   | 'paged-vertical'
   | 'continuous-ltr'
   | 'continuous-rtl'

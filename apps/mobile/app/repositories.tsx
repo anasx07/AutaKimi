@@ -5,9 +5,12 @@ import { Stack, router } from 'expo-router'
 import { ArrowLeft, Library, Plus, Trash2, Globe, RefreshCw, AlertCircle } from 'lucide-react-native'
 import { Typography, Button, Card, CardContent } from '../src/native/ui'
 import { MobileDB } from '../src/mobile/db.native'
-import { templateService, sourceService } from '@common'
+import { templateService, sourceService, extensionRegistryOrchestrator, keiyoushiService } from '@common'
+import { useColorScheme } from 'nativewind'
 
 export default function RepositoriesPage() {
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const [repos, setRepos] = useState<string[]>([])
   const [newRepoUrl, setNewRepoUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -17,7 +20,22 @@ export default function RepositoriesPage() {
     const res = await MobileDB.getSetting('source_repositories')
     if (res.ok && res.value) {
       try {
-        setRepos(JSON.parse(res.value))
+        let list: string[] = JSON.parse(res.value)
+        let changed = false
+        list = list.map((u) => {
+          if (keiyoushiService.isKeiyoushiUrl(u)) {
+            const norm = keiyoushiService.normalizeKeiyoushiUrl(u)
+            if (norm !== u) {
+              changed = true
+              return norm
+            }
+          }
+          return u
+        })
+        if (changed) {
+          await MobileDB.setSetting('source_repositories', JSON.stringify(list))
+        }
+        setRepos(list)
       } catch (e) {
         setRepos([])
       }
@@ -30,16 +48,21 @@ export default function RepositoriesPage() {
 
   const handleAddRepo = async () => {
     if (!newRepoUrl.trim()) return
+    let url = newRepoUrl.trim()
+    if (keiyoushiService.isKeiyoushiUrl(url)) {
+      url = keiyoushiService.normalizeKeiyoushiUrl(url)
+    }
     setIsLoading(true)
     try {
-      const res = await templateService.fetchTemplates(newRepoUrl.trim())
+      const res = await templateService.fetchTemplates(url)
       if (res.success) {
-        await sourceService.loadAllRepositories([newRepoUrl.trim()])
-        const updated = [...repos, newRepoUrl.trim()]
+        const syncRes = await extensionRegistryOrchestrator.syncRepositories([url])
+        const updated = [...repos.filter(r => r !== url), url]
         await MobileDB.setSetting('source_repositories', JSON.stringify(updated))
         setRepos(updated)
         setNewRepoUrl('')
-        Alert.alert('Success', `Added repository with ${res.count} templates.`)
+        const total = syncRes?.sourcesCount || res.count || 0
+        Alert.alert('Success', `Added repository with ${total} extensions.`)
       } else {
         Alert.alert('Error', res.error || 'Failed to fetch repository')
       }
@@ -71,10 +94,7 @@ export default function RepositoriesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([
-      templateService.loadAllRepositories(repos),
-      sourceService.loadAllRepositories(repos)
-    ])
+    await extensionRegistryOrchestrator.syncRepositories(repos)
     setRefreshing(false)
     Alert.alert('Success', 'All repositories refreshed.')
   }
@@ -84,13 +104,13 @@ export default function RepositoriesPage() {
       <Stack.Screen options={{ title: 'Content Sources', headerShown: false }} />
       
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border/50">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft size={22} color="#3b82f6" />
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border/40 bg-background">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+          <ArrowLeft size={22} color={isDark ? '#f4f4f5' : '#09090b'} />
         </TouchableOpacity>
         <Typography variant="h3" className="font-bold text-lg">Content Sources</Typography>
         <TouchableOpacity onPress={handleRefresh} disabled={refreshing}>
-          <RefreshCw size={20} color="#3b82f6" className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={20} color="#e11d48" className={refreshing ? 'animate-spin' : ''} />
         </TouchableOpacity>
       </View>
 
@@ -105,9 +125,9 @@ export default function RepositoriesPage() {
           <CardContent className="p-4 gap-4">
             <View className="bg-secondary/30 rounded-xl px-4 py-2 border border-border/50">
               <TextInput
-                placeholder="Repository JSON URL"
+                placeholder="AutaKimi (manifest.json) or Keiyoushi (index.min.json) URL"
                 placeholderTextColor="#94a3b8"
-                className="text-foreground h-10"
+                className="text-foreground h-10 text-xs"
                 value={newRepoUrl}
                 onChangeText={setNewRepoUrl}
                 autoCapitalize="none"
@@ -130,27 +150,32 @@ export default function RepositoriesPage() {
               <Typography className="mt-2">No repositories added</Typography>
             </View>
           ) : (
-            repos.map((url) => (
-              <Card key={url} className="border-border/50 bg-secondary/10">
-                <CardContent className="p-4 flex-row items-center justify-between">
-                  <View className="flex-1 flex-row items-center gap-3">
-                    <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
-                      <Globe size={20} color="#3b82f6" />
+            repos.map((url) => {
+              const isKeiyoushi = url.toLowerCase().includes('keiyoushi') || url.toLowerCase().includes('index.min.json')
+              return (
+                <Card key={url} className="border-border/50 bg-secondary/10">
+                  <CardContent className="p-4 flex-row items-center justify-between">
+                    <View className="flex-1 flex-row items-center gap-3">
+                      <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
+                        <Globe size={20} color={isKeiyoushi ? "#a855f7" : "#3b82f6"} />
+                      </View>
+                      <View className="flex-1">
+                        <Typography className="font-bold text-sm" numberOfLines={1}>{url}</Typography>
+                        <Typography className={`text-[10px] uppercase font-bold ${isKeiyoushi ? 'text-purple-400' : 'text-green-500'}`}>
+                          {isKeiyoushi ? 'Keiyoushi Extension Ecosystem' : 'AutaKimi Extension Repository'}
+                        </Typography>
+                      </View>
                     </View>
-                    <View className="flex-1">
-                      <Typography className="font-bold text-sm" numberOfLines={1}>{url}</Typography>
-                      <Typography className="text-[10px] text-green-500 uppercase font-bold">Active Provider</Typography>
-                    </View>
-                  </View>
-                  <TouchableOpacity 
-                    onPress={() => handleRemoveRepo(url)}
-                    className="p-2"
-                  >
-                    <Trash2 size={18} color="#ef4444" />
-                  </TouchableOpacity>
-                </CardContent>
-              </Card>
-            ))
+                    <TouchableOpacity 
+                      onPress={() => handleRemoveRepo(url)}
+                      className="p-2"
+                    >
+                      <Trash2 size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </View>
 

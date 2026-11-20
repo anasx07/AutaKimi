@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 const code = `import * as fs from 'fs'
 import * as path from 'path'
@@ -276,4 +277,4 @@ async function run() {
 run()
 `;
 
-fs.writeFileSync('D:/DEV/Apps/AutaKimi/autakimi-extensions/build.ts', code, 'utf8');
+fs.writeFileSync(path.join(__dirname, 'autakimi-extensions', 'build.ts'), code, 'utf8');

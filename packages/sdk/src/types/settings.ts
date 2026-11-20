@@ -1,10 +1,25 @@
 import { ThemeType, ColorThemeType, ViewMode } from './ui'
 import { ReadingMode, ReaderShortcuts } from './reader'
 
+export interface CustomThemeConfig {
+  accent: string
+  background: string
+  foreground: string
+  font: string
+}
+
+export const DEFAULT_CUSTOM_THEME: CustomThemeConfig = {
+  accent: '#E11D48',
+  background: '#09090B',
+  foreground: '#F8FAFC',
+  font: 'Plus Jakarta Sans'
+}
+
 export interface SettingsSchema {
   app: {
     theme: ThemeType
     colorTheme: ColorThemeType
+    customThemeConfig?: CustomThemeConfig
     minimizeToTray: boolean
     showNsfw: boolean
     selectedLangs: string[]
@@ -19,6 +34,7 @@ export interface SettingsSchema {
     dragToScroll: boolean
     readerTheme: 'match-app' | 'light' | 'dark' | 'system'
     autoScrollShortcuts: ReaderShortcuts
+    cropBorders?: boolean
   }
   extensions: {
     pinnedExtensions: string[]
@@ -49,6 +65,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   app: {
     theme: 'system',
     colorTheme: 'default',
+    customThemeConfig: DEFAULT_CUSTOM_THEME,
     minimizeToTray: true,
     showNsfw: false,
     selectedLangs: ['all'],
@@ -68,7 +85,8 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
       boost: 'ArrowRight',
       slow: 'ArrowLeft',
       reverse: 'ArrowUp'
-    }
+    },
+    cropBorders: false
   },
   extensions: {
     pinnedExtensions: [],
@@ -99,6 +117,7 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   // App
   theme: 'app.theme',
   colorTheme: 'app.colorTheme',
+  custom_theme_config: 'app.customThemeConfig',
   minimize_to_tray: 'app.minimizeToTray',
   showNsfw: 'app.showNsfw',
   selectedLangs: 'app.selectedLangs',
@@ -117,9 +136,11 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   reader_shortcut_boost: 'reader.autoScrollShortcuts.boost',
   reader_shortcut_slow: 'reader.autoScrollShortcuts.slow',
   reader_shortcut_reverse: 'reader.autoScrollShortcuts.reverse',
+  crop_borders: 'reader.cropBorders',
 
   // Extensions
   pinned_extensions: 'extensions.pinnedExtensions',
+  pinned_anime_sources: 'extensions.pinnedAnimeSources',
   extension_sort_by: 'extensions.extensionSortBy',
   extension_sort_order: 'extensions.extensionSortOrder',
   pinnedAnimeSources: 'extensions.pinnedAnimeSources',

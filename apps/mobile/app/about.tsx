@@ -5,8 +5,11 @@ import { Stack, router } from 'expo-router'
 import { ArrowLeft, ExternalLink, Shield, Code, Heart, Info, GitBranch } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { Typography, Card, CardContent, Button } from '../src/native/ui'
+import { useColorScheme } from 'nativewind'
 
 export default function AboutPage(): React.JSX.Element {
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const version = DataService.version
 
   const features = [
@@ -32,9 +35,9 @@ export default function AboutPage(): React.JSX.Element {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft size={22} color="#3b82f6" />
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border/40 bg-background">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+          <ArrowLeft size={22} color={isDark ? '#f4f4f5' : '#09090b'} />
         </TouchableOpacity>
         <Typography variant="h3" className="font-bold text-lg">About</Typography>
         <View className="w-10" />
