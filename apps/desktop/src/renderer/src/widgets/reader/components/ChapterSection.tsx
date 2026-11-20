@@ -263,6 +263,15 @@ export const ChapterSection = memo(
     const halfwayTriggered = useRef(false)
     const pageRefs = useRef<(HTMLDivElement | null)[]>([])
 
+    const onVisibleRef = useRef(onVisible)
+    onVisibleRef.current = onVisible
+
+    const onHalfwayRef = useRef(onHalfway)
+    onHalfwayRef.current = onHalfway
+
+    const onPageVisibleRef = useRef(onPageVisible)
+    onPageVisibleRef.current = onPageVisible
+
     const isVertical = readingMode === 'continuous-vertical' || readingMode === 'webtoon'
     const isPaged = readingMode.startsWith('paged-')
     const isHorizontal = readingMode.startsWith('continuous-') && !isVertical
@@ -271,15 +280,15 @@ export const ChapterSection = memo(
       if (pages.length > 0) {
         onLoaded(chapter.id, pages.length)
       }
-    }, [pages.length, chapter.id])
+    }, [pages.length, chapter.id, onLoaded])
 
     // --- Halfway & section visibility observers ---
     useEffect(() => {
       if (pages.length === 0) return
 
-      if (!isVertical) {
-        // In paged/horizontal modes, there's only one chapter visible at a time
-        onVisible(chapter)
+      if (isPaged) {
+        // In paged mode, there's only one chapter visible at a time
+        onVisibleRef.current(chapter)
         return
       }
 
@@ -287,17 +296,19 @@ export const ChapterSection = memo(
         (entries) => {
           if (entries[0].isIntersecting && !halfwayTriggered.current) {
             halfwayTriggered.current = true
-            onHalfway(chapter)
+            onHalfwayRef.current(chapter)
           }
         },
-        { threshold: 0.1, rootMargin: '0px 0px 400% 0px' }
+        { root: scrollRoot, threshold: 0, rootMargin: '0px 0px 400% 0px' }
       )
 
       const visibilityObserver = new IntersectionObserver(
         (entries) => {
-          if (entries[0].isIntersecting) onVisible(chapter)
+          if (entries[0].isIntersecting) {
+            onVisibleRef.current(chapter)
+          }
         },
-        { threshold: 0.1, rootMargin: '-20% 0px -20% 0px' }
+        { root: scrollRoot, threshold: 0, rootMargin: '-10% 0px -70% 0px' }
       )
 
       if (halfwayRef.current) halfwayObserver.observe(halfwayRef.current)
@@ -307,7 +318,7 @@ export const ChapterSection = memo(
         halfwayObserver.disconnect()
         visibilityObserver.disconnect()
       }
-    }, [pages.length, chapter.id, isVertical])
+    }, [pages.length, chapter, isPaged, scrollRoot])
 
     // --- Per-image page tracking observer (vertical/webtoon modes) ---
     useEffect(() => {
@@ -326,7 +337,7 @@ export const ChapterSection = memo(
           }
           if (topEntry) {
             const idx = parseInt((topEntry.target as HTMLElement).dataset.pageIndex || '0', 10)
-            onPageVisible(chapter.id, idx + 1)
+            onPageVisibleRef.current(chapter.id, idx + 1)
           }
         },
         {
@@ -341,7 +352,7 @@ export const ChapterSection = memo(
       })
 
       return () => observer.disconnect()
-    }, [pages.length, isVertical, scrollRoot])
+    }, [pages.length, isVertical, scrollRoot, chapter.id])
 
     if (isLoading) {
       return (
@@ -477,6 +488,7 @@ export const ChapterSection = memo(
             {pages.map((url, i) => (
               <div
                 key={`${url}-${i}`}
+                data-page-index={i}
                 className="shrink-0 flex items-center justify-center bg-neutral-900/20 rounded-2xl overflow-hidden border border-white/5 shadow-2xl backdrop-blur-sm pointer-events-none"
                 style={{ height: `calc((100vh - 3.5rem) * ${zoomLevel})` }}
               >
