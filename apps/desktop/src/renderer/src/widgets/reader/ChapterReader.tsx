@@ -157,28 +157,124 @@ export default function ChapterReader() {
   }, [activeChapter?.url])
 
   const savePageProgress = useCallback(
-    (chapterId: string, page: number) => {
+    (chapterId: string, page: number, chapterNumber?: number | string) => {
       if (!selectedManga) return
       if (progressDebounceRef.current) {
         clearTimeout(progressDebounceRef.current)
       }
       progressDebounceRef.current = setTimeout(() => {
+        const targetChapter =
+          loadedChapters.find((c) => c.id === chapterId) ||
+          chapters.find((c) => c.id === chapterId) ||
+          (activeChapter?.id === chapterId ? activeChapter : null)
+        const rawNum = chapterNumber !== undefined ? chapterNumber : targetChapter?.number
+        const chNum = rawNum !== undefined ? Number(rawNum) : Number(activeChapter?.number)
+
         const isReadAlready = readingProgress[selectedManga.id]?.includes(chapterId) || false
         markChapterRead(
           selectedManga.id,
           chapterId,
           isReadAlready,
           page,
-          Number(activeChapter?.number) || undefined
+          !isNaN(chNum) ? chNum : undefined
         )
       }, 400)
     },
-    [selectedManga?.id, readingProgress, markChapterRead]
+    [selectedManga?.id, readingProgress, markChapterRead, loadedChapters, chapters, activeChapter]
+  )
+
+  const handleVisible = useCallback(
+    (chapter: Chapter) => {
+      if (lastSyncId.current === chapter.id) return
+      lastSyncId.current = chapter.id
+      if (activeChapter?.id !== chapter.id) {
+        setActiveChapter(chapter)
+      }
+
+      const count = chapterPageCounts[chapter.id] || 0
+      if (count > 0) {
+        setTotalPages(count)
+      }
+
+      const targetPage = visiblePagesRef.current[chapter.id] || 1
+      setCurrentPage(targetPage)
+      savePageProgress(chapter.id, targetPage, chapter.number)
+
+      if (selectedManga) {
+        // Finalize previous chapter reading session if switching chapters
+        if (
+          activeSessionRef.current &&
+          (activeSessionRef.current.mangaId !== selectedManga.id ||
+            activeSessionRef.current.chapterId !== chapter.id)
+        ) {
+          const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+          if (elapsed > 0) {
+            updateHistoryDuration({
+              mangaId: activeSessionRef.current.mangaId,
+              chapterId: activeSessionRef.current.chapterId,
+              durationSeconds: elapsed
+            })
+          }
+        }
+
+        activeSessionRef.current = {
+          mangaId: selectedManga.id,
+          chapterId: chapter.id,
+          startTime: Date.now()
+        }
+
+        const savedPage = pageProgress[selectedManga.id]?.[chapter.id] || targetPage
+        const isReadAlready = readingProgress[selectedManga.id]?.includes(chapter.id) || false
+        markChapterRead(
+          selectedManga.id,
+          chapter.id,
+          isReadAlready,
+          savedPage,
+          Number(chapter.number) || undefined
+        )
+        addHistoryEntry({
+          mangaId: selectedManga.id,
+          mangaTitle: selectedManga.title,
+          mangaCover: selectedManga.coverUrl || undefined,
+          mangaUrl: selectedManga.url || undefined,
+          chapterId: chapter.id,
+          chapterTitle: chapter.title || undefined,
+          startedAt: new Date().toISOString(),
+          durationSeconds: 0,
+          pkg: resolvedPkg || undefined,
+          type: 'manga'
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: mediaKeys.history() })
+        })
+      }
+    },
+    [
+      activeChapter?.id,
+      chapterPageCounts,
+      savePageProgress,
+      selectedManga,
+      updateHistoryDuration,
+      pageProgress,
+      readingProgress,
+      markChapterRead,
+      addHistoryEntry,
+      resolvedPkg,
+      queryClient
+    ]
   )
 
   const handlePageVisible = useCallback(
     (chapterId: string, page: number) => {
       visiblePagesRef.current[chapterId] = page
+
+      if (lastSyncId.current !== chapterId) {
+        const targetChapter =
+          loadedChapters.find((c) => c.id === chapterId) ||
+          chapters.find((c) => c.id === chapterId)
+        if (targetChapter) {
+          handleVisible(targetChapter)
+        }
+      }
 
       if (activeChapter?.id === chapterId || lastSyncId.current === chapterId) {
         setCurrentPage((prev) => {
@@ -190,7 +286,7 @@ export default function ChapterReader() {
         })
       }
     },
-    [activeChapter?.id, savePageProgress]
+    [activeChapter?.id, loadedChapters, chapters, handleVisible, savePageProgress]
   )
 
   const handleLoaded = useCallback(
@@ -199,15 +295,17 @@ export default function ChapterReader() {
         if (prev[chapterId] === count) return prev
         return { ...prev, [chapterId]: count }
       })
-      if (activeChapter?.id === chapterId) {
+      if (activeChapter?.id === chapterId || lastSyncId.current === chapterId) {
         setTotalPages(count)
         if (pendingScrollPage.current) {
           const targetPage = pendingScrollPage.current
           pendingScrollPage.current = null
           setTimeout(() => {
             if (isVertical || isHorizontalContinuous) {
+              const safeId =
+                typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(chapterId) : chapterId
               const pageEl = scrollRef.current?.querySelector(
-                `[data-page-index="${targetPage - 1}"]`
+                `[data-chapter-id="${safeId}"] [data-page-index="${targetPage - 1}"]`
               )
               if (pageEl) {
                 pageEl.scrollIntoView({ behavior: 'auto', block: 'start' })
@@ -223,6 +321,7 @@ export default function ChapterReader() {
   useEffect(() => {
     if (activeChapter && !loadedChapters.find((c) => c.id === activeChapter.id)) {
       setLoadedChapters([activeChapter])
+      lastSyncId.current = activeChapter.id
 
       const savedPage = (selectedManga && pageProgress[selectedManga.id]?.[activeChapter.id]) || 1
       setCurrentPage(savedPage)
@@ -238,11 +337,13 @@ export default function ChapterReader() {
   useEffect(() => {
     if (activeChapter?.id) {
       const count = chapterPageCounts[activeChapter.id] || 0
-      setTotalPages(count)
+      if (count > 0) {
+        setTotalPages(count)
+      }
     }
   }, [activeChapter?.id, chapterPageCounts])
 
-  const findNextChapter = (current: Chapter) => {
+  const findNextChapter = useCallback((current: Chapter) => {
     if (chapters.length === 0) return null
     const sorted = [...chapters].sort((a, b) => {
       const getNum = (c: any) => {
@@ -255,77 +356,21 @@ export default function ChapterReader() {
     })
     const idx = sorted.findIndex((c) => c.id === current.id)
     return idx !== -1 && idx + 1 < sorted.length ? sorted[idx + 1] : null
-  }
+  }, [chapters])
 
-  const handleHalfway = (chapter: Chapter) => {
-    if (!isInfiniteScroll) return
-    const next = findNextChapter(chapter)
-    if (next && !loadedChapters.find((c) => c.id === next.id)) {
-      setLoadedChapters((prev) => [...prev, next])
-    }
-  }
-
-  const handleVisible = (chapter: Chapter) => {
-    if (lastSyncId.current === chapter.id) return
-    lastSyncId.current = chapter.id
-    if (activeChapter?.id !== chapter.id) {
-      setActiveChapter(chapter)
-    }
-
-    const queuedPage = visiblePagesRef.current[chapter.id]
-    if (queuedPage) {
-      setCurrentPage(queuedPage)
-      savePageProgress(chapter.id, queuedPage)
-    }
-
-    if (selectedManga) {
-      // Finalize previous chapter reading session if switching chapters
-      if (
-        activeSessionRef.current &&
-        (activeSessionRef.current.mangaId !== selectedManga.id ||
-          activeSessionRef.current.chapterId !== chapter.id)
-      ) {
-        const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
-        if (elapsed > 0) {
-          updateHistoryDuration({
-            mangaId: activeSessionRef.current.mangaId,
-            chapterId: activeSessionRef.current.chapterId,
-            durationSeconds: elapsed
-          })
-        }
+  const handleHalfway = useCallback(
+    (chapter: Chapter) => {
+      if (!isInfiniteScroll) return
+      const next = findNextChapter(chapter)
+      if (next) {
+        setLoadedChapters((prev) => {
+          if (prev.find((c) => c.id === next.id)) return prev
+          return [...prev, next]
+        })
       }
-
-      activeSessionRef.current = {
-        mangaId: selectedManga.id,
-        chapterId: chapter.id,
-        startTime: Date.now()
-      }
-
-      const savedPage = pageProgress[selectedManga.id]?.[chapter.id] || 1
-      const isReadAlready = readingProgress[selectedManga.id]?.includes(chapter.id) || false
-      markChapterRead(
-        selectedManga.id,
-        chapter.id,
-        isReadAlready,
-        savedPage,
-        Number(chapter.number) || undefined
-      )
-      addHistoryEntry({
-        mangaId: selectedManga.id,
-        mangaTitle: selectedManga.title,
-        mangaCover: selectedManga.coverUrl || undefined,
-        mangaUrl: selectedManga.url || undefined,
-        chapterId: chapter.id,
-        chapterTitle: chapter.title || undefined,
-        startedAt: new Date().toISOString(),
-        durationSeconds: 0,
-        pkg: resolvedPkg || undefined,
-        type: 'manga'
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: mediaKeys.history() })
-      })
-    }
-  }
+    },
+    [isInfiniteScroll, findNextChapter]
+  )
 
   const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
 
@@ -334,7 +379,7 @@ export default function ChapterReader() {
     setCurrentPage((prev) => {
       const step = isDoublePage ? (prev === 1 ? 1 : 2) : 1
       const next = Math.min(totalPages, prev + step)
-      if (next !== prev) savePageProgress(activeChapter.id, next)
+      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
       return next
     })
   }
@@ -344,7 +389,7 @@ export default function ChapterReader() {
     setCurrentPage((prev) => {
       const step = isDoublePage ? (prev <= 2 ? 1 : 2) : 1
       const next = Math.max(1, prev - step)
-      if (next !== prev) savePageProgress(activeChapter.id, next)
+      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
       return next
     })
   }
@@ -483,8 +528,14 @@ export default function ChapterReader() {
             const targetPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
 
             if (isVertical || isHorizontalContinuous) {
+              const safeId = activeChapter?.id
+                ? typeof CSS !== 'undefined' && CSS.escape
+                  ? CSS.escape(activeChapter.id)
+                  : activeChapter.id
+                : ''
+              const chapterSelector = safeId ? `[data-chapter-id="${safeId}"] ` : ''
               const pageEl = scrollRef.current?.querySelector(
-                `[data-page-index="${targetPage - 1}"]`
+                `${chapterSelector}[data-page-index="${targetPage - 1}"]`
               )
               if (pageEl) {
                 pageEl.scrollIntoView({ behavior: 'smooth' })
