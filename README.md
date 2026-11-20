@@ -3,7 +3,7 @@
 **AutaKimi** is a modern, privacy-first, cross-platform media framework designed for organized Manga, Webtoon, and Anime consumption. Built with a decentralized "empty shell" architecture, it provides an ultra-fast, native experience across **Windows, Android, and iOS** without accounts, telemetry, or centralized tracking.
 
 [![CI & Quality Verification](https://github.com/anasx07/AutaKimi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anasx07/AutaKimi/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/Version-2.0.18-blue.svg)](https://github.com/anasx07/AutaKimi/releases)
+[![Version](https://img.shields.io/badge/Version-2.1.0-blue.svg)](https://github.com/anasx07/AutaKimi/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Website](https://img.shields.io/badge/Website-anasx07.github.io%2FAutaKimi-purple)](https://anasx07.github.io/AutaKimi/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
