@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
-import { TitleBar } from '@renderer/widgets/title-bar'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import Hls from 'hls.js'
 import {
   ArrowLeft,
   Loader2,
@@ -7,9 +7,17 @@ import {
   ChevronRight,
   RefreshCw,
   Play,
+  Pause,
   Menu,
   Zap,
-  History
+  History,
+  X,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  RotateCcw,
+  RotateCw
 } from 'lucide-react'
 import {
   useLibraryStore,
@@ -20,25 +28,131 @@ import {
 } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { useMangaChapters } from '@renderer/entities/manga/api/useMangaQueries'
+import { useMediaItems } from '@renderer/entities/media/api/useMediaQueries'
 import { DataService } from '@renderer/shared/api'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { isMobile } from '@renderer/shared/platform'
+
+export interface ServerItem {
+  name: string
+  url: string
+  type?: 'hls' | 'mp4' | 'embed'
+  headers?: Record<string, string>
+  status?: 'alive' | 'dead' | 'checking' | 'untested'
+  pingMs?: number
+  error?: string
+}
+
+function getVideoType(server: any): 'hls' | 'mp4' | 'embed' {
+  if (!server) return 'embed'
+  if (typeof server === 'object' && server.type) {
+    const t = String(server.type).toLowerCase()
+    if (t === 'hls' || t === 'm3u8') return 'hls'
+    if (t === 'mp4' || t === 'webm') return 'mp4'
+    if (t === 'embed') return 'embed'
+  }
+  const url = typeof server === 'object' ? server.url || '' : String(server || '')
+  const cleanUrl = url.split('?')[0].toLowerCase()
+  const lowerUrl = url.toLowerCase()
+  if (
+    cleanUrl.endsWith('.m3u8') ||
+    lowerUrl.includes('.m3u8') ||
+    lowerUrl.includes('hls_proxy') ||
+    lowerUrl.includes('mode=m3u8')
+  ) {
+    return 'hls'
+  }
+  if (
+    cleanUrl.endsWith('.mp4') ||
+    cleanUrl.endsWith('.webm') ||
+    lowerUrl.includes('.mp4') ||
+    lowerUrl.includes('stream_proxy')
+  ) {
+    return 'mp4'
+  }
+  return 'embed'
+}
+
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return '00:00'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  if (h > 0) {
+    return `${h}:${pad(m)}:${pad(s)}`
+  }
+  return `${pad(m)}:${pad(s)}`
+}
 
 export default function AnimeViewer() {
   const mobile = isMobile()
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension } = useExtensionStore()
-  const { markChapterRead } = useProgressStore()
-  const { addHistoryEntry } = useHistoryStore()
+  const { markChapterRead, loadProgress, pageProgress } = useProgressStore()
+  const { addHistoryEntry, updateHistoryDuration } = useHistoryStore()
+  const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(
+    null
+  )
 
-  const { data: episodes = [] } = useMangaChapters(
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const hlsRef = useRef<Hls | null>(null)
+  const progressBarRef = useRef<HTMLDivElement | null>(null)
+
+  // Native Player State
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [bufferedPercent, setBufferedPercent] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isBuffering, setIsBuffering] = useState(false)
+  const [hoverTime, setHoverTime] = useState<number | null>(null)
+  const [hoverX, setHoverX] = useState<number>(0)
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null)
+
+  const hasResumedRef = useRef(false)
+  const lastProgressSaveRef = useRef(0)
+
+  // Load reading/watching progress on manga load
+  useEffect(() => {
+    if (selectedManga?.id) {
+      loadProgress(selectedManga.id)
+    }
+  }, [selectedManga?.id, loadProgress])
+
+  const savedProgressSeconds = useMemo(() => {
+    if (!selectedManga?.id || !activeChapter?.id) return 0
+    return pageProgress[selectedManga.id]?.[activeChapter.id] || 0
+  }, [selectedManga?.id, activeChapter?.id, pageProgress])
+
+  // Finalize watching duration on unmount
+  useEffect(() => {
+    return () => {
+      if (activeSessionRef.current) {
+        const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+        if (elapsed > 0) {
+          updateHistoryDuration({
+            mangaId: activeSessionRef.current.mangaId,
+            chapterId: activeSessionRef.current.chapterId,
+            durationSeconds: elapsed
+          })
+        }
+      }
+    }
+  }, [updateHistoryDuration])
+
+  const { data: episodes = [] } = useMediaItems(
+    'anime',
     selectedManga?.id || '',
     activeExtension || '',
     selectedManga?.url
   )
 
-  const [servers, setServers] = useState<string[]>([])
+  const [servers, setServers] = useState<ServerItem[]>([])
   const [activeServerIdx, setActiveServerIdx] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,9 +161,14 @@ export default function AnimeViewer() {
   const [showControls, setShowControls] = useState(true)
   const [isEpisodesOpen, setIsEpisodesOpen] = useState(false)
   const [isSwitchingServer, setIsSwitchingServer] = useState(false)
+  const [switchingNotice, setSwitchingNotice] = useState<string | null>(null)
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null)
   const { autoNextAnime, setAutoNextAnime, autoSwitchServer } = useSettingsStore()
 
   const controlsTimeoutRef = useRef<any | null>(null)
+  const activeEpisodeRef = useRef<HTMLButtonElement | null>(null)
+  const watchdogRef = useRef<any | null>(null)
+  const loadGenerationRef = useRef(0)
 
   // Cinema Mode: Auto-hide controls
   useEffect(() => {
@@ -70,6 +189,24 @@ export default function AnimeViewer() {
     }
   }, [isEpisodesOpen])
 
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  // Auto-scroll active episode into center view when opening drawer
+  useEffect(() => {
+    if (isEpisodesOpen && activeEpisodeRef.current) {
+      setTimeout(() => {
+        activeEpisodeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [isEpisodesOpen])
+
   // Auto-expand debug on error
   useEffect(() => {
     if (error) setShowDebug(true)
@@ -87,13 +224,752 @@ export default function AnimeViewer() {
   const prevEpisode =
     currentIndex !== -1 && currentIndex > 0 ? sortedEpisodes[currentIndex - 1] : null
 
+  // Auto-next countdown timer listener for iframe postMessage
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'videoEnded' || e.data?.event === 'ended') {
+        if (autoNextAnime && nextEpisode) {
+          setAutoNextCountdown(5)
+        }
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [autoNextAnime, nextEpisode])
+
+  useEffect(() => {
+    if (autoNextCountdown === null) return
+    if (autoNextCountdown <= 0) {
+      setAutoNextCountdown(null)
+      if (nextEpisode) setActiveChapter(nextEpisode)
+      return
+    }
+    const timer = setTimeout(() => {
+      setAutoNextCountdown((prev) => (prev !== null ? prev - 1 : null))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [autoNextCountdown, nextEpisode, setActiveChapter])
+
+  const failoverToNextServer = useCallback(
+    (reason?: string) => {
+      console.warn(`[AnimeViewer] Server failover triggered: ${reason || 'Unknown failure'}`)
+
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current)
+        watchdogRef.current = null
+      }
+
+      setServers((prevServers) => {
+        if (!prevServers || prevServers.length === 0) {
+          setError(reason || 'Failed to play video stream on this server.')
+          return prevServers
+        }
+
+        // Mark current server as dead
+        const updated = [...prevServers]
+        if (updated[activeServerIdx]) {
+          updated[activeServerIdx] = {
+            ...updated[activeServerIdx],
+            status: 'dead',
+            error: reason
+          }
+        }
+
+        if (!autoSwitchServer || updated.length <= 1) {
+          setError(reason || `Server ${activeServerIdx + 1} failed to respond.`)
+          return updated
+        }
+
+        // Search for next viable server:
+        // Priority 1: Next server that is known 'alive' AND direct stream
+        let nextIdx = -1
+        for (let step = 1; step < updated.length; step++) {
+          const checkIdx = (activeServerIdx + step) % updated.length
+          const s = updated[checkIdx]
+          if (s?.status === 'alive' && (s.type === 'hls' || s.type === 'mp4')) {
+            nextIdx = checkIdx
+            break
+          }
+        }
+
+        // Priority 2: Next server that is known 'alive' (any type)
+        if (nextIdx === -1) {
+          for (let step = 1; step < updated.length; step++) {
+            const checkIdx = (activeServerIdx + step) % updated.length
+            if (updated[checkIdx]?.status === 'alive') {
+              nextIdx = checkIdx
+              break
+            }
+          }
+        }
+
+        // Priority 3: Next server that is 'checking' or 'untested'
+        if (nextIdx === -1) {
+          for (let step = 1; step < updated.length; step++) {
+            const checkIdx = (activeServerIdx + step) % updated.length
+            if (updated[checkIdx]?.status !== 'dead') {
+              nextIdx = checkIdx
+              break
+            }
+          }
+        }
+
+        if (nextIdx !== -1) {
+          const target = updated[nextIdx]
+          const targetName = target.name || `Server ${nextIdx + 1}`
+          setIsSwitchingServer(true)
+          setSwitchingNotice(`Switching to ${targetName} (${nextIdx + 1}/${updated.length})`)
+
+          setTimeout(() => {
+            setActiveServerIdx(nextIdx)
+            setIsSwitchingServer(false)
+            setError(null)
+          }, 350)
+        } else {
+          setError('All streaming servers for this episode were tested and unreachable.')
+        }
+
+        return updated
+      })
+    },
+    [activeServerIdx, autoSwitchServer]
+  )
+
+  const handleManualSwitch = useCallback(() => {
+    if (servers.length <= 1) return
+
+    // Find next server (prefer alive or not dead)
+    let nextIdx = (activeServerIdx + 1) % servers.length
+    for (let step = 1; step < servers.length; step++) {
+      const checkIdx = (activeServerIdx + step) % servers.length
+      if (servers[checkIdx]?.status !== 'dead') {
+        nextIdx = checkIdx
+        break
+      }
+    }
+
+    setActiveServerIdx(nextIdx)
+    const targetServer = servers[nextIdx]
+    const sName = typeof targetServer === 'object' ? targetServer.name : targetServer
+    if (sName) {
+      localStorage.setItem('autakimi-anime-preferred-server', sName)
+    }
+  }, [servers, activeServerIdx])
+
+  const loadServers = useCallback(async () => {
+    if (!activeChapter || !activeExtension) return
+    const currentGen = ++loadGenerationRef.current
+
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current)
+      watchdogRef.current = null
+    }
+
+    setLoading(true)
+    setError(null)
+    setIsSwitchingServer(false)
+
+    try {
+      console.log(`[AnimeViewer] Resolving source for: ${activeExtension}`)
+      const source = await ExtensionResolver.resolve(activeExtension)
+      if (!source) throw new Error('Could not resolve extension source.')
+
+      console.log(`[AnimeViewer] Fetching servers from: ${source.name} (v${source.version})`)
+      const res: any = await source.fetchPages(activeChapter.url)
+
+      if (currentGen !== loadGenerationRef.current) return
+
+      const urls = res?.urls || (Array.isArray(res) ? res : [])
+      const debug = res?.debug || null
+      setDebugInfo(debug)
+
+      if (urls && urls.length > 0) {
+        // Normalize candidate server items
+        const initialServers: ServerItem[] = urls.map((srv: any, idx: number) => {
+          if (typeof srv === 'object') {
+            return {
+              name: srv.name || `Server ${idx + 1}`,
+              url: srv.url,
+              type: srv.type || getVideoType(srv),
+              headers: srv.headers,
+              status: 'checking'
+            }
+          }
+          return {
+            name: `Server ${idx + 1}`,
+            url: String(srv),
+            type: getVideoType(srv),
+            status: 'checking'
+          }
+        })
+
+        setServers(initialServers)
+
+        // Find initial optimistic target index: ALWAYS prioritize direct native streams
+        const hasDirectServers = initialServers.some((s) => s.type === 'hls' || s.type === 'mp4')
+        const lastServer = localStorage.getItem('autakimi-anime-preferred-server')
+        let targetIdx = -1
+        if (lastServer) {
+          targetIdx = initialServers.findIndex((s) => s.name === lastServer)
+        }
+        if (targetIdx === -1 || (hasDirectServers && initialServers[targetIdx]?.type === 'embed')) {
+          const directIdx = initialServers.findIndex((s) => s.type === 'hls' || s.type === 'mp4')
+          targetIdx = directIdx !== -1 ? directIdx : 0
+        }
+        setActiveServerIdx(targetIdx)
+
+        // Concurrently probe all servers in the background with strict timeout
+        const probePromises = initialServers.map(async (srv, i) => {
+          try {
+            const probeRes = await DataService.probeStream(srv.url, srv.headers, 2500)
+            return {
+              i,
+              status: (probeRes.alive ? 'alive' : 'dead') as 'alive' | 'dead',
+              pingMs: probeRes.pingMs,
+              error: probeRes.error
+            }
+          } catch {
+            return {
+              i,
+              status: 'dead' as const,
+              error: 'Probe error'
+            }
+          }
+        })
+
+        Promise.all(probePromises).then((results) => {
+          if (currentGen !== loadGenerationRef.current) return
+          let nextAliveIdx = -1
+
+          setServers((prevServers) => {
+            const updated = prevServers.map((srv, i) => {
+              const res = results.find((r) => r.i === i)
+              if (!res) return srv
+              return {
+                ...srv,
+                status: res.status,
+                pingMs: res.pingMs,
+                error: res.error
+              }
+            })
+
+            const current = updated[targetIdx]
+            if (current && current.status === 'dead') {
+              const aliveDirectIdx = updated.findIndex((s) => s.status === 'alive' && (s.type === 'hls' || s.type === 'mp4'))
+              if (aliveDirectIdx !== -1) {
+                nextAliveIdx = aliveDirectIdx
+              } else {
+                nextAliveIdx = updated.findIndex((s) => s.status === 'alive')
+              }
+            }
+
+            return updated
+          })
+
+          if (nextAliveIdx !== -1 && nextAliveIdx !== targetIdx) {
+            console.warn(`[AnimeViewer] Initial server probed DEAD, fast-switching to index ${nextAliveIdx}...`)
+            setActiveServerIdx(nextAliveIdx)
+          }
+        })
+
+        // Trigger history immediately when servers are ready
+        if (selectedManga && activeChapter) {
+          if (
+            activeSessionRef.current &&
+            (activeSessionRef.current.mangaId !== selectedManga.id ||
+              activeSessionRef.current.chapterId !== activeChapter.id)
+          ) {
+            const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+            if (elapsed > 0) {
+              updateHistoryDuration({
+                mangaId: activeSessionRef.current.mangaId,
+                chapterId: activeSessionRef.current.chapterId,
+                durationSeconds: elapsed
+              })
+            }
+          }
+
+          activeSessionRef.current = {
+            mangaId: selectedManga.id,
+            chapterId: activeChapter.id,
+            startTime: Date.now()
+          }
+
+          const existingProgress =
+            useProgressStore.getState().pageProgress[selectedManga.id]?.[activeChapter.id] || undefined
+
+          markChapterRead(
+            selectedManga.id,
+            activeChapter.id,
+            true,
+            existingProgress,
+            Number(activeChapter.number) || undefined
+          )
+          addHistoryEntry({
+            mangaId: selectedManga.id,
+            mangaTitle: selectedManga.title,
+            chapterId: activeChapter.id,
+            chapterTitle: activeChapter.title || undefined,
+            startedAt: new Date().toISOString(),
+            durationSeconds: 0,
+            pkg: activeExtension || undefined,
+            type: 'anime'
+          })
+        }
+      } else {
+        setError('No streaming servers found for this episode.')
+      }
+    } catch (err: any) {
+      console.error('[AnimeViewer] Failed to load servers:', err)
+      setError(err?.message || 'Failed to load streaming servers.')
+    } finally {
+      if (currentGen === loadGenerationRef.current) {
+        setLoading(false)
+      }
+    }
+  }, [
+    activeChapter?.id,
+    activeChapter?.url,
+    activeChapter?.number,
+    activeChapter?.title,
+    activeExtension,
+    selectedManga?.id,
+    selectedManga?.title
+  ])
+
+  useEffect(() => {
+    loadServers()
+  }, [activeChapter?.id, activeExtension])
+
+  const s = servers[activeServerIdx]
+  const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
+  const videoType = useMemo(() => getVideoType(s), [s])
+
+  // Reset player state on episode or server change
+  useEffect(() => {
+    hasResumedRef.current = false
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+    setBufferedPercent(0)
+    setIsBuffering(false)
+  }, [activeChapter?.id, activeServerIdx])
+
+  // Setup HLS / Video playback & attach proxy headers
+  useEffect(() => {
+    if (!activeServerUrl) return
+
+    let isMounted = true
+
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current)
+      watchdogRef.current = null
+    }
+
+    // Active Watchdog: 4500ms for direct streams, 6500ms for embeds
+    const timeoutDuration = videoType === 'embed' ? 6500 : 4500
+    watchdogRef.current = setTimeout(() => {
+      if (!isMounted) return
+      const video = videoRef.current
+      if (videoType !== 'embed' && video && video.readyState < 2 && video.currentTime === 0) {
+        console.warn(`[AnimeViewer] Watchdog triggered on server ${activeServerIdx + 1} (${timeoutDuration}ms)`)
+        failoverToNextServer('Server stream stalled or timed out.')
+      }
+    }, timeoutDuration)
+
+    if (videoType === 'embed') {
+      return () => {
+        isMounted = false
+        if (watchdogRef.current) {
+          clearTimeout(watchdogRef.current)
+          watchdogRef.current = null
+        }
+      }
+    }
+
+    const setupPlayer = async () => {
+      if (typeof s === 'object' && s?.headers && Object.keys(s.headers).length > 0) {
+        try {
+          await DataService.setStreamHeaders(activeServerUrl, s.headers)
+        } catch (err) {
+          console.warn('[AnimeViewer] Failed to set stream headers:', err)
+        }
+      }
+
+      if (!isMounted) return
+      const video = videoRef.current
+      if (!video) return
+
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
+      }
+
+      if (videoType === 'hls') {
+        if (Hls.isSupported()) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            backBufferLength: 60,
+            manifestLoadingTimeOut: 3500,
+            manifestLoadingMaxRetry: 1,
+            manifestLoadingRetryDelay: 500,
+            levelLoadingTimeOut: 4000,
+            levelLoadingMaxRetry: 1,
+            fragLoadingTimeOut: 5000,
+            fragLoadingMaxRetry: 2
+          })
+          hlsRef.current = hls
+          hls.loadSource(activeServerUrl)
+          hls.attachMedia(video)
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (watchdogRef.current) {
+              clearTimeout(watchdogRef.current)
+              watchdogRef.current = null
+            }
+            if (isMounted) {
+              const playPromise = video.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                  video.muted = true
+                  setIsMuted(true)
+                  video.play().catch(() => {})
+                })
+              }
+            }
+          })
+
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            console.warn('[AnimeViewer] HLS Error:', data)
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  if (
+                    data.details === 'manifestLoadError' ||
+                    data.details === 'manifestLoadTimeOut' ||
+                    data.details === 'levelLoadError' ||
+                    data.details === 'levelLoadTimeOut'
+                  ) {
+                    failoverToNextServer(`HLS stream unreachable (${data.details})`)
+                  } else {
+                    hls.startLoad()
+                  }
+                  break
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  hls.recoverMediaError()
+                  break
+                default:
+                  hls.destroy()
+                  failoverToNextServer(`HLS playback error: ${data.details || 'fatal'}`)
+                  break
+              }
+            }
+          })
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = activeServerUrl
+          video.play().catch(() => {})
+        } else {
+          failoverToNextServer('HLS playback is not supported on this browser.')
+        }
+      } else if (videoType === 'mp4') {
+        video.src = activeServerUrl
+        video.load()
+        const playPromise = video.play()
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            video.muted = true
+            setIsMuted(true)
+            video.play().catch(() => {})
+          })
+        }
+      }
+    }
+
+    setupPlayer()
+
+    return () => {
+      isMounted = false
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current)
+        watchdogRef.current = null
+      }
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
+      }
+      if (videoRef.current) {
+        videoRef.current.pause()
+        videoRef.current.removeAttribute('src')
+        videoRef.current.load()
+      }
+    }
+  }, [activeServerUrl, videoType, s, failoverToNextServer, activeServerIdx])
+
+  const handleLoadedMetadata = () => {
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current)
+      watchdogRef.current = null
+    }
+    const video = videoRef.current
+    if (!video) return
+    const dur = video.duration || 0
+    setDuration(dur)
+
+    // Auto-resume from saved progress if user was at least 10s into the video
+    // and not within the last 15 seconds
+    if (!hasResumedRef.current && savedProgressSeconds > 10 && savedProgressSeconds < dur - 15) {
+      video.currentTime = savedProgressSeconds
+      hasResumedRef.current = true
+      setResumeNotice(`Resumed from ${formatTime(savedProgressSeconds)}`)
+      setTimeout(() => setResumeNotice(null), 3500)
+    }
+
+    if (video.paused) {
+      video.play().catch(() => {})
+    }
+  }
+
+  const handleTimeUpdate = () => {
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current)
+      watchdogRef.current = null
+    }
+    const video = videoRef.current
+    if (!video) return
+    setCurrentTime(video.currentTime)
+
+    // Calculate buffered percentage
+    if (video.buffered.length > 0) {
+      const bufferedEnd = video.buffered.end(video.buffered.length - 1)
+      const dur = video.duration || 1
+      setBufferedPercent(Math.min(100, (bufferedEnd / dur) * 100))
+    }
+
+    // Throttle database progress save every 4 seconds
+    const currentSec = Math.floor(video.currentTime)
+    if (
+      selectedManga &&
+      activeChapter &&
+      currentSec > 0 &&
+      Math.abs(currentSec - lastProgressSaveRef.current) >= 4
+    ) {
+      lastProgressSaveRef.current = currentSec
+      markChapterRead(selectedManga.id, activeChapter.id, true, currentSec)
+    }
+  }
+
+  const handleVideoEnded = () => {
+    setIsPlaying(false)
+    if (selectedManga && activeChapter && duration > 0) {
+      markChapterRead(
+        selectedManga.id,
+        activeChapter.id,
+        true,
+        Math.floor(duration),
+        Number(activeChapter.number) || undefined
+      )
+    }
+    if (autoNextAnime && nextEpisode) {
+      setAutoNextCountdown(5)
+    }
+  }
+
+  const handleVideoError = () => {
+    console.error('[AnimeViewer] Native video playback error')
+    failoverToNextServer(`Server ${activeServerIdx + 1} stream playback error.`)
+  }
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) {
+      video.play().catch(() => {})
+    } else {
+      video.pause()
+    }
+  }, [])
+
+  const seekBy = useCallback((seconds: number) => {
+    const video = videoRef.current
+    if (!video) return
+    const target = Math.max(0, Math.min(video.duration || 0, video.currentTime + seconds))
+    video.currentTime = target
+    setCurrentTime(target)
+  }, [])
+
+  const adjustVolume = useCallback((delta: number) => {
+    const video = videoRef.current
+    if (!video) return
+    const newVol = Math.max(0, Math.min(1, Number((video.volume + delta).toFixed(2))))
+    video.volume = newVol
+    video.muted = newVol === 0
+    setVolume(newVol)
+    setIsMuted(newVol === 0)
+  }, [])
+
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    if (isMuted) {
+      video.muted = false
+      setIsMuted(false)
+      video.volume = volume || 1
+    } else {
+      video.muted = true
+      setIsMuted(true)
+    }
+  }, [isMuted, volume])
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value)
+    setVolume(val)
+    setIsMuted(val === 0)
+    if (videoRef.current) {
+      videoRef.current.volume = val
+      videoRef.current.muted = val === 0
+    }
+  }
+
+  const changeSpeed = () => {
+    const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2]
+    const curIdx = speedOptions.indexOf(playbackRate)
+    const nextIdx = (curIdx + 1) % speedOptions.length
+    const newSpeed = speedOptions[nextIdx]
+    setPlaybackRate(newSpeed)
+    if (videoRef.current) {
+      videoRef.current.playbackRate = newSpeed
+    }
+  }
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      const container = containerRef.current || document.documentElement
+      if (container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {})
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {})
+      }
+    }
+  }, [])
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current || !videoRef.current || !duration) return
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const newTime = pos * duration
+    videoRef.current.currentTime = newTime
+    setCurrentTime(newTime)
+  }
+
+  const handleMouseMoveProgressBar = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current || !duration) return
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setHoverTime(pos * duration)
+    setHoverX(e.clientX - rect.left)
+  }
+
+  const handleMouseLeaveProgressBar = () => {
+    setHoverTime(null)
+  }
+
+  const reloadPlayer = useCallback(() => {
+    if (videoType !== 'embed' && videoRef.current) {
+      const cur = videoRef.current.currentTime
+      if (videoType === 'hls' && hlsRef.current) {
+        hlsRef.current.stopLoad()
+        hlsRef.current.startLoad()
+      } else {
+        videoRef.current.load()
+      }
+      videoRef.current.currentTime = cur
+      videoRef.current.play().catch(() => {})
+    } else {
+      const iframe = document.querySelector('iframe')
+      if (iframe && iframe.src) {
+        try {
+          const currentSrc = iframe.src
+          iframe.src = currentSrc
+        } catch {
+          loadServers()
+        }
+      } else {
+        loadServers()
+      }
+    }
+  }, [videoType, loadServers])
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
       switch (e.key.toLowerCase()) {
+        case ' ':
+        case 'k':
+          e.preventDefault()
+          if (videoType !== 'embed' && videoRef.current) {
+            togglePlay()
+          } else {
+            try {
+              const iframe = document.querySelector('iframe')
+              iframe?.contentWindow?.postMessage({ type: 'togglePlay' }, '*')
+            } catch {}
+          }
+          break
+        case 'f':
+          e.preventDefault()
+          toggleFullscreen()
+          break
+        case 'arrowleft':
+        case 'j':
+          e.preventDefault()
+          if (videoType !== 'embed' && videoRef.current) {
+            seekBy(-10)
+          } else {
+            try {
+              const iframe = document.querySelector('iframe')
+              iframe?.contentWindow?.postMessage({ type: 'seek', offset: -10 }, '*')
+            } catch {}
+          }
+          break
+        case 'arrowright':
+        case 'l':
+          e.preventDefault()
+          if (videoType !== 'embed' && videoRef.current) {
+            seekBy(10)
+          } else {
+            try {
+              const iframe = document.querySelector('iframe')
+              iframe?.contentWindow?.postMessage({ type: 'seek', offset: 10 }, '*')
+            } catch {}
+          }
+          break
+        case 'arrowup':
+          e.preventDefault()
+          if (videoType !== 'embed' && videoRef.current) {
+            adjustVolume(0.1)
+          } else {
+            try {
+              const iframe = document.querySelector('iframe')
+              iframe?.contentWindow?.postMessage({ type: 'volume', delta: 0.1 }, '*')
+            } catch {}
+          }
+          break
+        case 'arrowdown':
+          e.preventDefault()
+          if (videoType !== 'embed' && videoRef.current) {
+            adjustVolume(-0.1)
+          } else {
+            try {
+              const iframe = document.querySelector('iframe')
+              iframe?.contentWindow?.postMessage({ type: 'volume', delta: -0.1 }, '*')
+            } catch {}
+          }
+          break
         case 'n':
           if (nextEpisode) setActiveChapter(nextEpisode)
           break
@@ -108,107 +984,42 @@ export default function AnimeViewer() {
           else setActiveChapter(null)
           break
         case 'r':
-          window.location.reload()
+          e.preventDefault()
+          reloadPlayer()
           break
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [nextEpisode, prevEpisode, isEpisodesOpen, setActiveChapter])
-
-  useEffect(() => {
-    const loadServers = async () => {
-      if (!activeChapter || !activeExtension) return
-      setLoading(true)
-      setError(null)
-      try {
-        console.log(`[AnimeViewer] Resolving source for: ${activeExtension}`)
-        const source = await ExtensionResolver.resolve(activeExtension)
-        if (!source) throw new Error('Could not resolve extension source.')
-
-        console.log(`[AnimeViewer] Fetching servers from: ${source.name} (v${source.version})`)
-        const res: any = await source.fetchPages(activeChapter.url)
-
-        const urls = res?.urls || (Array.isArray(res) ? res : [])
-        const debug = res?.debug || null
-        setDebugInfo(debug)
-
-        if (urls && urls.length > 0) {
-          setServers(urls)
-
-          // Server Preference: Try to find the last used server
-          const lastServer = localStorage.getItem('autakimi-anime-preferred-server')
-          let targetIdx = 0
-          if (lastServer) {
-            const prefIdx = urls.findIndex(
-              (s: any) => (typeof s === 'object' ? s.name : s) === lastServer
-            )
-            if (prefIdx !== -1) targetIdx = prefIdx
-          }
-
-          setActiveServerIdx(targetIdx)
-
-          // Added: Trigger history immediately when servers are ready
-          if (selectedManga && activeChapter) {
-            markChapterRead(selectedManga.id, activeChapter.id, true)
-            addHistoryEntry({
-              mangaId: selectedManga.id,
-              mangaTitle: selectedManga.title,
-              chapterId: activeChapter.id,
-              chapterTitle: activeChapter.title || undefined,
-              startedAt: new Date().toISOString(),
-              durationSeconds: 0,
-              pkg: activeExtension || undefined,
-              type: 'anime'
-            })
-          }
-        } else {
-          setError('No streaming servers found for this episode.')
-        }
-      } catch (err: any) {
-        console.error('[AnimeViewer] Failed to load servers:', err)
-        setError(err?.message || 'Failed to load streaming servers.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadServers()
-  }, [activeChapter?.id, activeExtension])
-
-  // Auto-switch server logic
-  useEffect(() => {
-    if (error && autoSwitchServer && servers.length > 1 && activeServerIdx < servers.length - 1) {
-      setIsSwitchingServer(true)
-      const timer = setTimeout(() => {
-        setActiveServerIdx((prev) => prev + 1)
-        setIsSwitchingServer(false)
-        setError(null)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-    return undefined
-  }, [error, autoSwitchServer, servers.length, activeServerIdx])
+  }, [
+    videoType,
+    togglePlay,
+    seekBy,
+    adjustVolume,
+    toggleFullscreen,
+    nextEpisode,
+    prevEpisode,
+    isEpisodesOpen,
+    setActiveChapter,
+    reloadPlayer
+  ])
 
   if (!activeChapter || !selectedManga) return null
 
-  const s = servers[activeServerIdx]
-  const activeServerUrl = typeof s === 'object' ? (s as any).url : s
-
   return (
     <div
+      ref={containerRef}
       className={cn(
         'fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none',
+        !showControls && 'cursor-none',
         mobile && 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
       )}
     >
-      <TitleBar />
-
       {/* Top Header Overlay */}
       <div
         className={cn(
-          'absolute top-8 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
+          'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
           !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
         )}
       >
@@ -266,16 +1077,32 @@ export default function AnimeViewer() {
                     const idx = parseInt(e.target.value)
                     setActiveServerIdx(idx)
                     const server = servers[idx]
-                    const sName = typeof server === 'object' ? (server as any).name : server
+                    const sName = typeof server === 'object' ? server.name : server
                     if (sName) {
                       localStorage.setItem('autakimi-anime-preferred-server', sName)
                     }
                   }}
                   className="bg-transparent text-xs text-primary font-bold outline-none cursor-pointer min-w-[80px]"
                 >
-                  {servers.map((s: any, i) => {
-                    const name = typeof s === 'object' ? s.name : `Server ${i + 1}`
-                    const displayName = name.length > 15 ? name.substring(0, 15) + '...' : name
+                  {servers.map((srv: any, i) => {
+                    const name = typeof srv === 'object' ? srv.name : `Server ${i + 1}`
+                    const isAlive = srv.status === 'alive'
+                    const isDead = srv.status === 'dead'
+                    const isChecking = srv.status === 'checking'
+                    const isDirect = srv.type === 'hls' || srv.type === 'mp4'
+                    const badge = isAlive
+                      ? isDirect
+                        ? '🟢⚡ '
+                        : '🟢 '
+                      : isDead
+                      ? '🔴 '
+                      : isChecking
+                      ? '⏳ '
+                      : isDirect
+                      ? '⚡ '
+                      : '🌐 '
+                    const ping = srv.pingMs ? ` (${srv.pingMs}ms)` : ''
+                    const displayName = `${badge}${name}${ping}`
                     return (
                       <option key={i} value={i} className="bg-neutral-900 text-white">
                         {displayName}
@@ -287,11 +1114,8 @@ export default function AnimeViewer() {
               <Button
                 variant="ghost"
                 size="icon"
-                title="Mirror/Switch Server"
-                onClick={() => {
-                  if (activeServerIdx < servers.length - 1) setActiveServerIdx(activeServerIdx + 1)
-                  else setActiveServerIdx(0)
-                }}
+                title="Mirror/Switch to Next Working Server"
+                onClick={handleManualSwitch}
                 className="h-9 w-9 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full"
               >
                 <RefreshCw className="h-4.5 w-4.5" />
@@ -302,8 +1126,9 @@ export default function AnimeViewer() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => window.location.reload()}
+            onClick={reloadPlayer}
             className="h-9 w-9 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+            title="Reload Player (R)"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -326,45 +1151,45 @@ export default function AnimeViewer() {
 
       {/* Main Content Area */}
       <div className="flex-1 relative flex items-center justify-center bg-black group">
-        {/* Navigation Overlays (Invisible zones for quick prev/next) */}
+        {/* Navigation Overlays (Invisible zones for quick prev/next on sides) */}
         {!loading && !error && (
           <>
             <div
               className={cn(
-                'absolute left-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-8',
+                'absolute left-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-6',
                 showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
                 !prevEpisode && 'hidden'
               )}
               onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
             >
-              <ChevronLeft className="h-12 w-12 text-white/30 hover:text-white/60 transition-colors" />
+              <ChevronLeft className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
             </div>
 
             <div
               className={cn(
-                'absolute right-0 top-0 bottom-0 w-32 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-8',
+                'absolute right-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-6',
                 showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
                 !nextEpisode && 'hidden'
               )}
               onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
             >
-              <ChevronRight className="h-12 w-12 text-white/30 hover:text-white/60 transition-colors" />
+              <ChevronRight className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
             </div>
           </>
         )}
 
         {isSwitchingServer && (
-          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
             <div className="relative">
-              <RefreshCw className="h-16 w-16 text-primary animate-spin opacity-20" />
-              <Loader2 className="absolute inset-0 h-16 w-16 text-primary animate-spin" />
+              <RefreshCw className="h-14 w-14 text-primary animate-spin opacity-20" />
+              <Loader2 className="absolute inset-0 h-14 w-14 text-primary animate-spin" />
             </div>
-            <div className="mt-8 text-center space-y-2">
-              <h2 className="text-xl font-bold tracking-tight text-white uppercase italic">
+            <div className="mt-6 text-center space-y-1">
+              <h2 className="text-lg font-bold tracking-tight text-white uppercase italic">
                 Switching Server
               </h2>
-              <p className="text-sm text-white/50 font-medium tracking-widest uppercase animate-pulse">
-                Trying alternative source ({activeServerIdx + 2}/{servers.length})
+              <p className="text-xs text-white/60 font-medium tracking-widest uppercase">
+                {switchingNotice || `Trying alternative source (${activeServerIdx + 1}/${servers.length})`}
               </p>
             </div>
           </div>
@@ -395,8 +1220,15 @@ export default function AnimeViewer() {
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button
+                onClick={loadServers}
+                className="bg-primary hover:bg-primary/90 text-white gap-2 font-bold"
+              >
+                <RefreshCw className="h-4 w-4" /> Retry All Servers
+              </Button>
+              <Button
                 onClick={() => DataService.openInternalBrowser(activeChapter.url)}
-                className="bg-white text-black hover:bg-neutral-200 gap-2 font-bold"
+                variant="outline"
+                className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 gap-2 font-bold"
               >
                 <RefreshCw className="h-4 w-4" /> Resolve Cloudflare
               </Button>
@@ -407,10 +1239,10 @@ export default function AnimeViewer() {
               >
                 {showDebug ? 'Hide Debug' : 'Show Debug Info'}
               </Button>
-              {servers.length > 1 && activeServerIdx < servers.length - 1 && (
+              {servers.length > 1 && (
                 <Button
                   variant="ghost"
-                  onClick={() => setActiveServerIdx((prev) => prev + 1)}
+                  onClick={handleManualSwitch}
                   className="text-primary hover:bg-primary/10 gap-2 font-bold"
                 >
                   <RefreshCw className="h-4 w-4" /> Try Next Server
@@ -424,26 +1256,24 @@ export default function AnimeViewer() {
                   Technical Logs
                 </p>
                 {debugInfo ? (
-                  <>
-                    <div className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1">
-                      <span className="text-neutral-500">Target URL:</span>
-                      <span className="text-neutral-300 break-all">{debugInfo.url}</span>
-                      <span className="text-neutral-500">HTML Bytes:</span>
-                      <span
-                        className={cn(
-                          'font-bold',
-                          debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
-                        )}
-                      >
-                        {debugInfo.htmlLength}{' '}
-                        {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
-                      </span>
-                      <span className="text-neutral-500">CF Blocked:</span>
-                      <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
-                        {debugInfo.isBlocked ? 'YES (Challenge Detected)' : 'NO (Clear HTML)'}
-                      </span>
-                    </div>
-                  </>
+                  <div className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1">
+                    <span className="text-neutral-500">Target URL:</span>
+                    <span className="text-neutral-300 break-all">{debugInfo.url}</span>
+                    <span className="text-neutral-500">HTML Bytes:</span>
+                    <span
+                      className={cn(
+                        'font-bold',
+                        debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
+                      )}
+                    >
+                      {debugInfo.htmlLength}{' '}
+                      {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
+                    </span>
+                    <span className="text-neutral-500">CF Blocked:</span>
+                    <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
+                      {debugInfo.isBlocked ? 'YES (Challenge Detected)' : 'NO (Clear HTML)'}
+                    </span>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] text-amber-200 font-mono">
@@ -455,22 +1285,99 @@ export default function AnimeViewer() {
             )}
           </div>
         ) : activeServerUrl ? (
-          <iframe
-            key={activeServerUrl}
-            src={activeServerUrl}
-            className="w-full h-full border-none shadow-2xl bg-black"
-            allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture"
-            referrerPolicy="no-referrer"
-            title="Video Player"
-            onError={() => {
-              if (autoSwitchServer && servers.length > 1 && activeServerIdx < servers.length - 1) {
-                setError(`Server ${activeServerIdx + 1} failed to respond.`)
-              }
-            }}
-          />
+          videoType === 'embed' ? (
+            <iframe
+              key={activeServerUrl}
+              src={activeServerUrl}
+              className="w-full h-full border-none shadow-2xl bg-black"
+              allowFullScreen
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+              title="Video Player"
+              onLoad={() => {
+                if (watchdogRef.current) {
+                  clearTimeout(watchdogRef.current)
+                  watchdogRef.current = null
+                }
+              }}
+              onError={() => {
+                failoverToNextServer(`Server ${activeServerIdx + 1} failed to respond.`)
+              }}
+            />
+          ) : (
+            <div
+              className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden"
+              onClick={togglePlay}
+              onDoubleClick={toggleFullscreen}
+            >
+              <video
+                ref={videoRef}
+                className="w-full h-full object-contain cursor-pointer"
+                playsInline
+                autoPlay
+                onLoadedMetadata={handleLoadedMetadata}
+                onTimeUpdate={handleTimeUpdate}
+                onCanPlay={() => {
+                  if (watchdogRef.current) {
+                    clearTimeout(watchdogRef.current)
+                    watchdogRef.current = null
+                  }
+                  if (videoRef.current && videoRef.current.paused) {
+                    videoRef.current.play().catch(() => {})
+                  }
+                }}
+                onPlay={() => {
+                  if (watchdogRef.current) {
+                    clearTimeout(watchdogRef.current)
+                    watchdogRef.current = null
+                  }
+                  setIsPlaying(true)
+                }}
+                onPause={() => setIsPlaying(false)}
+                onWaiting={() => setIsBuffering(true)}
+                onPlaying={() => {
+                  if (watchdogRef.current) {
+                    clearTimeout(watchdogRef.current)
+                    watchdogRef.current = null
+                  }
+                  setIsBuffering(false)
+                }}
+                onEnded={handleVideoEnded}
+                onError={handleVideoError}
+              >
+                {typeof s === 'object' &&
+                  Array.isArray((s as any).subtitles) &&
+                  (s as any).subtitles.map((sub: any, idx: number) => (
+                    <track
+                      key={sub.url || idx}
+                      kind="subtitles"
+                      src={sub.url}
+                      srcLang={sub.lang || 'en'}
+                      label={sub.label || sub.lang || `Track ${idx + 1}`}
+                      default={sub.default || idx === 0}
+                    />
+                  ))}
+              </video>
+
+              {/* Buffering Indicator */}
+              {isBuffering && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                  <div className="p-4 rounded-full bg-black/60 backdrop-blur-md">
+                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )
         ) : null}
       </div>
+
+      {/* Resume Progress Toast */}
+      {resumeNotice && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md border border-primary/40 px-4 py-2 rounded-full text-xs font-bold text-primary shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+          {resumeNotice}
+        </div>
+      )}
 
       {/* Episodes Sidebar Overlay */}
       <div
@@ -498,6 +1405,7 @@ export default function AnimeViewer() {
           {sortedEpisodes.map((ep) => (
             <button
               key={ep.id}
+              ref={ep.id === activeChapter.id ? activeEpisodeRef : null}
               onClick={() => {
                 setActiveChapter(ep)
                 setIsEpisodesOpen(false)
@@ -533,46 +1441,267 @@ export default function AnimeViewer() {
         </div>
       </div>
 
-      {/* Bottom Floating Navigation (HUD) */}
-      <div
-        className={cn(
-          'absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500',
-          !showControls && 'translate-y-[150%] opacity-0 pointer-events-none'
-        )}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!prevEpisode}
-          onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
-          className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+      {/* Bottom Floating Navigation (HUD) for Embed/Iframe Mode */}
+      {videoType === 'embed' && (
+        <div
+          className={cn(
+            'absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500',
+            !showControls && 'translate-y-[150%] opacity-0 pointer-events-none'
+          )}
         >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!prevEpisode}
+            onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+            className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
 
-        <div className="h-8 w-px bg-white/10 mx-1" />
+          <div className="h-8 w-px bg-white/10 mx-1" />
 
-        <div className="px-6 py-2 flex flex-col items-center justify-center min-w-[140px]">
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">
-            Playing Now
-          </span>
-          <span className="text-xs font-bold text-primary tracking-tight">
-            EPISODE {activeChapter.number}
-          </span>
+          <div className="px-6 py-2 flex flex-col items-center justify-center min-w-[140px]">
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">
+              Playing Now
+            </span>
+            <span className="text-xs font-bold text-primary tracking-tight">
+              EPISODE {activeChapter.number}
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-white/10 mx-1" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!nextEpisode}
+            onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+            className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
         </div>
+      )}
 
-        <div className="h-8 w-px bg-white/10 mx-1" />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          disabled={!nextEpisode}
-          onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
-          className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+      {/* Native Video Player Control Bar */}
+      {videoType !== 'embed' && !loading && !error && activeServerUrl && (
+        <div
+          className={cn(
+            'absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-12 pb-4 px-6 z-40 flex flex-col gap-2 transition-all duration-500',
+            !showControls && 'translate-y-[110%] opacity-0 pointer-events-none'
+          )}
+          onClick={(e) => e.stopPropagation()}
         >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-      </div>
+          {/* Seekbar */}
+          <div
+            ref={progressBarRef}
+            className="relative w-full h-4 flex items-center cursor-pointer group/seek py-1"
+            onClick={handleSeek}
+            onMouseMove={handleMouseMoveProgressBar}
+            onMouseLeave={handleMouseLeaveProgressBar}
+          >
+            {/* Background track */}
+            <div className="w-full h-1 group-hover/seek:h-2 bg-white/20 rounded-full transition-all overflow-hidden relative">
+              {/* Buffered progress */}
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-white/35 rounded-full transition-all"
+                style={{ width: `${bufferedPercent}%` }}
+              />
+              {/* Played progress */}
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-primary rounded-full transition-all"
+                style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+              />
+            </div>
+
+            {/* Scrubber thumb */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md scale-0 group-hover/seek:scale-100 transition-transform pointer-events-none"
+              style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            />
+
+            {/* Hover time tooltip */}
+            {hoverTime !== null && (
+              <div
+                className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-neutral-900/90 backdrop-blur border border-white/20 text-[10px] font-mono text-white pointer-events-none"
+                style={{ left: `${hoverX}px` }}
+              >
+                {formatTime(hoverTime)}
+              </div>
+            )}
+          </div>
+
+          {/* Controls Row */}
+          <div className="flex items-center justify-between">
+            {/* Left Controls */}
+            <div className="flex items-center gap-3">
+              {/* Play / Pause */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePlay}
+                className="h-9 w-9 text-white hover:text-primary hover:bg-white/10 rounded-full"
+                title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5 fill-current" />
+                ) : (
+                  <Play className="h-5 w-5 fill-current" />
+                )}
+              </Button>
+
+              {/* Prev Episode */}
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!prevEpisode}
+                onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-20 rounded-full"
+                title="Previous Episode (P)"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Skip Back 10s */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => seekBy(-10)}
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                title="Rewind 10s (ArrowLeft)"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+
+              {/* Skip Forward 10s */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => seekBy(10)}
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                title="Forward 10s (ArrowRight)"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+
+              {/* Next Episode */}
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!nextEpisode}
+                onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-20 rounded-full"
+                title="Next Episode (N)"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              {/* Volume */}
+              <div className="flex items-center gap-1.5 ml-1 group/vol">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMute}
+                  className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="h-4 w-4 text-red-400" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </Button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="w-16 h-1 accent-primary bg-white/20 rounded-lg cursor-pointer"
+                  title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                />
+              </div>
+
+              {/* Time Display */}
+              <div className="text-xs font-mono text-white/70 ml-2 select-none">
+                <span className="text-white font-medium">{formatTime(currentTime)}</span>
+                <span className="mx-1 text-white/30">/</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Right Controls */}
+            <div className="flex items-center gap-2">
+              {/* Speed */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={changeSpeed}
+                className="h-8 px-2.5 text-xs font-bold text-white/70 hover:text-white hover:bg-white/10 rounded-lg"
+                title="Playback Speed"
+              >
+                {playbackRate}x
+              </Button>
+
+              {/* Fullscreen */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                title="Fullscreen (F)"
+              >
+                {isFullscreen ? (
+                  <Minimize className="h-4 w-4" />
+                ) : (
+                  <Maximize className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Animated Auto-Next Countdown HUD Card */}
+      {autoNextCountdown !== null && nextEpisode && (
+        <div className="absolute bottom-20 right-8 z-50 bg-neutral-900/95 backdrop-blur-2xl border border-primary/40 p-5 rounded-2xl shadow-2xl shadow-black max-w-sm animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
+              <Play className="h-3.5 w-3.5 fill-current animate-pulse" /> Next Episode in {autoNextCountdown}s
+            </span>
+            <button
+              onClick={() => setAutoNextCountdown(null)}
+              className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              title="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-sm font-semibold text-white truncate mb-4">
+            Episode {nextEpisode.number} {nextEpisode.title ? `• ${nextEpisode.title}` : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setAutoNextCountdown(null)
+                setActiveChapter(nextEpisode)
+              }}
+              className="flex-1 bg-primary text-primary-foreground font-bold text-xs h-9 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90"
+            >
+              Watch Now
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setAutoNextCountdown(null)}
+              className="border-neutral-700 hover:bg-white/5 text-neutral-300 text-xs h-9 rounded-xl"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

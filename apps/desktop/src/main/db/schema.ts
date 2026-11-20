@@ -11,14 +11,20 @@ export const extensions = sqliteTable('extensions', {
   version: text('version')
 })
 
-export const library = sqliteTable('library', {
-  id: text('id').primaryKey(),
-  title: text('title'),
-  coverUrl: text('cover_url'),
-  status: text('status'),
-  metadata: text('metadata'), // JSON string
-  mediaType: text('type').$type<'manga' | 'anime'>().default('manga')
-})
+export const library = sqliteTable(
+  'library',
+  {
+    id: text('id').primaryKey(),
+    title: text('title'),
+    coverUrl: text('cover_url'),
+    status: text('status'),
+    metadata: text('metadata'), // JSON string
+    mediaType: text('type').$type<'manga' | 'anime'>().default('manga')
+  },
+  (table) => [
+    index('idx_library_type').on(table.mediaType)
+  ]
+)
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -60,7 +66,8 @@ export const readingHistory = sqliteTable(
   (table) => {
     return [
       index('idx_history_manga').on(table.mangaId),
-      index('idx_history_started').on(table.startedAt)
+      index('idx_history_started').on(table.startedAt),
+      index('idx_history_type_started').on(table.mediaType, table.startedAt)
     ]
   }
 )
@@ -105,17 +112,40 @@ export const chapters = sqliteTable(
   }
 )
 
-export const mangaCache = sqliteTable('manga_cache', {
-  id: text('id').primaryKey(),
-  title: text('title').notNull(),
-  coverUrl: text('cover_url'),
-  description: text('description'),
-  author: text('author'),
-  artist: text('artist'),
-  status: text('status'),
-  genres: text('genres'), // JSON array string
-  url: text('url'),
-  mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
-  updatedAt: text('updated_at'),
-  expiresAt: text('expires_at')
-})
+export const mangaCache = sqliteTable(
+  'manga_cache',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    coverUrl: text('cover_url'),
+    description: text('description'),
+    author: text('author'),
+    artist: text('artist'),
+    status: text('status'),
+    genres: text('genres'), // JSON array string
+    url: text('url'),
+    mediaType: text('type').$type<'manga' | 'anime'>().default('manga'),
+    updatedAt: text('updated_at'),
+    expiresAt: text('expires_at')
+  },
+  (table) => [
+    index('idx_manga_cache_expires').on(table.expiresAt)
+  ]
+)
+
+export const trackers = sqliteTable(
+  'trackers',
+  {
+    mangaId: text('manga_id').notNull(),
+    provider: text('provider').$type<'anilist' | 'mal'>().notNull(),
+    remoteId: text('remote_id').notNull(),
+    score: integer('score').default(0),
+    status: text('status'),
+    lastSyncedChapter: integer('last_synced_chapter').default(0),
+    updatedAt: text('updated_at')
+  },
+  (table) => [
+    primaryKey({ columns: [table.mangaId, table.provider] }),
+    index('idx_trackers_manga').on(table.mangaId)
+  ]
+)

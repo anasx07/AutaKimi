@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "prepare": "husky",
+    "postinstall": "patch-package",
     "dev:desktop": "npm run dev -w apps/desktop",
     "build:desktop": "npm run build -w apps/desktop",
     "dev:mobile": "npm run start -w apps/mobile",
@@ -17,21 +18,27 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "android:studio": "scripts\\open_in_android_studio.bat",
+    "build:apk": "scripts\\Build_Apk.bat",
     "start:desktop": "scripts\\Start_dev.bat",
     "start:mobile": "scripts\\Start_mobile_dev.bat",
     "emulator": "node scripts/run-emulator.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "babel-preset-expo": "~58.0.25",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.8.0",
     "husky": "^9.1.7",
+    "patch-package": "^8.0.1",
     "prettier": "^3.7.4",
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.65.0"
+  },
+  "overrides": {
+    "react-native-worklets": "0.7.4"
   },
   "version": "2.0.18"
 }

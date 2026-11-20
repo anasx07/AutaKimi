@@ -8,6 +8,7 @@ export interface DownloadEntry {
   error: string | null
   updatedAt: string | null
   mediaType: 'manga' | 'anime' | null
+  localPages?: string[] | null
 }
 
 export interface DownloadedMedia {
@@ -16,4 +17,5 @@ export interface DownloadedMedia {
   coverUrl: string | null
   url: string | null
   mediaType: 'manga' | 'anime' | null
+  localPages?: string[] | null
 }

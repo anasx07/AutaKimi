@@ -3,14 +3,14 @@ import { IpcInvokeMap, IpcResult, IpcChannel } from '../types/ipc'
 
 const callTimestamps: Map<string, number[]> = new Map()
 
-// Default limits: max 30 requests per 5 seconds
-const DEFAULT_MAX = 30
+// Default limits: max 100 requests per 5 seconds
+const DEFAULT_MAX = 100
 const DEFAULT_WINDOW_MS = 5000
 
 // Custom channel limits
 const CHANNEL_LIMITS: Record<string, { max: number; windowMs: number }> = {
-  [IpcChannel.EXECUTE_EXTENSION]: { max: 10, windowMs: 5000 },
-  [IpcChannel.DETECT_THEME]: { max: 10, windowMs: 5000 }
+  [IpcChannel.EXECUTE_EXTENSION]: { max: 60, windowMs: 5000 },
+  [IpcChannel.DETECT_THEME]: { max: 30, windowMs: 5000 }
 }
 
 export function wrapIpc<T>(fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<T>) {
@@ -53,9 +53,21 @@ export function registerHandler<K extends keyof IpcInvokeMap>(
   })
 }
 
-export function isValidUrl(url: string | any = ''): boolean {
-  if (!url || typeof url !== 'string') return false
-  const lower = url.toLowerCase()
-  return lower.startsWith('http://') || lower.startsWith('https://')
+export function isSafeExternalUrl(url: unknown): boolean {
+  if (typeof url !== 'string' || !url.trim()) return false
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function isValidUrl(url: unknown): boolean {
+  if (typeof url !== 'string' || !url.trim()) return false
+  if (url.startsWith('autakimi-local://') || url.startsWith('autakimi-cache://')) {
+    return true
+  }
+  return isSafeExternalUrl(url)
 }
 

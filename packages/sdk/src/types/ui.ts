@@ -12,6 +12,7 @@ export type ThemeType = 'light' | 'dark' | 'system'
 
 export type ColorThemeType =
   | 'default'
+  | 'custom'
   | 'dabi'
   | 'itachi'
   | 'goku'

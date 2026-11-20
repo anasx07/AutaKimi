@@ -1,4 +1,4 @@
-import { Subject, BehaviorSubject, filter, take, mergeMap, from, takeUntil, switchMap, distinctUntilChanged, finalize } from 'rxjs'
+import { Subject, BehaviorSubject, defer, from, takeUntil, finalize } from 'rxjs'
 
 export type TaskRunner<T> = () => Promise<T>
 
@@ -6,61 +6,88 @@ export interface QueueOptions {
   concurrency?: number
 }
 
+interface QueueTask<T = any> {
+  id: string
+  run: TaskRunner<T>
+  resolve: (value: T | PromiseLike<T>) => void
+  reject: (reason?: any) => void
+  cancelled?: boolean
+}
+
 /**
- * ReactiveQueue uses RxJS to manage task concurrency and lifecycle.
- * It provides a more robust and flexible alternative to custom-rolled loops.
+ * ReactiveQueue manages task concurrency and lifecycle using a dynamic semaphore.
+ * Unlike a naive switchMap pipeline, changing concurrency does NOT cancel or teardown
+ * in-flight tasks; it dynamically expands or contracts available task slots.
  */
 export class ReactiveQueue {
-  private tasks$ = new Subject<{ id: string; run: TaskRunner<any> }>()
   private isPaused$ = new BehaviorSubject<boolean>(false)
   private concurrency$ = new BehaviorSubject<number>(3)
   private cancelSignals = new Map<string, Subject<void>>()
-  private subscription: import('rxjs').Subscription | null = null
+  private runningTaskIds = new Map<string, number>()
+  private pendingQueue: QueueTask<any>[] = []
+  private runningCount = 0
+  private concurrency = 3
+  private isPaused = false
 
   constructor(options: QueueOptions = {}) {
-    if (options.concurrency) this.concurrency$.next(options.concurrency)
-    this.init()
+    if (typeof options.concurrency === 'number' && options.concurrency > 0) {
+      this.concurrency = options.concurrency
+      this.concurrency$.next(this.concurrency)
+    }
   }
 
   /**
-   * Initializes the reactive pipeline.
-   * When concurrency changes, the pipeline is torn down and re-created
-   * with the new value. Any in-flight tasks complete naturally; tasks
-   * that were queued but not yet picked up carry over via the shared
-   * tasks$ Subject.
+   * Drain loop implementing the dynamic semaphore.
+   * Pulls tasks while runningCount < concurrency and not paused.
    */
-  private init(): void {
-    if (this.subscription) {
-      this.subscription.unsubscribe()
-    }
+  private drain(): void {
+    if (this.isPaused) return
 
-    this.subscription = this.concurrency$
+    while (this.runningCount < this.concurrency && this.pendingQueue.length > 0) {
+      const task = this.pendingQueue.shift()!
+      if (task.cancelled) {
+        task.reject(new Error(`Task ${task.id} was cancelled before starting`))
+        continue
+      }
+
+      this.runningCount++
+      this.runningTaskIds.set(task.id, (this.runningTaskIds.get(task.id) || 0) + 1)
+      this.execute(task)
+    }
+  }
+
+  private execute(task: QueueTask<any>): void {
+    const cancel$ = this.getCancelSignal(task.id)
+    let completed = false
+
+    defer(() => from(Promise.resolve().then(() => task.run())))
       .pipe(
-        distinctUntilChanged(),
-        switchMap((concurrency) =>
-          this.tasks$.pipe(
-            mergeMap((task) => {
-              return this.isPaused$.pipe(
-                filter((paused) => !paused),
-                take(1),
-                mergeMap(() => {
-                  const cancel$ = this.getCancelSignal(task.id)
-                  return from(task.run()).pipe(
-                    takeUntil(cancel$),
-                    finalize(() => {
-                      this.cancelSignals.delete(task.id)
-                    })
-                  )
-                })
-              )
-            }, concurrency)
-          )
-        )
+        takeUntil(cancel$),
+        finalize(() => {
+          this.runningCount--
+          const count = (this.runningTaskIds.get(task.id) || 1) - 1
+          if (count <= 0) {
+            this.runningTaskIds.delete(task.id)
+            this.cancelSignals.delete(task.id)
+          } else {
+            this.runningTaskIds.set(task.id, count)
+          }
+          this.drain()
+        })
       )
       .subscribe({
+        next: (val) => {
+          completed = true
+          task.resolve(val)
+        },
         error: (err) => {
-          console.error('[ReactiveQueue] Fatal Stream Error:', err)
-          this.init()
+          completed = true
+          task.reject(err)
+        },
+        complete: () => {
+          if (!completed) {
+            task.reject(new Error(`Task ${task.id} was cancelled`))
+          }
         }
       })
   }
@@ -69,20 +96,14 @@ export class ReactiveQueue {
    * Adds a task to the queue. Returns a promise that resolves when the task finishes.
    */
   public add<T>(id: string, run: TaskRunner<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.tasks$.next({
+    return new Promise<T>((resolve, reject) => {
+      this.pendingQueue.push({
         id,
-        run: async () => {
-          try {
-            const res = await run()
-            resolve(res)
-            return res
-          } catch (e) {
-            reject(e)
-            throw e
-          }
-        }
+        run,
+        resolve,
+        reject
       })
+      this.drain()
     })
   }
 
@@ -97,6 +118,7 @@ export class ReactiveQueue {
    * Pauses task consumption. Already running tasks will continue.
    */
   public pause(): void {
+    this.isPaused = true
     this.isPaused$.next(true)
   }
 
@@ -104,13 +126,28 @@ export class ReactiveQueue {
    * Resumes task consumption.
    */
   public resume(): void {
+    this.isPaused = false
     this.isPaused$.next(false)
+    this.drain()
   }
 
   /**
    * Cancels all pending and active tasks associated with a specific ID.
    */
   public cancel(id: string): void {
+    // 1. Cancel and remove any pending tasks with this ID
+    const remaining: QueueTask<any>[] = []
+    for (const task of this.pendingQueue) {
+      if (task.id === id) {
+        task.cancelled = true
+        task.reject(new Error(`Task ${id} was cancelled`))
+      } else {
+        remaining.push(task)
+      }
+    }
+    this.pendingQueue = remaining
+
+    // 2. Signal cancellation to in-flight tasks
     const signal = this.cancelSignals.get(id)
     if (signal) {
       signal.next()
@@ -120,34 +157,41 @@ export class ReactiveQueue {
   }
 
   /**
-   * Updates the concurrency limit.
-   * The pipeline is restarted with the new concurrency value.
-   * In-flight tasks continue; queued tasks are picked up under the new limit.
+   * Updates the concurrency limit using dynamic semaphore capacity.
+   * In-flight tasks continue without interruption. If concurrency increased,
+   * available pending tasks are immediately dispatched.
    */
   public setConcurrency(n: number): void {
-    this.concurrency$.next(n)
+    const valid = Math.max(1, Math.floor(n))
+    if (this.concurrency === valid) return
+    this.concurrency = valid
+    this.concurrency$.next(valid)
+    this.drain()
   }
 
   /**
-   * Clears all pending and active cancel signals.
+   * Clears all pending and active tasks and cancel signals.
    */
   public clear(): void {
+    for (const task of this.pendingQueue) {
+      task.cancelled = true
+      task.reject(new Error('Queue cleared'))
+    }
+    this.pendingQueue = []
+
     this.cancelSignals.forEach((signal) => {
       signal.next()
       signal.complete()
     })
     this.cancelSignals.clear()
+    this.runningTaskIds.clear()
   }
 
   /**
-   * Tears down the pipeline. Call when the queue is no longer needed.
+   * Tears down the queue.
    */
   public destroy(): void {
-    if (this.subscription) {
-      this.subscription.unsubscribe()
-      this.subscription = null
-    }
-    this.tasks$.complete()
+    this.clear()
     this.isPaused$.complete()
     this.concurrency$.complete()
   }

@@ -8,6 +8,10 @@ const downloadCallbacks = new Set<DownloadEventCallback>()
 
 const DOWNLOADS_DIR = `${FileSystem.documentDirectory}Downloads/`
 
+function sanitizePathSegment(segment: string): string {
+  return encodeURIComponent(segment || '').replace(/%/g, '_').replace(/[:/\\?*|"><]/g, '_')
+}
+
 function metaKey(mangaId: string, chapterId: string) {
   return `dl_meta_${mangaId}:${chapterId}`
 }
@@ -96,7 +100,9 @@ export const MobileDownload = {
         cached: 0
       })
 
-      const targetDirSub = `${args.type}/${args.mangaId}/${args.chapterId}`
+      const safeMangaId = sanitizePathSegment(args.mangaId)
+      const safeChapterId = sanitizePathSegment(args.chapterId)
+      const targetDirSub = `${args.type}/${safeMangaId}/${safeChapterId}`
       const targetDirUri = `${DOWNLOADS_DIR}${targetDirSub}/`
 
       try {
@@ -190,7 +196,9 @@ export const MobileDownload = {
     // 3. Determine mediaType to delete the correct folder
     const statusInfo = await this.getStatus(args)
     const mediaType = statusInfo.ok && statusInfo.value?.mediaType ? statusInfo.value.mediaType : 'manga'
-    const targetDirSub = `${mediaType}/${args.mangaId}/${args.chapterId}`
+    const safeMangaId = sanitizePathSegment(args.mangaId)
+    const safeChapterId = sanitizePathSegment(args.chapterId)
+    const targetDirSub = `${mediaType}/${safeMangaId}/${safeChapterId}`
     const targetDirUri = `${DOWNLOADS_DIR}${targetDirSub}`
 
     try {

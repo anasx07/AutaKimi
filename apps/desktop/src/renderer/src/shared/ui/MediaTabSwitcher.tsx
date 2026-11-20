@@ -1,5 +1,6 @@
 import { cn } from '@renderer/shared/lib/utils'
 import { BookOpen, Play } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 interface MediaTabSwitcherProps {
   activeTab: 'manga' | 'anime'
@@ -11,35 +12,45 @@ export function MediaTabSwitcher({ activeTab, onTabChange, className }: MediaTab
   return (
     <div
       className={cn(
-        'relative flex items-center bg-secondary/60 p-1 rounded-xl w-fit border border-white/5',
+        'relative flex items-center bg-secondary/50 p-1 rounded-xl w-fit border border-border/40',
         className
       )}
     >
-      <div
-        className={cn(
-          'absolute top-1 bottom-1 w-[96px] bg-card rounded-lg shadow-sm border border-border/50 transition-transform duration-300 ease-in-out pointer-events-none',
-          activeTab === 'anime' ? 'translate-x-full' : 'translate-x-0'
-        )}
-      />
       <button
+        type="button"
         onClick={() => onTabChange('manga')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 w-[96px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
-          activeTab === 'manga' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          'relative z-10 flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-xs font-bold transition-colors duration-200 select-none focus:outline-none',
+          activeTab === 'manga' ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'
         )}
       >
+        {activeTab === 'manga' && (
+          <motion.div
+            layoutId="activeMediaTabPill"
+            className="absolute inset-0 bg-card rounded-lg shadow-sm border border-border/50 -z-10"
+            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+          />
+        )}
         <BookOpen className="w-3.5 h-3.5" />
-        Manga
+        <span>Manga</span>
       </button>
       <button
+        type="button"
         onClick={() => onTabChange('anime')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 w-[96px] rounded-lg text-xs font-bold transition-colors duration-300 select-none focus:outline-none',
-          activeTab === 'anime' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          'relative z-10 flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-xs font-bold transition-colors duration-200 select-none focus:outline-none',
+          activeTab === 'anime' ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'
         )}
       >
+        {activeTab === 'anime' && (
+          <motion.div
+            layoutId="activeMediaTabPill"
+            className="absolute inset-0 bg-card rounded-lg shadow-sm border border-border/50 -z-10"
+            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+          />
+        )}
         <Play className="w-3.5 h-3.5" />
-        Anime
+        <span>Anime</span>
       </button>
     </div>
   )

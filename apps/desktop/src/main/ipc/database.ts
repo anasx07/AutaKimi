@@ -10,6 +10,8 @@ import {
 } from '../db'
 import { registerHandler, wrapIpc } from './utils'
 import { cacheManager, CacheGroup } from '../services/cache.service'
+import { downloadManager } from '../services/download.service'
+import { trackingService } from '../services/tracking.service'
 
 const repos = {
   extension: extensionRepo,
@@ -27,18 +29,18 @@ function dbHandler(repo: keyof typeof repos, method: string) {
       if (typeof args[0] !== 'string') throw new Error('Invalid arguments: expected a string')
     }
     if (method === 'toggle') {
-      if (typeof args[0] !== 'string' || !args[1] || typeof args[1] !== 'object') {
-        throw new Error('Invalid arguments: expected (string, object)')
+      if (!args[0] || typeof args[0] !== 'object') {
+        throw new Error('Invalid arguments: expected an object (manga)')
       }
     }
     if (method === 'getProgress') {
-      if (typeof args[0] !== 'string' || typeof args[1] !== 'string') {
-        throw new Error('Invalid arguments: expected (string, string)')
+      if (typeof args[0] !== 'string') {
+        throw new Error('Invalid arguments: expected a string (mangaId)')
       }
     }
-    if (method === 'updateProgress') {
-      if (typeof args[0] !== 'string' || typeof args[1] !== 'string' || typeof args[2] !== 'number') {
-        throw new Error('Invalid arguments: expected (string, string, number)')
+    if (method === 'updateProgress' || method === 'updateProgressBatch') {
+      if (!args[0] || typeof args[0] !== 'object') {
+        throw new Error('Invalid arguments: expected an object (progressData)')
       }
     }
     if (method === 'deleteEntry') {
@@ -100,7 +102,8 @@ export function registerDatabaseHandlers() {
           id: r.id,
           title: r.title,
           coverUrl: r.coverUrl,
-          status: r.status
+          status: r.status,
+          mediaType: r.mediaType || (meta.mediaType as any) || 'manga'
         }
       }) as any
     })
@@ -130,19 +133,67 @@ export function registerDatabaseHandlers() {
       if (typeof key !== 'string') throw new Error('Invalid key')
       if (value !== null && value !== undefined && typeof value !== 'string') throw new Error('Invalid value')
       await settingsRepo.set(key, value)
+      if (key === 'download_concurrency' && value !== null && value !== undefined) {
+        const parsed = Number(value)
+        if (!isNaN(parsed) && parsed > 0) {
+          downloadManager.setConcurrency(parsed)
+        }
+      }
       return { success: true }
     })
   )
 
   registerHandler(IpcChannel.DB_GET_PROGRESS, dbHandler('progress', 'getProgress'))
 
-  registerHandler(IpcChannel.DB_UPDATE_PROGRESS, dbHandler('progress', 'updateProgress'))
+  registerHandler(
+    IpcChannel.DB_UPDATE_PROGRESS,
+    wrapIpc(async (_, data: any) => {
+      if (!data || typeof data !== 'object') throw new Error('Invalid arguments: expected an object')
+      const res = await progressRepo.updateProgress(data)
+      if (data.isRead) {
+        trackingService
+          .handleAutoSync(data.mangaId, data.chapterId, data.chapterNumber)
+          .catch((e) => {
+            console.warn('[IPC] Auto-sync background trigger error:', e)
+          })
+      }
+      return res
+    })
+  )
+
+  registerHandler(
+    IpcChannel.DB_UPDATE_PROGRESS_BATCH,
+    wrapIpc(async (_, data: any) => {
+      if (!data || typeof data !== 'object') throw new Error('Invalid arguments: expected an object')
+      const res = await progressRepo.updateProgressBatch(data)
+      if (data.isRead && Array.isArray(data.chapterIds) && data.chapterIds.length > 0) {
+        const lastChapterId = data.chapterIds[data.chapterIds.length - 1]
+        trackingService.handleAutoSync(data.mangaId, lastChapterId).catch((e) => {
+          console.warn('[IPC] Auto-sync batch background trigger error:', e)
+        })
+      }
+      return res
+    })
+  )
 
   registerHandler(
     IpcChannel.DB_ADD_HISTORY,
     wrapIpc(async (_, data) => {
       if (!data || typeof data !== 'object') throw new Error('Invalid history data')
       return historyRepo.addEntry(data)
+    })
+  )
+
+  registerHandler(
+    IpcChannel.DB_UPDATE_HISTORY_DURATION,
+    wrapIpc(async (_, args: { mangaId: string; chapterId: string; durationSeconds: number }) => {
+      if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
+      const { mangaId, chapterId, durationSeconds } = args
+      if (typeof mangaId !== 'string' || typeof chapterId !== 'string' || typeof durationSeconds !== 'number') {
+        throw new Error('Invalid arguments for updateDuration')
+      }
+      await historyRepo.updateDuration(mangaId, chapterId, durationSeconds)
+      return { success: true }
     })
   )
 

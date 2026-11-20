@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2 } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2, Crop } from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
@@ -18,6 +18,8 @@ interface ReaderToolbarProps {
   dragToScroll: boolean
   readingMode: ReadingMode
   readerTheme?: string
+  cropBorders?: boolean
+  onToggleCropBorders?: () => void
   onReadingModeChange: (mode: ReadingMode) => void
   onClose: () => void
   onOpenInBrowser: () => void
@@ -41,6 +43,8 @@ export const ReaderToolbar = memo(
     dragToScroll,
     readingMode,
     readerTheme,
+    cropBorders = false,
+    onToggleCropBorders,
     onReadingModeChange,
     onClose,
     onOpenInBrowser,
@@ -152,6 +156,26 @@ export const ReaderToolbar = memo(
               )}
             </div>
           )}
+          {isInfiniteScroll && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleCropBorders}
+              className={cn(
+                'h-9 w-9 transition-colors',
+                cropBorders
+                  ? 'text-primary bg-primary/10 border border-primary/30'
+                  : cn(textSub, 'hover:text-primary hover:bg-primary/10')
+              )}
+              title={
+                cropBorders
+                  ? 'Crop Borders: Enabled (Click to disable)'
+                  : 'Crop Borders / Smart Trim (Webtoon)'
+              }
+            >
+              <Crop className="h-4 w-4" />
+            </Button>
+          )}
           {dragToScroll && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800/50 text-primary/80 border border-white/5 text-[10px] uppercase font-black">
               <Hand className="h-3.5 w-3.5" /> Drag On
@@ -173,6 +197,8 @@ export const ReaderToolbar = memo(
                 { value: 'webtoon', label: 'Webtoon' },
                 { value: 'paged-ltr', label: 'Paged LTR' },
                 { value: 'paged-rtl', label: 'Paged RTL' },
+                { value: 'paged-double-ltr', label: 'Double Page LTR' },
+                { value: 'paged-double-rtl', label: 'Double Page RTL' },
                 { value: 'paged-vertical', label: 'Paged Vertical' },
                 { value: 'continuous-ltr', label: 'Continuous LTR' },
                 { value: 'continuous-rtl', label: 'Continuous RTL' }

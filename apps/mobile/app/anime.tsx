@@ -5,16 +5,17 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Dimensions,
   RefreshControl,
   TextInput
 } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
-import { Search, Play, Loader2 } from 'lucide-react-native'
+import { Search, Play, Loader2, ArrowLeft } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { Typography, Card, Button } from '../src/native/ui'
+import { useColorScheme } from 'nativewind'
 
 const ANIME_SOURCES = [
   { pkg: 'en.allanime', name: 'AllAnime', lang: 'en' },
@@ -34,6 +35,8 @@ interface AnimeItem {
 type FeedType = 'popular' | 'latest' | 'search'
 
 export default function AnimePage(): React.JSX.Element {
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const [activePkg, setActivePkg] = useState<string | null>(null)
   const [activeFeed, setActiveFeed] = useState<FeedType>('popular')
   const [searchQuery, setSearchQuery] = useState('')
@@ -157,9 +160,9 @@ export default function AnimePage(): React.JSX.Element {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <Play size={22} color="#3b82f6" />
+      <View className="flex-row items-center px-4 py-3 border-b border-border/40 bg-background">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+          <ArrowLeft size={22} color={isDark ? '#f4f4f5' : '#09090b'} />
         </TouchableOpacity>
         <Typography variant="h3" className="font-bold text-lg flex-1 text-center">Browse Anime</Typography>
         <View className="w-10" />
@@ -297,9 +300,10 @@ export default function AnimePage(): React.JSX.Element {
                     <View className="aspect-[3/4] bg-muted">
                       {item.coverUrl ? (
                         <Image
-                          source={{ uri: item.coverUrl.replace('https://', 'autakimi-cache://') }}
+                          source={{ uri: item.coverUrl }}
                           className="w-full h-full"
-                          resizeMode="cover"
+                          contentFit="cover"
+                          transition={150}
                         />
                       ) : (
                         <View className="w-full h-full items-center justify-center">
@@ -327,14 +331,14 @@ export default function AnimePage(): React.JSX.Element {
                     <Search size={48} color="#94a3b8" />
                     <Typography variant="muted" className="mt-4 text-center">No anime found</Typography>
                   </View>
-                ) : null
+                ) : undefined
               }
               ListFooterComponent={
                 loading && items.length > 0 ? (
                   <View className="py-8 items-center">
                     <ActivityIndicator size="small" color="#3b82f6" />
                   </View>
-                ) : null
+                ) : undefined
               }
             />
           )}

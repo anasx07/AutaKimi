@@ -1,5 +1,5 @@
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, and } from 'drizzle-orm'
 import * as schema from '../schema'
 
 export interface HistoryEntryInput {
@@ -37,6 +37,36 @@ export class HistoryRepository {
         .run()
       return result
     } catch (err) {
+      throw err
+    }
+  }
+
+  async updateDuration(mangaId: string, chapterId: string, durationSeconds: number) {
+    try {
+      const latest = this.db
+        .select({ id: schema.readingHistory.id, currentDuration: schema.readingHistory.durationSeconds })
+        .from(schema.readingHistory)
+        .where(
+          and(
+            eq(schema.readingHistory.mangaId, mangaId),
+            eq(schema.readingHistory.chapterId, chapterId)
+          )
+        )
+        .orderBy(desc(schema.readingHistory.startedAt))
+        .limit(1)
+        .get()
+
+      if (latest) {
+        const newDuration = Math.max(latest.currentDuration || 0, durationSeconds)
+        return this.db
+          .update(schema.readingHistory)
+          .set({ durationSeconds: newDuration })
+          .where(eq(schema.readingHistory.id, latest.id))
+          .run()
+      }
+      return { changes: 0 }
+    } catch (err) {
+      console.error('[HistoryRepo] Failed to update duration:', err)
       throw err
     }
   }

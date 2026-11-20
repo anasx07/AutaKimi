@@ -8,6 +8,8 @@ import { SystemService } from './system.service'
 import { SourceService } from './source.service'
 import { PluginService } from './plugin.service'
 import { SyncService } from './sync.service'
+import { TrackerService } from './tracker.service'
+import { BackupService } from './backup.service'
 
 /**
  * @deprecated Use domain-specific services (DatabaseService, WindowService, etc.) directly.
@@ -51,7 +53,9 @@ export const DataService = {
   download: DownloadService,
   sources: SourceService,
   plugins: PluginService,
-  sync: SyncService
+  sync: SyncService,
+  tracker: TrackerService,
+  backup: BackupService
 }
 
 export {
@@ -64,5 +68,7 @@ export {
   SystemService,
   SourceService,
   PluginService,
-  SyncService
+  SyncService,
+  TrackerService,
+  BackupService
 }

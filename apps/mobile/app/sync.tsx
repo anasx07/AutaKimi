@@ -6,8 +6,11 @@ import { Stack, router } from 'expo-router'
 import { ArrowLeft, Smartphone, ShieldCheck, RefreshCw } from 'lucide-react-native'
 import { Typography, Button, Card, CardContent } from '../src/native/ui'
 import { syncClient } from '../src/mobile/sync-client.native'
+import { useColorScheme } from 'nativewind'
 
 export default function SyncPage() {
+  const { colorScheme } = useColorScheme()
+  const isDark = colorScheme === 'dark'
   const [permission, requestPermission] = useCameraPermissions()
   const [scanned, setScanned] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -117,8 +120,8 @@ export default function SyncPage() {
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10 bg-background">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft size={22} color="#3b82f6" />
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+          <ArrowLeft size={22} color={isDark ? '#f4f4f5' : '#09090b'} />
         </TouchableOpacity>
         <Typography variant="h3" className="font-bold text-lg text-center flex-1 ml-4">Sync with Desktop</Typography>
         <TouchableOpacity onPress={() => setShowManualModal(true)} className="px-3 py-1.5 bg-primary/10 rounded-full">
@@ -128,7 +131,7 @@ export default function SyncPage() {
 
       <View className="flex-1 relative">
         <CameraView
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           barcodeScannerSettings={{
             barcodeTypes: ['qr'],
           }}

@@ -45,32 +45,160 @@ function normalizeOrigin(u: URL): string {
   return `${u.protocol}//${host}`.toLowerCase()
 }
 
-export function buildOriginAllowlist(repos: unknown): OriginAllowlist {
+const COMMON_IMAGE_CDNS = [
+  'wp.com',
+  'googleusercontent.com',
+  'blogspot.com',
+  'cloudinary.com',
+  'imgur.com',
+  'akamaized.net',
+  'cloudfront.net',
+  'statically.io',
+  'cdninstagram.com'
+]
+
+export function buildOriginAllowlist(repos: unknown, extensions?: unknown): OriginAllowlist {
   const origins = new Set<string>()
+
+  const addUrl = (urlStr: string) => {
+    if (typeof urlStr !== 'string' || !urlStr.trim()) return
+    let url = urlStr.trim()
+    if (url.endsWith('templates.json')) {
+      url = url.replace(/templates\.json$/, '')
+    }
+    try {
+      const u = new URL(url)
+      if (u.protocol === 'https:' || u.protocol === 'http:') {
+        origins.add(normalizeOrigin(u))
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
+  }
+
   if (Array.isArray(repos)) {
     for (const repo of repos) {
-      if (typeof repo !== 'string') continue
-      let url = repo
-      if (url.endsWith('templates.json')) {
-        url = url.replace(/templates\.json$/, '')
-      }
-      try {
-        const u = new URL(url)
-        if (u.protocol === 'https:' || u.protocol === 'http:') {
-          origins.add(normalizeOrigin(u))
+      if (typeof repo === 'string') addUrl(repo)
+    }
+  }
+
+  if (Array.isArray(extensions)) {
+    for (const ext of extensions) {
+      if (typeof ext === 'string') {
+        addUrl(ext)
+      } else if (ext && typeof ext === 'object') {
+        if ('baseUrl' in ext && typeof (ext as any).baseUrl === 'string') {
+          addUrl((ext as any).baseUrl)
         }
-      } catch {
-        // Ignore invalid repo URLs
+        if ('icon' in ext && typeof (ext as any).icon === 'string') {
+          addUrl((ext as any).icon)
+        }
       }
     }
   }
-  let size = origins.size
+
   return {
-    has: (origin: string) => origins.has(origin.toLowerCase()),
+    has: (origin: string) => {
+      const lc = origin.toLowerCase()
+      if (origins.has(lc)) return true
+
+      try {
+        const u = new URL(lc)
+        // Check if origin matches any registered origin or its subdomains
+        for (const allowed of origins) {
+          try {
+            const allowedUrl = new URL(allowed)
+            if (
+              u.protocol === allowedUrl.protocol &&
+              (u.hostname === allowedUrl.hostname || u.hostname.endsWith('.' + allowedUrl.hostname))
+            ) {
+              return true
+            }
+          } catch {}
+        }
+
+        // Check if origin matches common trusted image CDNs
+        for (const cdn of COMMON_IMAGE_CDNS) {
+          if (u.hostname === cdn || u.hostname.endsWith('.' + cdn)) {
+            return true
+          }
+        }
+      } catch {}
+
+      return false
+    },
     get size() {
-      return size
+      return origins.size
     }
   }
+}
+
+export function detectImageMimeType(buffer: Buffer | Uint8Array, url?: string): string {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'image/jpeg'
+  }
+  if (
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return 'image/png'
+  }
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return 'image/webp'
+  }
+  if (
+    buffer.length >= 4 &&
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
+    return 'image/gif'
+  }
+  if (buffer.length >= 12) {
+    // AVIF check: bytes 4-7 = "ftyp", bytes 8-11 = "avif" or "mif1"
+    const isFtyp =
+      buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70
+    if (isFtyp) {
+      const brand = String.fromCharCode(buffer[8], buffer[9], buffer[10], buffer[11])
+      if (brand === 'avif' || brand === 'mif1') return 'image/avif'
+    }
+  }
+  if (buffer.length >= 2 && buffer[0] === 0x42 && buffer[1] === 0x4d) {
+    return 'image/bmp'
+  }
+
+  // Fallback to URL extension
+  if (url) {
+    try {
+      const pathname = new URL(url).pathname.toLowerCase()
+      if (pathname.endsWith('.webp')) return 'image/webp'
+      if (pathname.endsWith('.png')) return 'image/png'
+      if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg'
+      if (pathname.endsWith('.gif')) return 'image/gif'
+      if (pathname.endsWith('.avif')) return 'image/avif'
+      if (pathname.endsWith('.svg')) return 'image/svg+xml'
+    } catch {}
+  }
+
+  return 'image/jpeg'
 }
 
 export function isPrivateOrLoopbackHost(hostname: string): boolean {
@@ -110,7 +238,10 @@ export function isPrivateOrLoopbackHost(hostname: string): boolean {
     lc.endsWith('.local') ||
     lc.endsWith('.internal') ||
     lc.endsWith('.lan') ||
-    lc.endsWith('.localhost')
+    lc.endsWith('.localhost') ||
+    lc.endsWith('.nip.io') ||
+    lc.endsWith('.sslip.io') ||
+    lc.endsWith('.localtest.me')
   ) {
     return true
   }
@@ -188,13 +319,16 @@ export function validateGenericCacheUrl(
 }
 
 export function isPathInside(child: string, parent: string): boolean {
+  const isWin = process.platform === 'win32'
   const resolvedChild = path.resolve(child)
   const resolvedParent = path.resolve(parent)
-  if (resolvedChild === resolvedParent) return true
-  const parentWithSep = resolvedParent.endsWith(path.sep)
-    ? resolvedParent
-    : resolvedParent + path.sep
-  return resolvedChild.startsWith(parentWithSep)
+  const checkChild = isWin ? resolvedChild.toLowerCase() : resolvedChild
+  const checkParent = isWin ? resolvedParent.toLowerCase() : resolvedParent
+  if (checkChild === checkParent) return true
+  const parentWithSep = checkParent.endsWith(path.sep)
+    ? checkParent
+    : checkParent + path.sep
+  return checkChild.startsWith(parentWithSep)
 }
 
 export function isIconUrl(url: string): boolean {

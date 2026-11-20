@@ -1,10 +1,10 @@
 import { BrowserWindow, session } from 'electron'
+import { join } from 'path'
 import { IBypassProvider, Result, networkClient } from '@common'
 import { pluginService } from '@common/services/plugin.service'
 import { AppService, ServicePriority } from './service.registry'
 import { pluginManager, WinActionHandler } from './plugin.manager'
 import { stateRegistry } from './state.service'
-import path from 'path'
 
 export class CloudflareService implements IBypassProvider, AppService {
   public priority = ServicePriority.NETWORK
@@ -150,6 +150,19 @@ export class CloudflareService implements IBypassProvider, AppService {
   }
 
   /**
+   * Checks whether a Cloudflare challenge is actively being solved for a given URL or domain.
+   */
+  public isChallengeActive(urlOrDomain?: string): boolean {
+    if (!urlOrDomain) return this._activeChallenges.size > 0
+    try {
+      const hostname = urlOrDomain.includes('://') ? new URL(urlOrDomain).hostname : urlOrDomain
+      return this._activeChallenges.has(hostname)
+    } catch {
+      return this._activeChallenges.has(urlOrDomain)
+    }
+  }
+
+  /**
    * Manual browser-based HTML fetch that triggers Cloudflare solving.
    */
   async fetchHtmlViaBrowser(url: string, silent: boolean = false): Promise<string | null> {
@@ -197,13 +210,16 @@ export class CloudflareService implements IBypassProvider, AppService {
         title: 'AutaKimi - Verification Required',
         alwaysOnTop: true, // Keep it visible for the user
         webPreferences: {
-          preload: path.join(__dirname, '../preload/index.js'),
+          preload: join(__dirname, '../preload/cf-stealth-preload.js'),
           session: this.cfSession,
           nodeIntegration: false,
           contextIsolation: true,
-          sandbox: false
+          sandbox: true
         }
       })
+
+      // Block popup windows from untrusted challenge pages
+      win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
       // Aggressively strip CSP and TrustedTypes headers (Case-Insensitive)
       if (!this._isHeadersListenerRegistered) {
@@ -289,12 +305,22 @@ export class CloudflareService implements IBypassProvider, AppService {
           const cookies = await this.cfSession.cookies.get({ url: currentUrl })
           const clearance = cookies.find((c) => c.name === 'cf_clearance')
 
-          const title = win.getTitle()
-          const pageLoaded = !title.includes('Cloudflare') && 
-                            !title.includes('Just a moment') && 
-                            !title.includes('Verifying you are human') &&
-                            title !== '' &&
-                            title !== 'Just a moment...'
+          const title = win.getTitle() || ''
+          const lowerTitle = title.toLowerCase()
+          const isChallengeTitle =
+            lowerTitle.includes('cloudflare') ||
+            lowerTitle.includes('just a moment') ||
+            lowerTitle.includes('verifying you are human') ||
+            lowerTitle.includes('attention required') ||
+            lowerTitle.includes('security check') ||
+            lowerTitle.includes('ddos-guard') ||
+            title.includes('لحظة واحدة من فضلك') ||
+            title.includes('التحقق من أنك إنسان') ||
+            title.includes('جاري التحقق') ||
+            title.includes('يرجى الانتظار') ||
+            title.trim() === ''
+
+          const pageLoaded = !isChallengeTitle
 
           if (clearance || pageLoaded) {
             console.log('[CloudflareService] Challenge solved or page bypassed, closing window.')
@@ -304,6 +330,26 @@ export class CloudflareService implements IBypassProvider, AppService {
             const credentials = {
               userAgent: this.cfSession.getUserAgent(),
               cookies: cookieString
+            }
+
+            // Sync clearance and domain cookies to defaultSession so renderer <img> tags have valid cf_clearance
+            for (const cookie of cookies) {
+              try {
+                const protocol = currentUrl.startsWith('https') ? 'https' : 'http'
+                const cookieDomain = cookie.domain?.startsWith('.') ? cookie.domain.slice(1) : cookie.domain
+                const cookieUrl = `${protocol}://${cookieDomain || targetDomain}${cookie.path || '/'}`
+                session.defaultSession.cookies.set({
+                  url: cookieUrl,
+                  name: cookie.name,
+                  value: cookie.value,
+                  domain: cookie.domain,
+                  path: cookie.path,
+                  secure: cookie.secure,
+                  httpOnly: cookie.httpOnly,
+                  sameSite: cookie.sameSite as any,
+                  expirationDate: cookie.expirationDate
+                }).catch(() => {})
+              } catch {}
             }
 
             // Small delay to ensure cookies are fully persisted and redirects finished

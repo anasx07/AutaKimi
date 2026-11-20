@@ -9,8 +9,6 @@ type ExtensionState = SettingsSchema['extensions'] & {
   installedExtensions: Extension[]
   activeExtension: string | null
   installingPkgs: Set<string>
-  availableExtensions: Extension[]
-  isRefreshingCatalog: boolean
 
   // Actions
   setInstalledExtensions: (exts: Extension[]) => void
@@ -23,13 +21,13 @@ type ExtensionState = SettingsSchema['extensions'] & {
   uninstallExtension: (pkg: string) => Promise<void>
   installExtension: (ext: Extension) => Promise<void>
   togglePin: (pkg: string) => Promise<void>
-  loadCatalog: (lang?: string) => Promise<void>
+  toggleAnimePin: (pkg: string) => Promise<void>
 
   // Init
   _init: (installed: Extension[], settings: SettingsSchema['extensions']) => void
 }
 
-export const useExtensionStore = create<ExtensionState>((set) => ({
+export const useExtensionStore = create<ExtensionState>((set, get) => ({
   installedExtensions: [],
   pinnedExtensions: [],
   pinnedAnimeSources: [],
@@ -38,8 +36,6 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   extensionSortBy: 'supported',
   extensionSortOrder: 'asc',
   domainOverrides: {},
-  availableExtensions: [],
-  isRefreshingCatalog: false,
   pluginsEnabled: [],
 
   setInstalledExtensions: (installedExtensions) => set({ installedExtensions }),
@@ -70,10 +66,24 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
 
   uninstallExtension: async (pkg) => {
     await DataService.db.removeExtension(pkg)
-    set((state) => ({
-      installedExtensions: state.installedExtensions.filter((e) => e.pkg !== pkg),
-      pinnedExtensions: state.pinnedExtensions.filter((p) => p !== pkg)
-    }))
+    const state = get()
+    const currentPinned = Array.isArray(state.pinnedExtensions) ? state.pinnedExtensions : []
+    const currentAnime = Array.isArray(state.pinnedAnimeSources) ? state.pinnedAnimeSources : []
+    const nextPinned = currentPinned.filter((p: string) => p !== pkg)
+    const nextAnime = currentAnime.filter((p: string) => p !== pkg)
+
+    const jsonPinned = JSON.stringify(nextPinned)
+    await Promise.all([
+      DataService.db.setSetting('pinned_extensions', jsonPinned),
+      DataService.db.setSetting('pinnedAnimeSources', jsonPinned),
+      DataService.db.setSetting('pinned_anime_sources', jsonPinned)
+    ]).catch(() => {})
+
+    set({
+      installedExtensions: state.installedExtensions.filter((e: Extension) => e.pkg !== pkg),
+      pinnedExtensions: nextPinned,
+      pinnedAnimeSources: nextAnime
+    })
   },
 
   installExtension: async (ext) => {
@@ -105,47 +115,52 @@ export const useExtensionStore = create<ExtensionState>((set) => ({
   },
 
   togglePin: async (pkg) => {
-    set((state) => {
-      const isPinned = state.pinnedExtensions.includes(pkg)
-      const nextPinned = isPinned
-        ? state.pinnedExtensions.filter((p) => p !== pkg)
-        : [...state.pinnedExtensions, pkg]
+    const state = get()
+    const currentPinned = Array.isArray(state.pinnedExtensions) ? state.pinnedExtensions : []
+    const isPinned = currentPinned.includes(pkg)
+    const nextPinned = isPinned
+      ? currentPinned.filter((p: string) => p !== pkg)
+      : [...currentPinned, pkg]
 
-      // Persist
-      DataService.db.setSetting('pinned_extensions', nextPinned.join(','))
+    // Persist as JSON array string
+    const jsonPinned = JSON.stringify(nextPinned)
+    await Promise.all([
+      DataService.db.setSetting('pinned_extensions', jsonPinned),
+      DataService.db.setSetting('pinnedAnimeSources', jsonPinned),
+      DataService.db.setSetting('pinned_anime_sources', jsonPinned)
+    ]).catch((err) => console.error('Failed to persist pinned extensions:', err))
 
-      return { pinnedExtensions: nextPinned }
+    set({
+      pinnedExtensions: nextPinned,
+      pinnedAnimeSources: nextPinned
     })
   },
 
-  loadCatalog: async (lang?: string) => {
-    const { isRefreshingCatalog } = useExtensionStore.getState()
-    if (isRefreshingCatalog) return
-
-    set({ isRefreshingCatalog: true })
-    try {
-      const sources = await DataService.getExtensionsCatalog(lang) as any[]
-      const { setGeneratedSources } = await import(/* @vite-ignore */ '../api/sources/SourceRegistry')
-      setGeneratedSources(sources)
-
-      const extensions = sources.map((ext: any) => ({
-        ...ext,
-        pkg: ext.pkg || ext.id,
-        baseUrl: ext.baseUrl || ext.sources?.[0]?.baseUrl || '',
-        icon: ext.icon || ''
-      }))
-
-      set({ availableExtensions: extensions })
-    } catch (e) {
-      console.error('Failed to load catalog:', e)
-    } finally {
-      set({ isRefreshingCatalog: false })
-    }
+  toggleAnimePin: async (pkg): Promise<void> => {
+    return get().togglePin(pkg)
   },
 
   _init: (installed, settings) => {
+    const normalizeList = (raw: any): string[] => {
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === 'string' && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw)
+          if (Array.isArray(parsed)) return parsed
+        } catch {}
+        return raw.split(',').map((s) => s.trim()).filter(Boolean)
+      }
+      return []
+    }
+
+    const rawPinned = normalizeList(settings?.pinnedExtensions)
+    const rawAnimePinned = normalizeList(settings?.pinnedAnimeSources)
+    const unifiedPinned = Array.from(new Set([...rawPinned, ...rawAnimePinned]))
+
     set({
       ...settings,
+      pinnedExtensions: unifiedPinned,
+      pinnedAnimeSources: unifiedPinned,
       installedExtensions: installed || []
     })
   }

@@ -10,8 +10,7 @@ import { useAppUpdater } from '../hooks/useAppUpdater'
 import { StoreInitializer } from '../StoreInitializer'
 import { useLibraryStore } from '@renderer/shared/model'
 import { ErrorBoundary } from '@renderer/shared/ui/ErrorBoundary'
-import { MangaDetails } from '@renderer/widgets/manga-details'
-import { AnimeDetails } from '@renderer/widgets/anime-details'
+import MediaDetails from '@renderer/widgets/media-details/MediaDetails'
 import { ChapterReader } from '@renderer/widgets/reader'
 import { AnimeViewer } from '@renderer/widgets/anime-viewer'
 import { isMobile } from '@renderer/shared/platform'
@@ -60,7 +59,7 @@ export function AppLayout(): React.JSX.Element {
             {selectedManga && (
               <div className="absolute inset-0 z-30 bg-background animate-in fade-in slide-in-from-right-4 duration-300">
                 <ErrorBoundary label="Media Details">
-                  {selectedManga.mediaType === 'anime' ? <AnimeDetails /> : <MangaDetails />}
+                  <MediaDetails mediaType={selectedManga.mediaType === 'anime' ? 'anime' : 'manga'} />
                 </ErrorBoundary>
               </div>
             )}

@@ -28,7 +28,18 @@ export class DiskCache {
 
   async set(key: string, buffer: Buffer): Promise<void> {
     const cachePath = await this.getCachePath(key)
-    await fs.promises.writeFile(cachePath, buffer)
+    const tmpPath = `${cachePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
+    try {
+      await fs.promises.writeFile(tmpPath, buffer)
+      await fs.promises.rename(tmpPath, cachePath)
+    } catch (e) {
+      try {
+        if (fs.existsSync(tmpPath)) {
+          await fs.promises.unlink(tmpPath)
+        }
+      } catch {}
+      throw e
+    }
     this.fireAndForgetEviction()
   }
 
@@ -50,13 +61,28 @@ export class DiskCache {
     this.isEvicting = true
     try {
       const files = await fs.promises.readdir(this.cacheDir)
-      const stats = await Promise.all(
-        files.map(async (file) => {
-          const filePath = path.join(this.cacheDir, file)
-          const stat = await fs.promises.stat(filePath)
-          return { filePath, size: stat.size, mtime: stat.mtimeMs }
-        })
-      )
+      const stats = (
+        await Promise.all(
+          files.map(async (file) => {
+            const filePath = path.join(this.cacheDir, file)
+            if (file.endsWith('.tmp')) {
+              try {
+                const s = await fs.promises.stat(filePath)
+                if (Date.now() - s.mtimeMs > 300000) {
+                  await fs.promises.unlink(filePath).catch(() => {})
+                }
+              } catch {}
+              return null
+            }
+            try {
+              const stat = await fs.promises.stat(filePath)
+              return { filePath, size: stat.size, mtime: stat.mtimeMs }
+            } catch {
+              return null
+            }
+          })
+        )
+      ).filter((s): s is { filePath: string; size: number; mtime: number } => s !== null)
 
       let currentSize = stats.reduce((acc, s) => acc + s.size, 0)
       if (currentSize <= this.maxSizeBytes) {
@@ -71,8 +97,12 @@ export class DiskCache {
 
       for (const stat of stats) {
         if (currentSize <= this.maxSizeBytes) break
-        await fs.promises.unlink(stat.filePath)
-        currentSize -= stat.size
+        try {
+          await fs.promises.unlink(stat.filePath)
+          currentSize -= stat.size
+        } catch {
+          // File may have already been removed
+        }
       }
       console.log(
         `[DiskCache] Eviction done. New size: ${(currentSize / 1024 / 1024).toFixed(2)}MB`

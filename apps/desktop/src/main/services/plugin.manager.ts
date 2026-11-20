@@ -1,9 +1,8 @@
-import { AutakimiPlugin, pluginService } from '@common'
+import { AutakimiPlugin, pluginService, extensionRegistryOrchestrator } from '@common'
 import path from 'path'
 import { Worker } from 'worker_threads'
 import { AppService, ServicePriority } from './service.registry'
 import { extensionRepo, settingsRepo } from '../db'
-import { sourceService, templateService } from '@common'
 
 /**
  * Strictly-typed action that the plugin worker may request against a window.
@@ -152,11 +151,7 @@ export class PluginManager implements AppService {
             console.warn('[PluginManager] Failed to get installed languages:', e)
           }
 
-          await Promise.all([
-            pluginService.loadAllRepositories(repos),
-            templateService.loadAllRepositories(repos),
-            sourceService.loadAllRepositories(repos, installedLangs)
-          ])
+          await extensionRegistryOrchestrator.syncRepositories(repos, installedLangs)
         }
       }
     } catch (e) {
@@ -388,7 +383,7 @@ export class PluginManager implements AppService {
       requestId,
       pluginId: plugin.id,
       code: plugin.code,
-      context
+      context: { winId: context.winId } as any
     }
     this.postToWorker({ type: 'EXECUTE', ...msg })
 

@@ -61,13 +61,13 @@ export const HeroSection = ({
         </Card>
 
         <div className="flex-1 flex flex-col justify-end pb-1 space-y-1.5 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground line-clamp-2 leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground line-clamp-2 leading-snug" dir="auto">
             {manga.title}
           </h1>
 
           <div className="space-y-1">
             {manga.author && (
-              <p className="text-sm font-medium text-muted-foreground truncate">{manga.author}</p>
+              <p className="text-sm font-medium text-muted-foreground truncate" dir="auto">{manga.author}</p>
             )}
 
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
