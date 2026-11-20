@@ -203,7 +203,7 @@ function createWindow(): void {
   // ─── Default Session Interceptors for Video Streaming & Embeds ───
   // 1. Strip frame-blocking headers (X-Frame-Options, Content-Security-Policy) so embeds load in iframes, and allow CORS
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const responseHeaders = { ...details.responseHeaders }
+    let responseHeaders = { ...details.responseHeaders }
     for (const key in responseHeaders) {
       const lower = key.toLowerCase()
       if (
@@ -216,8 +216,12 @@ function createWindow(): void {
     }
     // Allow CORS headers for media streaming and API calls
     responseHeaders['Access-Control-Allow-Origin'] = ['*']
-    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS']
+    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS, POST']
     responseHeaders['Access-Control-Allow-Headers'] = ['*']
+
+    // Central dispatcher: apply stream proxy rules for CORS and anime streaming
+    responseHeaders = streamProxyService.applyResponseHeaders(details.url, responseHeaders)
+
     callback({ cancel: false, responseHeaders })
   })
 
@@ -229,9 +233,9 @@ function createWindow(): void {
     callback({ cancel: false })
   })
 
-  // 3. Ensure valid Referer header for third-party streaming video embeds
+  // 3. Ensure valid Referer header for third-party streaming video embeds & registered stream proxy headers
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    const requestHeaders = { ...details.requestHeaders }
+    let requestHeaders = { ...details.requestHeaders }
     const url = details.url.toLowerCase()
     if (
       url.includes('vidmoly') ||
@@ -252,6 +256,10 @@ function createWindow(): void {
         } catch {}
       }
     }
+
+    // Central dispatcher: apply custom registered stream headers (e.g. Origin, Referer, Auth)
+    requestHeaders = streamProxyService.applyRequestHeaders(details.url, requestHeaders)
+
     callback({ cancel: false, requestHeaders })
   })
 
