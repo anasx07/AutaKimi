@@ -15,6 +15,7 @@ import { HistoryRepository } from './repositories/history.repo'
 import { DownloadRepository } from './repositories/download.repo'
 import { ChapterRepository } from './repositories/chapter.repo'
 import { MangaCacheRepository } from './repositories/manga_cache.repo'
+import { TrackerRepository } from './repositories/tracker.repo'
 
 const userDataPath = app.getPath('userData')
 if (!fs.existsSync(userDataPath)) {
@@ -22,8 +23,10 @@ if (!fs.existsSync(userDataPath)) {
 }
 
 const dbPath = path.join(userDataPath, 'autakimi.db')
-const sqlite = new Database(dbPath)
-sqlite.pragma('journal_mode = WAL')
+export const sqliteDb = new Database(dbPath)
+sqliteDb.pragma('journal_mode = WAL')
+sqliteDb.pragma('auto_vacuum = INCREMENTAL')
+const sqlite = sqliteDb
 
 // === Versioned Migrations (Raw SQL for legacy compatibility) ===
 
@@ -78,6 +81,27 @@ const runMigrations = () => {
 
 runMigrations()
 
+try {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS trackers (
+      manga_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      remote_id TEXT NOT NULL,
+      score INTEGER DEFAULT 0,
+      status TEXT,
+      last_synced_chapter INTEGER DEFAULT 0,
+      updated_at TEXT,
+      PRIMARY KEY (manga_id, provider)
+    );
+    CREATE INDEX IF NOT EXISTS idx_trackers_manga ON trackers (manga_id);
+    CREATE INDEX IF NOT EXISTS idx_library_type ON library (type);
+    CREATE INDEX IF NOT EXISTS idx_history_type_started ON reading_history (type, started_at);
+    CREATE INDEX IF NOT EXISTS idx_manga_cache_expires ON manga_cache (expires_at);
+  `)
+} catch (e) {
+  console.warn('[DB] Failed to ensure composite indexes/tables:', e)
+}
+
 // Export Repositories
 export const extensionRepo = new ExtensionRepository(ddb)
 export const libraryRepo = new LibraryRepository(ddb)
@@ -87,6 +111,7 @@ export const historyRepo = new HistoryRepository(ddb)
 export const downloadRepo = new DownloadRepository(ddb)
 export const chapterRepo = new ChapterRepository(ddb)
 export const mangaCacheRepo = new MangaCacheRepository(ddb)
+export const trackerRepo = new TrackerRepository(ddb)
 
 // === Startup Cleanup Routine ===
 export const runCleanupRoutine = () => {
@@ -115,6 +140,34 @@ export const runCleanupRoutine = () => {
         SELECT manga_id FROM downloads
       )
     `)
+
+    // Weekly VACUUM throttling: only run full VACUUM once every 7 days
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get('last_vacuum_at') as
+      | { value: string }
+      | undefined
+    const lastVacuumAt = row ? parseInt(row.value, 10) : 0
+    const now = Date.now()
+
+    if (!lastVacuumAt || now - lastVacuumAt >= ONE_WEEK_MS) {
+      console.log('[DB] Running weekly VACUUM to reclaim disk space...')
+      sqlite.exec('VACUUM;')
+      sqlite.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
+        'last_vacuum_at',
+        String(now)
+      )
+      console.log('[DB] Weekly VACUUM completed.')
+    } else {
+      // Incremental vacuum to reclaim pages freed by the DELETE queries without blocking the main thread
+      try {
+        sqlite.pragma('incremental_vacuum(100)')
+      } catch (e) {
+        console.warn('[DB] Incremental vacuum failed or not enabled:', e)
+      }
+      console.log(
+        `[DB] Skipped full VACUUM (last run was ${Math.round((now - lastVacuumAt) / (1000 * 60 * 60 * 24))} days ago). Incremental vacuum executed.`
+      )
+    }
     console.log('[DB] Cleanup finished.')
   } catch (err) {
     console.error('[DB] Cleanup failed:', err)

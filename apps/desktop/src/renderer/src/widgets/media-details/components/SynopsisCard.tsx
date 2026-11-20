@@ -35,6 +35,7 @@ export const SynopsisCard = ({ description, genres, isAnime }: SynopsisCardProps
             'text-sm text-foreground/90 leading-relaxed whitespace-pre-line transition-all duration-300',
             !descExpanded && 'line-clamp-3'
           )}
+          dir="auto"
         >
           {description || 'No description available.'}
         </p>

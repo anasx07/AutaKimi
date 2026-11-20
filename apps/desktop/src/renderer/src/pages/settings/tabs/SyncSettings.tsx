@@ -1,4 +1,4 @@
-import { Share2, QrCode, Smartphone, RefreshCw, CheckCircle2, XCircle } from 'lucide-react'
+import { Share2, QrCode, Smartphone, RefreshCw, CheckCircle2, XCircle, Eye, EyeOff, Copy, Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button, Card, SectionHeader, Badge } from '@renderer/shared/ui'
@@ -8,6 +8,8 @@ export function SyncSettings(): React.JSX.Element {
   const [status, setStatus] = useState<{ isRunning: boolean; port: number; ip: string; deviceId: string } | null>(null)
   const [pairingPayload, setPairingPayload] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
+  const [showSecret, setShowSecret] = useState(false)
+  const [copiedSecret, setCopiedSecret] = useState(false)
 
   const fetchStatus = async () => {
     try {
@@ -101,7 +103,35 @@ export function SyncSettings(): React.JSX.Element {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Shared Secret</p>
-                <p className="font-mono text-sm">{(status as any).secret || '••••••••'}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-mono text-sm">
+                    {showSecret ? (status as any).secret || 'None' : '••••••••••••••••'}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowSecret(!showSecret)}
+                    title={showSecret ? 'Hide secret' : 'Show secret'}
+                  >
+                    {showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                  {(status as any).secret && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        navigator.clipboard.writeText((status as any).secret)
+                        setCopiedSecret(true)
+                        setTimeout(() => setCopiedSecret(false), 2000)
+                      }}
+                      title="Copy secret"
+                    >
+                      {copiedSecret ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Discovery Name</p>
@@ -111,7 +141,7 @@ export function SyncSettings(): React.JSX.Element {
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Security Protocol</p>
                 <p className="text-sm flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  WSS + Shared Secret
+                  WS + HMAC Challenge-Response
                 </p>
               </div>
             </div>

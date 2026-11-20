@@ -6,28 +6,169 @@
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
     <script>
       ;(function () {
         try {
-          var appState = localStorage.getItem('app-storage')
-          var theme = 'system'
-          var colorTheme = 'default'
+          var html = document.documentElement
+          var theme = localStorage.getItem('theme') || 'system'
+          var colorTheme =
+            localStorage.getItem('colorTheme') || localStorage.getItem('color_theme') || 'default'
 
-          if (appState) {
-            var parsed = JSON.parse(appState)
-            if (parsed && parsed.state) {
-              theme = parsed.state.theme || 'system'
-              colorTheme = parsed.state.colorTheme || 'default'
+          // Clean up any stale theme-* classes
+          for (var i = html.classList.length - 1; i >= 0; i--) {
+            var cls = html.classList[i]
+            if (cls.indexOf('theme-') === 0) {
+              html.classList.remove(cls)
             }
           }
 
+          if (colorTheme === 'custom') {
+            var rawConfig = localStorage.getItem('custom_theme_config')
+            if (rawConfig) {
+              var config = JSON.parse(rawConfig)
+              if (config) {
+                var hexToRgb = function (hex) {
+                  var c = (hex || '').replace(/^#/, '').trim()
+                  if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2]
+                  var num = parseInt(c, 16)
+                  if (isNaN(num) || c.length !== 6) return { r: 0, g: 0, b: 0 }
+                  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 }
+                }
+
+                var rgbToHsl = function (r, g, b) {
+                  var rn = r / 255,
+                    gn = g / 255,
+                    bn = b / 255
+                  var max = Math.max(rn, gn, bn),
+                    min = Math.min(rn, gn, bn)
+                  var h = 0,
+                    s = 0,
+                    l = (max + min) / 2
+                  if (max !== min) {
+                    var d = max - min
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+                    switch (max) {
+                      case rn:
+                        h = (gn - bn) / d + (gn < bn ? 6 : 0)
+                        break
+                      case gn:
+                        h = (bn - rn) / d + 2
+                        break
+                      case bn:
+                        h = (rn - gn) / d + 4
+                        break
+                    }
+                    h /= 6
+                  }
+                  return {
+                    h: Math.round(h * 360),
+                    s: Math.round(s * 100),
+                    l: Math.round(l * 100)
+                  }
+                }
+
+                var isDarkColor = function (hex) {
+                  var rgb = hexToRgb(hex)
+                  var toLin = function (c) {
+                    var v = c / 255
+                    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+                  }
+                  var lum = 0.2126 * toLin(rgb.r) + 0.7152 * toLin(rgb.g) + 0.0722 * toLin(rgb.b)
+                  return lum < 0.45
+                }
+
+                var bgHex = config.background || '#09090B'
+                var fgHex = config.foreground || '#F8FAFC'
+                var accentHex = config.accent || '#01825B'
+
+                var bgRgb = hexToRgb(bgHex)
+                var fgRgb = hexToRgb(fgHex)
+                var accRgb = hexToRgb(accentHex)
+
+                var bgHsl = rgbToHsl(bgRgb.r, bgRgb.g, bgRgb.b)
+                var fgHsl = rgbToHsl(fgRgb.r, fgRgb.g, fgRgb.b)
+                var accHsl = rgbToHsl(accRgb.r, accRgb.g, accRgb.b)
+                var customIsDark = isDarkColor(bgHex)
+
+                if (customIsDark) {
+                  html.classList.add('dark')
+                } else {
+                  html.classList.remove('dark')
+                }
+                html.classList.add('theme-custom')
+
+                var primaryFg = isDarkColor(accentHex) ? '0 0% 100%' : '0 0% 5%'
+                var style = html.style
+
+                style.setProperty('--background', bgHsl.h + ' ' + bgHsl.s + '% ' + bgHsl.l + '%')
+                style.setProperty('--foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                style.setProperty('--primary', accHsl.h + ' ' + accHsl.s + '% ' + accHsl.l + '%')
+                style.setProperty('--primary-foreground', primaryFg)
+                style.setProperty('--ring', accHsl.h + ' ' + accHsl.s + '% ' + accHsl.l + '%')
+
+                if (customIsDark) {
+                  var cardL = Math.min(95, bgHsl.l + 4)
+                  var popoverL = Math.min(95, bgHsl.l + 6)
+                  var secL = Math.min(95, bgHsl.l + 9)
+                  var borderL = Math.min(95, bgHsl.l + 12)
+                  var sat = Math.max(0, bgHsl.s - 5)
+
+                  style.setProperty('--card', bgHsl.h + ' ' + bgHsl.s + '% ' + cardL + '%')
+                  style.setProperty('--card-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--popover', bgHsl.h + ' ' + bgHsl.s + '% ' + popoverL + '%')
+                  style.setProperty('--popover-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--secondary', bgHsl.h + ' ' + sat + '% ' + secL + '%')
+                  style.setProperty('--secondary-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--muted', bgHsl.h + ' ' + sat + '% ' + cardL + '%')
+                  style.setProperty('--muted-foreground', fgHsl.h + ' ' + Math.max(0, fgHsl.s - 15) + '% ' + Math.max(40, fgHsl.l - 30) + '%')
+                  style.setProperty('--border', bgHsl.h + ' ' + sat + '% ' + borderL + '%')
+                  style.setProperty('--input', bgHsl.h + ' ' + sat + '% ' + borderL + '%')
+                  style.setProperty('--accent', accHsl.h + ' ' + accHsl.s + '% ' + secL + '%')
+                  style.setProperty('--accent-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                } else {
+                  var cardL = Math.max(5, Math.min(100, bgHsl.l > 90 ? bgHsl.l - 2 : bgHsl.l + 4))
+                  var popoverL = bgHsl.l
+                  var secL = Math.max(5, bgHsl.l - 6)
+                  var borderL = Math.max(5, bgHsl.l - 12)
+                  var sat = Math.max(0, bgHsl.s - 5)
+
+                  style.setProperty('--card', bgHsl.h + ' ' + bgHsl.s + '% ' + cardL + '%')
+                  style.setProperty('--card-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--popover', bgHsl.h + ' ' + bgHsl.s + '% ' + popoverL + '%')
+                  style.setProperty('--popover-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--secondary', bgHsl.h + ' ' + sat + '% ' + secL + '%')
+                  style.setProperty('--secondary-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                  style.setProperty('--muted', bgHsl.h + ' ' + sat + '% ' + cardL + '%')
+                  style.setProperty('--muted-foreground', fgHsl.h + ' ' + Math.max(0, fgHsl.s - 15) + '% ' + Math.min(65, fgHsl.l + 30) + '%')
+                  style.setProperty('--border', bgHsl.h + ' ' + sat + '% ' + borderL + '%')
+                  style.setProperty('--input', bgHsl.h + ' ' + sat + '% ' + borderL + '%')
+                  style.setProperty('--accent', accHsl.h + ' ' + accHsl.s + '% ' + secL + '%')
+                  style.setProperty('--accent-foreground', fgHsl.h + ' ' + fgHsl.s + '% ' + fgHsl.l + '%')
+                }
+
+                var font = config.font || 'Plus Jakarta Sans'
+                style.setProperty(
+                  '--font-family',
+                  "'" + font + "', 'Plus Jakarta Sans', 'Cairo', system-ui, -apple-system, sans-serif"
+                )
+                return
+              }
+            }
+          }
+
+          // Built-in preset or default theme
           var isDark =
             theme === 'dark' ||
-            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-          var html = document.documentElement
+            (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
           if (isDark) {
             html.classList.add('dark')
@@ -35,8 +176,7 @@
             html.classList.remove('dark')
           }
 
-          html.classList.remove('theme-solo-leveling', 'theme-my-hero-academia')
-          if (colorTheme !== 'default') {
+          if (colorTheme && colorTheme !== 'default') {
             html.classList.add('theme-' + colorTheme)
           }
         } catch (e) {}

@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { DataService } from '@renderer/shared/api'
-import { Search, BookOpen, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
+import { Search, BookOpen, Play, Loader2, LayoutGrid, List, X, Filter } from 'lucide-react'
 import { useLibraryStore, useExtensionStore, useUIStore } from '@renderer/shared/model'
-import { useMangaPagination } from '@renderer/entities/manga/model/useMangaPagination'
+import { useMediaPagination } from '@renderer/entities/media/model/useMediaPagination'
 import { useExtensionMetadata } from '@renderer/entities/extension/model/useExtensionMetadata'
 import { SourceRegistry } from '@renderer/shared/api/sources/SourceRegistry'
 import {
@@ -19,6 +19,32 @@ import {
 } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { isMobile } from '@renderer/shared/platform'
+import { isAnimeExtension } from '@renderer/shared/lib/constants'
+
+function BrowseListCover({ url, title, isAnime }: { url?: string; title: string; isAnime?: boolean }) {
+  const [error, setError] = useState(false)
+  if (url && !error) {
+    return (
+      <img
+        src={url}
+        alt={title}
+        referrerPolicy="no-referrer"
+        onError={() => setError(true)}
+        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+        loading="lazy"
+      />
+    )
+  }
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-secondary/30">
+      {isAnime ? (
+        <Play className="h-6 w-6 text-primary/40" />
+      ) : (
+        <BookOpen className="h-6 w-6 text-muted-foreground/30" />
+      )}
+    </div>
+  )
+}
 
 export default function BrowsePage(): React.JSX.Element {
   const { pkg } = useParams()
@@ -44,6 +70,10 @@ export default function BrowsePage(): React.JSX.Element {
   const { metadata } = useExtensionMetadata(activeExtension)
   const { domainOverrides } = useExtensionStore()
 
+  const isSourceAnime = useMemo(() => {
+    return pkg ? isAnimeExtension({ pkg }) : false
+  }, [pkg])
+
   const source = useMemo(() => {
     return pkg ? SourceRegistry.resolveNative(pkg, domainOverrides) : null
   }, [pkg, domainOverrides])
@@ -64,7 +94,7 @@ export default function BrowsePage(): React.JSX.Element {
     lastElementRef,
     refresh,
     retryPagination
-  } = useMangaPagination({
+  } = useMediaPagination({
     activeExtension,
     activeFeed,
     debouncedSearch,
@@ -178,7 +208,13 @@ export default function BrowsePage(): React.JSX.Element {
               />
               <Input
                 className="pl-10 pr-10 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-2xl"
-                placeholder={activeFeed === 'search' ? "Search manga..." : "Quick Search..."}
+                placeholder={
+                  activeFeed === 'search'
+                    ? isSourceAnime
+                      ? 'Search anime...'
+                      : 'Search manga...'
+                    : 'Quick Search...'
+                }
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
@@ -256,79 +292,100 @@ export default function BrowsePage(): React.JSX.Element {
             <div className="space-y-6">
               {viewMode === 'grid' ? (
                 <MediaGrid>
-                  {mangaList.map((manga, idx) => (
-                    <MediaGridItem
-                      key={manga.id}
-                      title={manga.title}
-                      coverUrl={manga.coverUrl}
-                      mediaType="manga"
-                      description={manga.description}
-                      index={idx}
-                      onClick={() => setSelectedManga(manga)}
-                      badge={
-                        <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
-                          {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
-                          <span dir="auto">{manga.status?.split(' • ')[1]}</span>
-                        </div>
-                      }
-                      footerBadge={
-                        <Badge
-                          variant="outline"
-                          className="h-4 text-[8px] px-1 border-border/50 uppercase"
-                        >
-                          Manga
-                        </Badge>
-                      }
-                    />
-                  ))}
-                </MediaGrid>
-              ) : (
-                <div className="space-y-3">
-                  {mangaList.map((manga, idx) => (
-                    <Card
-                      key={manga.id}
-                      onClick={() => setSelectedManga(manga)}
-                      className={cn(
-                        'group flex gap-4 p-3 cursor-pointer hover:bg-secondary/30 transition-all duration-300 border-border/40 hover:shadow-lg',
-                        'animate-in fade-in slide-in-from-left-4'
-                      )}
-                      style={{ animationDelay: `${idx * 30}ms` }}
-                    >
-                      <div className="w-20 h-28 shrink-0 bg-secondary/30 rounded-lg overflow-hidden border border-border/50 shadow-sm relative">
-                        {manga.coverUrl ? (
-                          <img
-                            src={manga.coverUrl}
-                            alt={manga.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <BookOpen className="h-6 w-6 text-muted-foreground/30" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                            {manga.title}
-                          </h3>
-                          <Badge
-                            variant="secondary"
-                            className="shrink-0 flex items-center gap-1.5 text-[10px] h-5 px-2 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider"
-                          >
+                  {mangaList.map((manga, idx) => {
+                    const isItemAnime =
+                      manga.mediaType === 'anime' ||
+                      (pkg ? isAnimeExtension({ pkg }) : false) ||
+                      (manga.pkg ? isAnimeExtension({ pkg: manga.pkg }) : false)
+                    return (
+                      <MediaGridItem
+                        key={manga.id}
+                        title={manga.title}
+                        coverUrl={manga.coverUrl}
+                        mediaType={isItemAnime ? 'anime' : 'manga'}
+                        description={manga.description}
+                        index={idx}
+                        onClick={() =>
+                          setSelectedManga({
+                            ...manga,
+                            pkg: manga.pkg || pkg,
+                            mediaType: isItemAnime ? 'anime' : 'manga'
+                          })
+                        }
+                        badge={
+                          <div className="flex items-center gap-1.5 overflow-hidden">
                             <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
                             {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
                             <span dir="auto">{manga.status?.split(' • ')[1]}</span>
+                          </div>
+                        }
+                        footerBadge={
+                          <Badge
+                            variant="outline"
+                            className="h-4 text-[8px] px-1 border-border/50 uppercase"
+                          >
+                            {isItemAnime ? 'Anime' : 'Manga'}
                           </Badge>
+                        }
+                      />
+                    )
+                  })}
+                </MediaGrid>
+              ) : (
+                <div className="space-y-3">
+                  {mangaList.map((manga, idx) => {
+                    const isItemAnime =
+                      manga.mediaType === 'anime' ||
+                      (pkg ? isAnimeExtension({ pkg }) : false) ||
+                      (manga.pkg ? isAnimeExtension({ pkg: manga.pkg }) : false)
+                    return (
+                      <Card
+                        key={manga.id}
+                        onClick={() =>
+                          setSelectedManga({
+                            ...manga,
+                            pkg: manga.pkg || pkg,
+                            mediaType: isItemAnime ? 'anime' : 'manga'
+                          })
+                        }
+                        className={cn(
+                          'group flex gap-4 p-3 cursor-pointer hover:bg-secondary/30 transition-all duration-300 border-border/40 hover:shadow-lg',
+                          'animate-in fade-in slide-in-from-left-4'
+                        )}
+                        style={{ animationDelay: `${idx * 30}ms` }}
+                      >
+                        <div className="w-20 h-28 shrink-0 bg-secondary/30 rounded-lg overflow-hidden border border-border/50 shadow-sm relative">
+                          <BrowseListCover url={manga.coverUrl} title={manga.title} isAnime={isItemAnime} />
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
-                          {manga.description}
-                        </p>
-                      </div>
-                    </Card>
-                  ))}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                              {manga.title}
+                            </h3>
+                            <div className="flex items-center gap-1.5">
+                              <Badge
+                                variant="outline"
+                                className="h-5 text-[9px] px-1.5 border-border/50 uppercase"
+                              >
+                                {isItemAnime ? 'Anime' : 'Manga'}
+                              </Badge>
+                              <Badge
+                                variant="secondary"
+                                className="shrink-0 flex items-center gap-1.5 text-[10px] h-5 px-2 bg-primary/10 text-primary border-primary/20 uppercase tracking-wider"
+                              >
+                                <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
+                                {manga.status?.includes(' • ') && <span className="opacity-40">•</span>}
+                                <span dir="auto">{manga.status?.split(' • ')[1]}</span>
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
+                            {manga.description}
+                          </p>
+                        </div>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
 

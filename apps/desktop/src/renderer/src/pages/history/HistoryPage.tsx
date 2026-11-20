@@ -5,6 +5,7 @@ import {
   useLibraryStore,
   useHistoryStore,
   useExtensionStore,
+  useSettingsStore,
   useUIStore,
   HistoryEntry,
   Manga
@@ -24,11 +25,11 @@ import {
   MobilePage
 } from '@renderer/shared/ui'
 import { useInfiniteScroll } from '@renderer/shared/lib'
-import { useInfiniteHistoryEntries, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
+import { useInfiniteHistoryEntries, mediaKeys } from '@renderer/entities/media/api/useMediaQueries'
 
 export default function HistoryPage(): React.JSX.Element {
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
+  const { historyMediaType: activeTab, setHistoryMediaType: setActiveTab } = useSettingsStore()
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
   const { setSelectedManga } = useLibraryStore()
   const { setActiveExtension } = useExtensionStore()
@@ -119,7 +120,7 @@ export default function HistoryPage(): React.JSX.Element {
   const handleDeleteEntry = async (e: React.MouseEvent, mangaId: string): Promise<void> => {
     e.stopPropagation()
     await deleteHistoryByManga(mangaId)
-    queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
+    queryClient.invalidateQueries({ queryKey: mediaKeys.history() })
   }
 
   return (
@@ -146,7 +147,7 @@ export default function HistoryPage(): React.JSX.Element {
               onTabChange={(t) => setActiveTab(t as any)}
             />
           </div>
-          <div className="shrink-0 bg-secondary/30 p-1 rounded-xl border border-border/50">
+          <div className="shrink-0">
             <LayoutSwitcher />
           </div>
         </div>
@@ -277,7 +278,7 @@ export default function HistoryPage(): React.JSX.Element {
               onClick={async () => {
                 await clearHistory()
                 setIsConfirmClearOpen(false)
-                queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
+                queryClient.invalidateQueries({ queryKey: mediaKeys.history() })
               }}
             >
               Clear All

@@ -75,6 +75,10 @@ export const MobileApi: ElectronApi = {
     }
 
     const getTheme = async (extBaseUrl: string): Promise<string> => {
+      if (pkg.includes('mangaswat') || extBaseUrl.includes('meshmanga') || extBaseUrl.includes('appswat')) {
+        return 'mangaswat'
+      }
+
       // 1. Try checking catalog source first (fast, offline-capable, and completely reliable)
       const catalogSource = sourceService.getSource(pkg) as any
       if (catalogSource) {
@@ -100,11 +104,11 @@ export const MobileApi: ElectronApi = {
         }
       }
 
-      // 3. Last resort fallback: default to 'madara'
-      return 'madara'
+      // 3. Fallback: return 'unknown'
+      return 'unknown'
     }
 
-    const regenerateCode = async (dbExtValue: any): Promise<string | null> => {
+    const regenerateCode = async (dbExtValue: any, preferTemplate = false): Promise<string | null> => {
       let extBaseUrl = dbExtValue.baseUrl || dbExtValue.baseurl
       const catalogSource = sourceService.getSource(pkg) as any
       if (!extBaseUrl && catalogSource) {
@@ -116,6 +120,36 @@ export const MobileApi: ElectronApi = {
         return null
       }
 
+      // Step 1: If preferTemplate is false, check community JavaScript extensions ecosystem
+      if (!preferTemplate) {
+        const cleanPkg = pkg
+          .replace(/^ma\.autakimi\.extension\./, '')
+          .replace(/^eu\.kanade\.tachiyomi\.extension\./, '')
+        const candidateNames = [
+          pkg,
+          `ma.autakimi.extension.${cleanPkg}`,
+          `ma.autakimi.extension.eu.kanade.tachiyomi.extension.${cleanPkg}`
+        ]
+        const COMMUNITY_JS_REPO = 'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/js/'
+
+        for (const name of candidateNames) {
+          try {
+            const resp = await MobileNetwork.fetchText(`${COMMUNITY_JS_REPO}${name}.js`)
+            if (resp.ok && resp.value.ok && resp.value.data && !resp.value.data.startsWith('404:') && resp.value.data.length > 50) {
+              const jsCode = resp.value.data
+              await MobileDB.addExtension({
+                ...dbExtValue,
+                baseUrl: extBaseUrl,
+                code: jsCode
+              })
+              console.log(`[MobileApi] Successfully resolved community JS scraper for ${pkg} -> ${name}.js`)
+              return jsCode
+            }
+          } catch (_) { /* ignore */ }
+        }
+      }
+
+      // Step 2: Fall back to dynamic CMS template (Madara, MangaStream, MangaThemesia)
       const theme = await getTheme(extBaseUrl)
       console.log(`[MobileApi] Theme resolved: ${theme} for ${pkg} (${extBaseUrl})`)
       const template = templateService.getTemplate(theme)
@@ -123,7 +157,7 @@ export const MobileApi: ElectronApi = {
         const generated = template.generate(extBaseUrl, 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36')
         await MobileDB.addExtension({
           ...dbExtValue,
-          baseUrl: extBaseUrl, // Update or inject baseUrl in the database record
+          baseUrl: extBaseUrl,
           code: generated
         })
         console.log(`[MobileApi] Successfully regenerated and saved code for ${pkg} using theme ${theme}`)
@@ -132,6 +166,16 @@ export const MobileApi: ElectronApi = {
         console.warn(`[MobileApi] No template found for theme: ${theme}`)
         return null
       }
+    }
+
+    if (code && (code.includes('\\r\\n') || code.includes('\\\"'))) {
+      console.warn(`[MobileApi] Detected corrupted legacy escape characters in extension code for ${pkg}. Forcing regeneration...`)
+      code = ''
+    }
+
+    if (pkg.includes('mangaswat') && code && !code.includes('appswat')) {
+      console.warn(`[MobileApi] Detected outdated scraper for MangaSwat (${pkg}). Forcing regeneration...`)
+      code = ''
     }
 
     if (!code || code.trim().startsWith('404:') || code.trim() === 'Not Found') {
@@ -151,14 +195,27 @@ export const MobileApi: ElectronApi = {
         console.error(`[MobileApi] Failed to auto-regenerate code for ${pkg}:`, err)
       }
     }
+
+    if (!code) {
+      return {
+        ok: false,
+        error: `Could not identify a compatible theme (Madara/MangaStream) for ${pkg}. This source may require a custom scraper or Android DEX runtime.`
+      }
+    }
     
     let result = await MobileExtension.execute({ pkg, code, contextArgs })
-    if (!result.ok && result.error && (result.error.includes('SyntaxError') || result.error.includes('ReferenceError'))) {
-      console.warn(`[MobileApi] Execution failed with syntax/reference error for ${pkg}. Attempting recovery by regeneration...`)
+    if (
+      !result.ok &&
+      result.error &&
+      (result.error.includes('SyntaxError') ||
+        result.error.includes('ReferenceError') ||
+        result.error.includes('TypeError'))
+    ) {
+      console.warn(`[MobileApi] Execution failed with syntax/reference/type error for ${pkg}. Attempting recovery by template generation...`)
       try {
         const dbExt = await MobileDB.getExtension(pkg)
         if (dbExt.ok && dbExt.value) {
-          const regenerated = await regenerateCode(dbExt.value)
+          const regenerated = await regenerateCode(dbExt.value, true)
           if (regenerated) {
             code = regenerated
             result = await MobileExtension.execute({ pkg, code, contextArgs })

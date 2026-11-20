@@ -2,7 +2,6 @@ import {
   Loader2,
   BookOpen,
   Settings2,
-  Zap,
   ChevronRight
 } from 'lucide-react'
 import { useState } from 'react'
@@ -22,20 +21,16 @@ import { ReadingSettings } from './tabs/ReadingSettings'
 import { AnimeSettings } from './tabs/AnimeSettings'
 import { AdvancedSettings } from './tabs/AdvancedSettings'
 import { SyncSettings } from './tabs/SyncSettings'
-import { SourceSettings } from './tabs/SourceSettings'
-import { PluginSettings } from './tabs/PluginSettings'
-import { Share2, Globe, Puzzle } from 'lucide-react'
+import { Share2, Terminal, Film } from 'lucide-react'
 
-type SettingsTab = 'general' | 'reading' | 'anime' | 'sync' | 'sources' | 'plugins' | 'advanced'
+type SettingsTab = 'general' | 'reading' | 'anime' | 'sync' | 'advanced'
 
 const sidebarItems: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
   { id: 'reading', label: 'Reading', icon: BookOpen },
-  { id: 'anime', label: 'Anime', icon: Zap },
+  { id: 'anime', label: 'Anime', icon: Film },
   { id: 'sync', label: 'Sync', icon: Share2 },
-  { id: 'sources', label: 'Sources', icon: Globe },
-  { id: 'plugins', label: 'Plugins', icon: Puzzle },
-  { id: 'advanced', label: 'Advanced', icon: Zap }
+  { id: 'advanced', label: 'Advanced', icon: Terminal }
 ]
 
 interface SidebarItemProps {
@@ -49,6 +44,7 @@ interface SidebarItemProps {
 function SidebarItem({ id, label, icon: Icon, activeTab, setActiveTab }: SidebarItemProps): React.JSX.Element {
   return (
     <button
+      id={`settings-tab-${id}`}
       onClick={() => setActiveTab(id)}
       className={cn(
         'w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden',
@@ -122,10 +118,6 @@ export default function SettingsPage(): React.JSX.Element {
         return <AnimeSettings />
       case 'sync':
         return <SyncSettings />
-      case 'sources':
-        return <SourceSettings />
-      case 'plugins':
-        return <PluginSettings />
       case 'advanced':
         return <AdvancedSettings setStatusMessage={setStatusMessage} />
     }
@@ -184,7 +176,7 @@ export default function SettingsPage(): React.JSX.Element {
       <aside className="w-80 border-r border-border/60 bg-secondary/10 backdrop-blur-3xl flex flex-col p-6 gap-8 shrink-0">
         <div className="shrink-0 flex flex-col space-y-4 mb-2">
           <div className="flex flex-col min-w-0">
-            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent pr-3 inline-block">
               Settings
             </h1>
             <p className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider opacity-60">

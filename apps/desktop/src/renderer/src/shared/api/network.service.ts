@@ -18,5 +18,9 @@ export const NetworkBridge = {
         options?.attempts || 3,
         options?.delay || 1000
       )
-    )
+    ),
+  setStreamHeaders: (url: string, headers: Record<string, string>) =>
+    callIpc(() => getApi().setStreamHeaders({ url, headers })),
+  probeStream: (url: string, headers?: Record<string, string>, timeoutMs?: number) =>
+    callIpc(() => getApi().probeStream({ url, headers, timeoutMs }))
 }

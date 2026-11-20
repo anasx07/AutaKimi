@@ -22,7 +22,15 @@ export const DatabaseService = {
     isRead: boolean
     lastPage?: number
   }) => callIpc(() => getApi().db.updateProgress(data)),
+  updateProgressBatch: (data: {
+    mangaId: string
+    chapterIds: string[]
+    isRead: boolean
+    lastPage?: number
+  }) => callIpc(() => getApi().db.updateProgressBatch(data)),
   addHistory: (data: HistoryEntry) => callIpc(() => getApi().db.addHistory(data)),
+  updateHistoryDuration: (data: { mangaId: string; chapterId: string; durationSeconds: number }) =>
+    callIpc(() => getApi().db.updateHistoryDuration(data)),
   getHistory: (args?: { limit?: number; offset?: number; type?: 'manga' | 'anime' } | number) =>
     callIpc(() => getApi().db.getHistory(args)),
   deleteHistoryEntry: (id: number) => callIpc(() => getApi().db.deleteHistoryEntry(id)),

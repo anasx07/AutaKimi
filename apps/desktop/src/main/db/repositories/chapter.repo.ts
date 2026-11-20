@@ -13,15 +13,22 @@ export class ChapterRepository {
 
       if (chapters.length === 0) return
 
-      const values = chapters.map((c) => ({
-        mangaId,
-        id: c.id,
-        number: c.number?.toString() || null,
-        title: c.title || null,
-        date: c.date || null,
-        scanlator: c.scanlator || null,
-        url: c.url || null
-      }))
+      const values = chapters.map((c) => {
+        const rawAttr = c.attributes || {}
+        const rawNum = c.number ?? rawAttr.chapter
+        const rawTitle = c.title ?? rawAttr.title ?? (rawNum != null ? `Chapter ${rawNum}` : null)
+        const rawDate = c.date ?? rawAttr.createdAt ?? rawAttr.publishAt
+        const rawUrl = c.url ?? c.id
+        return {
+          mangaId,
+          id: c.id,
+          number: rawNum !== undefined && rawNum !== null ? rawNum.toString() : null,
+          title: rawTitle || null,
+          date: rawDate || null,
+          scanlator: c.scanlator ?? rawAttr.scanlator ?? null,
+          url: rawUrl || null
+        }
+      })
 
       // Better-sqlite3 has a limit of 999 parameters per query.
       // We chunk the inserts to be safe.

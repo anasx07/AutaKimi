@@ -15,11 +15,11 @@ import {
   Search as SearchIcon
 } from 'lucide-react'
 import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
-import { useExtensionStore, ExtensionMetadata } from '@renderer/shared/model'
+import { useExtensionStore, useSettingsStore, ExtensionMetadata } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { Button, Input, Card, Badge, MobilePage, Sheet, Checkbox } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { getFlagEmoji, LANGUAGE_NAMES } from '@renderer/shared/lib/constants'
+import { getFlagEmoji, LANGUAGE_NAMES, isAnimeExtension } from '@renderer/shared/lib/constants'
 import { isMobile } from '@renderer/shared/platform'
 import { VirtuosoGrid } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -29,15 +29,17 @@ import {
   useInstallExtension,
   useBulkUpdate
 } from '@renderer/entities/extension/api/useExtensionQueries'
+import { isFullySupported } from '@renderer/shared/api/sources'
 
-const ANIME_SOURCE_PKGS = ['en.allanime', 'en.gogoanime', 'ar.anime4up', 'ar.witanime']
-
-const isFullySupported = (pkg?: string): boolean => {
-  if (!pkg) return false
-  return pkg.startsWith('en.') || pkg.startsWith('ar.') || pkg.startsWith('es.')
+export interface ExtensionsPageProps {
+  filterType?: 'manga' | 'anime'
+  hideHeader?: boolean
 }
 
-export default function ExtensionsPage(): React.JSX.Element {
+export default function ExtensionsPage({
+  filterType,
+  hideHeader = false
+}: ExtensionsPageProps = {}): React.JSX.Element {
   const navigate = useNavigate()
   const mobile = isMobile()
   const {
@@ -62,24 +64,28 @@ export default function ExtensionsPage(): React.JSX.Element {
   const installMutation = useInstallExtension()
   const bulkUpdateMutation = useBulkUpdate()
 
-  // --- UI State ---
-  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'installed' | 'updates' | 'global'>(
-    'installed'
-  )
-  const [selectedLangs, setSelectedLangs] = useState<string[]>(['all'])
+  // --- UI State & Persistent Settings ---
+  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'updates' | 'global'>('catalog')
+  const {
+    showNsfw,
+    setShowNsfw,
+    selectedLangs = ['all'],
+    setSelectedLangs,
+    setBrowseSection
+  } = useSettingsStore()
   const [isLangModalOpen, setIsLangModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showNsfw, setShowNsfw] = useState(false)
 
   const toggleLang = (lang: string): void => {
     if (lang === 'all') {
       setSelectedLangs(['all'])
     } else {
-      const next = selectedLangs.includes('all')
+      const current = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+      const next = current.includes('all')
         ? [lang]
-        : selectedLangs.includes(lang)
-          ? selectedLangs.filter((l) => l !== lang)
-          : [...selectedLangs, lang]
+        : current.includes(lang)
+          ? current.filter((l) => l !== lang)
+          : [...current, lang]
       setSelectedLangs(next.length === 0 ? ['all'] : next)
     }
   }
@@ -87,34 +93,36 @@ export default function ExtensionsPage(): React.JSX.Element {
   // --- Filtering Logic ---
   const baseFiltered = useMemo(() => {
     let sourceSet: ExtensionMetadata[] = []
-    if (activeSubTab === 'catalog') sourceSet = catalog
-    else if (activeSubTab === 'installed') sourceSet = installedExtensions
-    else if (activeSubTab === 'updates') sourceSet = updates
+    if (activeSubTab === 'catalog') sourceSet = catalog || []
+    else if (activeSubTab === 'updates') sourceSet = updates || []
 
-    let filtered = sourceSet
-      .filter((ext) => !ANIME_SOURCE_PKGS.includes(ext.pkg))
+    let filtered = (sourceSet || [])
+      .filter((ext) => ext && ext.pkg)
+      .filter((ext) => {
+        if (!filterType) return true
+        const isAnime = isAnimeExtension(ext)
+        return filterType === 'anime' ? isAnime : !isAnime
+      })
       .filter((ext) => {
         if (!searchQuery) return true
         const lowQuery = searchQuery.toLowerCase()
-        return ext.name.toLowerCase().includes(lowQuery) || (ext.pkg && ext.pkg.toLowerCase().includes(lowQuery))
+        const nameMatch = ext.name ? ext.name.toLowerCase().includes(lowQuery) : false
+        const pkgMatch = ext.pkg ? ext.pkg.toLowerCase().includes(lowQuery) : false
+        return nameMatch || pkgMatch
       })
       .filter((ext) => showNsfw || !ext.nsfw)
 
-    if (!selectedLangs.includes('all')) {
-      filtered = filtered.filter((ext) => selectedLangs.includes(ext.lang))
+    const activeLangs = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+    if (!activeLangs.includes('all')) {
+      filtered = filtered.filter((ext) => ext && ext.lang && activeLangs.includes(ext.lang))
     }
 
     return filtered
-  }, [activeSubTab, catalog, installedExtensions, updates, searchQuery, showNsfw, selectedLangs])
+  }, [activeSubTab, catalog, installedExtensions, updates, searchQuery, showNsfw, selectedLangs, filterType])
 
   const filteredData = useMemo(() => {
-    return baseFiltered.sort((a, b) => {
-      if (activeSubTab === 'installed') {
-        const aPinned = pinnedExtensions.includes(a.pkg)
-        const bPinned = pinnedExtensions.includes(b.pkg)
-        if (aPinned && !bPinned) return -1
-        if (!aPinned && bPinned) return 1
-      }
+    return [...(baseFiltered || [])].sort((a, b) => {
+      if (!a || !b) return 0
 
       if (extensionSortBy === 'supported') {
         const aSupp = isFullySupported(a.pkg) ? 1 : 0
@@ -123,14 +131,16 @@ export default function ExtensionsPage(): React.JSX.Element {
       }
 
       if (extensionSortBy === 'installed') {
-        const aInst = installedExtensions.some((i) => i.pkg === a.pkg) ? 1 : 0
-        const bInst = installedExtensions.some((i) => i.pkg === b.pkg) ? 1 : 0
+        const aInst = (installedExtensions || []).some((i) => i && i.pkg === a.pkg) ? 1 : 0
+        const bInst = (installedExtensions || []).some((i) => i && i.pkg === b.pkg) ? 1 : 0
         if (aInst !== bInst) return extensionSortOrder === 'asc' ? bInst - aInst : aInst - bInst
       }
 
+      const aName = a.name || ''
+      const bName = b.name || ''
       return extensionSortOrder === 'asc'
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
+        ? aName.localeCompare(bName)
+        : bName.localeCompare(aName)
     })
   }, [
     baseFiltered,
@@ -144,12 +154,13 @@ export default function ExtensionsPage(): React.JSX.Element {
   // --- Components ---
   const LanguageFilter = (): React.JSX.Element => {
     const langs = Object.keys(LANGUAGE_NAMES)
+    const activeLangs = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
 
     const triggerLabel = useMemo(() => {
-      if (selectedLangs.includes('all')) return 'All Languages'
-      if (selectedLangs.length === 1) return LANGUAGE_NAMES[selectedLangs[0]]
-      return `Languages (${selectedLangs.length})`
-    }, [selectedLangs])
+      if (activeLangs.includes('all')) return 'All Languages'
+      if (activeLangs.length === 1) return LANGUAGE_NAMES[activeLangs[0]] || activeLangs[0]
+      return `Languages (${activeLangs.length})`
+    }, [activeLangs])
 
     if (!mobile) {
       return (
@@ -157,7 +168,7 @@ export default function ExtensionsPage(): React.JSX.Element {
           <div
             className={cn(
               'flex h-11 w-full items-center justify-between rounded-xl border border-border/40 bg-card/40 px-3 py-2 text-sm cursor-pointer hover:bg-accent/50 transition-all',
-              !selectedLangs.includes('all') && 'border-primary/50 ring-2 ring-primary/5'
+              !activeLangs.includes('all') && 'border-primary/50 ring-2 ring-primary/5'
             )}
             onClick={() => setIsLangModalOpen(!isLangModalOpen)}
           >
@@ -165,7 +176,7 @@ export default function ExtensionsPage(): React.JSX.Element {
               <Globe
                 className={cn(
                   'h-4 w-4 shrink-0',
-                  !selectedLangs.includes('all') ? 'text-primary' : 'text-muted-foreground'
+                  !activeLangs.includes('all') ? 'text-primary' : 'text-muted-foreground'
                 )}
               />
               <span className="truncate font-semibold text-xs tracking-wide">{triggerLabel}</span>
@@ -186,7 +197,7 @@ export default function ExtensionsPage(): React.JSX.Element {
                 onClick={(e) => e.stopPropagation()}
               >
                 {langs.map((lang) => {
-                  const isSelected = selectedLangs.includes(lang)
+                  const isSelected = activeLangs.includes(lang)
                   return (
                     <div
                       key={lang}
@@ -219,7 +230,7 @@ export default function ExtensionsPage(): React.JSX.Element {
           onClick={() => setIsLangModalOpen(true)}
           className={cn(
             'h-11 rounded-xl border-border/40 whitespace-nowrap gap-2 bg-card/40 px-4',
-            !selectedLangs.includes('all') && 'border-primary/50 bg-primary/5 text-primary'
+            !activeLangs.includes('all') && 'border-primary/50 bg-primary/5 text-primary'
           )}
         >
           <Globe className="h-4 w-4" />
@@ -238,7 +249,7 @@ export default function ExtensionsPage(): React.JSX.Element {
                 key={lang}
                 className={cn(
                   'flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer border border-transparent',
-                  selectedLangs.includes(lang)
+                  activeLangs.includes(lang)
                     ? 'bg-primary/10 border-primary/20'
                     : 'hover:bg-secondary/50'
                 )}
@@ -254,7 +265,7 @@ export default function ExtensionsPage(): React.JSX.Element {
                   </div>
                 </div>
                 <Checkbox
-                  checked={selectedLangs.includes(lang)}
+                  checked={activeLangs.includes(lang)}
                   onCheckedChange={() => toggleLang(lang)}
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -281,12 +292,25 @@ export default function ExtensionsPage(): React.JSX.Element {
     return Scroller
   }, [])
 
+  const updatesCount = useMemo(() => {
+    return (updates || []).filter((ext) =>
+      filterType === 'anime' ? isAnimeExtension(ext) : filterType === 'manga' ? !isAnimeExtension(ext) : true
+    ).length
+  }, [updates, filterType])
+
+  const availableCount = useMemo(() => {
+    return (catalog || []).filter((ext) =>
+      filterType === 'anime' ? isAnimeExtension(ext) : filterType === 'manga' ? !isAnimeExtension(ext) : true
+    ).length
+  }, [catalog, filterType])
+
   const ExtensionCard = ({ ext }: { ext: ExtensionMetadata }): React.JSX.Element => {
-    const isInstalled = installedExtensions.some((i) => i.pkg === ext.pkg)
-    const isPinned = pinnedExtensions.includes(ext.pkg)
-    const isInstalling = installingPkgs.has(ext.pkg)
-    const updateAvailable = updates.some((u) => u.pkg === ext.pkg)
-    const iconUrl = DataService.getExtensionIcon(ext.pkg)
+    if (!ext) return <div />
+    const isInstalled = (installedExtensions || []).some((i) => i && i.pkg === ext.pkg)
+    const isPinned = (pinnedExtensions || []).includes(ext.pkg)
+    const isInstalling = installingPkgs?.has?.(ext.pkg) || false
+    const updateAvailable = (updates || []).some((u) => u && u.pkg === ext.pkg)
+    const iconUrl = DataService.getExtensionIcon(ext.pkg || '')
 
     const handleBrowse = (): void => {
       navigate(`/browse/${ext.pkg}`)
@@ -422,12 +446,241 @@ export default function ExtensionsPage(): React.JSX.Element {
     )
   }
 
+  const headerExtraContent = (
+    <div className="space-y-4">
+      {/* Main Tabs */}
+      <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border/40 overflow-x-auto no-scrollbar relative w-fit">
+        {[
+          {
+            id: 'catalog',
+            label: 'Available',
+            icon: Globe,
+            count: availableCount
+          },
+          {
+            id: 'updates',
+            label: 'Updates',
+            icon: RefreshCw,
+            count: updatesCount,
+            highlight: updatesCount > 0
+          }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id as any)}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all min-w-fit relative z-10',
+              activeSubTab === tab.id
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {activeSubTab === tab.id && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute inset-0 bg-background shadow-md ring-1 ring-border/20 rounded-xl z-[-1]"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <tab.icon
+              className={cn('h-3.5 w-3.5', tab.highlight && 'text-primary animate-pulse')}
+            />
+            <span>{tab.label}</span>
+            {tab.count !== undefined && (
+              <Badge
+                variant={tab.highlight ? 'default' : 'secondary'}
+                className="h-4 min-w-[18px] px-1 text-[9px]"
+              >
+                {tab.count}
+              </Badge>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeSubTab !== 'global' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row gap-3"
+        >
+          <div className="relative flex-1 group">
+            <SearchIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              className="pl-9 pr-4 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl text-sm"
+              placeholder={
+                activeSubTab === 'catalog' ? 'Search available extensions...' : 'Search updates...'
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <LanguageFilter />
+
+            <Button
+              variant={showNsfw ? 'secondary' : 'outline'}
+              onClick={() => setShowNsfw(!showNsfw)}
+              className={cn(
+                'h-11 px-4 rounded-xl border-border/40 transition-all font-bold text-[10px] uppercase tracking-wider bg-card/40',
+                showNsfw && 'bg-destructive/10 text-destructive border-destructive/20'
+              )}
+            >
+              {showNsfw ? (
+                <ShieldAlert className="w-4 h-4 mr-2" />
+              ) : (
+                <ShieldCheck className="w-4 h-4 mr-2" />
+              )}
+              18+
+            </Button>
+
+            <Button
+              variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() =>
+                setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
+              }
+              className={cn(
+                'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
+                extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'
+              )}
+            >
+              <ArrowUpDown
+                className={cn(
+                  'w-4 h-4 transition-transform',
+                  extensionSortOrder === 'desc' && 'rotate-180'
+                )}
+              />
+              <span className="font-semibold text-xs transition-all uppercase tracking-wider">
+                {mobile ? '' : 'Sort'}
+              </span>
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {activeSubTab === 'updates' && (updates || []).length > 0 && (
+        <Button
+          size="sm"
+          onClick={() => bulkUpdateMutation.mutate(updates)}
+          disabled={bulkUpdateMutation.isPending}
+          className="w-full h-11 rounded-xl bg-primary shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest gap-2"
+        >
+          {bulkUpdateMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          Update All {updatesCount} extensions
+        </Button>
+      )}
+    </div>
+  )
+
+  const bodyContent = (
+    <div className={cn('flex-1 min-h-0 flex flex-col -mb-4', activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar')}>
+      {activeSubTab === 'global' ? (
+        <GlobalSearch />
+      ) : catalogLoading ? (
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="animate-in fade-in duration-500"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <Card className="h-40 bg-card/40 border-border/40 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-primary/30" />
+              </Card>
+            </div>
+          ))}
+        </div>
+      ) : (filteredData || []).length === 0 ? (
+        catalog.length === 0 && !searchQuery ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 animate-in fade-in duration-500">
+            <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
+              <Globe className="h-10 w-10 text-primary" />
+            </div>
+            <div className="space-y-1.5 max-w-sm">
+              <h3 className="text-xl font-bold tracking-tight">No Repositories Configured</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Add an extension repository to automatically discover and install thousands of manga and anime sources.
+              </p>
+            </div>
+            <Button
+              className="rounded-xl px-6 bg-primary font-bold gap-2 shadow-lg shadow-primary/20"
+              onClick={() => setBrowseSection('repositories')}
+            >
+              <Globe className="h-4 w-4" />
+              Configure Repositories
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center ring-2 ring-border/10">
+              <Package className="h-10 w-10 text-muted-foreground/40" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold tracking-tight">No Extensions Found</h3>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                {searchQuery
+                  ? `No results match "${searchQuery}"`
+                  : 'Try changing your filters or checking your connection.'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="rounded-xl px-8"
+              onClick={() => {
+                setSearchQuery('')
+                setSelectedLangs(['all'])
+              }}
+            >
+              Clear All Filters
+            </Button>
+          </div>
+        )
+      ) : (
+        <VirtuosoGrid
+          data={filteredData || []}
+          totalCount={(filteredData || []).length}
+          overscan={200}
+          style={{ height: '100%' }}
+          listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-4"
+          itemContent={(_, ext) => ext ? <ExtensionCard key={ext.pkg} ext={ext} /> : null}
+          components={{
+            Scroller: VirtuosoScroller,
+            Footer: () => <div className="h-24" />
+          }}
+        />
+      )}
+    </div>
+  )
+
+  if (hideHeader) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col space-y-4">
+        {headerExtraContent}
+        {bodyContent}
+      </div>
+    )
+  }
+
   return (
     <AnimatePresence>
       <MobilePage
         scrollable={false}
         title="Extensions"
-        subtitle={`${catalog.length} Sources Available`}
+        subtitle={`${(catalog || []).length} Sources Available`}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -444,7 +697,7 @@ export default function ExtensionsPage(): React.JSX.Element {
             <Button
               variant={activeSubTab === 'global' ? 'secondary' : 'ghost'}
               size="sm"
-              onClick={() => setActiveSubTab(activeSubTab === 'global' ? 'installed' : 'global')}
+              onClick={() => setActiveSubTab(activeSubTab === 'global' ? 'catalog' : 'global')}
               className={cn(
                 'h-10 w-10 p-0 rounded-xl transition-all relative group',
                 activeSubTab === 'global' && 'bg-primary/10 text-primary'
@@ -470,203 +723,9 @@ export default function ExtensionsPage(): React.JSX.Element {
             </Button>
           </div>
         }
-        headerExtra={
-          <div className="space-y-4">
-            {/* Main Tabs */}
-            <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border/40 overflow-x-auto no-scrollbar relative">
-              {[
-                {
-                  id: 'installed',
-                  label: 'Installed',
-                  icon: ShieldCheck,
-                  count: installedExtensions.length
-                },
-                { id: 'catalog', label: 'Browse', icon: Globe },
-                {
-                  id: 'updates',
-                  label: 'Updates',
-                  icon: RefreshCw,
-                  count: updates.length,
-                  highlight: updates.length > 0
-                }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSubTab(tab.id as any)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all min-w-fit relative z-10',
-                    activeSubTab === tab.id
-                      ? 'text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {activeSubTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-background shadow-md ring-1 ring-border/20 rounded-xl z-[-1]"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <tab.icon
-                    className={cn('h-3.5 w-3.5', tab.highlight && 'text-primary animate-pulse')}
-                  />
-                  <span>{tab.label}</span>
-                  {tab.count !== undefined && (
-                    <Badge
-                      variant={tab.highlight ? 'default' : 'secondary'}
-                      className="h-4 min-w-[18px] px-1 text-[9px]"
-                    >
-                      {tab.count}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {activeSubTab !== 'global' && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col md:flex-row gap-3"
-              >
-                <div className="relative flex-1 group">
-                  <SearchIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input
-                    className="pl-9 pr-4 h-11 bg-card/40 border-border/40 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all rounded-xl text-sm"
-                    placeholder={
-                      activeSubTab === 'catalog' ? 'Search 1200+ sources...' : 'Search installed...'
-                    }
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-3 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-all animate-in zoom-in duration-200"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <LanguageFilter />
-
-                  <Button
-                    variant={showNsfw ? 'secondary' : 'outline'}
-                    onClick={() => setShowNsfw(!showNsfw)}
-                    className={cn(
-                      'h-11 px-4 rounded-xl border-border/40 transition-all font-bold text-[10px] uppercase tracking-wider bg-card/40',
-                      showNsfw && 'bg-destructive/10 text-destructive border-destructive/20'
-                    )}
-                  >
-                    {showNsfw ? (
-                      <ShieldAlert className="w-4 h-4 mr-2" />
-                    ) : (
-                      <ShieldCheck className="w-4 h-4 mr-2" />
-                    )}
-                    18+
-                  </Button>
-
-                  <Button
-                    variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={() =>
-                      setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
-                    }
-                    className={cn(
-                      'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
-                      extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'
-                    )}
-                  >
-                    <ArrowUpDown
-                      className={cn(
-                        'w-4 h-4 transition-transform',
-                        extensionSortOrder === 'desc' && 'rotate-180'
-                      )}
-                    />
-                    <span className="font-semibold text-xs transition-all uppercase tracking-wider">
-                      {mobile ? '' : 'Sort'}
-                    </span>
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            {activeSubTab === 'updates' && updates.length > 0 && (
-              <Button
-                size="sm"
-                onClick={() => bulkUpdateMutation.mutate(updates)}
-                disabled={bulkUpdateMutation.isPending}
-                className="w-full h-11 rounded-xl bg-primary shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest gap-2"
-              >
-                {bulkUpdateMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                Update All {updates.length} extensions
-              </Button>
-            )}
-          </div>
-        }
+        headerExtra={headerExtraContent}
       >
-        <div className={cn('flex-1 min-h-0 flex flex-col -mb-4', activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar')}>
-          {activeSubTab === 'global' ? (
-            <GlobalSearch />
-          ) : catalogLoading ? (
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-in fade-in duration-500"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  <Card className="h-40 bg-card/40 border-border/40 flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary/30" />
-                  </Card>
-                </div>
-              ))}
-            </div>
-          ) : filteredData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-              <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center ring-2 ring-border/10">
-                <Package className="h-10 w-10 text-muted-foreground/40" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold tracking-tight">No Extensions Found</h3>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  {searchQuery
-                    ? `No results match "${searchQuery}"`
-                    : 'Try changing your filters or checking your connection.'}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="rounded-xl px-8"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedLangs(['all'])
-                }}
-              >
-                Clear All Filters
-              </Button>
-            </div>
-          ) : (
-            <VirtuosoGrid
-              data={filteredData}
-              totalCount={filteredData.length}
-              overscan={200}
-              style={{ height: '100%' }}
-              listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-4"
-              itemContent={(_, ext) => <ExtensionCard key={ext.pkg} ext={ext} />}
-              components={{
-                Scroller: VirtuosoScroller,
-                Footer: () => <div className="h-24" />
-              }}
-            />
-          )}
-        </div>
+        {bodyContent}
       </MobilePage>
     </AnimatePresence>
   )

@@ -29,26 +29,39 @@ export const DEFAULT_THEMES: ThemeOption[] = [
   {
     id: 'dark-default',
     name: 'Dark Default',
-    desc: 'Obsidian Purple',
+    desc: 'AutaKimi Crimson',
     theme: 'dark',
     colorTheme: 'default',
     bgClass: 'bg-zinc-950 text-zinc-100',
     borderClass: 'border-zinc-800',
     boxClass: 'bg-zinc-900 border-zinc-800',
-    dotClass: 'bg-purple-500',
+    dotClass: 'bg-rose-500',
     descClass: 'text-zinc-400'
   },
   {
     id: 'light-default',
     name: 'Light Default',
-    desc: 'Clean Purple',
+    desc: 'Clean Crimson',
     theme: 'light',
     colorTheme: 'default',
     bgClass: 'bg-white text-zinc-900',
     borderClass: 'border-zinc-200',
     boxClass: 'bg-zinc-100 border-zinc-200',
-    dotClass: 'bg-purple-500',
+    dotClass: 'bg-rose-500',
     descClass: 'text-zinc-500'
+  },
+  {
+    id: 'custom-myo',
+    name: 'Custom Theme',
+    desc: 'Make Your Own (MYO)',
+    theme: 'dark',
+    colorTheme: 'custom',
+    tag: 'Studio',
+    bgClass: 'bg-card text-foreground',
+    borderClass: 'border-primary/40 shadow-md',
+    boxClass: 'bg-primary/10 border-primary/30',
+    dotClass: 'bg-emerald-500',
+    descClass: 'text-primary font-medium'
   }
 ]
 
@@ -60,12 +73,12 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     theme: 'light',
     colorTheme: 'all-might',
     bgImage: allMightImg,
-    tag: 'Sunset',
+    tag: 'Plus Ultra',
     bgClass: 'text-zinc-900',
-    borderClass: 'border-amber-200/50 shadow-md',
-    boxClass: 'bg-white/80 border-amber-200/50',
-    dotClass: 'bg-amber-500',
-    descClass: 'text-zinc-700 font-medium'
+    borderClass: 'border-rose-300/60 shadow-md',
+    boxClass: 'bg-white/85 border-rose-300/50',
+    dotClass: 'bg-rose-500',
+    descClass: 'text-rose-950/70 font-medium'
   },
   {
     id: 'light-goku',
@@ -186,11 +199,11 @@ export const PREMIUM_THEMES: ThemeOption[] = [
     theme: 'light',
     colorTheme: 'naruto',
     bgImage: narutoImg,
-    tag: 'Tailed',
+    tag: 'Six Paths',
     bgClass: 'text-zinc-900',
-    borderClass: 'border-amber-200/50 shadow-md',
-    boxClass: 'bg-white/80 border-amber-200/50',
+    borderClass: 'border-amber-300/60 shadow-md',
+    boxClass: 'bg-white/85 border-amber-300/50',
     dotClass: 'bg-amber-500',
-    descClass: 'text-zinc-700 font-medium'
+    descClass: 'text-amber-950/70 font-medium'
   }
 ]

@@ -34,6 +34,23 @@ export const ContinueBanner = ({
     return isAnime ? 'Start Watching' : 'Start Reading'
   })()
 
+  const displayNum =
+    nextToRead.number !== undefined && nextToRead.number !== null && Number(nextToRead.number) > 0
+      ? nextToRead.number
+      : (String(nextToRead.title || '').match(/[\d.]+/) || [nextToRead.number ?? 0])[0]
+
+  const cleanTitle = (nextToRead.title || '').trim().toLowerCase()
+  const numStr = String(displayNum).toLowerCase()
+  const isTitleRedundant =
+    !nextToRead.title ||
+    cleanTitle === numStr ||
+    cleanTitle === `episode ${numStr}` ||
+    cleanTitle === `chapter ${numStr}` ||
+    cleanTitle === `ep ${numStr}` ||
+    cleanTitle === `ch ${numStr}` ||
+    cleanTitle === `الحلقة ${numStr}` ||
+    cleanTitle === `الفصل ${numStr}`
+
   return (
     <Button
       className={cn(
@@ -51,7 +68,8 @@ export const ContinueBanner = ({
           {progText}
         </span>
         <span className="text-sm font-semibold truncate max-w-[280px] sm:max-w-md">
-          {itemType} {nextToRead.number} {nextToRead.title ? `- ${nextToRead.title}` : ''}
+          {itemType} {displayNum}
+          {!isTitleRedundant && nextToRead.title ? ` - ${nextToRead.title}` : ''}
         </span>
       </div>
     </Button>

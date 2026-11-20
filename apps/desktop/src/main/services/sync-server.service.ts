@@ -2,8 +2,9 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { Bonjour, Service } from 'bonjour-service'
 import { AppService, ServicePriority } from './service.registry'
 import { identityService } from './identity.service'
-import { historyRepo, libraryRepo } from '../db'
+import { historyRepo, libraryRepo, progressRepo } from '../db'
 import os from 'os'
+import crypto from 'crypto'
 
 export class SyncServer implements AppService {
   public priority = ServicePriority.FEATURE
@@ -142,6 +143,15 @@ export class SyncServer implements AppService {
         ws.close()
         return
       }
+
+      // Generate cryptographically random challenge for HMAC authentication
+      const challenge = crypto.randomBytes(32).toString('hex')
+      ;(ws as any).challenge = challenge
+      try {
+        ws.send(JSON.stringify({ type: 'auth_challenge', challenge }))
+      } catch (e) {
+        console.error('[SyncServer] Failed to send auth challenge:', e)
+      }
       
       ws.on('message', async (data: string) => {
         if (this.isIpLocked(ip)) {
@@ -171,8 +181,70 @@ export class SyncServer implements AppService {
 
   private async handleMessage(ws: WebSocket, message: any, ip: string) {
     switch (message.type) {
-      case 'auth':
-        if (message.secret === identityService.getSyncSecret()) {
+      case 'auth_response': {
+        const challenge = (ws as any).challenge
+        if (!challenge) {
+          this.recordFailedAttempt(ip)
+          ws.send(JSON.stringify({ type: 'auth_error', message: 'No challenge issued' }))
+          ws.close()
+          break
+        }
+
+        const expectedSecret = identityService.getSyncSecret() || ''
+        const expectedHmac = crypto
+          .createHmac('sha256', expectedSecret)
+          .update(challenge)
+          .digest('hex')
+
+        const expectedHashFallback = crypto
+          .createHash('sha256')
+          .update(`${expectedSecret}:${challenge}`)
+          .digest('hex')
+
+        const providedResponse = typeof message.response === 'string' ? message.response : ''
+        const providedBuf = Buffer.from(providedResponse, 'utf-8')
+
+        let isMatch = false
+        const hmacBuf = Buffer.from(expectedHmac, 'utf-8')
+        if (providedBuf.length > 0 && providedBuf.length === hmacBuf.length) {
+          isMatch = crypto.timingSafeEqual(providedBuf, hmacBuf)
+        }
+        if (!isMatch) {
+          const fallbackBuf = Buffer.from(expectedHashFallback, 'utf-8')
+          if (providedBuf.length > 0 && providedBuf.length === fallbackBuf.length) {
+            isMatch = crypto.timingSafeEqual(providedBuf, fallbackBuf)
+          }
+        }
+
+        // Clear challenge once verified
+        delete (ws as any).challenge
+
+        if (isMatch) {
+          (ws as any).authenticated = true
+          this.recordSuccessfulAuth(ip)
+          ws.send(JSON.stringify({ type: 'auth_success', deviceId: identityService.getDeviceId() }))
+          console.log('[SyncServer] Client authenticated via HMAC challenge-response:', message.id)
+        } else {
+          this.recordFailedAttempt(ip)
+          ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid HMAC response' }))
+          ws.close()
+        }
+        break
+      }
+
+      case 'auth': {
+        delete (ws as any).challenge
+        const expectedSecret = identityService.getSyncSecret() || ''
+        const providedSecret = typeof message.secret === 'string' ? message.secret : ''
+        const expectedBuf = Buffer.from(expectedSecret, 'utf-8')
+        const providedBuf = Buffer.from(providedSecret, 'utf-8')
+
+        const isMatch =
+          expectedBuf.length > 0 &&
+          expectedBuf.length === providedBuf.length &&
+          crypto.timingSafeEqual(expectedBuf, providedBuf)
+
+        if (isMatch) {
           (ws as any).authenticated = true
           this.recordSuccessfulAuth(ip)
           ws.send(JSON.stringify({ type: 'auth_success', deviceId: identityService.getDeviceId() }))
@@ -183,6 +255,7 @@ export class SyncServer implements AppService {
           ws.close()
         }
         break
+      }
       
       case 'pull_history':
         if (!(ws as any).authenticated) return ws.close()
@@ -256,6 +329,42 @@ export class SyncServer implements AppService {
           console.log('[SyncServer] History push merged successfully')
         } catch (e) {
           console.error('[SyncServer] Failed to merge pushed history:', e)
+        }
+        break
+
+      case 'pull_progress':
+        if (!(ws as any).authenticated) return ws.close()
+        try {
+          const allProgress = await progressRepo.getAllProgress()
+          const filtered = message.lastSynced
+            ? allProgress.filter((p) => p.updatedAt && p.updatedAt > message.lastSynced)
+            : allProgress
+          ws.send(JSON.stringify({ type: 'progress_data', data: filtered }))
+        } catch (e) {
+          console.error('[SyncServer] Failed to fetch progress for sync:', e)
+        }
+        break
+
+      case 'push_progress':
+        if (!(ws as any).authenticated) return ws.close()
+        try {
+          const pushed = message.data || []
+          for (const entry of pushed) {
+            const mangaId = entry.mangaId || entry.manga_id
+            const chapterId = entry.chapterId || entry.chapter_id
+            if (mangaId && chapterId) {
+              await progressRepo.updateProgress({
+                mangaId,
+                chapterId,
+                isRead: Boolean(entry.isRead ?? entry.is_read),
+                lastPage: Number(entry.lastPage ?? entry.last_page ?? 0),
+                updatedAt: entry.updatedAt || entry.updated_at
+              })
+            }
+          }
+          console.log(`[SyncServer] Progress push merged successfully: ${pushed.length} items`)
+        } catch (e) {
+          console.error('[SyncServer] Failed to merge pushed progress:', e)
         }
         break
       

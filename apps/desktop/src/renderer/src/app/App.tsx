@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from './layouts/AppLayout'
-import { useBrowseCacheStore, useExtensionStore } from '@renderer/shared/model'
+import { useBrowseCacheStore } from '@renderer/shared/model'
 import { DownloadSync } from './components/DownloadSync'
 import { CfBypassOverlay } from './components/CfBypassOverlay'
 import { useEffect } from 'react'
@@ -14,7 +14,7 @@ const LibraryPage = lazy(() => import('@renderer/pages/library/LibraryPage'))
 const DownloadsPage = lazy(() => import('@renderer/pages/downloads/DownloadsPage'))
 const HistoryPage = lazy(() => import('@renderer/pages/history/HistoryPage'))
 const BrowsePage = lazy(() => import('@renderer/pages/browse/BrowsePage'))
-const ExtensionsPage = lazy(() => import('@renderer/pages/extensions/ExtensionsPage'))
+const BrowseIndexPage = lazy(() => import('@renderer/pages/browse/BrowseIndexPage'))
 const SettingsPage = lazy(() => import('@renderer/pages/settings/SettingsPage'))
 const AboutPage = lazy(() => import('@renderer/pages/about/AboutPage'))
 const AnimePage = lazy(() => import('@renderer/pages/anime/AnimePage'))
@@ -52,12 +52,6 @@ function App(): React.JSX.Element {
     return () => unsub()
   }, [invalidateGroup])
 
-  const { loadCatalog } = useExtensionStore()
-
-  useEffect(() => {
-    loadCatalog()
-  }, [loadCatalog])
-
   return (
     <>
       <DownloadSync />
@@ -78,7 +72,7 @@ function App(): React.JSX.Element {
 
           {/* Nested Browse / Extensions Flow */}
           <Route path="/browse">
-            <Route index element={<LazyRoute><ExtensionsPage /></LazyRoute>} />
+            <Route index element={<LazyRoute><BrowseIndexPage /></LazyRoute>} />
             <Route path=":pkg" element={<LazyRoute><BrowsePage /></LazyRoute>} />
           </Route>
 

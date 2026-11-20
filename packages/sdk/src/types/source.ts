@@ -20,6 +20,8 @@ export interface SourceFilterGroup {
 export interface StreamingServer {
   name: string
   url: string
+  type?: 'hls' | 'mp4' | 'embed'
+  headers?: Record<string, string>
 }
 
 export interface ISourceAdapter {

@@ -57,17 +57,40 @@ export class PluginService {
     }
   }
 
+  async hydrateManifest(manifest: any): Promise<{ success: boolean; count: number }> {
+    try {
+      // Keiyoushi repositories are strictly extension repos and do not host plugins.json
+      if (
+        Boolean(manifest.isKeiyoushi) ||
+        manifest.catalogs?.manga === 'index.json' ||
+        manifest.catalogs?.manga === 'index.min.json'
+      ) {
+        return { success: true, count: 0 }
+      }
+
+      const pluginUrl = `${manifest.baseUrl}${manifest.plugins}`
+      return await this.fetchPlugins(pluginUrl)
+    } catch (e) {
+      console.warn(`[PluginService] Error hydrating manifest at ${manifest.baseUrl}:`, e)
+      return { success: false, count: 0 }
+    }
+  }
+
   async loadAllRepositories(urls: string[]): Promise<{ success: boolean; totalCount: number }> {
     let totalCount = 0
-    for (const url of urls) {
-      try {
-        const manifest = await repositoryService.resolveManifest(url)
-        const pluginUrl = `${manifest.baseUrl}${manifest.plugins}`
-        const res = await this.fetchPlugins(pluginUrl)
-        if (res.success) totalCount += res.count
-      } catch (e) {
-        console.warn(`[PluginService] Error parsing plugin URL ${url}:`, e)
-      }
+    const results = await Promise.all(
+      urls.map(async (url) => {
+        try {
+          const manifest = await repositoryService.resolveManifest(url)
+          return await this.hydrateManifest(manifest)
+        } catch (e) {
+          console.warn(`[PluginService] Error parsing plugin URL ${url}:`, e)
+          return { success: false, count: 0 }
+        }
+      })
+    )
+    for (const res of results) {
+      if (res.success) totalCount += res.count
     }
     return { success: true, totalCount }
   }

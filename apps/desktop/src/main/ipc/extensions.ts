@@ -3,6 +3,7 @@ import { extensionOrchestrator } from '../services/extension.service'
 import { NetworkConfig, getEffectiveUA } from '@common/config/network'
 import { extensionRepo, settingsRepo } from '../db'
 import { registerHandler, wrapIpc } from './utils'
+import { cloudflareService } from '../services/cloudflare.service'
 
 export function registerExtensionHandlers() {
   registerHandler(
@@ -25,9 +26,18 @@ export function registerExtensionHandlers() {
     IpcChannel.EXECUTE_EXTENSION,
     wrapIpc(async (_, args: ExecuteExtensionArgs) => {
       if (!args || typeof args !== 'object') throw new Error('Invalid execution arguments')
-      const { pkg, code, contextArgs, taskId } = args
-      if (typeof pkg !== 'string' || typeof code !== 'string') {
-        throw new Error('Invalid pkg or code parameter')
+      let { pkg, code, contextArgs, taskId } = args
+      if (typeof pkg !== 'string') {
+        throw new Error('Invalid pkg parameter')
+      }
+      if (!code) {
+        const ext = await extensionRepo.getByPkg(pkg)
+        if (ext && ext.code) {
+          code = ext.code
+        }
+      }
+      if (typeof code !== 'string') {
+        throw new Error('Invalid code parameter')
       }
       if (contextArgs && typeof contextArgs !== 'object') {
         throw new Error('Invalid contextArgs parameter')
@@ -40,29 +50,48 @@ export function registerExtensionHandlers() {
       let bypassCf = true
       let ua: string = NetworkConfig.DEFAULT_UA
       let baseUrl = ''
+      let rowUa: string | null = null
 
       try {
-        const ext = await extensionRepo.getByPkg(pkg)
+        const cleanPkg = pkg.replace(/^ma\.autakimi\.extension\./, '')
+        const fullPkg = pkg.startsWith('ma.autakimi.extension.') ? pkg : `ma.autakimi.extension.${pkg}`
+
+        const ext =
+          (await extensionRepo.getByPkg(fullPkg)) ||
+          (await extensionRepo.getByPkg(cleanPkg)) ||
+          (await extensionRepo.getByPkg(pkg))
         if (ext) baseUrl = ext.baseUrl || ''
+
+        const domainOverride =
+          (await settingsRepo.get(`domain_override_${pkg}`)) ||
+          (await settingsRepo.get(`domain_override_${fullPkg}`)) ||
+          (await settingsRepo.get(`domain_override_${cleanPkg}`))
+
+        if (domainOverride && domainOverride.trim() !== '') {
+          baseUrl = domainOverride.trim()
+          console.log(`[ExtIPC] Applied domain override for ${pkg}: ${baseUrl}`)
+        }
+
         console.log(`[ExtIPC] baseUrl: ${baseUrl}`)
 
-        bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
-        const rowUa = await settingsRepo.get('user_agent')
+        const bypassSetting = await settingsRepo.get('bypass_cloudflare')
+        bypassCf = bypassSetting !== 'false'
+        rowUa = await settingsRepo.get('user_agent')
         ua = getEffectiveUA(rowUa === 'Default' || !rowUa ? undefined : rowUa)
         console.log(`[ExtIPC] bypassCf: ${bypassCf}, ua: ${ua.slice(0, 40)}...`)
       } catch (e) {
         console.warn('[ExtIPC] Error reading settings:', e)
       }
 
-      // Read CF cookies from the default session and pass as a string
+      // Read CF credentials from CloudflareService (which uses session.fromPartition('persist:cloudflare'))
       let cfCookies = ''
       if (bypassCf && baseUrl) {
         try {
-          const { session } = await import('electron')
-          const cookies = await session.defaultSession.cookies.get({
-            domain: new URL(baseUrl).hostname
-          })
-          cfCookies = cookies.map((c) => `${c.name}=${c.value}`).join('; ')
+          const creds = await cloudflareService.getCredentials(baseUrl)
+          cfCookies = creds.cookies
+          if (creds.userAgent && (!rowUa || rowUa === 'Default')) {
+            ua = creds.userAgent
+          }
           console.log(
             `[ExtIPC] CF cookies for ${new URL(baseUrl).hostname}: ${cfCookies ? cfCookies.slice(0, 60) + '...' : '(none)'}`
           )
@@ -76,6 +105,7 @@ export function registerExtensionHandlers() {
         _bypassCloudflare: bypassCf,
         _userAgent: ua,
         _baseUrl: baseUrl,
+        baseUrl: baseUrl,
         _cfCookies: cfCookies
       }
 
@@ -100,7 +130,8 @@ export function registerExtensionHandlers() {
     IpcChannel.DETECT_THEME,
     wrapIpc(async (_, url) => {
       if (typeof url !== 'string') throw new Error('Invalid URL')
-      const bypassCf = (await settingsRepo.get('bypass_cloudflare')) === 'true'
+      const bypassSetting = await settingsRepo.get('bypass_cloudflare')
+      const bypassCf = bypassSetting !== 'false'
       return extensionOrchestrator.detectTheme(url, bypassCf)
     })
   )
