@@ -1,4 +1,3 @@
-import { session } from 'electron'
 import { AppService, ServicePriority } from './service.registry'
 
 interface StreamHeaderRule {
@@ -10,10 +9,10 @@ interface StreamHeaderRule {
 export class StreamProxyService implements AppService {
   public priority = ServicePriority.NETWORK
   private rules = new Map<string, StreamHeaderRule>()
-  private isHooked = false
 
   async initialize(): Promise<void> {
-    this.hookWebRequest()
+    // WebRequest hooks are dispatched centrally from main/index.ts
+    // to prevent Electron single-listener overwrite issues.
   }
 
   async shutdown(): Promise<void> {
@@ -36,7 +35,7 @@ export class StreamProxyService implements AppService {
     }
   }
 
-  private findRule(requestUrl: string): StreamHeaderRule | null {
+  public findRule(requestUrl: string): StreamHeaderRule | null {
     try {
       const parsed = new URL(requestUrl)
       const origin = parsed.origin.toLowerCase()
@@ -52,40 +51,48 @@ export class StreamProxyService implements AppService {
     return null
   }
 
-  private hookWebRequest(): void {
-    if (this.isHooked) return
-    const defaultSession = session.defaultSession
-    if (!defaultSession) return
+  public applyRequestHeaders(
+    url: string,
+    requestHeaders: Record<string, string>
+  ): Record<string, string> {
+    const rule = this.findRule(url)
+    if (!rule) return requestHeaders
 
-    this.isHooked = true
-
-    defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-      const rule = this.findRule(details.url)
-      if (rule) {
-        const requestHeaders = { ...details.requestHeaders }
-        for (const [k, v] of Object.entries(rule.headers)) {
-          requestHeaders[k] = v
+    const modified = { ...requestHeaders }
+    for (const [k, v] of Object.entries(rule.headers)) {
+      const lowerKey = k.toLowerCase()
+      for (const existingKey of Object.keys(modified)) {
+        if (existingKey.toLowerCase() === lowerKey && existingKey !== k) {
+          delete modified[existingKey]
         }
-        callback({ requestHeaders })
-        return
       }
-      callback({ requestHeaders: details.requestHeaders })
-    })
+      modified[k] = v
+    }
+    return modified
+  }
 
-    defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const rule = this.findRule(details.url)
-      if (rule) {
-        const responseHeaders = { ...details.responseHeaders }
-        responseHeaders['access-control-allow-origin'] = ['*']
-        responseHeaders['access-control-allow-headers'] = ['*']
-        responseHeaders['access-control-allow-methods'] = ['GET, HEAD, OPTIONS, POST']
-        callback({ responseHeaders })
-        return
+  public applyResponseHeaders(
+    url: string,
+    responseHeaders: Record<string, string[]>
+  ): Record<string, string[]> {
+    const rule = this.findRule(url)
+    if (!rule) return responseHeaders
+
+    const modified = { ...responseHeaders }
+    for (const key of Object.keys(modified)) {
+      const lower = key.toLowerCase()
+      if (
+        lower === 'access-control-allow-origin' ||
+        lower === 'access-control-allow-headers' ||
+        lower === 'access-control-allow-methods'
+      ) {
+        delete modified[key]
       }
-      callback({ responseHeaders: details.responseHeaders })
-    })
-
-    console.log('[StreamProxy] WebRequest headers and CORS interceptor active.')
+    }
+    modified['Access-Control-Allow-Origin'] = ['*']
+    modified['Access-Control-Allow-Headers'] = ['*']
+    modified['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS, POST']
+    return modified
   }
 }
 
