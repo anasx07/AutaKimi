@@ -10,6 +10,7 @@ interface HistoryState {
   loadHistory: (type?: 'manga' | 'anime') => Promise<void>
   loadMoreHistory: (type?: 'manga' | 'anime') => Promise<void>
   addHistoryEntry: (entry: Omit<HistoryEntry, 'id'>) => Promise<void>
+  updateHistoryDuration: (args: { mangaId: string; chapterId: string; durationSeconds: number }) => Promise<void>
   deleteHistoryEntry: (id: number) => Promise<void>
   deleteHistoryByManga: (mangaId: string) => Promise<void>
   clearHistory: (type?: 'manga' | 'anime') => Promise<void>
@@ -51,6 +52,14 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       get().loadHistory()
     } catch (e) {
       console.error('Failed to add history:', e)
+    }
+  },
+
+  updateHistoryDuration: async (args) => {
+    try {
+      await DataService.db.updateHistoryDuration(args)
+    } catch (e) {
+      console.error('Failed to update history duration:', e)
     }
   },
 

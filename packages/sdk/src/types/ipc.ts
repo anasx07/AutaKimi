@@ -6,6 +6,7 @@ import { StateUpdateEvent, SystemState } from './state'
 import { Extension } from './extension'
 import { Chapter } from './chapter'
 import { HistoryEntry } from './history'
+import { Tracker, TrackerProvider, AniListUser, AniListMedia } from './tracker'
 
 export type IpcResult<T> = Result<T>
 
@@ -34,8 +35,10 @@ export enum IpcChannel {
 
   DB_GET_PROGRESS = 'db:get-progress',
   DB_UPDATE_PROGRESS = 'db:update-progress',
+  DB_UPDATE_PROGRESS_BATCH = 'db:update-progress-batch',
 
   DB_ADD_HISTORY = 'db:add-history',
+  DB_UPDATE_HISTORY_DURATION = 'db:update-history-duration',
   DB_GET_HISTORY = 'db:get-history',
   DB_DELETE_HISTORY_ENTRY = 'db:delete-history-entry',
   DB_DELETE_HISTORY_BY_MANGA = 'db:delete-history-by-manga',
@@ -102,7 +105,27 @@ export enum IpcChannel {
   PLUGINS_GET_ALL = 'plugins:get-all',
   PLUGINS_TOGGLE = 'plugins:toggle',
   PLUGINS_INSTALL = 'plugins:install',
-  PLUGINS_UNINSTALL = 'plugins:uninstall'
+  PLUGINS_UNINSTALL = 'plugins:uninstall',
+
+  // Streaming
+  SET_STREAM_HEADERS = 'stream:set-headers',
+  PROBE_STREAM = 'stream:probe',
+
+  // Trackers
+  DB_GET_TRACKERS = 'db:get-trackers',
+  DB_SAVE_TRACKER = 'db:save-tracker',
+  DB_DELETE_TRACKER = 'db:delete-tracker',
+  TRACKER_AUTH_ANILIST = 'tracker:auth-anilist',
+  TRACKER_GET_USER_ANILIST = 'tracker:get-user-anilist',
+  TRACKER_SET_TOKEN_ANILIST = 'tracker:set-token-anilist',
+  TRACKER_LOGOUT_ANILIST = 'tracker:logout-anilist',
+  TRACKER_SEARCH_ANILIST = 'tracker:search-anilist',
+  TRACKER_GET_MEDIA_ANILIST = 'tracker:get-media-anilist',
+  TRACKER_UPDATE_ANILIST = 'tracker:update-anilist',
+
+  // Backup
+  BACKUP_EXPORT = 'backup:export',
+  BACKUP_IMPORT = 'backup:import'
 }
 
 /**
@@ -164,6 +187,13 @@ export type IpcInvokeMap = {
     chapterId: string
     isRead: boolean
     lastPage?: number
+    chapterNumber?: number
+  }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_UPDATE_PROGRESS_BATCH]: (args: {
+    mangaId: string
+    chapterIds: string[]
+    isRead: boolean
+    lastPage?: number
   }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_ADD_HISTORY]: (args: {
     mangaId: string
@@ -176,6 +206,11 @@ export type IpcInvokeMap = {
     durationSeconds?: number
     pkg?: string
     type?: 'manga' | 'anime'
+  }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_UPDATE_HISTORY_DURATION]: (args: {
+    mangaId: string
+    chapterId: string
+    durationSeconds: number
   }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_GET_HISTORY]: (
     args?: { limit?: number; offset?: number; type?: string } | number
@@ -244,6 +279,31 @@ export type IpcInvokeMap = {
   [IpcChannel.CF_BYPASS]: (url: string, silent?: boolean) => Promise<IpcResult<boolean>>
   [IpcChannel.CF_FETCH_HTML]: (url: string, silent?: boolean) => Promise<IpcResult<string | null>>
   [IpcChannel.GET_SYSTEM_STATE]: () => Promise<IpcResult<SystemState>>
+  [IpcChannel.SET_STREAM_HEADERS]: (args: { url: string; headers: Record<string, string> }) => Promise<IpcResult<boolean>>
+  [IpcChannel.PROBE_STREAM]: (args: {
+    url: string
+    headers?: Record<string, string>
+    timeoutMs?: number
+  }) => Promise<IpcResult<{ alive: boolean; status: number; pingMs: number; error?: string }>>
+
+  [IpcChannel.DB_GET_TRACKERS]: (mangaId: string) => Promise<IpcResult<Tracker[]>>
+  [IpcChannel.DB_SAVE_TRACKER]: (tracker: Tracker) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_DELETE_TRACKER]: (args: { mangaId: string; provider: TrackerProvider }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.TRACKER_AUTH_ANILIST]: () => Promise<IpcResult<{ token: string; user: AniListUser }>>
+  [IpcChannel.TRACKER_GET_USER_ANILIST]: () => Promise<IpcResult<AniListUser | null>>
+  [IpcChannel.TRACKER_SET_TOKEN_ANILIST]: (token: string) => Promise<IpcResult<AniListUser>>
+  [IpcChannel.TRACKER_LOGOUT_ANILIST]: () => Promise<IpcResult<void>>
+  [IpcChannel.TRACKER_SEARCH_ANILIST]: (args: { query: string; type?: 'ANIME' | 'MANGA' }) => Promise<IpcResult<AniListMedia[]>>
+  [IpcChannel.TRACKER_GET_MEDIA_ANILIST]: (mediaId: number) => Promise<IpcResult<AniListMedia | null>>
+  [IpcChannel.TRACKER_UPDATE_ANILIST]: (args: {
+    mediaId: number
+    status?: string
+    progress?: number
+    score?: number
+  }) => Promise<IpcResult<any>>
+
+  [IpcChannel.BACKUP_EXPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; filePath?: string; counts?: any; error?: string }>>
+  [IpcChannel.BACKUP_IMPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; counts?: any; error?: string }>>
 }
 
 /**
@@ -306,7 +366,9 @@ export interface ElectronApi {
     setSetting: IpcInvokeMap[IpcChannel.DB_SET_SETTING]
     getProgress: IpcInvokeMap[IpcChannel.DB_GET_PROGRESS]
     updateProgress: IpcInvokeMap[IpcChannel.DB_UPDATE_PROGRESS]
+    updateProgressBatch: IpcInvokeMap[IpcChannel.DB_UPDATE_PROGRESS_BATCH]
     addHistory: IpcInvokeMap[IpcChannel.DB_ADD_HISTORY]
+    updateHistoryDuration: IpcInvokeMap[IpcChannel.DB_UPDATE_HISTORY_DURATION]
     getHistory: IpcInvokeMap[IpcChannel.DB_GET_HISTORY]
     deleteHistoryEntry: IpcInvokeMap[IpcChannel.DB_DELETE_HISTORY_ENTRY]
     deleteHistoryByManga: IpcInvokeMap[IpcChannel.DB_DELETE_HISTORY_BY_MANGA]
@@ -351,8 +413,26 @@ export interface ElectronApi {
   openInternalBrowser: IpcInvokeMap[IpcChannel.OPEN_INTERNAL_BROWSER]
   cfBypass: IpcInvokeMap[IpcChannel.CF_BYPASS]
   cfFetchHtml: IpcInvokeMap[IpcChannel.CF_FETCH_HTML]
+  setStreamHeaders: IpcInvokeMap[IpcChannel.SET_STREAM_HEADERS]
+  probeStream: IpcInvokeMap[IpcChannel.PROBE_STREAM]
   getSystemState: IpcInvokeMap[IpcChannel.GET_SYSTEM_STATE]
   onSystemStateUpdate: (callback: IpcEventMap[IpcChannel.SYSTEM_STATE_UPDATE]) => () => void
+  trackers: {
+    getByManga: IpcInvokeMap[IpcChannel.DB_GET_TRACKERS]
+    save: IpcInvokeMap[IpcChannel.DB_SAVE_TRACKER]
+    delete: IpcInvokeMap[IpcChannel.DB_DELETE_TRACKER]
+    authAniList: IpcInvokeMap[IpcChannel.TRACKER_AUTH_ANILIST]
+    getUserAniList: IpcInvokeMap[IpcChannel.TRACKER_GET_USER_ANILIST]
+    setTokenAniList: IpcInvokeMap[IpcChannel.TRACKER_SET_TOKEN_ANILIST]
+    logoutAniList: IpcInvokeMap[IpcChannel.TRACKER_LOGOUT_ANILIST]
+    searchAniList: IpcInvokeMap[IpcChannel.TRACKER_SEARCH_ANILIST]
+    getMediaAniList: IpcInvokeMap[IpcChannel.TRACKER_GET_MEDIA_ANILIST]
+    updateAniList: IpcInvokeMap[IpcChannel.TRACKER_UPDATE_ANILIST]
+  }
+  backup: {
+    export: IpcInvokeMap[IpcChannel.BACKUP_EXPORT]
+    import: IpcInvokeMap[IpcChannel.BACKUP_IMPORT]
+  }
   platform: string
   version: string
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Shield,
   Globe,
@@ -9,9 +10,14 @@ import {
   ExternalLink,
   RefreshCcw,
   Sparkles,
-  Database
+  Database,
+  Download,
+  Upload,
+  Archive,
+  Loader2
 } from 'lucide-react'
-import { useUIStore, useSettingsStore } from '@renderer/shared/model'
+import { useUIStore, useSettingsStore, useLibraryStore, useHistoryStore } from '@renderer/shared/model'
+import { cn } from '@renderer/shared/lib/utils'
 import {
   Button,
   Card,
@@ -29,6 +35,9 @@ interface AdvancedSettingsProps {
 }
 
 export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): React.JSX.Element {
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const { updateStatus } = useUIStore()
   const {
     bypassCloudflare,
@@ -37,6 +46,10 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
     setUserAgent,
     timeoutInterval,
     setTimeoutInterval,
+    enableLog,
+    setEnableLog,
+    downloadConcurrency,
+    setDownloadConcurrency,
     devMode,
     setDevMode
   } = useSettingsStore()
@@ -61,6 +74,77 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
       setStatusMessage(`Failed to clear cookies: ${e.message}`)
     }
     setTimeout(() => setStatusMessage(null), 3000)
+  }
+
+  const handleExportBackup = async () => {
+    setIsExporting(true)
+    setStatusMessage('Exporting backup...')
+    try {
+      const res = await DataService.backup.export()
+      if (res.canceled) {
+        setStatusMessage(null)
+        return
+      }
+      if (res.success && res.counts) {
+        const { library, readingProgress, readingHistory, sourceRepositories } = res.counts
+        setStatusMessage(
+          `Backup exported successfully! (${library} titles, ${readingProgress} progress, ${readingHistory} history, ${sourceRepositories} repos)`
+        )
+      } else if (res.error) {
+        setStatusMessage(`Export failed: ${res.error}`)
+      }
+    } catch (e: any) {
+      setStatusMessage(`Export failed: ${e?.message || 'Unknown error'}`)
+    } finally {
+      setIsExporting(false)
+      setTimeout(() => setStatusMessage(null), 5000)
+    }
+  }
+
+  const handleImportBackup = async () => {
+    setIsImporting(true)
+    setStatusMessage('Selecting and restoring backup file...')
+    try {
+      const res = await DataService.backup.import()
+      if (res.canceled) {
+        setStatusMessage(null)
+        return
+      }
+      if (res.success && res.counts) {
+        const { library, readingProgress, readingHistory, sourceRepositories } = res.counts
+        await Promise.all([
+          useLibraryStore.getState().loadFromDb(),
+          useHistoryStore.getState().loadHistory()
+        ])
+        setStatusMessage(
+          `Backup restored successfully! (${library} titles, ${readingProgress} progress, ${readingHistory} history, ${sourceRepositories} repos)`
+        )
+      } else if (res.error) {
+        setStatusMessage(`Import failed: ${res.error}`)
+      }
+    } catch (e: any) {
+      setStatusMessage(`Import failed: ${e?.message || 'Unknown error'}`)
+    } finally {
+      setIsImporting(false)
+      setTimeout(() => setStatusMessage(null), 5000)
+    }
+  }
+
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdate(true)
+    setStatusMessage('Checking for application updates...')
+    try {
+      await DataService.checkForUpdates()
+      setTimeout(() => {
+        setStatusMessage('Application is up to date')
+        setTimeout(() => setStatusMessage(null), 3000)
+      }, 1500)
+    } catch (e: any) {
+      setStatusMessage(`Update check failed: ${e.message}`)
+      setTimeout(() => setStatusMessage(null), 3000)
+    } finally {
+      setIsCheckingUpdate(false)
+    }
   }
 
   return (
@@ -102,20 +186,36 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
             title={
               <div className="flex items-center gap-2">
                 <RefreshCcw className="h-4 w-4" />
-                <span>Logging</span>
+                <span>Verbose Logging</span>
               </div>
             } 
-            description="Enable detailed network logs in console"
+            description="Enable detailed network and scraper logs in console"
           >
-             <Select
-              value="disabled"
-              onValueChange={() => {}}
-              options={[
-                { label: 'Disabled', value: 'disabled' },
-                { label: 'Enabled', value: 'enabled' }
-              ]}
-              className="w-32"
-            />
+            <Switch checked={enableLog} onCheckedChange={setEnableLog} />
+          </SettingsRow>
+
+          <SettingsRow
+            title={
+              <div className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                <span>Download Concurrency</span>
+              </div>
+            }
+            description="Simultaneous active chapter downloads (1 - 5)"
+          >
+            <div className="w-44">
+              <Select
+                value={downloadConcurrency.toString()}
+                onValueChange={(val) => setDownloadConcurrency(parseInt(val))}
+                options={[
+                  { label: '1 (Low Bandwidth)', value: '1' },
+                  { label: '2 Parallel', value: '2' },
+                  { label: '3 Parallel (Default)', value: '3' },
+                  { label: '4 Parallel', value: '4' },
+                  { label: '5 Parallel (Fast)', value: '5' }
+                ]}
+              />
+            </div>
           </SettingsRow>
 
           <SettingsRow
@@ -213,6 +313,51 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
             </Button>
           </Card>
         </div>
+
+        {/* Data Backup & Restore */}
+        <Card className="p-6 border-border/40 bg-card/30 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <Archive className="h-4 w-4" />
+              <h4 className="text-sm font-bold uppercase tracking-tight">Data Backup & Migration</h4>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Export or restore your library, reading progress, reading history, source repositories, and trackers in a single compressed backup (<code className="text-foreground font-mono bg-secondary/40 px-1 py-0.5 rounded">.json.gz</code>) within an atomic database transaction.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 font-bold uppercase text-[10px] border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+              onClick={handleExportBackup}
+              disabled={isExporting || isImporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Download className="h-3 w-3" />
+              )}
+              Export Backup (.json.gz)
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 font-bold uppercase text-[10px] hover:bg-secondary/50"
+              onClick={handleImportBackup}
+              disabled={isExporting || isImporting}
+            >
+              {isImporting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Upload className="h-3 w-3" />
+              )}
+              Import Backup
+            </Button>
+          </div>
+        </Card>
       </section>
 
       {/* Developer Information */}
@@ -238,10 +383,12 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
           <Button
             variant="ghost"
             size="sm"
-            className="text-[10px] font-bold uppercase tracking-widest gap-2 opacity-50 hover:opacity-100"
+            className="text-[10px] font-bold uppercase tracking-widest gap-2 opacity-70 hover:opacity-100"
+            onClick={handleCheckForUpdates}
+            disabled={isCheckingUpdate}
           >
-            <RefreshCcw className="h-3 w-3" />
-            System Status: {updateStatus}
+            <RefreshCcw className={cn('h-3 w-3', isCheckingUpdate && 'animate-spin')} />
+            System Status: {updateStatus || 'Up to date'}
           </Button>
         </div>
       </section>

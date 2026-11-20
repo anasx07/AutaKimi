@@ -112,7 +112,7 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
     genres,
     url: manga.url || manga.manga_url || undefined,
     pkg: manga.pkg || undefined,
-    mediaType: manga.mediaType || manga.attributes?.mediaType || undefined,
+    mediaType: manga.mediaType || manga.type || manga.attributes?.mediaType || undefined,
     _raw: includeRaw ? manga : undefined
   }
 }

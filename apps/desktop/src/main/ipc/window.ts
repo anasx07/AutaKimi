@@ -1,4 +1,5 @@
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow, shell, session } from 'electron'
+import { join } from 'path'
 import { IpcChannel } from '../types/ipc'
 import { registerHandler, wrapIpc, isValidUrl } from './utils'
 import { cloudflareService } from '../services/cloudflare.service'
@@ -73,24 +74,30 @@ export function registerWindowHandlers() {
         height: 768,
         title: 'Web View',
         webPreferences: {
+          preload: join(__dirname, '../preload/cf-stealth-preload.js'),
           nodeIntegration: false,
-          contextIsolation: true
-          // No partition — uses session.defaultSession so cookies are shared with net.fetch
+          contextIsolation: true,
+          session: session.fromPartition('persist:cloudflare')
         }
       })
 
       // Block navigations that leave the original host (prevents phishing redirects)
       win.webContents.on('will-navigate', (event, navUrl) => {
-        if (!isValidUrl(navUrl) || new URL(navUrl).hostname !== allowedHost) {
+        if (!isValidUrl(navUrl)) {
+          event.preventDefault()
+          return
+        }
+        if (new URL(navUrl).hostname !== allowedHost) {
           event.preventDefault()
           shell.openExternal(navUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
         }
       })
 
-      // Block new windows entirely — open them externally instead
+      // Block new windows entirely — open them externally only if safe http/https URL
       win.webContents.setWindowOpenHandler(({ url: newUrl }) => {
-        if (isValidUrl(newUrl))
+        if (isValidUrl(newUrl)) {
           shell.openExternal(newUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
+        }
         return { action: 'deny' }
       })
 

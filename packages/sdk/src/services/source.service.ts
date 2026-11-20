@@ -1,6 +1,7 @@
 import { Extension } from '../types'
 import { networkClient } from './network'
 import { repositoryService } from './repository.service'
+import { keiyoushiService } from './keiyoushi.service'
 
 export interface AutakimiSource extends Extension {
   baseUrl: string
@@ -20,62 +21,115 @@ export class SourceService {
     return SourceService.instance
   }
 
-  async loadAllRepositories(urls: string[], installedLangs: string[] = []): Promise<{ success: boolean; totalCount: number }> {
-    let totalCount = 0
+  resetCatalogFiles(): void {
     this.catalogFiles = { manga: [], anime: [] }
-    for (const url of urls) {
-      try {
-        const manifest = await repositoryService.resolveManifest(url)
-        const baseUrl = manifest.baseUrl
+  }
 
-        // 1. Fetch manga catalogs index
-        const mangaCatalogsUrl = `${baseUrl}${manifest.catalogs.manga}`
-        console.log(`[SourceService] Fetching catalogs from: ${mangaCatalogsUrl}`)
-        const mcRes = await networkClient.fetch(mangaCatalogsUrl, { cache: 'no-store' })
-        console.log(`[SourceService] ${manifest.catalogs.manga} fetch result: ok=${mcRes.ok}, status=${mcRes.ok ? mcRes.value.status : 'N/A'}`)
-        if (mcRes.ok && mcRes.value.ok) {
-          const mcData = await mcRes.value.json()
-          if (mcData.catalogs && Array.isArray(mcData.catalogs)) {
-            for (const catalogFile of mcData.catalogs) {
-              this.catalogFiles.manga.push({ baseUrl, file: catalogFile })
-            }
-          }
-        }
+  async hydrateManifest(manifest: any, installedLangs: string[] = []): Promise<{ success: boolean; totalCount: number }> {
+    let totalCount = 0
+    try {
+      const baseUrl = manifest.baseUrl
 
-        // 2. Fetch anime catalogs index
-        const animeCatalogsUrl = `${baseUrl}${manifest.catalogs.anime}`
-        const acRes = await networkClient.fetch(animeCatalogsUrl, { cache: 'no-store' })
-        if (acRes.ok && acRes.value.ok) {
-          const acData = await acRes.value.json()
-          if (acData.catalogs && Array.isArray(acData.catalogs)) {
-            for (const catalogFile of acData.catalogs) {
-              this.catalogFiles.anime.push({ baseUrl, file: catalogFile })
-            }
-          }
-        }
+      // Special handling for Keiyoushi repositories (whether index.json or index.min.json)
+      const isKeiyoushi =
+        Boolean(manifest.isKeiyoushi) ||
+        manifest.catalogs?.manga === 'index.json' ||
+        manifest.catalogs?.manga === 'index.min.json' ||
+        keiyoushiService.isKeiyoushiUrl(baseUrl) ||
+        keiyoushiService.isKeiyoushiUrl(manifest.catalogs?.manga || '')
 
-        // Fetch installed languages immediately if requested
-        if (installedLangs.length > 0) {
-          for (const lang of installedLangs) {
-            await this.fetchCatalogByLang(lang, 'manga')
-            await this.fetchCatalogByLang(lang, 'anime')
+      if (isKeiyoushi) {
+        const catalogFile = manifest.catalogs?.manga || 'index.json'
+        const kRes = await keiyoushiService.fetchKeiyoushiCatalog(`${baseUrl}${catalogFile}`)
+        if (kRes.success) {
+          for (const ext of kRes.extensions) {
+            this.sources.set(ext.pkg, {
+              ...ext,
+              id: ext.pkg,
+              apiUrl: ext.baseUrl,
+              type: 'manga'
+            } as any)
           }
+          return { success: true, totalCount: kRes.extensions.length }
         }
-      } catch (e) {
-        console.error(`[SourceService] Error loading repo ${url}:`, e)
       }
+
+      // 1. Fetch manga & anime catalogs index concurrently in parallel
+      const mangaCatalogsUrl = `${baseUrl}${manifest.catalogs.manga}`
+      const animeCatalogsUrl = `${baseUrl}${manifest.catalogs.anime}`
+
+      const [mcRes, acRes] = await Promise.all([
+        networkClient.fetch(mangaCatalogsUrl, { cache: 'no-store' }),
+        networkClient.fetch(animeCatalogsUrl, { cache: 'no-store' })
+      ])
+
+      if (mcRes.ok && mcRes.value.ok) {
+        const mcData = await mcRes.value.json()
+        if (mcData.catalogs && Array.isArray(mcData.catalogs)) {
+          for (const catalogFile of mcData.catalogs) {
+            this.catalogFiles.manga.push({ baseUrl, file: catalogFile })
+          }
+        }
+      }
+
+      if (acRes.ok && acRes.value.ok) {
+        const acData = await acRes.value.json()
+        if (acData.catalogs && Array.isArray(acData.catalogs)) {
+          for (const catalogFile of acData.catalogs) {
+            this.catalogFiles.anime.push({ baseUrl, file: catalogFile })
+          }
+        }
+      }
+
+      // Fetch installed languages or all if none specified concurrently
+      const langsToFetch = installedLangs.length > 0 ? installedLangs : ['all']
+      const langResults = await Promise.all(
+        langsToFetch.map(async (lang) => {
+          const [mRes, aRes] = await Promise.all([
+            this.fetchCatalogByLang(lang, 'manga'),
+            this.fetchCatalogByLang(lang, 'anime')
+          ])
+          return (mRes.count || 0) + (aRes.count || 0)
+        })
+      )
+
+      for (const count of langResults) {
+        totalCount += count
+      }
+    } catch (e) {
+      console.error(`[SourceService] Error hydrating manifest at ${manifest.baseUrl}:`, e)
     }
     return { success: true, totalCount }
   }
 
-  async fetchCatalogByLang(lang: string, type: 'manga' | 'anime' = 'manga'): Promise<{ success: boolean; count: number }> {
+  async loadAllRepositories(urls: string[], installedLangs: string[] = []): Promise<{ success: boolean; totalCount: number }> {
+    let totalCount = 0
+    this.resetCatalogFiles()
+    const results = await Promise.all(
+      urls.map(async (url) => {
+        try {
+          const manifest = await repositoryService.resolveManifest(url)
+          return await this.hydrateManifest(manifest, installedLangs)
+        } catch (e) {
+          console.error(`[SourceService] Error loading repo ${url}:`, e)
+          return { success: false, totalCount: 0 }
+        }
+      })
+    )
+    for (const res of results) {
+      totalCount += res.totalCount
+    }
+    return { success: true, totalCount }
+  }
+
+  async fetchCatalogByLang(lang: string = 'all', type: 'manga' | 'anime' = 'manga'): Promise<{ success: boolean; count: number }> {
     let total = 0
-    const targetLang = lang.toLowerCase()
+    const targetLang = (lang || 'all').toLowerCase()
     
     // Map lang code to full filename matching logic
     const matchesLang = (file: string) => {
       const f = file.toLowerCase()
-      if (targetLang === 'all') return f.includes('global') || f.includes('english')
+      if (targetLang === 'all' || !targetLang) return true
       
       const langMap: Record<string, string> = {
         'en': 'english', 'ar': 'arabic', 'es': 'spanish', 'fr': 'french',
@@ -86,15 +140,21 @@ export class SourceService {
       }
       const mapped = langMap[targetLang] || targetLang
       
-      return f === `${mapped}.json` || f.endsWith(`/${mapped}.json`) || 
-             f === `${targetLang}.json` || f.endsWith(`/${targetLang}.json`)
+      const basename = f.split('/').pop() || f
+      return basename === `${mapped}.json` || basename === `${targetLang}.json` ||
+             basename.startsWith(`${mapped}-`) || basename.startsWith(`${targetLang}-`)
     }
 
     const targets = this.catalogFiles[type].filter(c => matchesLang(c.file))
     
-    for (const target of targets) {
-      const url = `${target.baseUrl}${type === 'manga' ? 'MangaCatalogs' : 'AnimeCatalogs'}/${target.file}`
-      const res = await this.fetchCatalog(url, type)
+    const results = await Promise.all(
+      targets.map(async (target) => {
+        const url = `${target.baseUrl}${type === 'manga' ? 'MangaCatalogs' : 'AnimeCatalogs'}/${target.file}`
+        return this.fetchCatalog(url, type)
+      })
+    )
+
+    for (const res of results) {
       if (res.success) total += res.count
     }
     
@@ -200,6 +260,10 @@ export class SourceService {
     }
   }
 
+  hasCatalogFiles(): boolean {
+    return this.catalogFiles.manga.length > 0 || this.catalogFiles.anime.length > 0 || this.sources.size > 0
+  }
+
   getAllSources(type?: 'manga' | 'anime'): AutakimiSource[] {
     const all = Array.from(this.sources.values())
     if (type) return all.filter(s => s.type === type)
@@ -207,7 +271,12 @@ export class SourceService {
   }
 
   getSource(id: string): AutakimiSource | undefined {
-    return this.sources.get(id)
+    if (this.sources.has(id)) return this.sources.get(id)
+    const cleanId = id.replace(/^ma\.autakimi\.extension\./, '')
+    if (this.sources.has(cleanId)) return this.sources.get(cleanId)
+    const fullId = `ma.autakimi.extension.${cleanId}`
+    if (this.sources.has(fullId)) return this.sources.get(fullId)
+    return undefined
   }
 }
 

@@ -1,23 +1,29 @@
-import { useState, useRef } from 'react'
-import { Search, Loader2, Package, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react'
+import { useState, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Loader2, Package, AlertCircle, CheckCircle, ExternalLink, X, RotateCcw } from 'lucide-react'
 import { Input, Button, Card, Switch } from '@renderer/shared/ui'
-import { useExtensionStore, useLibraryStore, useUIStore } from '@renderer/shared/model'
+import { useExtensionStore, useLibraryStore } from '@renderer/shared/model'
 import { ExtensionMetadata } from '@renderer/shared/model/extension.store'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { cn } from '@renderer/shared/lib/utils'
 import { MediaCardSkeleton } from '@renderer/shared/ui'
-import { RotateCcw } from 'lucide-react'
 import { DataService } from '@renderer/shared/api'
+import { isAnimeExtension } from '@renderer/shared/lib/constants'
 
 interface SearchResult {
   manga: any
   extension: ExtensionMetadata
 }
 
-export default function GlobalSearch() {
+export interface GlobalSearchProps {
+  mediaType?: 'manga' | 'anime'
+  onClose?: () => void
+}
+
+export default function GlobalSearch({ mediaType, onClose }: GlobalSearchProps = {}) {
+  const navigate = useNavigate()
   const { installedExtensions, pinnedExtensions, setActiveExtension } = useExtensionStore()
   const { setSelectedManga } = useLibraryStore()
-  const { setActiveTab } = useUIStore()
 
   const [query, setQuery] = useState('')
   const [onlyPinned, setOnlyPinned] = useState(false)
@@ -29,6 +35,16 @@ export default function GlobalSearch() {
 
   const searchIdRef = useRef(0)
 
+  const relevantExtensions = useMemo(() => {
+    let list = installedExtensions || []
+    if (mediaType === 'anime') {
+      list = list.filter((e) => isAnimeExtension(e))
+    } else if (mediaType === 'manga') {
+      list = list.filter((e) => !isAnimeExtension(e))
+    }
+    return list
+  }, [installedExtensions, mediaType])
+
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!query.trim() || searching) return
@@ -38,8 +54,8 @@ export default function GlobalSearch() {
     setResults([])
 
     const targets = onlyPinned
-      ? installedExtensions.filter((e) => pinnedExtensions.includes(e.pkg))
-      : installedExtensions
+      ? relevantExtensions.filter((e) => (pinnedExtensions || []).includes(e.pkg))
+      : relevantExtensions
 
     const initialStatuses = targets.reduce(
       (acc, ext) => {
@@ -125,7 +141,13 @@ export default function GlobalSearch() {
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9 h-11 shadow-sm transition-all focus:shadow-md border-border/60 bg-card/30"
-            placeholder="Search manga across all installed extensions..."
+            placeholder={
+              mediaType === 'anime'
+                ? 'Search anime across all installed sources...'
+                : mediaType === 'manga'
+                  ? 'Search manga across all installed sources...'
+                  : 'Search across all installed sources...'
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -143,6 +165,18 @@ export default function GlobalSearch() {
           )}
           {searching ? 'Searching...' : 'Search'}
         </Button>
+        {onClose && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-11 px-4 font-bold rounded-xl border-border/40 hover:bg-secondary/40 shrink-0"
+            title="Exit Global Search"
+          >
+            <X className="h-4 w-4 mr-1.5" />
+            Exit
+          </Button>
+        )}
       </form>
 
       <div className="flex items-center justify-center gap-3 animate-in fade-in duration-1000">
@@ -180,7 +214,7 @@ export default function GlobalSearch() {
           )}
 
           <div className="flex flex-wrap gap-2 justify-center pt-2">
-            {installedExtensions.map((ext) => (
+            {relevantExtensions.map((ext) => (
               <div
                 key={ext.pkg}
                 className={cn(
@@ -210,7 +244,7 @@ export default function GlobalSearch() {
 
       {doneCount > 0 && (
         <div className="space-y-10">
-          {installedExtensions.map((ext) => {
+          {relevantExtensions.map((ext) => {
             const extResults = results.filter((r) => r.extension.pkg === ext.pkg)
             const status = statuses[ext.pkg]
 
@@ -245,7 +279,7 @@ export default function GlobalSearch() {
                     size="sm"
                     onClick={() => {
                       setActiveExtension(ext.pkg)
-                      setActiveTab('browse')
+                      navigate(`/browse/${ext.pkg}`)
                     }}
                     className="h-8 gap-1.5 text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
                   >
@@ -256,15 +290,24 @@ export default function GlobalSearch() {
 
                 {extResults.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                    {extResults.map((res, idx) => (
-                      <Card
-                        key={`${res.manga.id}-${idx}`}
-                        onClick={() => {
-                          setActiveExtension(res.extension.pkg)
-                          setSelectedManga({ ...res.manga, pkg: res.extension.pkg })
-                        }}
-                        className="group cursor-pointer bg-card/40 backdrop-blur-sm hover:bg-secondary/30 border-border/40 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl overflow-hidden rounded-xl"
-                      >
+                    {extResults.map((res, idx) => {
+                      const isItemAnime =
+                        res.manga?.mediaType === 'anime' ||
+                        mediaType === 'anime' ||
+                        isAnimeExtension(res.extension)
+                      return (
+                        <Card
+                          key={`${res.manga.id}-${idx}`}
+                          onClick={() => {
+                            setActiveExtension(res.extension.pkg)
+                            setSelectedManga({
+                              ...res.manga,
+                              pkg: res.extension.pkg,
+                              mediaType: isItemAnime ? 'anime' : 'manga'
+                            })
+                          }}
+                          className="group cursor-pointer bg-card/40 backdrop-blur-sm hover:bg-secondary/30 border-border/40 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl overflow-hidden rounded-xl"
+                        >
                         <div className="aspect-[3/4.5] relative overflow-hidden bg-secondary/20">
                           <img
                             src={res.manga.coverUrl}
@@ -279,8 +322,9 @@ export default function GlobalSearch() {
                           </h3>
                         </div>
                       </Card>
-                    ))}
-                  </div>
+                    )
+                  })}
+                </div>
                 ) : status === 'done' ? (
                   <div className="py-8 text-center bg-secondary/5 rounded-xl border border-dashed border-border/40">
                     <p className="text-xs text-muted-foreground italic">
@@ -329,7 +373,7 @@ export default function GlobalSearch() {
           <div className="text-center space-y-1">
             <p className="text-lg font-medium text-foreground">No matches found</p>
             <p className="text-sm">
-              We couldn't find any manga named "{query}" in any of your sources.
+              We couldn&apos;t find any {mediaType === 'anime' ? 'anime' : 'manga'} named &quot;{query}&quot; in any of your sources.
             </p>
           </div>
         </div>

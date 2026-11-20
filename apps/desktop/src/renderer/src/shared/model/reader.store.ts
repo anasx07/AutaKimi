@@ -17,6 +17,7 @@ type ReaderState = SettingsSchema['reader'] & {
   setAutoScrollSpeed: (val: number) => void
   setShortcut: (action: keyof ReaderShortcuts, key: string) => Promise<void>
   setReaderTheme: (val: 'match-app' | 'light' | 'dark' | 'system') => Promise<void>
+  setCropBorders: (val: boolean) => Promise<void>
 
   // Init
   _init: (settings: SettingsSchema['reader']) => void
@@ -30,6 +31,7 @@ export const useReaderStore = create<ReaderState>((set) => ({
   dragToScroll: true,
   autoScrollEnabled: false,
   autoScrollSpeed: 2,
+  cropBorders: false,
   readerTheme: 'dark', // traditionally the reader has been dark
   autoScrollShortcuts: {
     pause: 'Space',
@@ -81,9 +83,15 @@ export const useReaderStore = create<ReaderState>((set) => ({
     set({ readerTheme: val })
   },
 
+  setCropBorders: async (val) => {
+    await DataService.db.setSetting('crop_borders', val ? 'true' : 'false')
+    set({ cropBorders: val })
+  },
+
   _init: (settings) => {
     set({
       ...settings,
+      cropBorders: settings?.cropBorders ?? false,
       autoScrollEnabled: false,
       autoScrollSpeed: 2
     })

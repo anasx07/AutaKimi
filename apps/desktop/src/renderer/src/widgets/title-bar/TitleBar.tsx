@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useSettingsStore } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
+import { cn } from '@renderer/shared/lib/utils'
 import appIcon from '../../app/assets/app-icon/64x64.png'
 
 export default function TitleBar() {
   const platform = DataService.platform
-  const { theme, colorTheme } = useSettingsStore()
+  const { theme, colorTheme, customThemeConfig } = useSettingsStore()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function TitleBar() {
     }, 50)
 
     return () => clearTimeout(timer)
-  }, [theme, colorTheme, platform])
+  }, [theme, colorTheme, customThemeConfig, platform])
 
   // On Linux, standard frame is likely present, so avoid double titlebar
   if (platform === 'linux') return null
@@ -51,7 +52,10 @@ export default function TitleBar() {
   return (
     <div
       ref={ref}
-      className="h-[33px] bg-background text-foreground border-b border-border flex items-center px-4 select-none shrink-0"
+      className={cn(
+        'h-[33px] bg-background text-foreground border-b border-border flex items-center px-4 select-none shrink-0',
+        platform === 'darwin' && 'pl-20'
+      )}
       style={{ WebkitAppRegion: 'drag' } as any}
     >
       <div className="flex items-center gap-2">
@@ -65,7 +69,9 @@ export default function TitleBar() {
         Leave space for native caption buttons on Windows/Mac 
         Standard width for Windows control buttons area is approx 138px
       */}
-      <div className="w-[140px] h-full" style={{ WebkitAppRegion: 'no-drag' } as any} />
+      {platform === 'win32' && (
+        <div className="w-[140px] h-full" style={{ WebkitAppRegion: 'no-drag' } as any} />
+      )}
     </div>
   )
 }

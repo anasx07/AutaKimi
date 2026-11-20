@@ -66,11 +66,10 @@ const listCache = new LRUCache<any[]>(100, BROWSE_TTL) // Added a reasonable lim
 
 interface BrowseCacheState {
   // Metadata caches
+  pageCache: Record<string, number>
   offsetCache: Record<string, number>
   hasMoreCache: Record<string, boolean>
   batchCountCache: Record<string, number>
-
-
 
   // Actions
   setChaptersCache: (mangaId: string, chapters: any[]) => void
@@ -88,6 +87,7 @@ interface BrowseCacheState {
   pagesCache: Map<string, CacheEntry<string[]>>
   listCache: Map<string, CacheEntry<any[]>>
 
+  setPageCache: (feed: string, page: number) => void
   setOffsetCache: (feed: string, offset: number) => void
   setHasMoreCache: (feed: string, hasMore: boolean) => void
   setBatchCountCache: (feed: string, batchCount: number) => void
@@ -97,6 +97,7 @@ interface BrowseCacheState {
 }
 
 export const useBrowseCacheStore = create<BrowseCacheState>((set) => ({
+  pageCache: {},
   offsetCache: {},
   hasMoreCache: {},
   batchCountCache: {},
@@ -133,6 +134,8 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set) => ({
     return listCache.get(feed)
   },
 
+  setPageCache: (feed, page) =>
+    set((state) => ({ pageCache: { ...state.pageCache, [feed]: page } })),
   setOffsetCache: (feed, offset) =>
     set((state) => ({ offsetCache: { ...state.offsetCache, [feed]: offset } })),
   setHasMoreCache: (feed, hasMore) =>
@@ -144,6 +147,7 @@ export const useBrowseCacheStore = create<BrowseCacheState>((set) => ({
     listCache.clear()
     set({
       listCache: new Map(),
+      pageCache: {},
       offsetCache: {},
       hasMoreCache: {},
       batchCountCache: {}

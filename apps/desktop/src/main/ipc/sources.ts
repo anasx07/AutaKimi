@@ -3,7 +3,28 @@ import { extensionRepo, settingsRepo } from '../db'
 import { templateService } from '@common/services/template.service'
 import { sourceService } from '@common/services/source.service'
 import { pluginService } from '@common/services/plugin.service'
-import { registerHandler, wrapIpc } from './utils'
+import { extensionRegistryOrchestrator } from '@common/services/extensionRegistryOrchestrator'
+import { registerHandler, wrapIpc, isValidUrl } from './utils'
+
+function isNewerVersion(remoteVersion?: string, currentVersion?: string): boolean {
+  if (!remoteVersion || !currentVersion) return false
+  const clean = (v: string) => v.trim().replace(/^v/i, '').split(/[-+]/)[0]
+  const rClean = clean(remoteVersion)
+  const cClean = clean(currentVersion)
+  if (rClean === cClean) return false
+
+  const p1 = rClean.split('.').map((n) => parseInt(n, 10) || 0)
+  const p2 = cClean.split('.').map((n) => parseInt(n, 10) || 0)
+  const maxLen = Math.max(p1.length, p2.length)
+
+  for (let i = 0; i < maxLen; i++) {
+    const v1 = p1[i] || 0
+    const v2 = p2[i] || 0
+    if (v1 > v2) return true
+    if (v1 < v2) return false
+  }
+  return false
+}
 
 export function registerSourceHandlers() {
   registerHandler(
@@ -16,8 +37,20 @@ export function registerSourceHandlers() {
 
   registerHandler(
     IpcChannel.SOURCES_ADD_REPO,
-    wrapIpc(async (_, url: string) => {
-      if (typeof url !== 'string') throw new Error('Invalid URL')
+    wrapIpc(async (_, input: any) => {
+      const url = typeof input === 'string' ? input : input?.value || input?.url
+      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL')
+
+      if (url.startsWith('autakimi-local://')) {
+        let clean = decodeURIComponent(url.replace(/^autakimi-local:\/\//, ''))
+        if (process.platform === 'win32' && /^\/[a-zA-Z]:/.test(clean)) {
+          clean = clean.slice(1)
+        }
+        const { dirname } = await import('path')
+        const { registerAllowedDirectory } = await import('@common/services/localFileInterceptor')
+        registerAllowedDirectory(dirname(clean))
+      }
+
       const reposJson = await settingsRepo.get('source_repositories')
       const repos: string[] = reposJson ? JSON.parse(reposJson) : []
 
@@ -37,9 +70,8 @@ export function registerSourceHandlers() {
           installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
         } catch (e) {}
 
-        // Instantly load plugins and sources from this new repository
-        await sourceService.loadAllRepositories([url], installedLangs)
-        await pluginService.loadAllRepositories([url])
+        // Instantly load plugins and sources from this new repository via orchestrator
+        await extensionRegistryOrchestrator.syncRepositories([url], installedLangs)
       }
       return templatesRes as any
     })
@@ -53,6 +85,29 @@ export function registerSourceHandlers() {
       let repos: string[] = reposJson ? JSON.parse(reposJson) : []
       repos = repos.filter((r) => r !== url)
       await settingsRepo.set('source_repositories', JSON.stringify(repos))
+
+      // Prune in-memory plugins that originated from remote repos unless permanently installed
+      try {
+        const installedJson = await settingsRepo.get('installed_plugins')
+        const installedList: any[] = installedJson ? JSON.parse(installedJson) : []
+        const installedIds = new Set(installedList.map((p) => p.id))
+        for (const p of pluginService.getAllPlugins()) {
+          if (!installedIds.has(p.id)) {
+            pluginService.removePlugin(p.id)
+          }
+        }
+
+        if (repos.length > 0) {
+          let installedLangs: string[] = []
+          try {
+            const installedDb = await extensionRepo.getAll()
+            installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+          } catch (e) {}
+          await extensionRegistryOrchestrator.syncRepositories(repos, installedLangs)
+        }
+      } catch (err) {
+        console.error('[SOURCES_REMOVE_REPO] Error cleaning up plugins:', err)
+      }
     })
   )
 
@@ -61,8 +116,13 @@ export function registerSourceHandlers() {
     wrapIpc(async () => {
       const reposJson = await settingsRepo.get('source_repositories')
       const repos: string[] = reposJson ? JSON.parse(reposJson) : []
-      const templatesRes = await templateService.loadAllRepositories(repos)
-      await sourceService.loadAllRepositories(repos)
+      let installedLangs: string[] = []
+      try {
+        const installedDb = await extensionRepo.getAll()
+        installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+      } catch (e) {}
+
+      const syncRes = await extensionRegistryOrchestrator.syncRepositories(repos, installedLangs)
 
       const enabledJson = await settingsRepo.get('pluginsEnabled')
       if (enabledJson) {
@@ -70,9 +130,8 @@ export function registerSourceHandlers() {
           pluginService.setEnabledPlugins(JSON.parse(enabledJson))
         } catch (e) {}
       }
-      await pluginService.loadAllRepositories(repos)
 
-      return templatesRes as any
+      return { success: syncRes.success, totalCount: syncRes.templatesCount } as any
     })
   )
 
@@ -87,11 +146,11 @@ export function registerSourceHandlers() {
       return plugins.map((p) => {
         const installedPlugin = installedList.find((x: any) => x.id === p?.id)
         const isInstalled = !!installedPlugin
-        const isUpdateAvailable = installedPlugin ? installedPlugin.version !== p?.version : false
+        const isUpdateAvailable = installedPlugin ? isNewerVersion(p?.version, installedPlugin.version) : false
 
-        // A plugin is installable if p.installable !== false AND it is not targeted to Cloudflare (online-only/direct)
-        const isCloudflare = p?.target === 'main-cloudflare' || p?.id === 'auto-solve-cloudflare' || p?.name?.toLowerCase().includes('cloudflare')
-        const isInstallable = p?.installable !== false && !isCloudflare
+        // All plugins originating from external repositories are installable by user choice
+        // respecting 100% legal neutrality and explicit user consent (Mihon/Tachiyomi architecture)
+        const isInstallable = p?.installable !== false
 
         return {
           id: p?.id || 'unknown',
@@ -99,9 +158,10 @@ export function registerSourceHandlers() {
           description: p?.description || '',
           author: p?.author || '',
           version: p?.version || '0.0.0',
+          installedVersion: installedPlugin?.version,
           target: p?.target || 'unknown',
           code: p?.code || '',
-          enabled: enabledIds.includes(p?.id),
+          enabled: (!isInstallable || isInstalled) && enabledIds.includes(p?.id),
           installed: isInstalled,
           updateAvailable: isUpdateAvailable,
           installable: isInstallable
@@ -135,7 +195,10 @@ export function registerSourceHandlers() {
       if (!plugin || typeof plugin !== 'object') throw new Error('Invalid plugin data')
       if (typeof plugin.id !== 'string') throw new Error('Invalid plugin ID')
       if (typeof plugin.name !== 'string') throw new Error('Invalid plugin name')
-      if (typeof plugin.code !== 'string') throw new Error('Invalid plugin code')
+
+      const existingInMemory = pluginService.getAllPlugins().find((x) => x.id === plugin.id)
+      const code = plugin.code || existingInMemory?.code || ''
+      if (typeof code !== 'string' || !code) throw new Error('Invalid plugin code')
 
       const installedJson = await settingsRepo.get('installed_plugins')
       let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
@@ -143,11 +206,11 @@ export function registerSourceHandlers() {
       const fullPlugin = {
         id: plugin.id,
         name: plugin.name,
-        description: plugin.description || '',
-        author: plugin.author || '',
-        version: plugin.version || '0.0.0',
-        target: plugin.target || 'unknown',
-        code: plugin.code
+        description: plugin.description || existingInMemory?.description || '',
+        author: plugin.author || existingInMemory?.author || '',
+        version: plugin.version || existingInMemory?.version || '0.0.0',
+        target: plugin.target || existingInMemory?.target || 'unknown',
+        code
       }
 
       const index = installedList.findIndex((p: any) => p.id === plugin.id)
@@ -159,6 +222,14 @@ export function registerSourceHandlers() {
 
       await settingsRepo.set('installed_plugins', JSON.stringify(installedList))
       pluginService.registerDynamicPlugin(fullPlugin)
+
+      // Auto-enable plugin on user installation
+      let enabledIds = pluginService.getEnabledPluginIds()
+      if (!enabledIds.includes(plugin.id)) {
+        enabledIds.push(plugin.id)
+        pluginService.setEnabledPlugins(enabledIds)
+        await settingsRepo.set('pluginsEnabled', JSON.stringify(enabledIds))
+      }
     })
   )
 
@@ -193,22 +264,43 @@ export function registerSourceHandlers() {
   registerHandler(
     IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS,
     wrapIpc(async (_, lang?: string) => {
-      if (lang && lang !== 'all') {
-        await sourceService.fetchCatalogByLang(lang, 'manga')
-        await sourceService.fetchCatalogByLang(lang, 'anime')
+      const reposJson = await settingsRepo.get('source_repositories')
+      const repos: string[] = reposJson ? JSON.parse(reposJson) : []
+
+      if (!sourceService.hasCatalogFiles() && repos.length > 0) {
+        let installedLangs: string[] = []
+        try {
+          const installedDb = await extensionRepo.getAll()
+          installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+        } catch (e) {}
+        await extensionRegistryOrchestrator.syncRepositories(repos, installedLangs)
       }
+
+      const targetLang = lang || 'all'
+      await Promise.all([
+        sourceService.fetchCatalogByLang(targetLang, 'manga'),
+        sourceService.fetchCatalogByLang(targetLang, 'anime')
+      ])
+
       const sources = sourceService.getAllSources()
 
-      return sources.map((s: any) => ({
-        pkg: s.id,
-        name: s.name,
-        lang: s.lang || s.language || 'all',
-        icon: `autakimi-cache://local-icon/ma.autakimi.extension.${s.id}.png`,
-        version: s.version || '0.0.0',
-        baseUrl: s.baseUrl || s.url || '',
-        nsfw: !!s.nsfw,
-        repoUrl: 'remote' // Denotes it's managed via remote repository
-      })) as any
+      return sources.map((s: any) => {
+        const fullPkg = s.pkg || s.id || ''
+        const iconName = fullPkg.startsWith('ma.autakimi.extension.') ? `${fullPkg}.png` : `ma.autakimi.extension.${fullPkg}.png`
+
+        return {
+          pkg: fullPkg,
+          id: fullPkg,
+          name: s.name,
+          lang: s.lang || s.language || 'all',
+          icon: `autakimi-cache://local-icon/${iconName}`,
+          version: s.version || '0.0.0',
+          baseUrl: s.baseUrl || s.url || '',
+          nsfw: !!s.nsfw,
+          repoUrl: 'remote', // Denotes it's managed via remote repository
+          type: s.type || (fullPkg.toLowerCase().includes('anime') ? 'anime' : 'manga')
+        }
+      }) as any
     })
   )
 
@@ -236,10 +328,12 @@ export function registerSourceHandlers() {
       }
 
       const dirPath = dirname(filePath)
+      const { registerAllowedDirectory } = await import('@common/services/localFileInterceptor')
+      registerAllowedDirectory(dirPath)
 
-      // Encode the local path to ensure safe URI characters (e.g. spaces)
-      const encodedPath = encodeURIComponent(dirPath.replace(/\\/g, '/'))
-      return `autakimi-local://${encodedPath}`
+      // Encode the local path to ensure safe URI characters (e.g. spaces) while preserving slashes
+      const encodedPath = encodeURI(dirPath.replace(/\\/g, '/'))
+      return `autakimi-local://${encodedPath}/manifest.json`
     })
   )
 }

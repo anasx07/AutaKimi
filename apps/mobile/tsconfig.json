@@ -2,11 +2,14 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["../../apps/desktop/src/renderer/src/*"],
       "@common": ["../../packages/sdk/src/index.ts"],
       "@common/*": ["../../packages/sdk/src/*"],
+      "@autakimi/sdk": ["../../packages/sdk/src/index.ts"],
+      "@autakimi/sdk/*": ["../../packages/sdk/src/*"],
       "@mobile/*": ["src/*"]
     }
   },

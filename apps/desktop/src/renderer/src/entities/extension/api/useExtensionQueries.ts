@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
+import { setGeneratedSources } from '@renderer/shared/api/sources/SourceRegistry'
 import { ExtensionMetadata, useExtensionStore } from '@renderer/shared/model'
 
 export const extensionKeys = {
@@ -17,7 +18,9 @@ export function useExtensionsCatalog(lang?: string) {
     queryKey: extensionKeys.catalog(lang),
     queryFn: async () => {
       const res = await DataService.getExtensionsCatalog(lang)
-      return res as any as ExtensionMetadata[]
+      const list = (Array.isArray(res) ? res : []) as ExtensionMetadata[]
+      setGeneratedSources(list)
+      return list
     },
     staleTime: 1000 * 60 * 15, // 15 minutes cache
     gcTime: 1000 * 60 * 60 // 1 hour memory
@@ -28,23 +31,24 @@ export function useExtensionsCatalog(lang?: string) {
  * Hook for detecting available updates for installed extensions.
  */
 export function useExtensionUpdates() {
-  const { installedExtensions } = useExtensionStore()
-  const { data: catalog } = useExtensionsCatalog()
+  const { installedExtensions = [] } = useExtensionStore()
+  const { data: catalog = [] } = useExtensionsCatalog()
 
   return useQuery({
     queryKey: extensionKeys.updates(),
     queryFn: () => {
-      if (!catalog || !installedExtensions) return []
+      if (!Array.isArray(catalog) || !Array.isArray(installedExtensions)) return []
 
       return installedExtensions.filter((installed) => {
-        const remote = catalog.find((c) => c.pkg === installed.pkg)
+        if (!installed || !installed.pkg) return false
+        const remote = catalog.find((c) => c && (c.pkg === installed.pkg || (c as any).id === installed.pkg))
         if (!remote) return false
 
         // Basic version comparison logic
         return remote.version !== installed.version
       })
     },
-    enabled: !!catalog && installedExtensions.length > 0,
+    enabled: Array.isArray(catalog) && Array.isArray(installedExtensions) && installedExtensions.length > 0,
     staleTime: 1000 * 60 * 5 // 5 minutes
   })
 }

@@ -182,7 +182,22 @@ export const MobileDB = {
       params.push(args.offset)
     }
     const res = await db!.getAllAsync<any>(sql, params)
-    return { ok: true, value: res }
+    const mapped = (res || []).map((row) => {
+      let meta: any = {}
+      try {
+        meta = JSON.parse(row.metadata || '{}')
+      } catch {}
+      return {
+        ...meta,
+        id: row.id,
+        title: row.title,
+        coverUrl: row.cover_url || meta.coverUrl,
+        status: row.status,
+        mediaType: row.type || meta.mediaType || 'manga',
+        type: row.type || meta.mediaType || 'manga'
+      }
+    })
+    return { ok: true, value: mapped }
   },
 
   async toggleLibrary(manga: Manga): Promise<IpcResult<boolean>> {
@@ -267,6 +282,26 @@ export const MobileDB = {
     return { ok: true, value: { success: true } }
   },
 
+  async updateHistoryDuration(args: {
+    mangaId: string
+    chapterId: string
+    durationSeconds: number
+  }): Promise<SuccessResult> {
+    await this.ensureReady()
+    const latest = await db!.getFirstAsync<{ id: number; duration_seconds: number }>(
+      'SELECT id, duration_seconds FROM reading_history WHERE manga_id = ? AND chapter_id = ? ORDER BY started_at DESC LIMIT 1;',
+      [args.mangaId, args.chapterId]
+    )
+    if (latest) {
+      const newDuration = Math.max(latest.duration_seconds || 0, args.durationSeconds)
+      await db!.runAsync('UPDATE reading_history SET duration_seconds = ? WHERE id = ?;', [
+        newDuration,
+        latest.id
+      ])
+    }
+    return { ok: true, value: { success: true } }
+  },
+
   async updateProgress(data: any): Promise<SuccessResult> {
     await this.ensureReady()
     await db!.runAsync(
@@ -279,6 +314,38 @@ export const MobileDB = {
         new Date().toISOString()
       ]
     )
+    return { ok: true, value: { success: true } }
+  },
+
+  async updateProgressBatch(data: {
+    mangaId: string
+    chapterIds: string[]
+    isRead: boolean
+    lastPage?: number
+  }): Promise<SuccessResult> {
+    await this.ensureReady()
+    if (!data.chapterIds || data.chapterIds.length === 0) {
+      return { ok: true, value: { success: true } }
+    }
+    const now = new Date().toISOString()
+    const isRead = data.isRead ? 1 : 0
+    const lastPage = data.lastPage || 0
+
+    await db!.withTransactionAsync(async () => {
+      const CHUNK_SIZE = 50
+      for (let i = 0; i < data.chapterIds.length; i += CHUNK_SIZE) {
+        const chunk = data.chapterIds.slice(i, i + CHUNK_SIZE)
+        const placeholders = chunk.map(() => '(?, ?, ?, ?, ?)').join(', ')
+        const params: any[] = []
+        for (const chapterId of chunk) {
+          params.push(data.mangaId, chapterId, isRead, lastPage, now)
+        }
+        await db!.runAsync(
+          `INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES ${placeholders};`,
+          params
+        )
+      }
+    })
     return { ok: true, value: { success: true } }
   },
 
@@ -340,6 +407,12 @@ export const MobileDB = {
       'SELECT * FROM reading_progress WHERE manga_id = ?;',
       [mangaId]
     )
+    return { ok: true, value: res }
+  },
+
+  async getAllProgress(): Promise<IpcResult<any[]>> {
+    await this.ensureReady()
+    const res = await db!.getAllAsync<any>('SELECT * FROM reading_progress;')
     return { ok: true, value: res }
   },
 

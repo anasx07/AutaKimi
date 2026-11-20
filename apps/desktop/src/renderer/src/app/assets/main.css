@@ -40,6 +40,11 @@
     @apply bg-card/40 backdrop-blur-md border border-border/40 hover:border-primary/40 transition-all duration-300;
   }
 
+  .glass-card-specular {
+    @apply bg-card/60 backdrop-blur-xl border border-border/50;
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.12), 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+  }
+
   .aura-shimmer {
     position: relative;
     overflow: hidden;
@@ -49,19 +54,26 @@
     content: '';
     position: absolute;
     top: -50%;
-    left: -50%;
+    left: -100%;
     width: 200%;
     height: 200%;
     background: linear-gradient(
       60deg,
       transparent,
       rgba(255, 255, 255, 0.03) 40%,
-      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.08) 50%,
       rgba(255, 255, 255, 0.03) 60%,
       transparent
     );
     transform: rotate(25deg);
-    animation: aura-shimmer 4s infinite ease-in-out;
+    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+
+  .aura-shimmer:hover::after,
+  .group:hover .aura-shimmer::after,
+  .group:hover.aura-shimmer::after {
+    transform: translateX(100%) rotate(25deg);
   }
 
   .aura-glow {
@@ -70,11 +82,6 @@
   
   .aura-glow-hover:hover {
     box-shadow: 0 0 25px -5px hsl(var(--primary) / 0.25);
-  }
-
-  @keyframes aura-shimmer {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
   }
 }
 
@@ -86,8 +93,8 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 350 89% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
@@ -98,7 +105,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5% 64.9%;
+    --ring: 350 84% 54%;
     --radius: 0.5rem;
   }
 
@@ -109,8 +116,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 350 89% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
@@ -121,7 +128,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --ring: 350 84% 58%;
   }
 }
 
@@ -195,25 +202,45 @@ html.theme-goku {
   --ring: 210 90% 55%;
 }
 
-/* All Might Theme (Golden) */
+/* All Might Theme (Heroic Crimson & Navy - Plus Ultra) */
 html.theme-all-might {
-  --background: 40 40% 98%;
-  --foreground: 40 60% 10%;
+  --background: 350 30% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 40 60% 10%;
-  --popover: 40 40% 98%;
-  --popover-foreground: 40 60% 10%;
-  --primary: 40 95% 52%;
-  --primary-foreground: 40 60% 10%;
-  --secondary: 40 20% 92%;
-  --secondary-foreground: 40 60% 10%;
-  --muted: 40 20% 92%;
-  --muted-foreground: 40 20% 45%;
-  --accent: 40 95% 52%;
-  --accent-foreground: 40 60% 10%;
-  --border: 40 20% 88%;
-  --input: 40 20% 88%;
-  --ring: 40 95% 52%;
+  --card-foreground: 222 47% 11%;
+  --popover: 350 30% 98%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 354 84% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 35% 93%;
+  --secondary-foreground: 222 47% 15%;
+  --muted: 215 25% 94%;
+  --muted-foreground: 220 15% 45%;
+  --accent: 354 84% 94%;
+  --accent-foreground: 354 84% 45%;
+  --border: 350 25% 88%;
+  --input: 350 25% 88%;
+  --ring: 354 84% 56%;
+}
+
+html.dark.theme-all-might {
+  --background: 222 45% 6%;
+  --foreground: 0 0% 98%;
+  --card: 222 40% 9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 222 40% 11%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 354 84% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 30% 14%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 222 35% 12%;
+  --muted-foreground: 215 15% 70%;
+  --accent: 354 70% 20%;
+  --accent-foreground: 0 0% 100%;
+  --border: 222 25% 15%;
+  --input: 222 25% 15%;
+  --ring: 354 84% 58%;
 }
 
 /* Gojo Theme (Limitless Void) */
@@ -263,6 +290,9 @@ html.dark.theme-sung-jinwoo {
 /* Nanami Theme (Business Gold) */
 html.theme-nanami,
 html.dark.theme-nanami {
+  --background: 35 30% 3%;
+  --foreground: 0 0% 98%;
+  --card: 35 25% 6%;
   --card-foreground: 0 0% 98%;
   --popover: 35 30% 2%;
   --popover-foreground: 0 0% 98%;
@@ -323,25 +353,45 @@ html.dark.theme-zoro {
   --ring: 145 100% 50%;
 }
 
-/* Golden Naruto - Light Theme */
+/* Golden Naruto - Six Paths Sage Mode (Solar Gold & Kyuubi Chakra) */
 html.theme-naruto {
-  --background: 40 50% 98%;
-  --foreground: 25 50% 10%;
+  --background: 42 60% 98%;
+  --foreground: 28 60% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 25 50% 10%;
-  --popover: 40 50% 98%;
-  --popover-foreground: 25 50% 10%;
-  --primary: 40 100% 50%;
-  --primary-foreground: 25 50% 10%;
-  --secondary: 40 20% 92%;
-  --secondary-foreground: 25 50% 10%;
-  --muted: 40 20% 92%;
-  --muted-foreground: 25 20% 40%;
-  --accent: 40 100% 50%;
-  --accent-foreground: 25 50% 10%;
-  --border: 40 30% 90%;
-  --input: 40 30% 90%;
-  --ring: 40 100% 50%;
+  --card-foreground: 28 60% 10%;
+  --popover: 42 60% 98%;
+  --popover-foreground: 28 60% 10%;
+  --primary: 38 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 40 45% 92%;
+  --secondary-foreground: 28 60% 12%;
+  --muted: 40 35% 92%;
+  --muted-foreground: 30 25% 40%;
+  --accent: 40 100% 92%;
+  --accent-foreground: 38 100% 38%;
+  --border: 40 45% 87%;
+  --input: 40 45% 87%;
+  --ring: 38 100% 50%;
+}
+
+html.dark.theme-naruto {
+  --background: 25 35% 5%;
+  --foreground: 0 0% 98%;
+  --card: 25 30% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 25 30% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 42 100% 50%;
+  --primary-foreground: 0 0% 10%;
+  --secondary: 25 25% 13%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 25 30% 11%;
+  --muted-foreground: 35 15% 68%;
+  --accent: 40 80% 18%;
+  --accent-foreground: 42 100% 60%;
+  --border: 25 25% 15%;
+  --input: 25 25% 15%;
+  --ring: 42 100% 50%;
 }
 
 @layer base {
@@ -351,6 +401,7 @@ html.theme-naruto {
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-family, 'Plus Jakarta Sans', 'Cairo', system-ui, -apple-system, sans-serif);
     font-feature-settings:
       'rlig' 1,
       'calt' 1;

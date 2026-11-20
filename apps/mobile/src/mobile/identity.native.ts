@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto'
 import { MobileDB } from './db.native'
-import { templateService, sourceService } from '@common'
+import { templateService, sourceService, extensionRegistryOrchestrator } from '@common'
 
 export class IdentityService {
   private static instance: IdentityService
@@ -56,15 +56,11 @@ export class IdentityService {
       await MobileDB.setSetting('source_repositories', JSON.stringify(repos))
     }
 
-    // Trigger templates and sources fetch for all repositories
-    Promise.all([
-      templateService.loadAllRepositories(repos),
-      sourceService.loadAllRepositories(repos)
-    ]).then(([tmplRes, srcRes]) => {
-      console.log(`[MobileTemplates] Loaded ${tmplRes.totalCount} templates from ${repos.length} repos.`)
-      console.log(`[MobileSources] Loaded ${srcRes.totalCount} sources from ${repos.length} repos.`)
-    }).catch((err) => {
-      console.error('[MobileTemplates/Sources] Initialization fetch failed:', err)
+    // Trigger single-pass orchestrator sync for all repositories
+    extensionRegistryOrchestrator.syncRepositories(repos).then((res: any) => {
+      console.log(`[MobileRegistry] Loaded ${res.templatesCount} templates & ${res.sourcesCount} sources from ${res.manifestsCount} repos.`)
+    }).catch((err: any) => {
+      console.error('[MobileRegistry] Initialization fetch failed:', err)
     })
   }
 

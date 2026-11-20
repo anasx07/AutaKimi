@@ -2,8 +2,8 @@ import { DataService } from '@renderer/shared/api'
 import { ISourceAdapter, Manga, Chapter, MangaPage, StreamingServer } from './types'
 import { SourceRegistry } from './SourceRegistry'
 import { useExtensionStore } from '@renderer/shared/model'
-import { compareVersions } from '@renderer/shared/lib/version'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
+import { sourceService } from '@common/services/source.service'
 
 /**
  * Wraps dynamic Sandbox extension calls to match Native return types
@@ -42,10 +42,10 @@ export class SandboxRunner implements ISourceAdapter {
     this.mediaType = resExt?.type || 'manga'
     this.version = resExt?.version || '0.0.0'
     this.theme = ''
-    this.baseUrl = ''
-    this.lang = 'all'
+    this.baseUrl = resExt?.baseUrl || ''
+    this.lang = resExt?.lang || 'all'
     this.nsfw = !!resExt?.nsfw
-    this.icon = ''
+    this.icon = resExt?.icon || `autakimi-cache://local-icon/${pkg}.png`
   }
 
   private async executeFeed(activeFeed: string, page: number, extraArgs: any = {}, debouncedSearch?: string): Promise<MangaPage> {
@@ -57,6 +57,7 @@ export class SandboxRunner implements ISourceAdapter {
         offset: (page - 1) * 15,
         activeFeed,
         lang: this.lang,
+        baseUrl: this.baseUrl,
         ...(debouncedSearch !== undefined ? { debouncedSearch } : {}),
         ...extraArgs
       }
@@ -92,7 +93,7 @@ export class SandboxRunner implements ISourceAdapter {
     const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
-      contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url }
+      contextArgs: { type: 'fetchMangaDetails', mangaUrl: manga.url, baseUrl: this.baseUrl }
     })
     if (res && res.data) {
       const details = normalizeManga(res.data)
@@ -110,7 +111,7 @@ export class SandboxRunner implements ISourceAdapter {
     const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
-      contextArgs: { type: 'fetchChapters', mangaUrl }
+      contextArgs: { type: 'fetchChapters', mangaUrl, baseUrl: this.baseUrl }
     })
     return res?.data || []
   }
@@ -119,7 +120,7 @@ export class SandboxRunner implements ISourceAdapter {
     const res: any = await DataService.executeExtension({
       pkg: this.pkg,
       code: this.extensionCode,
-      contextArgs: { type: 'fetchPages', chapterUrl }
+      contextArgs: { type: 'fetchPages', chapterUrl, baseUrl: this.baseUrl }
     })
     return res?.pages || []
   }
@@ -127,28 +128,49 @@ export class SandboxRunner implements ISourceAdapter {
 
 export const ExtensionResolver = {
   async resolve(pkg: string): Promise<ISourceAdapter | null> {
-    const resExt = await DataService.db.getExtension(pkg)
-    const overrides = useExtensionStore.getState().domainOverrides
-    const native = SourceRegistry.resolve(pkg, overrides)
+    const fullPkg = pkg.startsWith('ma.autakimi.extension.') ? pkg : `ma.autakimi.extension.${pkg}`
+    const cleanPkg = pkg.replace(/^ma\.autakimi\.extension\./, '')
 
-    // 1. Check native compatibility
-    if (native) {
-      const dbVersion = resExt?.version || '0.0.0'
-      const nativeVersion = native.version || '0.0.0'
+    let resExt = (await DataService.db.getExtension(fullPkg)) || (await DataService.db.getExtension(cleanPkg))
+    const hasValidCode = (resExt as any)?.code && (resExt as any)?.baseUrl && (resExt as any).baseUrl !== ''
 
-      // If native is same or newer than installed, use it
-      if (compareVersions(nativeVersion, dbVersion) >= 0) {
-        return native
+    // If no valid extension code in DB, try auto-installing/fetching with source metadata from sourceService
+    if (!resExt || !hasValidCode) {
+      try {
+        const meta = sourceService.getSource(fullPkg) || sourceService.getSource(cleanPkg)
+        const extToInstall = {
+          pkg: fullPkg,
+          name: meta?.name || cleanPkg,
+          lang: meta?.lang || 'ar',
+          icon: meta?.icon || '',
+          baseUrl: meta?.baseUrl || (resExt as any)?.baseUrl || '',
+          version: meta?.version || '1.0.0',
+          sources: (meta?.baseUrl || (resExt as any)?.baseUrl) ? [{ baseUrl: meta?.baseUrl || (resExt as any)?.baseUrl }] : []
+        }
+
+        await DataService.installExtension(extToInstall, 'remote')
+        resExt = (await DataService.db.getExtension(fullPkg)) || (await DataService.db.getExtension(cleanPkg))
+      } catch (e) {
+        console.warn(`[ExtensionResolver] Auto-install failed for ${fullPkg}:`, e)
       }
     }
 
-    // 2. Fallback to sandbox if code exists
+    // 1. Prefer sandbox runner if custom JS / template scraper code exists
     if ((resExt as any)?.code) {
-      return new SandboxRunner(pkg, resExt as any)
+      const overrides = useExtensionStore.getState().domainOverrides
+      const overrideDomain = overrides[fullPkg] || overrides[cleanPkg] || overrides[pkg]
+      if (overrideDomain) {
+        (resExt as any).baseUrl = overrideDomain
+      }
+      return new SandboxRunner(fullPkg, resExt as any)
     }
 
-    // 3. Last fallback to native if no code
-    if (native) return native
+    // 2. Fallback to native base-class adapter if available
+    const overrides = useExtensionStore.getState().domainOverrides
+    const native = SourceRegistry.resolve(fullPkg, overrides) || SourceRegistry.resolve(cleanPkg, overrides)
+    if (native) {
+      return native
+    }
 
     return null
   }

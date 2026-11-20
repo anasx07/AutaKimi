@@ -7,6 +7,7 @@ import { app } from 'electron'
 import { ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import * as crypto from 'crypto'
 import { AppService, ServicePriority } from './service.registry'
+import { cloudflareService } from './cloudflare.service'
 
 class WorkerPool {
   private workers: { worker: Worker; isBusy: boolean; id: number; pkg?: string; currentTaskId?: string }[] = []
@@ -39,15 +40,38 @@ class WorkerPool {
       if (msg.type) {
         if (msg.type === 'WORKER_FETCH') {
           try {
-            const res = await net.fetch(msg.url, msg.init)
-            const body = await res.text()
-            worker.postMessage({
-              type: 'FETCH_REPLY',
-              fetchId: msg.fetchId,
-              ok: res.ok,
-              status: res.status,
-              body
-            })
+            let parsedUrl: URL
+            try {
+              parsedUrl = new URL(msg.url)
+            } catch {
+              throw new Error(`Security Exception: invalid URL "${msg.url}"`)
+            }
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+              throw new Error(
+                `Security Exception: WORKER_FETCH only permits http/https protocols: "${msg.url}"`
+              )
+            }
+
+            const fetchRes = await networkClient.fetch(msg.url, msg.init)
+            if (fetchRes.ok) {
+              const res = fetchRes.value
+              const body = await res.text()
+              worker.postMessage({
+                type: 'FETCH_REPLY',
+                fetchId: msg.fetchId,
+                ok: res.ok,
+                status: res.status,
+                body
+              })
+            } else {
+              worker.postMessage({
+                type: 'FETCH_REPLY',
+                fetchId: msg.fetchId,
+                ok: false,
+                status: fetchRes.status || 500,
+                body: fetchRes.error || 'Network request failed'
+              })
+            }
           } catch (err: any) {
             console.error(`[WorkerPool] WORKER_FETCH error for ${msg.url}:`, err)
             worker.postMessage({
@@ -65,7 +89,7 @@ class WorkerPool {
       const resolver = this.activeResolvers.get(msg.id)
       if (resolver) {
         clearTimeout(resolver.timeout)
-        resolver.resolve(msg.result)
+        resolver.resolve(msg.error ? { error: msg.error } : msg.result)
         this.activeResolvers.delete(msg.id)
       }
       workerEntry.isBusy = false
@@ -135,41 +159,48 @@ class WorkerPool {
   }
 
   private processQueue() {
-    const availableWorker = this.workers.find((w) => !w.isBusy)
-    if (!availableWorker || this.taskQueue.length === 0) return
+    while (this.taskQueue.length > 0) {
+      const availableWorker = this.workers.find((w) => !w.isBusy)
+      if (!availableWorker) return
 
-    // Limit concurrency: only run if no other busy worker is already executing the same extension pkg
-    const taskIndex = this.taskQueue.findIndex((task) => {
-      if (!task.pkg) return true
-      return !this.workers.some((w) => w.isBusy && w.pkg === task.pkg)
-    })
+      // Allow concurrent execution for the same pkg unless a Cloudflare challenge is actively being solved for its domain
+      const taskIndex = this.taskQueue.findIndex((task) => {
+        if (!task.pkg) return true
+        const baseUrl = task.params?._baseUrl || task.params?.baseUrl
+        if (baseUrl && cloudflareService.isChallengeActive(baseUrl)) {
+          return !this.workers.some((w) => w.isBusy && w.pkg === task.pkg)
+        }
+        return true
+      })
 
-    if (taskIndex === -1) return
+      if (taskIndex === -1) return
 
-    const task = this.taskQueue.splice(taskIndex, 1)[0]
-    availableWorker.isBusy = true
-    availableWorker.pkg = task.pkg
-    availableWorker.currentTaskId = task.id
+      const task = this.taskQueue.splice(taskIndex, 1)[0]
+      availableWorker.isBusy = true
+      availableWorker.pkg = task.pkg
+      availableWorker.currentTaskId = task.id
 
-    const timeout = setTimeout(() => {
-      const resolver = this.activeResolvers.get(task.id)
-      if (resolver) {
-        resolver.resolve({ error: 'Worker timed out' })
-        this.activeResolvers.delete(task.id)
-      }
-      
-      // Terminate the timed-out worker and replace it with a fresh one
-      availableWorker.worker.terminate()
-      const index = this.workers.indexOf(availableWorker)
-      if (index !== -1) {
-        this.workers[index] = this.createWorker(availableWorker.id)
-      }
+      const watchdogTimeoutMs = Math.max(30000, (task.params?._timeoutMs || 25000) + 5000)
+      const timeout = setTimeout(() => {
+        const resolver = this.activeResolvers.get(task.id)
+        if (resolver) {
+          resolver.resolve({ error: 'Worker timed out' })
+          this.activeResolvers.delete(task.id)
+        }
+        
+        // Terminate the timed-out worker and replace it with a fresh one
+        availableWorker.worker.terminate()
+        const index = this.workers.indexOf(availableWorker)
+        if (index !== -1) {
+          this.workers[index] = this.createWorker(availableWorker.id)
+        }
 
-      this.processQueue()
-    }, 30000)
+        this.processQueue()
+      }, watchdogTimeoutMs)
 
-    this.activeResolvers.set(task.id, { resolve: task.resolve, timeout })
-    availableWorker.worker.postMessage({ id: task.id, code: task.code, params: task.params })
+      this.activeResolvers.set(task.id, { resolve: task.resolve, timeout })
+      availableWorker.worker.postMessage({ id: task.id, code: task.code, params: task.params, pkg: task.pkg })
+    }
   }
 
   shutdown() {
@@ -245,9 +276,32 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
       }
     }
 
+    const rawPkg = ext.pkg || ext.id || ''
+    const fullPkg = rawPkg.startsWith('ma.autakimi.extension.') ? rawPkg : `ma.autakimi.extension.${rawPkg}`
+    const cleanPkg = rawPkg.replace(/^ma\.autakimi\.extension\./, '')
+
+    // Check if local bundled JS exists when code is missing
+    if (!ext.code) {
+      const candidates = [
+        path.join(process.cwd(), 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
+        path.join(process.cwd(), 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
+        path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
+        path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
+        path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
+        path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`)
+      ]
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          ext.code = fs.readFileSync(cand, 'utf8')
+          console.log(`[ExtensionOrchestrator] Loaded bundled JS for ${fullPkg} from ${cand}`)
+          break
+        }
+      }
+    }
+
     // Proactively download and cache the extension's icon for offline mode
     try {
-      const filename = `ma.autakimi.extension.${ext.pkg}.png`
+      const filename = `${fullPkg}.png`
       const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
       if (!fs.existsSync(userDataIconsDir)) {
         fs.mkdirSync(userDataIconsDir, { recursive: true })
@@ -267,7 +321,7 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
           if (res.ok) {
             const buffer = await res.arrayBuffer()
             fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
-            console.log(`[ExtensionOrchestrator] Successfully pre-downloaded icon for offline mode: ${ext.pkg}`)
+            console.log(`[ExtensionOrchestrator] Successfully pre-downloaded icon for offline mode: ${fullPkg}`)
           }
         }
       }

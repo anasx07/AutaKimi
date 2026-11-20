@@ -10,7 +10,7 @@ function walk(dir) {
   });
   return results;
 }
-const files = walk('D:/DEV/Apps/AutaKimi/autakimi-extensions/src/extensions');
+const files = walk(path.join(__dirname, 'autakimi-extensions', 'src', 'extensions'));
 for (const file of files) {
   let content = fs.readFileSync(file, 'utf8');
   content = content.replace(/from\s+['"]\.\.\/\.\.\/\.\.\/base\//g, 'from \'../../../../base/');

@@ -1,5 +1,6 @@
 import { cn } from '@renderer/shared/lib/utils'
 import { ThemeOption } from '@renderer/shared/config/themes'
+import { useSettingsStore } from '@renderer/shared/model'
 
 interface ThemeCardProps {
   opt: ThemeOption
@@ -9,6 +10,7 @@ interface ThemeCardProps {
 }
 
 export function ThemeCard({ opt, isActive, isPremium = false, onSelect }: ThemeCardProps): React.JSX.Element {
+  const customThemeConfig = useSettingsStore((s) => s.customThemeConfig)
   return (
     <button
       key={opt.id}
@@ -49,7 +51,14 @@ export function ThemeCard({ opt, isActive, isPremium = false, onSelect }: ThemeC
           opt.boxClass || 'border-transparent bg-transparent'
         )}
       >
-        <div className={cn('w-3 h-3 rounded-full shadow-sm', opt.dotClass)} />
+        <div
+          className={cn('w-3 h-3 rounded-full shadow-sm', opt.dotClass)}
+          style={
+            opt.colorTheme === 'custom' && customThemeConfig?.accent
+              ? { backgroundColor: customThemeConfig.accent }
+              : undefined
+          }
+        />
       </div>
       <div className="relative z-10">
         <div
@@ -68,7 +77,9 @@ export function ThemeCard({ opt, isActive, isPremium = false, onSelect }: ThemeC
           )}
         </div>
         <div className={cn(isPremium ? 'text-sm' : 'text-xs mt-0.5', opt.descClass)}>
-          {opt.desc}
+          {opt.colorTheme === 'custom' && customThemeConfig
+            ? `${customThemeConfig.font || 'Default'} · ${customThemeConfig.accent || '#E11D48'}`
+            : opt.desc}
         </div>
       </div>
     </button>

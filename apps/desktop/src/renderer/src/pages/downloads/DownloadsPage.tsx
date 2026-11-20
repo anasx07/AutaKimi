@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useLibraryStore, useDownloadStore } from '@renderer/shared/model'
+import { useLibraryStore, useDownloadStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
 import { Download, Loader2, Play, Trash2 } from 'lucide-react'
 import { DataService } from '@renderer/shared/api'
-import { useUIStore } from '@renderer/shared/model'
 import { Manga } from '@common/types'
 import {
   MediaTabSwitcher,
@@ -21,7 +20,7 @@ import { DownloadManager } from '@renderer/widgets/download-queue'
 import { cn } from '@renderer/shared/lib/utils'
 
 export default function DownloadsPage(): React.JSX.Element {
-  const [activeTab, setActiveTab] = useState<'manga' | 'anime'>('manga')
+  const { downloadsMediaType: activeTab, setDownloadsMediaType: setActiveTab } = useSettingsStore()
   const { setSelectedManga } = useLibraryStore()
   const { viewMode } = useUIStore()
   const { activeTasks, downloadQueue } = useDownloadStore()
@@ -108,7 +107,7 @@ export default function DownloadsPage(): React.JSX.Element {
               onTabChange={(t) => setActiveTab(t as 'manga' | 'anime')}
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0 bg-secondary/30 p-1 rounded-xl border border-border/50">
+          <div className="shrink-0">
             <LayoutSwitcher />
           </div>
         </div>
@@ -124,7 +123,7 @@ export default function DownloadsPage(): React.JSX.Element {
         <div className="space-y-4">
           <p className="text-muted-foreground text-sm">
             Are you sure you want to clear your entire {activeTab} downloads? This will remove all
-            downloaded chapters from this list.
+            downloaded {activeTab === 'anime' ? 'episodes' : 'chapters'} from this list.
           </p>
           <div className="flex gap-3 justify-end w-full">
             <Button variant="outline" onClick={() => setIsConfirmClearOpen(false)}>
@@ -154,7 +153,7 @@ export default function DownloadsPage(): React.JSX.Element {
                 )
               }
               title={`No ${activeTab} downloaded`}
-              description={`You haven't downloaded any ${activeTab} yet. Go to a title to start downloading chapters.`}
+              description={`You haven't downloaded any ${activeTab} yet. Go to a title to start downloading ${activeTab === 'anime' ? 'episodes' : 'chapters'}.`}
             />
           </div>
         ) : (

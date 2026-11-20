@@ -62,14 +62,30 @@ export class StateRegistryService {
   /**
    * High-level helper for download status updates
    */
-  public updateDownloadState(mangaId: string, chapterId: string, status: string): void {
+  public updateDownloadState(
+    mangaId: string,
+    chapterId: string,
+    status: string,
+    cached = 0,
+    total = 0,
+    error?: string,
+    type: 'manga' | 'anime' = 'manga',
+    mangaTitle?: string,
+    chapterTitle?: string
+  ): void {
+    const taskStatus: ActiveTaskState['status'] =
+      status === 'start' || status === 'progress' ? 'downloading' : (status as any)
+
     this.updateDownloadTask({
-        mangaId,
-        chapterId,
-        status: status as any,
-        cached: 0,
-        total: 0,
-        type: 'manga'
+      mangaId,
+      chapterId,
+      status: taskStatus,
+      cached,
+      total,
+      error,
+      type,
+      mangaTitle,
+      chapterTitle
     })
   }
 

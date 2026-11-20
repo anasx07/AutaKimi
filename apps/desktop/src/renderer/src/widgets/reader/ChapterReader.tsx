@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
-import { TitleBar } from '@renderer/widgets/title-bar'
 import {
   useLibraryStore,
   useReaderStore,
@@ -10,7 +9,7 @@ import {
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { isMobile } from '@renderer/shared/platform'
-import { useMangaChapters, mangaKeys } from '@renderer/entities/manga/api/useMangaQueries'
+import { useMediaItems, mediaKeys, usePrefetchNextChapter } from '@renderer/entities/media/api/useMediaQueries'
 import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
 import { Chapter } from '@renderer/shared/api/sources/types'
@@ -30,7 +29,7 @@ export default function ChapterReader() {
   const mobile = isMobile()
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
-  const { addHistoryEntry } = useHistoryStore()
+  const { addHistoryEntry, updateHistoryDuration } = useHistoryStore()
   const { markChapterRead, pageProgress, readingProgress } = useProgressStore()
   const queryClient = useQueryClient()
 
@@ -43,7 +42,9 @@ export default function ChapterReader() {
     setAutoScrollSpeed,
     autoScrollShortcuts,
     setReadingMode,
-    readerTheme
+    readerTheme,
+    cropBorders,
+    setCropBorders
   } = useReaderStore()
 
   // --- State & Refs ---
@@ -53,17 +54,62 @@ export default function ChapterReader() {
   const [chapterPageCounts, setChapterPageCounts] = useState<Record<string, number>>({})
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [scrubberHover, setScrubberHover] = useState<{ x: number; page: number } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollPage = useRef<number | null>(null)
   const lastSyncId = useRef<string | null>(null)
   const visiblePagesRef = useRef<Record<string, number>>({})
+  const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(null)
+
+  // Track reading duration on unmount
+  useEffect(() => {
+    return () => {
+      if (activeSessionRef.current) {
+        const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+        if (elapsed > 0) {
+          updateHistoryDuration({
+            mangaId: activeSessionRef.current.mangaId,
+            chapterId: activeSessionRef.current.chapterId,
+            durationSeconds: elapsed
+          })
+        }
+      }
+    }
+  }, [updateHistoryDuration])
+
+  // Escape key to close reader
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showShareModal) {
+          setShowShareModal(false)
+          return
+        }
+        setActiveChapter(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current)
+    }
+  }, [setActiveChapter, showShareModal])
 
   const resolvedPkg = selectedManga?.pkg || activeExtension || ''
 
-  const { data: chapters = [] } = useMangaChapters(
+  const { data: chapters = [] } = useMediaItems(
+    'manga',
     selectedManga?.id || '',
     resolvedPkg,
     selectedManga?.url
+  )
+
+  usePrefetchNextChapter(
+    selectedManga?.id || '',
+    resolvedPkg,
+    chapters,
+    activeChapter
   )
 
   const isInfiniteScroll = readingMode === 'webtoon' || readingMode === 'continuous-vertical'
@@ -113,8 +159,19 @@ export default function ChapterReader() {
   const savePageProgress = useCallback(
     (chapterId: string, page: number) => {
       if (!selectedManga) return
-      const isReadAlready = readingProgress[selectedManga.id]?.includes(chapterId) || false
-      markChapterRead(selectedManga.id, chapterId, isReadAlready, page)
+      if (progressDebounceRef.current) {
+        clearTimeout(progressDebounceRef.current)
+      }
+      progressDebounceRef.current = setTimeout(() => {
+        const isReadAlready = readingProgress[selectedManga.id]?.includes(chapterId) || false
+        markChapterRead(
+          selectedManga.id,
+          chapterId,
+          isReadAlready,
+          page,
+          Number(activeChapter?.number) || undefined
+        )
+      }, 400)
     },
     [selectedManga?.id, readingProgress, markChapterRead]
   )
@@ -222,9 +279,37 @@ export default function ChapterReader() {
     }
 
     if (selectedManga) {
+      // Finalize previous chapter reading session if switching chapters
+      if (
+        activeSessionRef.current &&
+        (activeSessionRef.current.mangaId !== selectedManga.id ||
+          activeSessionRef.current.chapterId !== chapter.id)
+      ) {
+        const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+        if (elapsed > 0) {
+          updateHistoryDuration({
+            mangaId: activeSessionRef.current.mangaId,
+            chapterId: activeSessionRef.current.chapterId,
+            durationSeconds: elapsed
+          })
+        }
+      }
+
+      activeSessionRef.current = {
+        mangaId: selectedManga.id,
+        chapterId: chapter.id,
+        startTime: Date.now()
+      }
+
       const savedPage = pageProgress[selectedManga.id]?.[chapter.id] || 1
       const isReadAlready = readingProgress[selectedManga.id]?.includes(chapter.id) || false
-      markChapterRead(selectedManga.id, chapter.id, isReadAlready, savedPage)
+      markChapterRead(
+        selectedManga.id,
+        chapter.id,
+        isReadAlready,
+        savedPage,
+        Number(chapter.number) || undefined
+      )
       addHistoryEntry({
         mangaId: selectedManga.id,
         mangaTitle: selectedManga.title,
@@ -237,15 +322,18 @@ export default function ChapterReader() {
         pkg: resolvedPkg || undefined,
         type: 'manga'
       }).then(() => {
-        queryClient.invalidateQueries({ queryKey: mangaKeys.history() })
+        queryClient.invalidateQueries({ queryKey: mediaKeys.history() })
       })
     }
   }
 
+  const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
+
   const pagedNext = () => {
     if (!activeChapter) return
     setCurrentPage((prev) => {
-      const next = Math.min(totalPages, prev + 1)
+      const step = isDoublePage ? (prev === 1 ? 1 : 2) : 1
+      const next = Math.min(totalPages, prev + step)
       if (next !== prev) savePageProgress(activeChapter.id, next)
       return next
     })
@@ -254,7 +342,8 @@ export default function ChapterReader() {
   const pagedPrev = () => {
     if (!activeChapter) return
     setCurrentPage((prev) => {
-      const next = Math.max(1, prev - 1)
+      const step = isDoublePage ? (prev <= 2 ? 1 : 2) : 1
+      const next = Math.max(1, prev - step)
       if (next !== prev) savePageProgress(activeChapter.id, next)
       return next
     })
@@ -277,8 +366,6 @@ export default function ChapterReader() {
         readerBg
       )}
     >
-      <TitleBar />
-
       <ReaderToolbar
         chapterNumber={activeChapter.number}
         chapterTitle={activeChapter.title}
@@ -294,6 +381,8 @@ export default function ChapterReader() {
         readingMode={readingMode}
         onReadingModeChange={setReadingMode}
         readerTheme={readerTheme}
+        cropBorders={cropBorders}
+        onToggleCropBorders={() => setCropBorders(!cropBorders)}
         onClose={() => setActiveChapter(null)}
         onOpenInBrowser={openInBrowser}
         onToggleAutoScroll={() => setAutoScrollEnabled(!autoScrollEnabled)}
@@ -336,6 +425,7 @@ export default function ChapterReader() {
               pkg={resolvedPkg}
               readingMode={readingMode}
               readerTheme={readerTheme}
+              cropBorders={cropBorders}
               onHalfway={handleHalfway}
               onVisible={handleVisible}
               onLoaded={handleLoaded}
@@ -375,11 +465,20 @@ export default function ChapterReader() {
 
       {totalPages > 0 && (
         <div
-          className="fixed bottom-0 left-0 right-0 h-1 hover:h-1.5 bg-neutral-900/50 z-[110] cursor-pointer group transition-all"
+          className="fixed bottom-0 left-0 right-0 h-2 hover:h-2.5 bg-neutral-950/60 backdrop-blur-sm z-[110] cursor-pointer group transition-all"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl'
+            const ratio = isRtl ? 1 - x / rect.width : x / rect.width
+            const hoverPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
+            setScrubberHover({ x, page: hoverPage })
+          }}
+          onMouseLeave={() => setScrubberHover(null)}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
             const x = e.clientX - rect.left
-            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl'
+            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl'
             const ratio = isRtl ? 1 - x / rect.width : x / rect.width
             const targetPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
 
@@ -398,15 +497,27 @@ export default function ChapterReader() {
         >
           <div
             className={cn(
-              'absolute top-0 bottom-0 bg-primary transition-all duration-300 shadow-[0_0_15px_rgba(var(--primary),0.6)]',
-              readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' ? 'right-0' : 'left-0'
+              'absolute top-0 bottom-0 bg-primary transition-all duration-150 shadow-[0_0_15px_rgba(var(--primary),0.6)]',
+              readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl' ? 'right-0' : 'left-0'
             )}
             style={{ width: `${(currentPage / totalPages) * 100}%` }}
-          >
-            <div className="absolute right-0 bottom-full mb-1.5 opacity-0 group-hover:opacity-100 bg-neutral-800 border border-neutral-700 text-[10px] px-2 py-1 rounded shadow-xl pointer-events-none transition-opacity text-white font-mono whitespace-nowrap translate-x-1/2 tracking-wider font-bold">
-              PAGE {currentPage} / {totalPages}
+          />
+
+          {/* Floating Glassmorphism Tooltip on Hover */}
+          {scrubberHover && (
+            <div
+              className="absolute bottom-full mb-3 -translate-x-1/2 pointer-events-none transition-transform z-30 animate-in fade-in zoom-in-95 duration-150"
+              style={{ left: `${scrubberHover.x}px` }}
+            >
+              <div className="bg-neutral-900/90 backdrop-blur-xl border border-white/15 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-white shadow-2xl shadow-black/80 flex items-center gap-1.5 whitespace-nowrap">
+                <span className="text-primary font-black">PAGE</span>
+                <span>{scrubberHover.page}</span>
+                <span className="text-neutral-500 font-normal">/</span>
+                <span className="text-neutral-400 font-normal">{totalPages}</span>
+              </div>
+              <div className="w-2 h-2 bg-neutral-900/90 border-r border-b border-white/15 rotate-45 mx-auto -mt-1" />
             </div>
-          </div>
+          )}
         </div>
       )}
 

@@ -37,9 +37,9 @@ export function MobilePage({
 
   if (!mobile) {
     return (
-      <div className={cn('flex flex-col h-full w-full max-w-7xl mx-auto p-6', className)}>
+      <div className={cn('flex flex-col h-full w-full', className)}>
         {(title || actions || headerExtra) && (
-          <div className="shrink-0 flex flex-col space-y-4 mb-6">
+          <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-2 shrink-0">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 {onBack && (
@@ -49,7 +49,7 @@ export function MobilePage({
                 )}
                 <div className="flex flex-col min-w-0">
                   {title && (
-                    <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent italic">
+                    <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent italic pr-4 pb-1 inline-block overflow-visible select-none">
                       {title}
                     </h1>
                   )}
@@ -62,16 +62,18 @@ export function MobilePage({
               </div>
               {actions && <div className="flex items-center gap-3">{actions}</div>}
             </div>
-            {headerExtra}
+            {headerExtra && <div className="mt-4">{headerExtra}</div>}
           </div>
         )}
         <div
           className={cn(
-            'flex-1 min-h-0 flex flex-col',
-            scrollable ? 'overflow-y-auto pr-2 custom-scrollbar' : 'overflow-hidden'
+            'flex-1 min-h-0 flex flex-col w-full',
+            scrollable ? 'overflow-y-auto custom-scrollbar' : 'overflow-hidden'
           )}
         >
-          {children}
+          <div className="w-full max-w-7xl mx-auto px-6 pb-6 flex-1 min-h-0 flex flex-col">
+            {children}
+          </div>
         </div>
       </div>
     )
@@ -158,7 +160,7 @@ export function MobilePage({
           {/* Large Header Title (Top of content) */}
           {title && !isScrolled && (
             <div className="pt-2 pb-6 animate-in fade-in slide-in-from-left-4 duration-700">
-               <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent italic leading-[0.9]">
+               <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent italic leading-[1.05] pr-4 pb-1 inline-block overflow-visible">
                  {title}
                </h1>
                {subtitle && (

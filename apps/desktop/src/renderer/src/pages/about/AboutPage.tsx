@@ -2,7 +2,7 @@ import { Card, Button, Badge, MobilePage } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
 import { isMobile } from '@renderer/shared/platform'
 import { useNavigate } from 'react-router-dom'
-import { Info, Github, ExternalLink, Shield, Code, Heart } from 'lucide-react'
+import { Info, Github, ExternalLink, ShieldCheck, Code, Heart, Sparkles, Users } from 'lucide-react'
 import appIcon from '../../app/assets/app-icon/256x256.png'
 
 export default function AboutPage(): React.JSX.Element {
@@ -12,114 +12,120 @@ export default function AboutPage(): React.JSX.Element {
 
   const features = [
     {
-      title: 'Extension System',
+      title: 'Extension Architecture',
       description:
-        'Flexible, sandboxed architecture supporting thousands of manga and anime sources.',
+        'Flexible sandboxed engine supporting thousands of manga and anime community sources.',
       icon: Code
     },
     {
-      title: 'Premium Experience',
+      title: 'Streamlined Reader',
       description:
-        'Optimized image loading, smart infinite scroll, and immersive horizontal/paged modes.',
-      icon: Heart
+        'Ultra-fast image prefetching, canvas rendering, and zero-latency page transitions.',
+      icon: Sparkles
     },
     {
-      title: 'Privacy First',
+      title: 'Absolute Privacy',
       description:
-        'No accounts, no tracking, and no telemetry. All your data stays locally on your device.',
-      icon: Shield
+        'Zero tracking, zero analytics, zero cloud dependencies. Your data stays 100% on device.',
+      icon: ShieldCheck
     }
   ]
 
   return (
     <MobilePage
-      title="About"
-      subtitle="Application Details"
+      title={mobile ? 'About' : undefined}
+      subtitle={mobile ? 'Application Details' : undefined}
       onBack={mobile ? () => navigate('/more') : undefined}
     >
-      <div className="flex-1 min-h-0 scroll-smooth">
+      <div className="flex-1 min-h-0 flex flex-col justify-between py-2 md:py-4 max-w-5xl mx-auto w-full space-y-5">
         {/* Hero Section */}
-        <div className="flex flex-col items-center text-center space-y-8 pt-12 relative overflow-hidden">
-          {/* Decorative background glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+        <div className="flex flex-col items-center text-center space-y-3.5 relative overflow-hidden pt-2">
+          {/* Subtle ambient glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-36 bg-primary/15 blur-[90px] rounded-full pointer-events-none -z-10" />
 
-          <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-500 cursor-default">
-            <div className="w-full h-full rounded-[22px] flex items-center justify-center ">
-              <img src={appIcon} className="w-full h-full object-cover p-1" alt="AutaKimi" />
+          {/* App Icon */}
+          <div className="relative group cursor-default">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/80 via-primary/30 to-border/40 p-[2px] shadow-xl shadow-primary/15 transition-transform duration-300 group-hover:scale-105">
+              <div className="w-full h-full rounded-[14px] bg-card/90 backdrop-blur-md flex items-center justify-center p-2 overflow-hidden">
+                <img src={appIcon} className="w-full h-full object-contain" alt="AutaKimi" />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-7xl font-black tracking-tighter bg-gradient-to-r from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent">
+          {/* Title & Badges */}
+          <div className="space-y-1.5">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-foreground/60 bg-clip-text text-transparent pr-3 pb-0.5 inline-block select-none">
               AutaKimi
             </h1>
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2">
               <Badge
                 variant="secondary"
-                className="bg-primary/20 text-primary border-primary/30 rounded-full px-4 py-1 text-xs font-black tracking-widest shadow-lg animate-in zoom-in-50 duration-500"
+                className="bg-primary/15 text-primary border-primary/25 rounded-full px-3 py-0.5 text-[11px] font-black tracking-wider shadow-sm"
               >
                 v{version}
               </Badge>
               <Badge
                 variant="outline"
-                className="text-[10px] uppercase tracking-[0.3em] font-bold border-border/50 opacity-70 px-3 py-1 rounded-full"
+                className="text-[10px] uppercase tracking-[0.2em] font-bold border-border/50 text-muted-foreground px-2.5 py-0.5 rounded-full bg-secondary/30"
               >
-                Stable Build
+                Stable Desktop Build
               </Badge>
             </div>
           </div>
 
-          <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed italic font-medium">
-            The ultimate open-source manga & anime experience for desktop. Built for speed, designed
-            for stability, and powered by you.
+          {/* Tagline */}
+          <p className="text-xs md:text-sm text-muted-foreground max-w-lg leading-relaxed font-medium">
+            The ultimate open-source manga & anime experience for desktop. Built for speed, designed for stability, and powered by you.
           </p>
 
-          <div className="flex gap-4 pt-4">
+          {/* Action Links */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
             <Button
-              className="gap-2.5 rounded-2xl px-8 h-12 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/10 font-bold"
+              size="sm"
+              className="gap-2 rounded-xl px-4 h-9 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 text-xs font-bold transition-all"
               onClick={() => DataService.openExternal('https://github.com/anasx07/AutaKimi')}
             >
-              <Github className="h-5 w-5" />
+              <Github className="h-4 w-4" />
               Source Code
             </Button>
             <Button
               variant="outline"
-              className="gap-2.5 rounded-2xl px-8 h-12 border-border/50 bg-secondary/50 backdrop-blur-sm hover:bg-secondary font-bold transition-all"
-              onClick={() =>
-                DataService.openExternal('https://anasx07.github.io/AutaKimi/')
-              }
+              size="sm"
+              className="gap-2 rounded-xl px-4 h-9 border-border/60 bg-secondary/40 backdrop-blur-sm hover:bg-secondary/70 text-xs font-bold transition-all"
+              onClick={() => DataService.openExternal('https://anasx07.github.io/AutaKimi/')}
             >
-              <ExternalLink className="h-5 w-5" />
+              <ExternalLink className="h-4 w-4" />
               Official Site
             </Button>
             <Button
               variant="outline"
-              className="gap-2.5 rounded-2xl px-8 h-12 border-border/50 bg-secondary/50 backdrop-blur-sm hover:bg-secondary font-bold transition-all"
+              size="sm"
+              className="gap-2 rounded-xl px-4 h-9 border-border/60 bg-secondary/40 backdrop-blur-sm hover:bg-secondary/70 text-xs font-bold transition-all"
               onClick={() => DataService.openExternal('https://discord.gg/qRbpCusgan')}
             >
-              <ExternalLink className="h-5 w-5" />
-              Join Discord Server
+              <ExternalLink className="h-4 w-4" />
+              Join Discord
             </Button>
           </div>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+        {/* Features Bento Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {features.map((feature, idx) => {
             const Icon = feature.icon
             return (
               <Card
                 key={idx}
-                className="p-8 bg-card backdrop-blur-xl border-border/50 space-y-5 hover:border-primary/40 hover:bg-secondary/50 transition-all duration-500 group shadow-2xl hover:shadow-primary/5"
+                className="p-4 rounded-2xl bg-card/60 backdrop-blur-md border-border/50 hover:border-primary/40 hover:bg-secondary/20 transition-all duration-300 shadow-sm flex flex-col gap-2.5 group"
               >
-                <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500 border border-border/50 group-hover:border-primary/20">
-                  <Icon className="h-7 w-7" />
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary/15 transition-all">
+                  <Icon className="h-4 w-4" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-black text-xl uppercase tracking-tighter italic text-foreground">
+                <div className="space-y-1">
+                  <h3 className="font-black text-xs uppercase tracking-wider text-foreground">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -128,78 +134,88 @@ export default function AboutPage(): React.JSX.Element {
           })}
         </div>
 
-        {/* Team & License Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center gap-3">
-              <Badge className="bg-primary/10 text-primary p-1.5 rounded-lg border-primary/20">
-                <Info className="h-5 w-5" />
-              </Badge>
-              <h2 className="text-xl font-black uppercase tracking-tighter italic text-foreground">
-                Project Brief
-              </h2>
-            </div>
-            <Card className="p-8 border-border/50 bg-card backdrop-blur-sm space-y-6">
-              <p className="text-muted-foreground leading-relaxed font-medium">
-                AutaKimi is a community-driven project dedicated to creating the most stable and
-                performant platform for digital media consumption. We focus on lightweight
-                architecture and extensible design to support a diverse range of sources while
-                respecting user privacy.
-              </p>
-              <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-foreground">Development Team</p>
-                  <p className="text-xs text-muted-foreground">
-                    Codixy Contributors Leaded by @anasx07
-                  </p>
+        {/* Project Mission & Licensing Bento Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {/* Card 1: Project Brief & Contributors */}
+          <Card className="p-4 rounded-2xl border-border/50 bg-card/60 backdrop-blur-md flex flex-col justify-between space-y-3 shadow-sm hover:border-primary/30 transition-all">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Info className="h-3.5 w-3.5" />
                 </div>
-                <div className="flex -space-x-3">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-10 h-10 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-xs font-black text-muted-foreground shadow-xl"
-                    >
-                      {i === 1 ? 'AN' : i === 2 ? 'GR' : 'AV'}
-                    </div>
-                  ))}
+                <h2 className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Project Mission
+                </h2>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                AutaKimi is a community-driven desktop application focused on lightweight architecture, seamless offline reading, and privacy-first digital media enjoyment.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2.5 border-t border-border/40">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <div>
+                  <p className="text-[11px] font-bold text-foreground leading-none">Core Development</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Codixy Contributors led by @anasx07</p>
                 </div>
               </div>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Badge className="bg-primary/10 text-primary p-1.5 rounded-lg border-primary/20">
-                <Shield className="h-5 w-5" />
-              </Badge>
-              <h2 className="text-xl font-black uppercase tracking-tighter italic text-foreground">
-                Licensing
-              </h2>
+              <div className="flex -space-x-2">
+                {['AN', 'GR', 'AV'].map((initials, i) => (
+                  <div
+                    key={i}
+                    className="w-7 h-7 rounded-full border-2 border-card bg-secondary/80 flex items-center justify-center text-[9px] font-black text-muted-foreground shadow-sm"
+                  >
+                    {initials}
+                  </div>
+                ))}
+              </div>
             </div>
-            <Card className="p-8 border-border/50 bg-card flex flex-col items-center text-center justify-center space-y-4">
-              <Badge className="bg-secondary text-muted-foreground font-mono text-[10px] tracking-widest border-border/50">
-                MIT LICENSE
-              </Badge>
-              <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                Copyright © 2026 AutaKimi Contributors. Free to use, fork, and adapt.
+          </Card>
+
+          {/* Card 2: Licensing & Open Source */}
+          <Card className="p-4 rounded-2xl border-border/50 bg-card/60 backdrop-blur-md flex flex-col justify-between space-y-3 shadow-sm hover:border-primary/30 transition-all">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  </div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    Open Source & Free
+                  </h2>
+                </div>
+                <Badge className="bg-secondary/80 text-muted-foreground font-mono text-[9px] tracking-widest border-border/50">
+                  MIT LICENSE
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Released under the permissive MIT License. You have complete freedom to study, modify, distribute, or fork this software forever.
               </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2.5 border-t border-border/40">
+              <span className="text-[10px] text-muted-foreground font-medium">
+                © 2026 AutaKimi Contributors
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-primary text-[10px] font-black uppercase tracking-widest gap-2"
-                onClick={() => DataService.openExternal('https://github.com/anasx07/AutaKimi/blob/main/LICENSE')}
+                className="h-7 px-2 text-primary text-[10px] font-black uppercase tracking-wider gap-1 hover:bg-primary/10"
+                onClick={() =>
+                  DataService.openExternal('https://github.com/anasx07/AutaKimi/blob/main/LICENSE')
+                }
               >
                 Read Terms <ExternalLink className="h-3 w-3" />
               </Button>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Footer */}
-        <div className="pt-20 pb-12 text-center space-y-4">
-          <div className="h-px w-32 bg-gradient-to-r from-transparent via-border to-transparent mx-auto" />
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/40 animate-pulse">
-            Crafted with passion for the manga community
+        {/* Footer Note */}
+        <div className="text-center pt-1 pb-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 flex items-center justify-center gap-1.5">
+            Crafted with <Heart className="h-3 w-3 text-primary/60 inline fill-primary/30" /> for the community
           </p>
         </div>
       </div>

@@ -44,6 +44,7 @@ CREATE TABLE `library` (
 	`type` text DEFAULT 'manga'
 );
 --> statement-breakpoint
+CREATE INDEX `idx_library_type` ON `library` (`type`);--> statement-breakpoint
 CREATE TABLE `manga_cache` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
@@ -59,6 +60,7 @@ CREATE TABLE `manga_cache` (
 	`expires_at` text
 );
 --> statement-breakpoint
+CREATE INDEX `idx_manga_cache_expires` ON `manga_cache` (`expires_at`);--> statement-breakpoint
 CREATE TABLE `reading_history` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`manga_id` text NOT NULL,
@@ -75,6 +77,7 @@ CREATE TABLE `reading_history` (
 --> statement-breakpoint
 CREATE INDEX `idx_history_manga` ON `reading_history` (`manga_id`);--> statement-breakpoint
 CREATE INDEX `idx_history_started` ON `reading_history` (`started_at`);--> statement-breakpoint
+CREATE INDEX `idx_history_type_started` ON `reading_history` (`type`, `started_at`);--> statement-breakpoint
 CREATE TABLE `reading_progress` (
 	`manga_id` text,
 	`chapter_id` text,

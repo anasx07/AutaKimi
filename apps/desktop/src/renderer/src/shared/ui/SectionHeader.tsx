@@ -26,12 +26,12 @@ export const SectionHeader = ({
     <div className={cn('flex items-center justify-between px-1', className)}>
       <div
         className={cn(
-          'flex items-center gap-3 font-black text-xl uppercase tracking-tighter italic',
+          'flex items-center gap-3 font-black text-xl uppercase tracking-tight italic pr-2',
           variantClasses[variant]
         )}
       >
-        <Icon className="h-6 w-6" />
-        {title}
+        <Icon className="h-6 w-6 shrink-0" />
+        <span className="pr-1">{title}</span>
       </div>
       {children}
     </div>

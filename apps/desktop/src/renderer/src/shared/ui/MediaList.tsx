@@ -66,7 +66,7 @@ export function MediaListItem({
 
       <CardContent className="flex-1 p-4 flex items-center justify-between min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
-          <h3 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors" dir="auto">
             {title}
           </h3>
           <div className="flex items-center gap-2">
@@ -74,12 +74,13 @@ export function MediaListItem({
               <Badge
                 variant="secondary"
                 className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider opacity-80"
+                dir="auto"
               >
                 {status}
               </Badge>
             )}
             {description && (
-              <p className="text-xs text-muted-foreground line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity">
+              <p className="text-xs text-muted-foreground line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity" dir="auto">
                 {description}
               </p>
             )}

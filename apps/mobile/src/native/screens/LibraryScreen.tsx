@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { Image } from 'expo-image'
 import { Typography } from '../ui/Typography'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
@@ -24,7 +25,7 @@ export const LibraryScreen = () => {
       return (
         <TouchableOpacity className="flex-1 m-2">
           <Card className="aspect-[2/3]">
-            <Image source={{ uri: norm.coverUrl || undefined }} className="flex-1" resizeMode="cover" />
+            <Image source={{ uri: norm.coverUrl || undefined }} className="flex-1" contentFit="cover" transition={150} />
             <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/60">
               <Typography className="text-white text-xs font-semibold" numberOfLines={2}>
                 {norm.title}
@@ -40,7 +41,8 @@ export const LibraryScreen = () => {
         <Image
           source={{ uri: norm.coverUrl || undefined }}
           className="w-16 h-24 rounded-md"
-          resizeMode="cover"
+          contentFit="cover"
+          transition={150}
         />
         <View className="flex-1 ml-4">
           <Typography variant="h3" numberOfLines={2}>
@@ -151,12 +153,12 @@ export const LibraryScreen = () => {
             ListFooterComponent={
               isFetchingNextPage ? (
                 <View className="py-4">
-                  <ActivityIndicator color="#3b82f6" />
+                  <ActivityIndicator color="#e11d48" />
                 </View>
-              ) : null
+              ) : undefined
             }
             refreshing={isLoading}
-            onRefresh={refetch}
+            onRefresh={() => { refetch() }}
           />
         )}
       </View>

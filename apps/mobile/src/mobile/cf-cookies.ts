@@ -1,6 +1,6 @@
 const cfCookies: Record<string, string> = {}
-let bypassResolver: ((value: string | null) => void) | null = null
-let bypassUrl: string | null = null
+const pendingResolvers = new Map<string, Array<(cookie: string | null) => void>>()
+let pendingUrls: string[] = []
 
 export const CfCookieStore = {
   get(domain: string): string | null {
@@ -26,34 +26,97 @@ export const CfCookieStore = {
 
 export const CfBypassFlow = {
   get pendingUrl(): string | null {
-    return bypassUrl
+    return pendingUrls.length > 0 ? pendingUrls[0] : null
   },
 
   get isPending(): boolean {
-    return bypassResolver !== null
+    return pendingResolvers.size > 0
   },
 
   start(url: string): Promise<string | null> {
-    const domain = new URL(url).hostname
-    return new Promise(resolve => {
-      bypassResolver = resolve
-      bypassUrl = url
-    })
+    try {
+      const domain = new URL(url).hostname
+      const cached = CfCookieStore.get(domain)
+      if (cached) {
+        return Promise.resolve(cached)
+      }
+
+      return new Promise(resolve => {
+        const queue = pendingResolvers.get(domain) || []
+        queue.push(resolve)
+        pendingResolvers.set(domain, queue)
+
+        if (!pendingUrls.includes(url)) {
+          pendingUrls.push(url)
+        }
+      })
+    } catch {
+      return Promise.resolve(null)
+    }
   },
 
-  complete(cookie: string | null) {
-    if (cookie && bypassUrl) {
-      const domain = new URL(bypassUrl).hostname
-      CfCookieStore.set(domain, cookie)
+  complete(cookie: string | null, targetUrl?: string) {
+    if (cookie) {
+      let domain: string | null = null
+      try {
+        if (targetUrl) {
+          domain = new URL(targetUrl).hostname
+        } else if (pendingUrls.length > 0) {
+          domain = new URL(pendingUrls[0]).hostname
+        }
+      } catch (_) {}
+
+      if (domain) {
+        CfCookieStore.set(domain, cookie)
+        const resolvers = pendingResolvers.get(domain) || []
+        pendingResolvers.delete(domain)
+        pendingUrls = pendingUrls.filter(u => {
+          try {
+            return new URL(u).hostname !== domain
+          } catch {
+            return true
+          }
+        })
+        resolvers.forEach(r => {
+          try { r(cookie) } catch (_) {}
+        })
+      } else {
+        // Fallback: resolve all currently pending
+        for (const resolvers of pendingResolvers.values()) {
+          resolvers.forEach(r => {
+            try { r(cookie) } catch (_) {}
+          })
+        }
+        pendingResolvers.clear()
+        pendingUrls = []
+      }
+    } else {
+      // Cancel
+      if (targetUrl) {
+        try {
+          const domain = new URL(targetUrl).hostname
+          const resolvers = pendingResolvers.get(domain) || []
+          pendingResolvers.delete(domain)
+          pendingUrls = pendingUrls.filter(u => u !== targetUrl)
+          resolvers.forEach(r => {
+            try { r(null) } catch (_) {}
+          })
+          return
+        } catch (_) {}
+      }
+
+      // If no specific URL or domain, settle all pending with null
+      for (const resolvers of pendingResolvers.values()) {
+        resolvers.forEach(r => {
+          try { r(null) } catch (_) {}
+        })
+      }
+      pendingResolvers.clear()
+      pendingUrls = []
     }
-    if (bypassResolver) {
-      bypassResolver(cookie)
-    }
-    bypassResolver = null
-    bypassUrl = null
   },
 
-  cancel() {
-    this.complete(null)
+  cancel(targetUrl?: string) {
+    this.complete(null, targetUrl)
   }
 }

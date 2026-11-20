@@ -1,7 +1,6 @@
 import { useLibraryStore } from '@renderer/shared/model'
 import { useMediaData } from './hooks/useMediaData'
-import { MangaDetailsView } from './views/MangaDetailsView'
-import { AnimeDetailsView } from './views/AnimeDetailsView'
+import { MediaDetailsView } from './views/MediaDetailsView'
 
 interface MediaDetailsProps {
   mediaType: 'manga' | 'anime'
@@ -13,9 +12,5 @@ export default function MediaDetails({ mediaType }: MediaDetailsProps) {
 
   if (!selectedManga) return null
 
-  if (mediaType === 'anime') {
-    return <AnimeDetailsView {...mediaData} />
-  }
-
-  return <MangaDetailsView {...mediaData} />
+  return <MediaDetailsView {...mediaData} mediaType={mediaType} />
 }

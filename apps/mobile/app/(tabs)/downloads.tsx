@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  View, FlatList, Image, TouchableOpacity, ActivityIndicator,
+  View, FlatList, TouchableOpacity, ActivityIndicator,
   RefreshControl
 } from 'react-native'
 import { router } from 'expo-router'
