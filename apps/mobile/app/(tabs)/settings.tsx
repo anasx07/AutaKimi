@@ -8,7 +8,7 @@ import { useColorScheme } from 'nativewind';
 import {
   Smartphone, BookOpen, Eye, Download, Database,
   Info, Trash2, Sun, Moon, Monitor,
-  ChevronRight, Check, Menu
+  ChevronRight, Check, Menu, Upload
 } from 'lucide-react-native';
 
 type SettingsMap = Record<string, string>
@@ -17,7 +17,60 @@ export default function SettingsTab() {
   const [settings, setSettings] = useState<SettingsMap>({})
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
+  const [backupLoading, setBackupLoading] = useState(false)
   const { setColorScheme } = useColorScheme()
+
+  const handleExportBackup = async () => {
+    setBackupLoading(true)
+    try {
+      const res = await DataService.backup.export()
+      if (res && (res as any).success) {
+        const counts = (res as any).counts
+        Alert.alert(
+          'Backup Exported',
+          `Successfully exported:\n- ${counts?.library || 0} Library items\n- ${counts?.readingProgress || 0} Progress records\n- ${counts?.readingHistory || 0} History entries\n- ${counts?.sourceRepositories || 0} Repositories\n- ${counts?.trackers || 0} Trackers`
+        )
+      } else if (res && !(res as any).canceled) {
+        Alert.alert('Export Failed', (res as any).error || 'Unknown error during export')
+      }
+    } catch (e: any) {
+      Alert.alert('Export Error', e.message || 'Failed to export backup')
+    } finally {
+      setBackupLoading(false)
+    }
+  }
+
+  const handleImportBackup = () => {
+    Alert.alert(
+      'Restore Backup',
+      'Restoring a backup will merge items into your library, progress, history, and source repositories. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Select File',
+          onPress: async () => {
+            setBackupLoading(true)
+            try {
+              const res = await DataService.backup.import()
+              if (res && (res as any).success) {
+                const counts = (res as any).counts
+                Alert.alert(
+                  'Backup Restored',
+                  `Successfully restored:\n- ${counts?.library || 0} Library items\n- ${counts?.readingProgress || 0} Progress records\n- ${counts?.readingHistory || 0} History entries\n- ${counts?.sourceRepositories || 0} Repositories\n- ${counts?.trackers || 0} Trackers`
+                )
+              } else if (res && !(res as any).canceled) {
+                Alert.alert('Restore Failed', (res as any).error || 'Unknown error during restore')
+              }
+            } catch (e: any) {
+              Alert.alert('Restore Error', e.message || 'Failed to restore backup')
+            } finally {
+              setBackupLoading(false)
+            }
+          }
+        }
+      ]
+    )
+  }
 
   useEffect(() => {
     DataService.db.getSettings()
@@ -293,10 +346,52 @@ export default function SettingsTab() {
           <View className="flex-row items-center mb-2 px-2">
             <Database size={16} color="#94a3b8" />
             <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
-              Data
+              Data & Backup
             </Typography>
           </View>
           <Card className="overflow-hidden">
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={handleExportBackup}
+              disabled={backupLoading}
+            >
+              <View className="flex-row items-center">
+                <Upload size={18} color="#3b82f6" />
+                <View className="ml-3">
+                  <Typography className="font-medium">
+                    {backupLoading ? 'Exporting...' : 'Export Backup (.json.gz)'}
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Save library, progress, history, and trackers
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View className="border-t border-border/50" />
+
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={handleImportBackup}
+              disabled={backupLoading}
+            >
+              <View className="flex-row items-center">
+                <Download size={18} color="#10b981" />
+                <View className="ml-3">
+                  <Typography className="font-medium">
+                    {backupLoading ? 'Restoring...' : 'Restore Backup (.json.gz)'}
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Import backup file from Desktop or Mobile
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View className="border-t border-border/50" />
+
             <TouchableOpacity
               className="flex-row items-center justify-between px-4 py-4"
               onPress={clearCache}

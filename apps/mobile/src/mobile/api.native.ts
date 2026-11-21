@@ -7,6 +7,7 @@ import { MobileCache, setCacheInvalidateCallback } from './cache.native'
 import { identityService } from './identity.native'
 import { mobileBypassProvider } from './bypass.native'
 import { CfCookieStore } from './cf-cookies'
+import { MobileBackup } from './backup.native'
 import { sourceService, templateService, ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
@@ -460,6 +461,26 @@ export const MobileApi: ElectronApi = {
     toggle: async () => ({ ok: true, value: undefined }),
     install: async () => ({ ok: true, value: undefined }),
     uninstall: async () => ({ ok: true, value: undefined })
+  },
+
+  trackers: {
+    getByManga: async (mangaId: string) => MobileDB.getTrackers(mangaId),
+    save: async (tracker: any) => MobileDB.saveTracker(tracker),
+    delete: async (args: { mangaId: string; provider: string }) =>
+      MobileDB.deleteTracker(args.mangaId, args.provider),
+    authAniList: async () => ({ ok: false, error: 'Not supported on mobile' }),
+    getUserAniList: async () => ({ ok: false, error: 'Not supported on mobile' }),
+    setTokenAniList: async () => ({ ok: false, error: 'Not supported on mobile' }),
+    logoutAniList: async () => ({ ok: true, value: undefined }),
+    searchAniList: async () => ({ ok: true, value: [] }),
+    getMediaAniList: async () => ({ ok: true, value: null }),
+    updateAniList: async () => ({ ok: false, error: 'Not supported on mobile' }),
+    processQueue: async () => ({ ok: true, value: { processed: 0, succeeded: 0, failed: 0 } })
+  },
+
+  backup: {
+    export: async () => MobileBackup.exportBackup(),
+    import: async () => MobileBackup.importBackup()
   },
 
   platform: 'android',
