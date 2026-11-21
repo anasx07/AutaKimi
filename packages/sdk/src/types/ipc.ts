@@ -122,6 +122,7 @@ export enum IpcChannel {
   TRACKER_SEARCH_ANILIST = 'tracker:search-anilist',
   TRACKER_GET_MEDIA_ANILIST = 'tracker:get-media-anilist',
   TRACKER_UPDATE_ANILIST = 'tracker:update-anilist',
+  TRACKER_PROCESS_QUEUE = 'tracker:process-queue',
 
   // Backup
   BACKUP_EXPORT = 'backup:export',
@@ -301,6 +302,7 @@ export type IpcInvokeMap = {
     progress?: number
     score?: number
   }) => Promise<IpcResult<any>>
+  [IpcChannel.TRACKER_PROCESS_QUEUE]: () => Promise<IpcResult<{ processed: number; succeeded: number; failed: number }>>
 
   [IpcChannel.BACKUP_EXPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; filePath?: string; counts?: any; error?: string }>>
   [IpcChannel.BACKUP_IMPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; counts?: any; error?: string }>>
@@ -428,6 +430,7 @@ export interface ElectronApi {
     searchAniList: IpcInvokeMap[IpcChannel.TRACKER_SEARCH_ANILIST]
     getMediaAniList: IpcInvokeMap[IpcChannel.TRACKER_GET_MEDIA_ANILIST]
     updateAniList: IpcInvokeMap[IpcChannel.TRACKER_UPDATE_ANILIST]
+    processQueue: IpcInvokeMap[IpcChannel.TRACKER_PROCESS_QUEUE]
   }
   backup: {
     export: IpcInvokeMap[IpcChannel.BACKUP_EXPORT]

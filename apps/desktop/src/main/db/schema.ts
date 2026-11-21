@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const extensions = sqliteTable('extensions', {
   pkg: text('pkg').primaryKey(),
@@ -147,5 +147,25 @@ export const trackers = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.mangaId, table.provider] }),
     index('idx_trackers_manga').on(table.mangaId)
+  ]
+)
+
+export const anilistSyncQueue = sqliteTable(
+  'anilist_sync_queue',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    mangaId: text('manga_id').notNull(),
+    mediaId: integer('media_id').notNull(),
+    status: text('status'),
+    progress: integer('progress').notNull(),
+    score: integer('score'),
+    attempts: integer('attempts').default(0),
+    lastError: text('last_error'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull()
+  },
+  (table) => [
+    uniqueIndex('idx_anilist_queue_media').on(table.mediaId),
+    index('idx_anilist_queue_created').on(table.createdAt)
   ]
 )
