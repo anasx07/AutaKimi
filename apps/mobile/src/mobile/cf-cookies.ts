@@ -1,4 +1,8 @@
+import { MobileDB } from './db.native'
+
 const cfCookies: Record<string, string> = {}
+let isInitialized = false
+let initPromise: Promise<void> | null = null
 const pendingResolvers = new Map<string, Array<(cookie: string | null) => void>>()
 let pendingUrls: string[] = []
 
@@ -6,24 +10,64 @@ export const DEFAULT_MOBILE_USER_AGENT =
   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
 
 export const CfCookieStore = {
+  async init(): Promise<void> {
+    if (isInitialized) return
+    if (initPromise) return initPromise
+    initPromise = (async () => {
+      try {
+        const res = await MobileDB.getSetting('cf_cookies')
+        if (res.ok && res.value) {
+          const stored = JSON.parse(res.value)
+          if (stored && typeof stored === 'object') {
+            for (const [k, v] of Object.entries(stored)) {
+              if (typeof v === 'string') {
+                cfCookies[k] = v
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[CfCookieStore] Failed to load stored cookies:', e)
+      } finally {
+        isInitialized = true
+      }
+    })()
+    return initPromise
+  },
+
   get(domain: string): string | null {
+    if (!isInitialized) {
+      this.init().catch(() => {})
+    }
     return cfCookies[domain] || null
   },
 
   set(domain: string, cookie: string) {
     cfCookies[domain] = cookie
+    this.persist()
   },
 
   remove(domain: string) {
     delete cfCookies[domain]
+    this.persist()
   },
 
   clear() {
     Object.keys(cfCookies).forEach(k => delete cfCookies[k])
+    this.persist()
   },
 
   getAll(): Record<string, string> {
+    if (!isInitialized) {
+      this.init().catch(() => {})
+    }
     return { ...cfCookies }
+  },
+
+  persist() {
+    MobileDB.setSetting('cf_cookies', JSON.stringify(cfCookies)).catch(err => {
+      console.warn('[CfCookieStore] Failed to persist cookies to MobileDB:', err)
+    })
   }
 }
 

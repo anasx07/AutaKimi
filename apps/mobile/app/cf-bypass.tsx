@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
-import { View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { View, TouchableOpacity, Alert } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { WebView } from 'react-native-webview'
-import { CfBypassFlow } from '../src/mobile/cf-cookies'
+import CookieManager from '@react-native-cookies/cookies'
+import { CfBypassFlow, DEFAULT_MOBILE_USER_AGENT } from '../src/mobile/cf-cookies'
 import { Typography, Button } from '@mobile/native/ui';
 import { ArrowLeft, Shield, ShieldCheck, AlertTriangle } from 'lucide-react-native'
 
@@ -47,12 +48,47 @@ export default function CfBypassScreen() {
     return () => clearTimeout(timer)
   }, [url, status])
 
+  const checkCookies = useCallback(async () => {
+    if (!url || status === 'solved') return false
+    try {
+      const cookies = await CookieManager.get(url, true)
+      if (cookies) {
+        const cfEntry = cookies['cf_clearance']
+        const cfValue = typeof cfEntry === 'object' ? cfEntry?.value : cfEntry
+        if (cfValue) {
+          console.log('[CfBypass] Resolved cf_clearance via native CookieManager:', String(cfValue).slice(0, 10) + '...')
+          setStatus('solved')
+          CfBypassFlow.complete(cfValue, url)
+          setTimeout(() => {
+            if (router.canGoBack()) router.back()
+          }, 1500)
+          return true
+        }
+      }
+    } catch (e) {
+      console.warn('[CfBypass] CookieManager.get error:', e)
+    }
+    return false
+  }, [url, status])
+
+  useEffect(() => {
+    if (!url || status === 'solved' || status === 'error') return
+    const interval = setInterval(async () => {
+      const solved = await checkCookies()
+      if (solved) {
+        clearInterval(interval)
+      }
+    }, 1200)
+
+    return () => clearInterval(interval)
+  }, [url, status, checkCookies])
+
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data)
-      if (data.type === 'cf_cookie' && data.value) {
+      if (data.type === 'cf_cookie' && data.value && status !== 'solved') {
         setStatus('solved')
-        CfBypassFlow.complete(data.value)
+        CfBypassFlow.complete(data.value, url)
         setTimeout(() => {
           if (router.canGoBack()) router.back()
         }, 1500)
@@ -132,12 +168,21 @@ export default function CfBypassScreen() {
             javaScriptEnabled={true}
             domStorageEnabled={true}
             onMessage={handleMessage}
-            onLoad={() => injectCheck()}
-            onLoadEnd={() => injectCheck()}
+            onLoad={() => {
+              injectCheck()
+              checkCookies()
+            }}
+            onLoadEnd={() => {
+              injectCheck()
+              checkCookies()
+            }}
+            onNavigationStateChange={() => {
+              checkCookies()
+            }}
             onError={() => setStatus('error')}
             sharedCookiesEnabled={true}
             thirdPartyCookiesEnabled={true}
-            userAgent="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            userAgent={DEFAULT_MOBILE_USER_AGENT}
           />
         ) : (
           <View className="flex-1 items-center justify-center px-8">
