@@ -108,19 +108,46 @@ export default function Home() {
 
   const showcases = [
     {
-      badge: "Customization",
+      badge: "Manga Hub",
+      title: "Unified Manga & Webtoon Discovery",
+      description:
+        "Browse thousands of manga, manhwa, and manhua series across community sources with instant filters, multi-language catalogs, and high-resolution covers. Enjoy continuous vertical webtoon scrolling and right-to-left reading modes.",
+      image: "/AutaKimi/assets/manga-browse.webp",
+      shield: "Cross-Source Fast Indexing",
+    },
+    {
+      badge: "Native Streaming",
+      title: "Watch Anime Without Ads or Popups",
+      description:
+        "Stream your favorite anime series with built-in hardware acceleration, multi-server stream extraction, and zero external intrusive advertisements or redirects.",
+      image: "/AutaKimi/assets/anime-browse.webp",
+      shield: "Zero Ad Popups & Tracking",
+      reverse: true,
+    },
+    {
+      badge: "Localization & Chapters",
+      title: "Rich Media Details & Full Arabic Support",
+      description:
+        "Experience complete native Right-to-Left (RTL) Arabic interface support alongside English. View full synopses, track reading state, and queue offline chapter downloads.",
+      image: "/AutaKimi/assets/manga-details.webp",
+      shield: "Arabic (العربية) & English Native",
+    },
+    {
+      badge: "Smart Progress",
+      title: "Episode Tracking & AniList Integration",
+      description:
+        "Never lose your place. Mark episodes as watched, auto-scrobble progress to AniList, and pick up right where you left off across Windows PC and Android.",
+      image: "/AutaKimi/assets/anime-details.webp",
+      shield: "AniList Two-Way Scrobbler",
+      reverse: true,
+    },
+    {
+      badge: "Aesthetics",
       title: "Premium Themes & Aesthetics",
       description:
         "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic deep dark modes to character-inspired vibrant aesthetics. Experience smooth transitions on every screen change.",
       image: "/AutaKimi/assets/screenshot-themes.png",
-    },
-    {
-      badge: "Discovery",
-      title: "Index Search & Smart Filters",
-      description:
-        "Instantly locate your next series across community-managed scraping sources using customized language and safety filtration parameters.",
-      image: "/AutaKimi/assets/screenshot-search.png",
-      reverse: true,
+      shield: "Dynamic Theme Engine",
     },
   ];
 
@@ -238,57 +265,45 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right column: Graphic/Brand Art */}
+        {/* Right column: Interactive App Window Preview */}
         <div className="lg:col-span-5 relative flex justify-center items-center z-10 w-full">
-          <div className="absolute w-80 h-80 rounded-full bg-orange-500/10 blur-[80px] -z-10 animate-pulse" />
+          <div className="absolute w-80 h-80 rounded-full bg-orange-500/15 blur-[90px] -z-10 animate-pulse" />
           <div className="absolute w-60 h-60 rounded-full bg-amber-500/10 blur-[60px] -z-10" />
 
-          <div className="relative glass-card rounded-[32px] p-8 border border-white/10 hover:border-white/20 transition-all duration-500 shadow-2xl max-w-sm w-full group overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/5 to-transparent pointer-events-none" />
-
-            <div className="mb-6 flex items-center justify-between">
-              <Image
-                src="/AutaKimi/assets/icon.png"
-                alt="AutaKimi Icon"
-                width={80}
-                height={80}
-                className="w-20 h-20 rounded-2xl shadow-xl border border-white/10 group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="text-right">
-                <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase">
-                  Platform
-                </span>
-                <p className="text-sm font-bold text-white flex items-center gap-1.5 justify-end mt-0.5">
-                  <MonitorSmartphone className="w-4 h-4 text-orange-400" />
-                  Windows & Android
-                </p>
+          <div className="relative glass-card rounded-[24px] p-2.5 sm:p-3 border border-white/10 hover:border-white/20 transition-all duration-700 shadow-2xl w-full group overflow-hidden">
+            {/* Window title bar */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
               </div>
+              <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5">
+                <MonitorSmartphone className="w-3.5 h-3.5 text-orange-400" />
+                AutaKimi v{version}
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                Live Desktop
+              </span>
             </div>
 
-            <div className="space-y-4 relative z-10">
-              <h3 className="text-lg font-bold text-white">
-                Extensible Media Vault
-              </h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                AutaKimi abstracts data streams into a unified core. Organize
-                books, bookmark chapters, cache video streams, and personalize
-                extensions without central tracking.
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">
-                  0% Ads
+            {/* Window preview screenshot */}
+            <div className="relative rounded-[16px] overflow-hidden border border-white/5 shadow-inner">
+              <Image
+                src="/AutaKimi/assets/manga-browse.webp"
+                alt="AutaKimi Desktop Reader Interface"
+                width={1280}
+                height={700}
+                className="w-full group-hover:scale-[1.02] transition-transform duration-700 z-0"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[11px] text-zinc-300">
+                <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
+                  Manga & Webtoon Hub
                 </span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">
-                  Open Source
-                </span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">
-                  LAN Sync
-                </span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">
-                  AniList
-                </span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">
-                  CBZ Offline
+                <span className="bg-orange-500/20 backdrop-blur-md text-orange-300 px-2.5 py-1 rounded-full border border-orange-500/30">
+                  0% Tracking
                 </span>
               </div>
             </div>
@@ -356,7 +371,7 @@ export default function Home() {
                 <div className="flex gap-4">
                   <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-orange-400" />
-                    Secure Local Storage
+                    {s.shield || "Secure Local Storage"}
                   </span>
                 </div>
               </div>

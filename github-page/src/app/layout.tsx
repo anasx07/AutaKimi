@@ -85,7 +85,10 @@ const jsonLd = {
       downloadUrl: "https://github.com/anasx07/AutaKimi/releases",
       image: "https://anasx07.github.io/AutaKimi/assets/icon.png",
       screenshot: [
-        "https://anasx07.github.io/AutaKimi/assets/screenshot-search.png",
+        "https://anasx07.github.io/AutaKimi/assets/manga-browse.png",
+        "https://anasx07.github.io/AutaKimi/assets/anime-browse.png",
+        "https://anasx07.github.io/AutaKimi/assets/manga-details.png",
+        "https://anasx07.github.io/AutaKimi/assets/anime-details.png",
         "https://anasx07.github.io/AutaKimi/assets/screenshot-themes.png",
       ],
       softwareVersion: "2.0.11",
