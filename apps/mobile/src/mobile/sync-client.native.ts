@@ -45,6 +45,18 @@ export class SyncClient {
   private connectionInfo: SyncConnectionInfo | null = null
   private isConnected = false
 
+  private syncState = {
+    inProgress: false,
+    startTime: null as string | null,
+    receivedHistory: false,
+    receivedLibrary: false,
+    receivedProgress: false,
+    expectedAcks: 0,
+    receivedAcks: 0,
+    onCompleteCallbacks: [] as (() => void)[],
+    graceTimer: null as any
+  }
+
   private constructor() {}
 
   public static getInstance(): SyncClient {
@@ -70,11 +82,13 @@ export class SyncClient {
           authFallbackTimer = setTimeout(() => {
             if (!this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
               console.log('[SyncClient] No challenge received, falling back to legacy auth...')
-              this.ws?.send(JSON.stringify({
-                type: 'auth',
-                id: identityService.getDeviceId(),
-                secret: info.secret
-              }))
+              this.ws?.send(
+                JSON.stringify({
+                  type: 'auth',
+                  id: identityService.getDeviceId(),
+                  secret: info.secret
+                })
+              )
             }
           }, 1000)
         }
@@ -87,15 +101,17 @@ export class SyncClient {
               if (authFallbackTimer) clearTimeout(authFallbackTimer)
               console.log('[SyncClient] Received challenge, replying with HMAC response...')
               const response = await computeHmacResponse(info.secret, message.challenge)
-              this.ws?.send(JSON.stringify({
-                type: 'auth_response',
-                id: identityService.getDeviceId(),
-                response
-              }))
+              this.ws?.send(
+                JSON.stringify({
+                  type: 'auth_response',
+                  id: identityService.getDeviceId(),
+                  response
+                })
+              )
               return
             }
 
-            this.handleMessage(message, async (success) => {
+            await this.handleMessage(message, async (success) => {
               if (success) {
                 try {
                   await MobileDB.setSetting('last_paired_device', JSON.stringify(info))
@@ -115,6 +131,7 @@ export class SyncClient {
           if (authFallbackTimer) clearTimeout(authFallbackTimer)
           console.error('[SyncClient] WebSocket error:', e)
           this.isConnected = false
+          this.abortSync()
           resolve(false)
         }
 
@@ -122,12 +139,27 @@ export class SyncClient {
           if (authFallbackTimer) clearTimeout(authFallbackTimer)
           console.log('[SyncClient] WebSocket closed')
           this.isConnected = false
+          this.abortSync()
         }
       } catch (err) {
         console.error('[SyncClient] Connection failed:', err)
         resolve(false)
       }
     })
+  }
+
+  private abortSync() {
+    if (this.syncState.inProgress) {
+      console.warn('[SyncClient] Sync aborted due to socket close/error - last_sync_timestamp will not be updated')
+      this.syncState.inProgress = false
+      if (this.syncState.graceTimer) {
+        clearTimeout(this.syncState.graceTimer)
+        this.syncState.graceTimer = null
+      }
+      const cbs = [...this.syncState.onCompleteCallbacks]
+      this.syncState.onCompleteCallbacks = []
+      cbs.forEach((cb) => cb())
+    }
   }
 
   async autoSyncBackground(): Promise<void> {
@@ -140,13 +172,13 @@ export class SyncClient {
 
       const info: SyncConnectionInfo = JSON.parse(savedDevice.value)
       console.log('[SyncClient] Found paired device, starting silent background sync...')
-      
+
       const success = await this.connect(info)
       if (success) {
-        console.log('[SyncClient] Silent background sync completed successfully!')
-        setTimeout(() => {
-          this.disconnect()
-        }, 5000)
+        console.log('[SyncClient] Silent background sync connected, waiting for complete data exchange...')
+        await this.waitForSyncComplete(25000)
+        this.disconnect()
+        console.log('[SyncClient] Silent background sync finished cleanly')
       } else {
         console.log('[SyncClient] Background sync failed to connect (device offline/different Wi-Fi).')
       }
@@ -155,94 +187,229 @@ export class SyncClient {
     }
   }
 
+  async waitForSyncComplete(timeoutMs = 25000): Promise<boolean> {
+    if (!this.syncState.inProgress) {
+      return true
+    }
+
+    return new Promise((resolve) => {
+      let resolved = false
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          console.warn(`[SyncClient] Sync completion wait timed out after ${timeoutMs}ms`)
+          resolve(false)
+        }
+      }, timeoutMs)
+
+      this.syncState.onCompleteCallbacks.push(() => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timer)
+          resolve(true)
+        }
+      })
+    })
+  }
+
   private async handleMessage(message: any, resolve: (val: boolean) => void) {
     switch (message.type) {
       case 'auth_success':
         console.log('[SyncClient] Authenticated successfully')
         this.isConnected = true
-        
+
+        this.syncState.inProgress = true
+        this.syncState.startTime = new Date().toISOString()
+        this.syncState.receivedHistory = false
+        this.syncState.receivedLibrary = false
+        this.syncState.receivedProgress = false
+        this.syncState.expectedAcks = 0
+        this.syncState.receivedAcks = 0
+        if (this.syncState.graceTimer) {
+          clearTimeout(this.syncState.graceTimer)
+          this.syncState.graceTimer = null
+        }
+
         try {
-          // Get the last synced timestamp from settings
           const lastSyncedResult = await MobileDB.getSetting('last_sync_timestamp')
           const lastSynced = lastSyncedResult.ok ? lastSyncedResult.value : null
-          
+
           // Automatically request data after pairing (only delta for history and progress)
-          this.ws?.send(JSON.stringify({ 
-            type: 'pull_history', 
-            lastSynced: lastSynced 
-          }))
+          this.ws?.send(
+            JSON.stringify({
+              type: 'pull_history',
+              lastSynced: lastSynced
+            })
+          )
           this.ws?.send(JSON.stringify({ type: 'pull_library' }))
-          this.ws?.send(JSON.stringify({ 
-            type: 'pull_progress', 
-            lastSynced: lastSynced 
-          }))
-          
-          // Push local library, history, and reading progress to desktop for bidirectional syncing!
+          this.ws?.send(
+            JSON.stringify({
+              type: 'pull_progress',
+              lastSynced: lastSynced
+            })
+          )
+
+          // Push local library, history, and reading progress to desktop in chunks
           await this.pushLocalData(lastSynced)
-          
-          // After sending the requests, update the last sync timestamp to NOW
-          await MobileDB.setSetting('last_sync_timestamp', new Date().toISOString())
         } catch (err) {
           console.error('[SyncClient] Error during sync start:', err)
-          // Fallback to full sync if settings retrieval fails
           this.ws?.send(JSON.stringify({ type: 'pull_history' }))
           this.ws?.send(JSON.stringify({ type: 'pull_library' }))
           this.ws?.send(JSON.stringify({ type: 'pull_progress' }))
           await this.pushLocalData(null)
         }
-        
+
         resolve(true)
+        await this.checkSyncComplete()
         break
-      
+
       case 'history_data':
         console.log('[SyncClient] Received history data:', message.data?.length)
-        this.syncHistory(message.data)
+        await this.syncHistory(message.data)
+        this.syncState.receivedHistory = true
+        await this.checkSyncComplete()
         break
-      
+
       case 'library_data':
         console.log('[SyncClient] Received library data:', message.data?.length)
-        this.syncLibrary(message.data)
+        await this.syncLibrary(message.data)
+        this.syncState.receivedLibrary = true
+        await this.checkSyncComplete()
         break
 
       case 'progress_data':
         console.log('[SyncClient] Received progress data:', message.data?.length)
-        this.syncProgress(message.data)
+        await this.syncProgress(message.data)
+        this.syncState.receivedProgress = true
+        await this.checkSyncComplete()
+        break
+
+      case 'push_ack':
+        this.syncState.receivedAcks++
+        console.log(`[SyncClient] Received push_ack (${this.syncState.receivedAcks}/${this.syncState.expectedAcks})`)
+        await this.checkSyncComplete()
+        break
+
+      case 'push_error':
+        this.syncState.receivedAcks++
+        console.warn(`[SyncClient] Push error from server for ${message.target}:`, message.error)
+        await this.checkSyncComplete()
         break
 
       case 'auth_error':
         console.error('[SyncClient] Auth failed:', message.message)
         this.isConnected = false
+        this.abortSync()
         resolve(false)
         break
+
       default:
         console.log('[SyncClient] Received message:', message.type)
     }
   }
 
+  private async checkSyncComplete() {
+    if (!this.syncState.inProgress) return
+
+    const pullsDone =
+      this.syncState.receivedHistory &&
+      this.syncState.receivedLibrary &&
+      this.syncState.receivedProgress
+
+    const acksDone = this.syncState.receivedAcks >= this.syncState.expectedAcks
+
+    if (pullsDone && acksDone) {
+      await this.finalizeSync()
+      return
+    }
+
+    // Grace timer: if all pulls arrived, allow up to 3s for remaining push acks (or for older servers that don't send push_ack)
+    if (pullsDone && !this.syncState.graceTimer) {
+      this.syncState.graceTimer = setTimeout(async () => {
+        if (this.syncState.inProgress) {
+          console.log('[SyncClient] Pulls completed and push ack grace window elapsed. Finalizing sync...')
+          await this.finalizeSync()
+        }
+      }, 3000)
+    }
+  }
+
+  private async finalizeSync() {
+    if (!this.syncState.inProgress) return
+    this.syncState.inProgress = false
+    if (this.syncState.graceTimer) {
+      clearTimeout(this.syncState.graceTimer)
+      this.syncState.graceTimer = null
+    }
+
+    if (this.syncState.startTime) {
+      await MobileDB.setSetting('last_sync_timestamp', this.syncState.startTime)
+      console.log(`[SyncClient] Updated last_sync_timestamp to ${this.syncState.startTime}`)
+    }
+
+    const cbs = [...this.syncState.onCompleteCallbacks]
+    this.syncState.onCompleteCallbacks = []
+    cbs.forEach((cb) => cb())
+  }
+
+  private chunkArray<T>(items: T[], size: number): T[][] {
+    const chunks: T[][] = []
+    for (let i = 0; i < items.length; i += size) {
+      chunks.push(items.slice(i, i + size))
+    }
+    return chunks
+  }
+
   private async pushLocalData(lastSynced: string | null) {
     try {
+      // 1. History (chunk size: 50)
       const historyResult = await MobileDB.getHistory()
       if (historyResult.ok && historyResult.value.length > 0) {
-        // Filter local history to only push items newer than lastSynced
         const filteredHistory = lastSynced
-          ? historyResult.value.filter(h => {
+          ? historyResult.value.filter((h) => {
               const start = (h as any).started_at || h.startedAt
               return start && start > lastSynced
             })
           : historyResult.value
 
         if (filteredHistory.length > 0) {
-          console.log(`[SyncClient] Pushing local history: ${filteredHistory.length} items (after ${lastSynced})`)
-          this.ws?.send(JSON.stringify({ type: 'push_history', data: filteredHistory }))
+          const chunks = this.chunkArray(filteredHistory, 50)
+          for (let i = 0; i < chunks.length; i++) {
+            this.syncState.expectedAcks++
+            this.ws?.send(
+              JSON.stringify({
+                type: 'push_history',
+                data: chunks[i],
+                batchId: `hist_${i}_${chunks.length}`,
+                chunkIndex: i,
+                totalChunks: chunks.length
+              })
+            )
+          }
+          console.log(`[SyncClient] Pushed ${filteredHistory.length} history items in ${chunks.length} chunks`)
         }
       }
-      
+
+      // 2. Library (chunk size: 25, since metadata JSON per item can be large)
       const libraryResult = await MobileDB.getLibrary()
       if (libraryResult.ok && libraryResult.value.length > 0) {
-        console.log(`[SyncClient] Pushing local library: ${libraryResult.value.length} items`)
-        this.ws?.send(JSON.stringify({ type: 'push_library', data: libraryResult.value }))
+        const chunks = this.chunkArray(libraryResult.value, 25)
+        for (let i = 0; i < chunks.length; i++) {
+          this.syncState.expectedAcks++
+          this.ws?.send(
+            JSON.stringify({
+              type: 'push_library',
+              data: chunks[i],
+              batchId: `lib_${i}_${chunks.length}`,
+              chunkIndex: i,
+              totalChunks: chunks.length
+            })
+          )
+        }
+        console.log(`[SyncClient] Pushed ${libraryResult.value.length} library items in ${chunks.length} chunks`)
       }
 
+      // 3. Progress (chunk size: 50)
       const progressResult = await MobileDB.getAllProgress()
       if (progressResult.ok && progressResult.value.length > 0) {
         const filteredProgress = lastSynced
@@ -253,8 +420,20 @@ export class SyncClient {
           : progressResult.value
 
         if (filteredProgress.length > 0) {
-          console.log(`[SyncClient] Pushing local progress: ${filteredProgress.length} items`)
-          this.ws?.send(JSON.stringify({ type: 'push_progress', data: filteredProgress }))
+          const chunks = this.chunkArray(filteredProgress, 50)
+          for (let i = 0; i < chunks.length; i++) {
+            this.syncState.expectedAcks++
+            this.ws?.send(
+              JSON.stringify({
+                type: 'push_progress',
+                data: chunks[i],
+                batchId: `prog_${i}_${chunks.length}`,
+                chunkIndex: i,
+                totalChunks: chunks.length
+              })
+            )
+          }
+          console.log(`[SyncClient] Pushed ${filteredProgress.length} progress items in ${chunks.length} chunks`)
         }
       }
     } catch (e) {
@@ -286,9 +465,8 @@ export class SyncClient {
     const libResult = await MobileDB.getLibrary()
     if (!libResult.ok) return
 
-    const existingIds = new Set(libResult.value.map(m => m.id))
+    const existingIds = new Set(libResult.value.map((m) => m.id))
     for (const manga of data) {
-      // Check if already in library to avoid duplicates or unnecessary toggles
       if (!existingIds.has(manga.id)) {
         await MobileDB.toggleLibrary(manga)
       }
