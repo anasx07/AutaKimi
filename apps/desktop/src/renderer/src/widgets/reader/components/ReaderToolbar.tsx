@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2, Crop } from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
+import { DataService } from '@renderer/shared/api'
 import { cn } from '@renderer/shared/lib/utils'
 import { memo } from 'react'
 
@@ -52,6 +53,7 @@ export const ReaderToolbar = memo(
     onChangeAutoScrollSpeed,
     onShare
   }: ReaderToolbarProps) => {
+    const platform = DataService.platform
     const toolbarBg =
       readerTheme === 'match-app'
         ? 'bg-background/90 border-border'
@@ -70,11 +72,14 @@ export const ReaderToolbar = memo(
     return (
       <div
         className={cn(
-          'h-14 backdrop-blur-xl border-b px-4 flex items-center justify-between flex-shrink-0 z-20 relative transition-colors',
+          'h-14 backdrop-blur-xl border-b px-4 flex items-center justify-between flex-shrink-0 z-20 relative transition-colors select-none',
+          platform === 'win32' && 'pr-[144px]',
+          platform === 'darwin' && 'pl-20',
           toolbarBg
         )}
+        style={{ WebkitAppRegion: 'drag' } as any}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <Button
             variant="ghost"
             size="icon"
@@ -118,7 +123,7 @@ export const ReaderToolbar = memo(
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as any}>
           {isInfiniteScroll && (
             <div className="flex items-center gap-0.5 px-2 mr-2 border-r border-neutral-800 animate-in slide-in-from-right-4 group relative">
               <Button
