@@ -15,10 +15,15 @@ AutaKimi is a modern, cross-platform media and manga viewer built with a monorep
 | **Core SDK** | `packages/sdk` | TypeScript (Node/Universal) | Shared domain logic, extension engine, networking, sync protocols, and models |
 | **Web Page** | `github-page` | Next.js, Tailwind CSS | Public landing page and documentation |
 
-### 🛡️ Legal Boundary & Extensions
-- **Empty Shell Model**: AutaKimi core **never** contains hardcoded scrapers for copyrighted sources.
-- **External Extensions**: All scrapers and source templates live in the external repository:
-  👉 [Autakimi-Ecosystem/autakimi-extensions](https://github.com/Autakimi-Ecosystem/autakimi-extensions) (`templates.json`).
+### 🛡️ Legal Boundary & External Extensions Repository
+- **Empty Shell Architecture**: AutaKimi core repo is strictly an empty media viewer shell. It **never** contains hardcoded scrapers, site parsers, or direct references to copyrighted third-party media sources.
+- **Dedicated External Repository**:
+  - All scrapers, parsers, and source definitions reside in the dedicated external repository:
+    👉 **[Autakimi-Ecosystem/autakimi-extensions](https://github.com/Autakimi-Ecosystem/autakimi-extensions)** (`templates.json` & `js/`).
+- **Separation of Concerns**:
+  - `AutaKimi` core repo: Contains only the sandboxed extension engine (`packages/sdk`), desktop/mobile UI, video players, and local reader implementations.
+  - `autakimi-extensions` repo: Contains community source templates, scrapers, and domain definitions.
+- **AI Rule**: **NEVER** add or commit website scrapers, anime stream extractors, or manga providers inside the `AutaKimi` repository. Any scraping logic requested by the user must be contributed to `autakimi-extensions`.
 
 ---
 
