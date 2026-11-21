@@ -1,6 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { MobileDB } from './db.native'
-import { MobileNetwork } from './network.native'
 import { IpcResult, DownloadEntry } from '@common/types'
 
 export type DownloadEventCallback = (data: any) => void
@@ -10,14 +9,6 @@ const DOWNLOADS_DIR = `${FileSystem.documentDirectory}Downloads/`
 
 function sanitizePathSegment(segment: string): string {
   return encodeURIComponent(segment || '').replace(/%/g, '_').replace(/[:/\\?*|"><]/g, '_')
-}
-
-function metaKey(mangaId: string, chapterId: string) {
-  return `dl_meta_${mangaId}:${chapterId}`
-}
-
-function statusKey(mangaId: string, chapterId: string) {
-  return `dl_status_${mangaId}:${chapterId}`
 }
 
 export type QueueItem = {
@@ -30,8 +21,21 @@ export type QueueItem = {
   chapterTitle?: string
 }
 
+export type ActiveDownloadTask = {
+  mangaId: string
+  chapterId: string
+  active: boolean
+  cached: number
+  total: number
+  type: 'manga' | 'anime'
+}
+
+function taskKey(mangaId: string, chapterId: string): string {
+  return `${mangaId}|||${chapterId}`
+}
+
 export const MobileDownload = {
-  activeDownloads: new Map<string, boolean>(),
+  activeDownloads: new Map<string, ActiveDownloadTask>(),
   queue: [] as QueueItem[],
   isProcessing: false,
 
@@ -41,7 +45,7 @@ export const MobileDownload = {
   },
 
   emit(data: any) {
-    downloadCallbacks.forEach(cb => cb(data))
+    downloadCallbacks.forEach((cb) => cb(data))
   },
 
   async ensureDir(path: string) {
@@ -53,13 +57,25 @@ export const MobileDownload = {
   },
 
   async start(args: QueueItem): Promise<IpcResult<boolean>> {
-    const key = `${args.mangaId}:${args.chapterId}`
-    if (this.activeDownloads.has(key) || this.queue.some(q => `${q.mangaId}:${q.chapterId}` === key)) {
+    const key = taskKey(args.mangaId, args.chapterId)
+    if (this.activeDownloads.has(key) || this.queue.some((q) => taskKey(q.mangaId, q.chapterId) === key)) {
       return { ok: true, value: true }
     }
 
     this.queue.push(args)
-    await MobileDB.setSetting(statusKey(args.mangaId, args.chapterId), 'queued')
+    await MobileDB.upsertDownload({
+      mangaId: args.mangaId,
+      chapterId: args.chapterId,
+      totalPages: args.pageUrls.length,
+      cachedPages: 0,
+      status: 'queued',
+      pageUrls: JSON.stringify(args.pageUrls),
+      type: args.type,
+      mangaTitle: args.mangaTitle,
+      chapterTitle: args.chapterTitle,
+      updatedAt: new Date().toISOString()
+    })
+
     this.emit({
       type: 'queued',
       mangaId: args.mangaId,
@@ -69,7 +85,7 @@ export const MobileDownload = {
     })
 
     // Kick off processing asynchronously
-    this.processQueue().catch(e => console.error('[MobileDownload Native] processQueue error:', e))
+    this.processQueue().catch((e) => console.error('[MobileDownload Native] processQueue error:', e))
 
     return { ok: true, value: true }
   },
@@ -80,9 +96,17 @@ export const MobileDownload = {
 
     while (this.queue.length > 0) {
       const args = this.queue.shift()!
-      const key = `${args.mangaId}:${args.chapterId}`
-      
-      this.activeDownloads.set(key, true)
+      const key = taskKey(args.mangaId, args.chapterId)
+
+      const currentTask: ActiveDownloadTask = {
+        mangaId: args.mangaId,
+        chapterId: args.chapterId,
+        active: true,
+        cached: 0,
+        total: args.pageUrls.length,
+        type: args.type
+      }
+      this.activeDownloads.set(key, currentTask)
 
       await MobileDB.updateProgress({
         mangaId: args.mangaId,
@@ -90,7 +114,7 @@ export const MobileDownload = {
         isRead: false
       })
 
-      await MobileDB.setSetting(statusKey(args.mangaId, args.chapterId), 'downloading')
+      await MobileDB.updateDownloadStatus(args.mangaId, args.chapterId, 'downloading')
 
       this.emit({
         type: 'start',
@@ -110,7 +134,8 @@ export const MobileDownload = {
 
         let cachedCount = 0
         for (let i = 0; i < args.pageUrls.length; i++) {
-          if (!this.activeDownloads.get(key)) break
+          const task = this.activeDownloads.get(key)
+          if (!task || !task.active) break
 
           const url = args.pageUrls[i]
           const filename = `${String(i + 1).padStart(3, '0')}.jpg`
@@ -125,6 +150,8 @@ export const MobileDownload = {
 
           if (downloadRes.status >= 200 && downloadRes.status < 300) {
             cachedCount++
+            task.cached = cachedCount
+            await MobileDB.updateDownloadProgress(args.mangaId, args.chapterId, cachedCount, args.pageUrls.length)
             this.emit({
               type: 'progress',
               mangaId: args.mangaId,
@@ -135,19 +162,20 @@ export const MobileDownload = {
           }
         }
 
-        if (this.activeDownloads.get(key)) {
-          await MobileDB.setSetting(statusKey(args.mangaId, args.chapterId), 'completed')
-          await MobileDB.setSetting(
-            metaKey(args.mangaId, args.chapterId),
-            JSON.stringify({
-              pageUrls: args.pageUrls,
-              mangaTitle: args.mangaTitle,
-              chapterTitle: args.chapterTitle,
-              type: args.type,
-              downloadedAt: new Date().toISOString(),
-              totalPages: args.pageUrls.length
-            })
-          )
+        const task = this.activeDownloads.get(key)
+        if (task && task.active) {
+          await MobileDB.upsertDownload({
+            mangaId: args.mangaId,
+            chapterId: args.chapterId,
+            totalPages: args.pageUrls.length,
+            cachedPages: cachedCount,
+            status: 'completed',
+            pageUrls: JSON.stringify(args.pageUrls),
+            type: args.type,
+            mangaTitle: args.mangaTitle,
+            chapterTitle: args.chapterTitle,
+            updatedAt: new Date().toISOString()
+          })
           this.emit({
             type: 'completed',
             mangaId: args.mangaId,
@@ -156,7 +184,7 @@ export const MobileDownload = {
         }
       } catch (err: any) {
         console.error('[MobileDownload Native] Download failed:', err)
-        await MobileDB.setSetting(statusKey(args.mangaId, args.chapterId), 'error')
+        await MobileDB.updateDownloadStatus(args.mangaId, args.chapterId, 'error', err.message || String(err))
         this.emit({
           type: 'error',
           mangaId: args.mangaId,
@@ -172,8 +200,13 @@ export const MobileDownload = {
   },
 
   async cancel(args: { mangaId: string; chapterId: string }): Promise<IpcResult<boolean>> {
-    const key = `${args.mangaId}:${args.chapterId}`
-    this.activeDownloads.set(key, false)
+    const key = taskKey(args.mangaId, args.chapterId)
+    const task = this.activeDownloads.get(key)
+    if (task) {
+      task.active = false
+    }
+    this.queue = this.queue.filter((q) => taskKey(q.mangaId, q.chapterId) !== key)
+    await MobileDB.updateDownloadStatus(args.mangaId, args.chapterId, 'canceled')
     this.emit({
       type: 'canceled',
       mangaId: args.mangaId,
@@ -183,15 +216,16 @@ export const MobileDownload = {
   },
 
   async remove(args: { mangaId: string; chapterId: string }): Promise<IpcResult<boolean>> {
-    const key = `${args.mangaId}:${args.chapterId}`
+    const key = taskKey(args.mangaId, args.chapterId)
 
     // 1. Cancel active download loop
-    if (this.activeDownloads.has(key)) {
-      this.activeDownloads.set(key, false)
+    const activeTask = this.activeDownloads.get(key)
+    if (activeTask) {
+      activeTask.active = false
     }
 
     // 2. Filter out of queue if it hasn't started yet
-    this.queue = this.queue.filter(q => `${q.mangaId}:${q.chapterId}` !== key)
+    this.queue = this.queue.filter((q) => taskKey(q.mangaId, q.chapterId) !== key)
 
     // 3. Determine mediaType to delete the correct folder
     const statusInfo = await this.getStatus(args)
@@ -207,98 +241,93 @@ export const MobileDownload = {
       console.error('[MobileDownload Native] Remove directory failed:', e)
     }
 
-    // 4. Clear state settings
-    await MobileDB.setSetting(statusKey(args.mangaId, args.chapterId), '')
-    await MobileDB.setSetting(metaKey(args.mangaId, args.chapterId), '')
+    // 4. Clean up parent manga directory if empty
+    try {
+      const mangaDirUri = `${DOWNLOADS_DIR}${mediaType}/${safeMangaId}`
+      const info = await FileSystem.getInfoAsync(mangaDirUri)
+      if (info.exists) {
+        const remaining = await FileSystem.readDirectoryAsync(mangaDirUri)
+        if (remaining.length === 0) {
+          await FileSystem.deleteAsync(mangaDirUri, { idempotent: true })
+        }
+      }
+    } catch {}
+
+    // 5. Delete from DB
+    await MobileDB.deleteDownload(args.mangaId, args.chapterId)
+
+    // 6. Clear legacy settings keys if any existed
+    await MobileDB.setSetting(`dl_status_${args.mangaId}:${args.chapterId}`, '')
+    await MobileDB.setSetting(`dl_meta_${args.mangaId}:${args.chapterId}`, '')
 
     return { ok: true, value: true }
   },
 
   async getStatus(args: { mangaId: string; chapterId: string }): Promise<IpcResult<DownloadEntry | undefined>> {
-    const key = `${args.mangaId}:${args.chapterId}`
-    const statusRes = await MobileDB.getSetting(statusKey(args.mangaId, args.chapterId))
-    const status = statusRes.ok ? statusRes.value : null
-    const metaRes = await MobileDB.getSetting(metaKey(args.mangaId, args.chapterId))
-    const metaRaw = metaRes.ok ? metaRes.value : null
-    const meta = metaRaw ? JSON.parse(metaRaw) : null
-    const isActive = this.activeDownloads.has(key)
+    const key = taskKey(args.mangaId, args.chapterId)
+    const task = this.activeDownloads.get(key)
+    const dbRes = await MobileDB.getDownload(args.mangaId, args.chapterId)
+    const entry = dbRes.ok && dbRes.value ? dbRes.value : undefined
+
+    if (task && task.active) {
+      return {
+        ok: true,
+        value: {
+          mangaId: args.mangaId,
+          chapterId: args.chapterId,
+          status: 'downloading',
+          totalPages: task.total || entry?.totalPages || null,
+          cachedPages: task.cached || entry?.cachedPages || null,
+          pageUrls: entry?.pageUrls || null,
+          error: null,
+          updatedAt: entry?.updatedAt || new Date().toISOString(),
+          mediaType: task.type || entry?.mediaType || 'manga',
+          mangaTitle: entry?.mangaTitle || null,
+          chapterTitle: entry?.chapterTitle || null
+        }
+      }
+    }
+
     return {
       ok: true,
-      value: {
-        mangaId: args.mangaId,
-        chapterId: args.chapterId,
-        status: isActive ? 'downloading' : (status || null) as any,
-        totalPages: meta?.totalPages || null,
-        cachedPages: meta?.totalPages || null,
-        pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
-        error: null,
-        updatedAt: meta?.downloadedAt || null,
-        mediaType: meta?.type || 'manga'
-      }
+      value: entry
     }
   },
 
   async getMangaDownloads(mangaId: string): Promise<IpcResult<DownloadEntry[]>> {
-    const allSettingsRes = await MobileDB.getSettings()
-    const allSettings = allSettingsRes.ok ? allSettingsRes.value : {}
-    const prefix = `dl_status_${mangaId}:`
-    const metaPrefix = `dl_meta_${mangaId}:`
-    const entries: any[] = []
-    for (const [settingKey, status] of Object.entries(allSettings)) {
-      if (!settingKey.startsWith(prefix) || !status) continue
-      const chapterId = settingKey.slice(prefix.length)
-      const metaRaw = allSettings[`dl_meta_${mangaId}:${chapterId}`]
-      const meta = metaRaw ? JSON.parse(metaRaw) : null
-      entries.push({
-        mangaId,
-        chapterId,
-        status: status as any,
-        totalPages: meta?.totalPages || null,
-        cachedPages: meta?.totalPages || null,
-        pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
-        error: null,
-        updatedAt: meta?.downloadedAt || null,
-        mediaType: meta?.type || 'manga'
-      })
+    const res = await MobileDB.getDownloadsByManga(mangaId)
+    const entries = res.ok && res.value ? res.value : []
+    for (const entry of entries) {
+      const task = this.activeDownloads.get(taskKey(entry.mangaId, entry.chapterId))
+      if (task && task.active) {
+        entry.status = 'downloading'
+        if (typeof task.cached === 'number') entry.cachedPages = task.cached
+        if (typeof task.total === 'number') entry.totalPages = task.total
+      }
     }
     return { ok: true, value: entries }
   },
 
   async getAllMangaDownloads(type?: string): Promise<IpcResult<DownloadEntry[]>> {
-    const allSettingsRes = await MobileDB.getSettings()
-    const allSettings = allSettingsRes.ok ? allSettingsRes.value : {}
-    const entries: any[] = []
-    const seen = new Set<string>()
-    for (const [settingKey, status] of Object.entries(allSettings)) {
-      if (!settingKey.startsWith('dl_status_') || !status || !settingKey.includes(':')) continue
-      const rest = settingKey.slice('dl_status_'.length)
-      const colonIdx = rest.indexOf(':')
-      if (colonIdx === -1) continue
-      const mangaId = rest.slice(0, colonIdx)
-      const chapterId = rest.slice(colonIdx + 1)
-      const uniqueKey = `${mangaId}:${chapterId}`
-      if (seen.has(uniqueKey)) continue
-      seen.add(uniqueKey)
-      const metaRaw = allSettings[`dl_meta_${mangaId}:${chapterId}`]
-      const meta = metaRaw ? JSON.parse(metaRaw) : null
-      entries.push({
-        mangaId,
-        chapterId,
-        status: status as any,
-        totalPages: meta?.totalPages || null,
-        cachedPages: meta?.totalPages || null,
-        pageUrls: meta?.pageUrls ? JSON.stringify(meta.pageUrls) : null,
-        error: null,
-        updatedAt: meta?.downloadedAt || null,
-        mediaType: meta?.type || 'manga'
-      })
+    const res = await MobileDB.getAllDownloads(type)
+    let entries = res.ok && res.value ? res.value : []
+    for (const entry of entries) {
+      const task = this.activeDownloads.get(taskKey(entry.mangaId, entry.chapterId))
+      if (task && task.active) {
+        entry.status = 'downloading'
+        if (typeof task.cached === 'number') entry.cachedPages = task.cached
+        if (typeof task.total === 'number') entry.totalPages = task.total
+      }
+    }
+    if (type && type !== 'all') {
+      entries = entries.filter((e) => e.mediaType === type)
     }
     return { ok: true, value: entries }
   },
 
   async clearAll(type?: string): Promise<IpcResult<boolean>> {
-    const entries = await this.getAllMangaDownloads(type)
-    const list = entries.ok ? entries.value : []
+    const entriesRes = await this.getAllMangaDownloads(type)
+    const list = entriesRes.ok && entriesRes.value ? entriesRes.value : []
     for (const entry of list) {
       await this.remove({ mangaId: entry.mangaId, chapterId: entry.chapterId })
     }

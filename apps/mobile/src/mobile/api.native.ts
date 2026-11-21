@@ -288,15 +288,15 @@ export const MobileApi: ElectronApi = {
 
   getSystemState: async (): Promise<IpcResult<SystemState>> => {
     const activeDownloads: Record<string, ActiveTaskState> = {}
-    for (const [key, active] of MobileDownload.activeDownloads) {
-      const [mangaId, chapterId] = key.split(':')
-      activeDownloads[key] = {
-        mangaId,
-        chapterId,
-        status: active ? 'downloading' : 'canceled',
-        cached: 0,
-        total: 0,
-        type: 'manga'
+    for (const [, task] of MobileDownload.activeDownloads) {
+      const stateKey = `${task.mangaId}:${task.chapterId}`
+      activeDownloads[stateKey] = {
+        mangaId: task.mangaId,
+        chapterId: task.chapterId,
+        status: task.active ? 'downloading' : 'canceled',
+        cached: task.cached || 0,
+        total: task.total || 0,
+        type: task.type || 'manga'
       }
     }
     return { 
@@ -310,7 +310,7 @@ export const MobileApi: ElectronApi = {
   },
 
   onSystemStateUpdate: (callback: (data: StateUpdateEvent) => void) => {
-    MobileDownload.onEvent((data) => {
+    return MobileDownload.onEvent((data) => {
       callback({
         type: 'active_tasks_update',
         task: {
@@ -319,11 +319,10 @@ export const MobileApi: ElectronApi = {
           status: (data.type === 'start' || data.type === 'progress') ? 'downloading' : (data.type === 'completed' ? 'completed' : 'canceled'),
           cached: data.cached || 0,
           total: data.total || 0,
-          type: 'manga'
+          type: (data.mediaType || data.type) === 'anime' ? 'anime' : 'manga'
         }
       })
     })
-    return () => MobileDownload.onEvent(() => {})
   },
 
   detectTheme: async (baseUrl: string): Promise<IpcResult<string>> => {
