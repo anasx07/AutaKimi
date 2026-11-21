@@ -24,6 +24,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 import { MediaButton } from "@/components/ui/media-button";
+import { ApkDownloadButton } from "@/components/ui/apk-download-button";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import {
   ImageLightbox,
@@ -255,12 +256,9 @@ export default function Home() {
               mediaUrl="/AutaKimi/assets/installer-preview.mp4"
               className="w-full sm:w-auto shadow-lg shadow-orange-500/10"
             />
-            <MediaButton
-              label="Download Android APK"
-              href="https://github.com/anasx07/AutaKimi/releases/latest/download/app-universal-release.apk"
-              icon={<Smartphone className="w-5 h-5 text-white" />}
+            <ApkDownloadButton
               mediaUrl="/AutaKimi/assets/installer-preview.mp4"
-              className="w-full sm:w-auto shadow-lg shadow-amber-500/10"
+              className="w-full sm:w-auto"
             />
             <MediaButton
               label="Join Discord"

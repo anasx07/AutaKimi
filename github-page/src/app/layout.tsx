@@ -47,6 +47,12 @@ export const metadata = {
     siteName: "AutaKimi",
     images: [
       {
+        url: "/AutaKimi/assets/manga-browse.png",
+        width: 1280,
+        height: 720,
+        alt: "AutaKimi - Manga and Anime Reader",
+      },
+      {
         url: "/AutaKimi/assets/icon.png",
         width: 512,
         height: 512,
@@ -55,6 +61,14 @@ export const metadata = {
     ],
     locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "AutaKimi - Modern Cross-Platform Manga & Anime Reader (Windows & Android)",
+    description:
+      "The ultimate privacy-first manga & anime reader for Windows and Android. Tachiyomi & Aniyomi inspired PC alternative with local Wi-Fi sync, AniList tracking, and offline CBZ support.",
+    images: ["/AutaKimi/assets/manga-browse.png"],
   },
   alternates: {
     canonical: "https://anasx07.github.io/AutaKimi",

@@ -77,7 +77,11 @@ export default function DocsPage() {
               <ol className="list-decimal pl-5 space-y-1.5 text-xs text-zinc-400">
                 <li>
                   Download{" "}
-                  <code className="bg-black/30 px-1.5 py-0.5 rounded text-white">
+                  <code className="bg-black/30 px-1.5 py-0.5 rounded text-white font-mono">
+                    app-arm64-v8a-release.apk
+                  </code>{" "}
+                  (recommended 51&nbsp;MB for modern phones) or{" "}
+                  <code className="bg-black/30 px-1.5 py-0.5 rounded text-white font-mono">
                     app-universal-release.apk
                   </code>{" "}
                   from the Releases Page.
