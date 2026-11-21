@@ -7,17 +7,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
-      url: baseUrl,
+      url: `${baseUrl}/`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
-      priority: 1,
+      priority: 1.0,
     },
-    // If you add multiple pages (like /extensions, /about), you can list them here:
-    // {
-    //   url: \`\${baseUrl}/about\`,
-    //   lastModified: new Date(),
-    //   changeFrequency: 'monthly',
-    //   priority: 0.8,
-    // },
+    {
+      url: `${baseUrl}/docs/`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/changelog/`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
   ]
 }

@@ -1,6 +1,20 @@
+import type { Metadata } from "next";
 import { BookOpen, Database, Puzzle, Zap, ChevronRight, Download } from "lucide-react";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: "Documentation - AutaKimi",
+  description: "Learn how to get started with AutaKimi, install scraping extensions, read offline, and configure shortcuts.",
+  openGraph: {
+    title: "Documentation - AutaKimi",
+    description: "Learn how to get started with AutaKimi, install scraping extensions, read offline, and configure shortcuts.",
+    url: "https://anasx07.github.io/AutaKimi/docs/",
+  },
+  alternates: {
+    canonical: "https://anasx07.github.io/AutaKimi/docs/",
+  },
+};
 
 export default function DocsPage() {
   const sections = [
