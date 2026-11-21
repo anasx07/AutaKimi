@@ -2,13 +2,38 @@ import { AppService, ServicePriority } from './service.registry'
 
 interface StreamHeaderRule {
   origin: string
+  rootDomain: string | null
   headers: Record<string, string>
   expiresAt: number
+}
+
+const KNOWN_SLDS = new Set([
+  'co', 'com', 'org', 'net', 'edu', 'gov', 'mil', 'ac', 'ne', 'or', 'gen', 'firm', 'ind', 'nom'
+])
+
+export function getRegistrableDomain(hostname: string): string | null {
+  if (!hostname || typeof hostname !== 'string') return null
+  const host = hostname.trim().toLowerCase()
+  if (!host || host === 'localhost' || host.includes(':') || host.startsWith('[')) return null
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) return null
+
+  const parts = host.split('.')
+  if (parts.length < 2) return null
+  if (parts.length === 2) return host
+
+  const tld = parts[parts.length - 1]
+  const sld = parts[parts.length - 2]
+
+  if (tld.length === 2 && KNOWN_SLDS.has(sld)) {
+    return parts.slice(-3).join('.')
+  }
+  return parts.slice(-2).join('.')
 }
 
 export class StreamProxyService implements AppService {
   public priority = ServicePriority.NETWORK
   private rules = new Map<string, StreamHeaderRule>()
+  private domainRules = new Map<string, StreamHeaderRule>()
 
   async initialize(): Promise<void> {
     // WebRequest hooks are dispatched centrally from main/index.ts
@@ -17,6 +42,7 @@ export class StreamProxyService implements AppService {
 
   async shutdown(): Promise<void> {
     this.rules.clear()
+    this.domainRules.clear()
   }
 
   public setStreamHeaders(url: string, headers: Record<string, string>): void {
@@ -24,12 +50,22 @@ export class StreamProxyService implements AppService {
     try {
       const parsed = new URL(url)
       const origin = parsed.origin.toLowerCase()
-      this.rules.set(origin, {
+      const rootDomain = getRegistrableDomain(parsed.hostname)
+      const rule: StreamHeaderRule = {
         origin,
+        rootDomain,
         headers: { ...headers },
         expiresAt: Date.now() + 6 * 3600 * 1000 // 6 hours expiration
-      })
-      console.log(`[StreamProxy] Registered stream headers for origin: ${origin}`)
+      }
+      this.rules.set(origin, rule)
+      if (rootDomain) {
+        this.domainRules.set(rootDomain, rule)
+      }
+      console.log(
+        `[StreamProxy] Registered stream headers for origin: ${origin}${
+          rootDomain ? ` (root domain: ${rootDomain})` : ''
+        }`
+      )
     } catch (e) {
       console.warn(`[StreamProxy] Failed to register stream headers for URL ${url}:`, e)
     }
@@ -39,16 +75,52 @@ export class StreamProxyService implements AppService {
     try {
       const parsed = new URL(requestUrl)
       const origin = parsed.origin.toLowerCase()
-      const rule = this.rules.get(origin)
-      if (rule) {
-        if (Date.now() > rule.expiresAt) {
+      const now = Date.now()
+
+      // 1. Exact origin match
+      const exactRule = this.rules.get(origin)
+      if (exactRule) {
+        if (now > exactRule.expiresAt) {
           this.rules.delete(origin)
-          return null
+          this.pruneDomainRule(exactRule.rootDomain)
+        } else {
+          return exactRule
         }
-        return rule
+      }
+
+      // 2. Registrable root domain fallback (e.g. for sibling HLS CDN subdomains)
+      const rootDomain = getRegistrableDomain(parsed.hostname)
+      if (rootDomain) {
+        const domainRule = this.domainRules.get(rootDomain)
+        if (domainRule) {
+          if (now > domainRule.expiresAt) {
+            this.rules.delete(domainRule.origin)
+            this.pruneDomainRule(rootDomain)
+          } else {
+            return domainRule
+          }
+        }
       }
     } catch {}
     return null
+  }
+
+  private pruneDomainRule(rootDomain: string | null): void {
+    if (!rootDomain) return
+    const now = Date.now()
+    let replacement: StreamHeaderRule | null = null
+    for (const rule of this.rules.values()) {
+      if (rule.rootDomain === rootDomain && now <= rule.expiresAt) {
+        if (!replacement || rule.expiresAt > replacement.expiresAt) {
+          replacement = rule
+        }
+      }
+    }
+    if (replacement) {
+      this.domainRules.set(rootDomain, replacement)
+    } else {
+      this.domainRules.delete(rootDomain)
+    }
   }
 
   public applyRequestHeaders(
