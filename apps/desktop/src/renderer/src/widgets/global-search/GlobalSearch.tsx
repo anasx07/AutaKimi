@@ -9,6 +9,7 @@ import { cn } from '@renderer/shared/lib/utils'
 import { MediaCardSkeleton } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
 import { isAnimeExtension } from '@renderer/shared/lib/constants'
+import { isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 
 interface SearchResult {
   manga: any
@@ -83,7 +84,8 @@ export default function GlobalSearch({ mediaType, onClose }: GlobalSearchProps =
 
           if (searchId === searchIdRef.current) {
             if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
-              const wrappedResults = mangaPage.manga.map((m) => ({ manga: m, extension: ext }))
+              const validManga = mangaPage.manga.filter(isValidMediaCatalogItem)
+              const wrappedResults = validManga.map((m) => ({ manga: m, extension: ext }))
               setResults((prev) => [...prev, ...wrappedResults])
             }
             setStatuses((prev) => ({ ...prev, [ext.pkg]: 'done' }))
@@ -118,7 +120,8 @@ export default function GlobalSearch({ mediaType, onClose }: GlobalSearchProps =
 
       if (searchId === searchIdRef.current) {
         if (mangaPage && mangaPage.manga && mangaPage.manga.length > 0) {
-          const wrappedResults = mangaPage.manga.map((m) => ({ manga: m, extension: ext }))
+          const validManga = mangaPage.manga.filter(isValidMediaCatalogItem)
+          const wrappedResults = validManga.map((m) => ({ manga: m, extension: ext }))
           setResults((prev) => [...prev, ...wrappedResults])
         }
         setStatuses((prev) => ({ ...prev, [ext.pkg]: 'done' }))
