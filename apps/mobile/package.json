@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@autakimi/sdk": "*",
+    "@react-native-cookies/cookies": "^6.2.1",
     "@tanstack/react-query": "^5.96.0",
     "cheerio": "^1.2.0",
     "expo": "~58.0.25",
