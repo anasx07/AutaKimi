@@ -124,14 +124,27 @@ export default function DocsPage() {
               safety ratings.
             </li>
           </ul>
-          <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl">
-            <Image
-              src="/AutaKimi/assets/manga-browse.webp"
-              alt="AutaKimi Extension Catalog and Feed"
-              width={1280}
-              height={700}
-              className="w-full hover:scale-[1.01] transition-transform duration-500"
-            />
+          <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
+            <a
+              href="/AutaKimi/assets/manga-browse.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Click to view full resolution"
+              className="block"
+            >
+              <Image
+                src="/AutaKimi/assets/manga-browse.webp"
+                alt="AutaKimi Extension Catalog and Feed"
+                width={1280}
+                height={700}
+                className="w-full group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className="px-4 py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xl">
+                  🔍 Click to View Full Resolution
+                </span>
+              </div>
+            </a>
           </div>
         </div>
       ),
@@ -204,14 +217,27 @@ export default function DocsPage() {
               dispatched automatically as soon as internet connectivity returns.
             </li>
           </ul>
-          <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl">
-            <Image
-              src="/AutaKimi/assets/manga-details.webp"
-              alt="AutaKimi Media Details and Progress Tracking"
-              width={1280}
-              height={700}
-              className="w-full hover:scale-[1.01] transition-transform duration-500"
-            />
+          <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
+            <a
+              href="/AutaKimi/assets/manga-details.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Click to view full resolution"
+              className="block"
+            >
+              <Image
+                src="/AutaKimi/assets/manga-details.webp"
+                alt="AutaKimi Media Details and Progress Tracking"
+                width={1280}
+                height={700}
+                className="w-full group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                <span className="px-4 py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xl">
+                  🔍 Click to View Full Resolution
+                </span>
+              </div>
+            </a>
           </div>
         </div>
       ),
