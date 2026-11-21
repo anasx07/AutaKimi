@@ -3,7 +3,8 @@
 import { 
   Download, BookOpen, Puzzle, History, Search, Zap, 
   ChevronDown, Globe, MonitorSmartphone, MessageSquare, 
-  Sparkles, Terminal, Shield, ArrowRight, Activity
+  Sparkles, Terminal, Shield, ArrowRight, Activity,
+  Smartphone, CheckCircle2, Archive
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
@@ -34,9 +35,29 @@ export default function Home() {
 
   const features = [
     {
-      icon: <BookOpen className="w-6 h-6 text-orange-400" />,
-      title: "Personal Library",
-      description: "Organize your collection with a beautiful, responsive library interface. Track your reading state seamlessly."
+      icon: <MonitorSmartphone className="w-6 h-6 text-orange-400" />,
+      title: "Cross-Platform & LAN Sync",
+      description: "Enjoy total parity across Windows and Android. Synchronize your reading history, library, and bookmarks over local Wi-Fi without cloud reliance."
+    },
+    {
+      icon: <CheckCircle2 className="w-6 h-6 text-blue-400" />,
+      title: "AniList Smart Tracking",
+      description: "Automatic 2-way progress sync with AniList. Auto-completes titles upon finishing the final chapter, with an offline SQLite retry queue."
+    },
+    {
+      icon: <Archive className="w-6 h-6 text-emerald-400" />,
+      title: "Offline CBZ & Stream Downloads",
+      description: "Bulk download full chapters as standard .cbz comic book archives or cache video streams for high-speed offline reading anywhere."
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-yellow-400" />,
+      title: "Native Anime Streamer",
+      description: "Watch anime series with built-in hardware acceleration, custom speed controls, multi-quality streams, and embedded popup blocking."
+    },
+    {
+      icon: <Puzzle className="w-6 h-6 text-pink-400" />,
+      title: "Modular Scraper Engine",
+      description: "Expand your content catalog with sandboxed JS extensions running with identical behavior on desktop and mobile."
     },
     {
       icon: <Globe className="w-6 h-6 text-indigo-400" />,
@@ -44,24 +65,19 @@ export default function Home() {
       description: "Full native support for Arabic (العربية) and English, ensuring an absolute native experience for global readers."
     },
     {
-      icon: <Zap className="w-6 h-6 text-yellow-400" />,
-      title: "Native Anime Streamer",
-      description: "Watch your favorite anime series with our built-in, high-performance video player containing customizable speed feeds."
-    },
-    {
-      icon: <Puzzle className="w-6 h-6 text-pink-400" />,
-      title: "Modular Scraper Engine",
-      description: "Expand your content catalog with an advanced, language-aware extension system and simple bulk package updates."
-    },
-    {
       icon: <Search className="w-6 h-6 text-cyan-400" />,
       title: "Smart Cross-Source Search",
-      description: "Find any manga title or anime episode across all your connected community indexers instantly."
+      description: "Find any manga title or anime episode across all your connected community indexers instantly with advanced filters."
     },
     {
       icon: <Terminal className="w-6 h-6 text-emerald-400" />,
-      title: "Privacy First & Open",
-      description: "Zero analytics tracking. Your database, cache files, extensions, and bookmarks stay completely local."
+      title: "Privacy First & GZ Backups",
+      description: "Zero telemetry or tracking. Export and import full .json.gz backups between desktop and mobile for complete data ownership."
+    },
+    {
+      icon: <BookOpen className="w-6 h-6 text-purple-400" />,
+      title: "Personal Library & Reader",
+      description: "Responsive library with custom categories, reading history, and continuous webtoon scroll with smart chapter transitions."
     }
   ]
 
@@ -82,9 +98,30 @@ export default function Home() {
   ]
 
   const faqs = [
-    { q: "Is AutaKimi free to use?", a: "Yes, AutaKimi is 100% free, open-source, and contains zero tracking, advertisements, or data collection." },
-    { q: "How do I install extensions?", a: "Extensions are lightweight plugins that can be installed instantly via the extension catalog inside the application with a single click." },
-    { q: "Does it support offline reading?", a: "Yes, you can easily download your favorite manga chapters or cache anime metadata locally for offline access." }
+    { 
+      q: "Is AutaKimi free to use?", 
+      a: "Yes, AutaKimi is 100% free, open-source, and contains zero tracking, advertisements, telemetry, or data collection." 
+    },
+    { 
+      q: "Which platforms does AutaKimi support?", 
+      a: "AutaKimi runs natively on Windows 10/11 (64-bit) as an installer/portable app, and on Android (5.0+) as a standalone APK. Both apps share identical features, extensions, and reader engines." 
+    },
+    { 
+      q: "How does sync work between PC and Android?", 
+      a: "AutaKimi uses local Wi-Fi LAN sync and portable .json.gz backups. Your desktop app acts as a local sync host that your phone discovers automatically on the same Wi-Fi, syncing reading progress and library changes with zero cloud intermediaries." 
+    },
+    { 
+      q: "Can I track my anime and manga with AniList?", 
+      a: "Yes. AutaKimi integrates natively with AniList for real-time progress updates. It automatically marks titles as COMPLETED when you finish the final chapter or episode, and queues updates in SQLite if you're offline to sync when you reconnect." 
+    },
+    { 
+      q: "Does it support offline reading and downloads?", 
+      a: "Yes! You can bulk download manga chapters directly as standard .cbz archives, cache anime episodes for offline playback, and export/import full .json.gz library backups." 
+    },
+    { 
+      q: "How do I install extensions?", 
+      a: "Extensions are sandboxed community JavaScript plugins that can be installed instantly via the extension catalog inside the application with a single click." 
+    }
   ]
 
   return (
@@ -104,7 +141,7 @@ export default function Home() {
             </span>
             <span className="text-xs font-mono text-zinc-500 flex items-center gap-1">
               <Activity className="w-3.5 h-3.5 text-green-400" />
-              <span>Active Desktop Build</span>
+              <span>Windows & Android Ready</span>
             </span>
           </div>
 
@@ -113,7 +150,7 @@ export default function Home() {
               The Next Gen Media <span className="text-gradient font-black">Framework</span>
             </h1>
             <p className="text-lg md:text-xl text-zinc-400 leading-relaxed font-sans font-medium">
-              AutaKimi is a professional, privacy-first media reader for Windows. Extensible, localized, and optimized for speed.
+              AutaKimi is a professional, privacy-first media reader for Windows and Android. Enjoy local Wi-Fi sync, AniList tracking, offline CBZ downloads, and sandboxed community extensions.
             </p>
           </div>
 
@@ -136,11 +173,18 @@ export default function Home() {
           {/* Action Callouts */}
           <div className="flex flex-wrap gap-4 pt-2">
             <MediaButton
-              label="Download Installer"
+              label="Download for Windows"
               href="https://github.com/anasx07/AutaKimi/releases/latest/download/AutaKimi.exe"
               icon={<Download className="w-5 h-5 text-white" />}
               mediaUrl="/AutaKimi/assets/installer-preview.mp4"
               className="w-full sm:w-auto shadow-lg shadow-orange-500/10"
+            />
+            <MediaButton
+              label="Download Android APK"
+              href="https://github.com/anasx07/AutaKimi/releases/latest/download/app-universal-release.apk"
+              icon={<Smartphone className="w-5 h-5 text-white" />}
+              mediaUrl="/AutaKimi/assets/installer-preview.mp4"
+              className="w-full sm:w-auto shadow-lg shadow-amber-500/10"
             />
             <MediaButton
               label="Join Discord"
@@ -172,7 +216,7 @@ export default function Home() {
                 <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase">Platform</span>
                 <p className="text-sm font-bold text-white flex items-center gap-1.5 justify-end mt-0.5">
                   <MonitorSmartphone className="w-4 h-4 text-orange-400" />
-                  Windows 10/11
+                  Windows & Android
                 </p>
               </div>
             </div>
@@ -182,10 +226,12 @@ export default function Home() {
               <p className="text-xs text-zinc-400 leading-relaxed">
                 AutaKimi abstracts data streams into a unified core. Organize books, bookmark chapters, cache video streams, and personalize extensions without central tracking.
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">0% Ads</span>
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">Open Source</span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">JS Engine</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">LAN Sync</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">AniList</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-zinc-400">CBZ Offline</span>
               </div>
             </div>
           </div>
