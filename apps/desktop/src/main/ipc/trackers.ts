@@ -97,4 +97,11 @@ export function registerTrackerHandlers(): void {
       }
     )
   )
+
+  registerHandler(
+    IpcChannel.TRACKER_PROCESS_QUEUE,
+    wrapIpc(async () => {
+      return trackingService.processRetryQueue()
+    })
+  )
 }

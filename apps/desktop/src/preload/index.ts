@@ -116,7 +116,8 @@ const api: ElectronApi = {
     logoutAniList: () => invoke(IpcChannel.TRACKER_LOGOUT_ANILIST),
     searchAniList: (args) => invoke(IpcChannel.TRACKER_SEARCH_ANILIST, args),
     getMediaAniList: (mediaId) => invoke(IpcChannel.TRACKER_GET_MEDIA_ANILIST, mediaId),
-    updateAniList: (args) => invoke(IpcChannel.TRACKER_UPDATE_ANILIST, args)
+    updateAniList: (args) => invoke(IpcChannel.TRACKER_UPDATE_ANILIST, args),
+    processQueue: () => invoke(IpcChannel.TRACKER_PROCESS_QUEUE)
   },
   backup: {
     export: () => invoke(IpcChannel.BACKUP_EXPORT),

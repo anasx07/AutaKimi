@@ -18,5 +18,6 @@ export const TrackerService = {
     status?: string
     progress?: number
     score?: number
-  }) => callIpc(() => getApi().trackers.updateAniList(args))
+  }) => callIpc(() => getApi().trackers.updateAniList(args)),
+  processQueue: () => callIpc(() => getApi().trackers.processQueue())
 }

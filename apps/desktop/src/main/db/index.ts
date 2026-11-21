@@ -93,6 +93,20 @@ try {
       updated_at TEXT,
       PRIMARY KEY (manga_id, provider)
     );
+    CREATE TABLE IF NOT EXISTS anilist_sync_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      manga_id TEXT NOT NULL,
+      media_id INTEGER NOT NULL UNIQUE,
+      status TEXT,
+      progress INTEGER NOT NULL,
+      score INTEGER,
+      attempts INTEGER DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_anilist_queue_media ON anilist_sync_queue (media_id);
+    CREATE INDEX IF NOT EXISTS idx_anilist_queue_created ON anilist_sync_queue (created_at);
     CREATE INDEX IF NOT EXISTS idx_trackers_manga ON trackers (manga_id);
     CREATE INDEX IF NOT EXISTS idx_library_type ON library (type);
     CREATE INDEX IF NOT EXISTS idx_history_type_started ON reading_history (type, started_at);

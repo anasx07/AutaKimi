@@ -52,6 +52,18 @@ function App(): React.JSX.Element {
     return () => unsub()
   }, [invalidateGroup])
 
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[App] Network reconnected: flushing offline tracker queue...')
+      DataService.tracker.processQueue().catch((err) => {
+        console.warn('[App] Failed to process tracker queue on reconnect:', err)
+      })
+    }
+    window.addEventListener('online', handleOnline)
+    handleOnline()
+    return () => window.removeEventListener('online', handleOnline)
+  }, [])
+
   return (
     <>
       <DownloadSync />
