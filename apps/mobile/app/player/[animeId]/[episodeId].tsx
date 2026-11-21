@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   ActivityIndicator,
@@ -6,17 +12,17 @@ import {
   TouchableWithoutFeedback,
   Modal,
   ScrollView,
-  Dimensions
-} from 'react-native'
-import { useLocalSearchParams, router, Stack } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
-import { StatusBar } from 'expo-status-bar'
-import { useEventListener } from 'expo'
-import { useVideoPlayer, VideoView } from 'expo-video'
-import { WebView } from 'react-native-webview'
-import * as WebBrowser from 'expo-web-browser'
-import { Typography, Button } from '@mobile/native/ui'
-import { DataService } from '@renderer/shared/api'
+  Dimensions,
+} from "react-native";
+import { useLocalSearchParams, router, Stack } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
+import { useEventListener } from "expo";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { WebView } from "react-native-webview";
+import * as WebBrowser from "expo-web-browser";
+import { Typography, Button } from "@mobile/native/ui";
+import { DataService } from "@renderer/shared/api";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -27,47 +33,51 @@ import {
   Server,
   Play,
   X,
-  Radio
-} from 'lucide-react-native'
-import { getVideoHeaders, DEFAULT_MOBILE_USER_AGENT } from '../../src/mobile/cf-cookies'
+  Radio,
+} from "lucide-react-native";
+import {
+  getVideoHeaders,
+  DEFAULT_MOBILE_USER_AGENT,
+} from "../../../src/mobile/cf-cookies";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export interface ServerOption {
-  name: string
-  url: string
-  type: 'hls' | 'mp4' | 'embed'
-  headers?: Record<string, string>
+  name: string;
+  url: string;
+  type: "hls" | "mp4" | "embed";
+  headers?: Record<string, string>;
 }
 
-function getVideoType(server: any): 'hls' | 'mp4' | 'embed' {
-  if (!server) return 'embed'
-  if (typeof server === 'object' && server.type) {
-    const t = String(server.type).toLowerCase()
-    if (t === 'hls' || t === 'm3u8') return 'hls'
-    if (t === 'mp4' || t === 'webm') return 'mp4'
-    if (t === 'embed') return 'embed'
+function getVideoType(server: any): "hls" | "mp4" | "embed" {
+  if (!server) return "embed";
+  if (typeof server === "object" && server.type) {
+    const t = String(server.type).toLowerCase();
+    if (t === "hls" || t === "m3u8") return "hls";
+    if (t === "mp4" || t === "webm") return "mp4";
+    if (t === "embed") return "embed";
   }
-  const url = typeof server === 'object' ? server.url || '' : String(server || '')
-  const cleanUrl = url.split('?')[0].toLowerCase()
-  const lowerUrl = url.toLowerCase()
+  const url =
+    typeof server === "object" ? server.url || "" : String(server || "");
+  const cleanUrl = url.split("?")[0].toLowerCase();
+  const lowerUrl = url.toLowerCase();
   if (
-    cleanUrl.endsWith('.m3u8') ||
-    lowerUrl.includes('.m3u8') ||
-    lowerUrl.includes('hls_proxy') ||
-    lowerUrl.includes('mode=m3u8')
+    cleanUrl.endsWith(".m3u8") ||
+    lowerUrl.includes(".m3u8") ||
+    lowerUrl.includes("hls_proxy") ||
+    lowerUrl.includes("mode=m3u8")
   ) {
-    return 'hls'
+    return "hls";
   }
   if (
-    cleanUrl.endsWith('.mp4') ||
-    cleanUrl.endsWith('.webm') ||
-    lowerUrl.includes('.mp4') ||
-    lowerUrl.includes('stream_proxy')
+    cleanUrl.endsWith(".mp4") ||
+    cleanUrl.endsWith(".webm") ||
+    lowerUrl.includes(".mp4") ||
+    lowerUrl.includes("stream_proxy")
   ) {
-    return 'mp4'
+    return "mp4";
   }
-  return 'embed'
+  return "embed";
 }
 
 const INJECTED_POPUP_BLOCKER = `
@@ -112,7 +122,7 @@ const INJECTED_POPUP_BLOCKER = `
   setInterval(hookVideos, 1000);
 })();
 true;
-`
+`;
 
 // Direct Native Stream Player (HLS / MP4)
 function DirectVideoPlayer({
@@ -120,54 +130,59 @@ function DirectVideoPlayer({
   refererUrl,
   initialTime,
   onProgress,
-  onEnd
+  onEnd,
 }: {
-  server: ServerOption
-  refererUrl?: string
-  initialTime: number
-  onProgress: (currentTime: number, duration: number) => void
-  onEnd: () => void
+  server: ServerOption;
+  refererUrl?: string;
+  initialTime: number;
+  onProgress: (currentTime: number, duration: number) => void;
+  onEnd: () => void;
 }) {
   const headers = useMemo(() => {
     return {
       ...getVideoHeaders(server.url, refererUrl),
-      ...(server.headers || {})
-    }
-  }, [server.url, server.headers, refererUrl])
+      ...(server.headers || {}),
+    };
+  }, [server.url, server.headers, refererUrl]);
 
   const videoSource = useMemo(() => {
     return {
       uri: server.url,
       headers,
-      contentType: server.type === 'hls' ? ('hls' as const) : server.type === 'mp4' ? ('progressive' as const) : undefined
-    }
-  }, [server.url, headers, server.type])
+      contentType:
+        server.type === "hls"
+          ? ("hls" as const)
+          : server.type === "mp4"
+            ? ("progressive" as const)
+            : undefined,
+    };
+  }, [server.url, headers, server.type]);
 
   const player = useVideoPlayer(videoSource, (p) => {
-    p.timeUpdateEventInterval = 1
+    p.timeUpdateEventInterval = 1;
     if (initialTime > 10) {
-      p.currentTime = initialTime
+      p.currentTime = initialTime;
     }
-    p.play()
-  })
+    p.play();
+  });
 
-  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
-    const duration = player.duration || 0
-    onProgress(currentTime, duration)
-  })
+  useEventListener(player, "timeUpdate", ({ currentTime }) => {
+    const duration = player.duration || 0;
+    onProgress(currentTime, duration);
+  });
 
-  useEventListener(player, 'playToEnd', () => {
-    onEnd()
-  })
+  useEventListener(player, "playToEnd", () => {
+    onEnd();
+  });
 
   return (
     <VideoView
       player={player}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: "100%", height: "100%" }}
       contentFit="contain"
       nativeControls={true}
     />
-  )
+  );
 }
 
 // Embedded Web Stream Player (Iframe with Popup Blocking)
@@ -175,40 +190,40 @@ function EmbedVideoPlayer({
   server,
   refererUrl,
   onProgress,
-  onEnd
+  onEnd,
 }: {
-  server: ServerOption
-  refererUrl?: string
-  onProgress: (currentTime: number, duration: number) => void
-  onEnd: () => void
+  server: ServerOption;
+  refererUrl?: string;
+  onProgress: (currentTime: number, duration: number) => void;
+  onEnd: () => void;
 }) {
   const headers = useMemo(() => {
     return {
       ...getVideoHeaders(server.url, refererUrl),
-      ...(server.headers || {})
-    }
-  }, [server.url, server.headers, refererUrl])
+      ...(server.headers || {}),
+    };
+  }, [server.url, server.headers, refererUrl]);
 
   const onShouldStartLoadWithRequest = useCallback((request: any) => {
-    const reqUrl = (request.url || '').toLowerCase()
-    if (reqUrl === 'about:blank' || reqUrl.startsWith('about:')) return true
+    const reqUrl = (request.url || "").toLowerCase();
+    if (reqUrl === "about:blank" || reqUrl.startsWith("about:")) return true;
     if (
-      reqUrl.startsWith('intent:') ||
-      reqUrl.startsWith('market:') ||
-      reqUrl.startsWith('itms-app:') ||
-      reqUrl.startsWith('itms-apps:') ||
-      reqUrl.startsWith('vnd.youtube:')
+      reqUrl.startsWith("intent:") ||
+      reqUrl.startsWith("market:") ||
+      reqUrl.startsWith("itms-app:") ||
+      reqUrl.startsWith("itms-apps:") ||
+      reqUrl.startsWith("vnd.youtube:")
     ) {
-      return false
+      return false;
     }
-    return true
-  }, [])
+    return true;
+  }, []);
 
   return (
     <WebView
       source={{
         uri: server.url,
-        headers
+        headers,
       }}
       userAgent={DEFAULT_MOBILE_USER_AGENT}
       allowsFullscreenVideo={true}
@@ -221,202 +236,227 @@ function EmbedVideoPlayer({
       injectedJavaScript={INJECTED_POPUP_BLOCKER}
       onMessage={(event) => {
         try {
-          const data = JSON.parse(event.nativeEvent.data)
-          if (data.type === 'timeupdate') {
-            onProgress(data.currentTime, data.duration)
-          } else if (data.type === 'ended') {
-            onEnd()
+          const data = JSON.parse(event.nativeEvent.data);
+          if (data.type === "timeupdate") {
+            onProgress(data.currentTime, data.duration);
+          } else if (data.type === "ended") {
+            onEnd();
           }
         } catch {}
       }}
       onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-      style={{ width: '100%', height: '100%', backgroundColor: '#000000' }}
+      style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
     />
-  )
+  );
 }
 
 export default function PlayerScreen() {
   const { animeId, episodeId, pkg, episodeUrl, episodeTitle, animeTitle } =
     useLocalSearchParams<{
-      animeId: string
-      episodeId: string
-      pkg?: string
-      episodeUrl?: string
-      episodeTitle?: string
-      animeTitle?: string
-    }>()
+      animeId: string;
+      episodeId: string;
+      pkg?: string;
+      episodeUrl?: string;
+      episodeTitle?: string;
+      animeTitle?: string;
+    }>();
 
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [errorMsg, setErrorMsg] = useState('')
-  const [servers, setServers] = useState<ServerOption[]>([])
-  const [activeServerIdx, setActiveServerIdx] = useState(0)
-  const [showControls, setShowControls] = useState(true)
-  const [showServerModal, setShowServerModal] = useState(false)
-  const [initialTime, setInitialTime] = useState(0)
-  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null)
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [errorMsg, setErrorMsg] = useState("");
+  const [servers, setServers] = useState<ServerOption[]>([]);
+  const [activeServerIdx, setActiveServerIdx] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [initialTime, setInitialTime] = useState(0);
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(
+    null,
+  );
 
-  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(null)
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(
+    null,
+  );
 
   // 1. Fetch episodes list for previous/next navigation
   const { data: allEpisodes } = useQuery({
-    queryKey: ['anime-episodes', animeId],
+    queryKey: ["anime-episodes", animeId],
     queryFn: async () => {
-      const res = await DataService.db.getChapters(animeId)
-      return (res as any)?.value || res || []
+      const res = await DataService.db.getChapters(animeId);
+      return (res as any)?.value || res || [];
     },
-    enabled: !!animeId
-  })
+    enabled: !!animeId,
+  });
 
   const sortedEpisodes = useMemo(() => {
-    if (!allEpisodes || !Array.isArray(allEpisodes)) return []
-    return [...allEpisodes].sort((a: any, b: any) => Number(a.number || 0) - Number(b.number || 0))
-  }, [allEpisodes])
+    if (!allEpisodes || !Array.isArray(allEpisodes)) return [];
+    return [...allEpisodes].sort(
+      (a: any, b: any) => Number(a.number || 0) - Number(b.number || 0),
+    );
+  }, [allEpisodes]);
 
-  const currentEpIndex = sortedEpisodes.findIndex((e: any) => e.id === episodeId)
-  const prevEpisode = currentEpIndex > 0 ? sortedEpisodes[currentEpIndex - 1] : null
+  const currentEpIndex = sortedEpisodes.findIndex(
+    (e: any) => e.id === episodeId,
+  );
+  const prevEpisode =
+    currentEpIndex > 0 ? sortedEpisodes[currentEpIndex - 1] : null;
   const nextEpisode =
     currentEpIndex >= 0 && currentEpIndex < sortedEpisodes.length - 1
       ? sortedEpisodes[currentEpIndex + 1]
-      : null
+      : null;
 
   // 2. Fetch saved watching progress to resume playback
   useEffect(() => {
-    if (!animeId || !episodeId) return
+    if (!animeId || !episodeId) return;
     DataService.db
       .getProgress(animeId)
       .then((res: any) => {
-        const rows = res?.value || res || []
-        const currentProgress = rows.find((r: any) => r.chapter_id === episodeId)
-        if (currentProgress && currentProgress.last_page && currentProgress.last_page > 10 && !currentProgress.is_read) {
-          setInitialTime(currentProgress.last_page)
+        const rows = res?.value || res || [];
+        const currentProgress = rows.find(
+          (r: any) => r.chapter_id === episodeId,
+        );
+        if (
+          currentProgress &&
+          currentProgress.last_page &&
+          currentProgress.last_page > 10 &&
+          !currentProgress.is_read
+        ) {
+          setInitialTime(currentProgress.last_page);
         }
       })
-      .catch(() => {})
-  }, [animeId, episodeId])
+      .catch(() => {});
+  }, [animeId, episodeId]);
 
   // 3. Flush progress synchronously
   const flushProgress = useCallback(() => {
     if (progressTimerRef.current) {
-      clearTimeout(progressTimerRef.current)
-      progressTimerRef.current = null
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
     }
     if (lastProgressRef.current && animeId && episodeId) {
-      const { isRead, lastPage } = lastProgressRef.current
+      const { isRead, lastPage } = lastProgressRef.current;
       DataService.db
         .updateProgress({
           mangaId: animeId,
           chapterId: episodeId,
           isRead,
-          lastPage
+          lastPage,
         })
-        .catch(console.error)
+        .catch(console.error);
 
       DataService.db
         .updateHistoryDuration({
           mangaId: animeId,
           chapterId: episodeId,
-          durationSeconds: lastPage
+          durationSeconds: lastPage,
         })
-        .catch(console.error)
+        .catch(console.error);
 
-      lastProgressRef.current = null
+      lastProgressRef.current = null;
     }
-  }, [animeId, episodeId])
+  }, [animeId, episodeId]);
 
   useEffect(() => {
     return () => {
-      flushProgress()
-    }
-  }, [flushProgress])
+      flushProgress();
+    };
+  }, [flushProgress]);
 
   // 4. Debounced progress schedule
   const handleProgress = useCallback(
     (currentTime: number, duration: number) => {
-      if (currentTime <= 0) return
-      const isRead = duration > 0 ? currentTime / duration >= 0.85 : false
-      lastProgressRef.current = { isRead, lastPage: Math.floor(currentTime) }
+      if (currentTime <= 0) return;
+      const isRead = duration > 0 ? currentTime / duration >= 0.85 : false;
+      lastProgressRef.current = { isRead, lastPage: Math.floor(currentTime) };
 
       if (progressTimerRef.current) {
-        clearTimeout(progressTimerRef.current)
+        clearTimeout(progressTimerRef.current);
       }
 
       progressTimerRef.current = setTimeout(() => {
-        flushProgress()
-      }, 3000)
+        flushProgress();
+      }, 3000);
     },
-    [flushProgress]
-  )
+    [flushProgress],
+  );
 
   // 5. Fetch stream from extension
   const fetchStream = useCallback(async () => {
     if (!pkg || !episodeUrl) {
-      setStatus('error')
-      setErrorMsg('Missing extension package or episode URL')
-      return
+      setStatus("error");
+      setErrorMsg("Missing extension package or episode URL");
+      return;
     }
 
-    setStatus('loading')
-    setErrorMsg('')
+    setStatus("loading");
+    setErrorMsg("");
     try {
-      const allExts = await DataService.db.getExtensions()
-      const extList = (allExts as any)?.value || allExts || []
-      const ext = extList.find((e: any) => e.pkg === pkg)
-      if (!ext?.code) throw new Error('Extension not found')
+      const allExts = await DataService.db.getExtensions();
+      const extList = (allExts as any)?.value || allExts || [];
+      const ext = extList.find((e: any) => e.pkg === pkg);
+      if (!ext?.code) throw new Error("Extension not found");
 
       const result = await DataService.executeExtension({
         pkg,
         code: ext.code,
-        contextArgs: { type: 'fetchPages', chapterUrl: episodeUrl }
-      })
+        contextArgs: { type: "fetchPages", chapterUrl: episodeUrl },
+      });
 
       const rawUrls: any[] =
-        result?.pages || result?.urls || result?.data || (Array.isArray(result) ? result : [])
-      if (!rawUrls || rawUrls.length === 0) throw new Error('No stream URLs returned from extension')
+        result?.pages ||
+        result?.urls ||
+        result?.data ||
+        (Array.isArray(result) ? result : []);
+      if (!rawUrls || rawUrls.length === 0)
+        throw new Error("No stream URLs returned from extension");
 
       const parsedServers: ServerOption[] = rawUrls
         .map((s: any, idx: number) => {
-          if (typeof s === 'object' && s !== null) {
+          if (typeof s === "object" && s !== null) {
             return {
               name: s.name || `Server ${idx + 1}`,
-              url: s.url || '',
+              url: s.url || "",
               type: s.type || getVideoType(s),
-              headers: s.headers
-            }
+              headers: s.headers,
+            };
           }
           return {
             name: `Server ${idx + 1}`,
             url: String(s),
-            type: getVideoType(s)
-          }
+            type: getVideoType(s),
+          };
         })
-        .filter((s: ServerOption) => !!s.url)
+        .filter((s: ServerOption) => !!s.url);
 
-      if (parsedServers.length === 0) throw new Error('No playable video streams found')
+      if (parsedServers.length === 0)
+        throw new Error("No playable video streams found");
 
-      setServers(parsedServers)
+      setServers(parsedServers);
 
       // Prioritize direct native streams (hls / mp4) over embed
-      const directIdx = parsedServers.findIndex((s) => s.type === 'hls' || s.type === 'mp4')
-      const targetIdx = directIdx !== -1 ? directIdx : 0
-      setActiveServerIdx(targetIdx)
-      setStatus('ready')
+      const directIdx = parsedServers.findIndex(
+        (s) => s.type === "hls" || s.type === "mp4",
+      );
+      const targetIdx = directIdx !== -1 ? directIdx : 0;
+      setActiveServerIdx(targetIdx);
+      setStatus("ready");
     } catch (e: any) {
-      setStatus('error')
-      setErrorMsg(e.message || 'Failed to load video stream')
+      setStatus("error");
+      setErrorMsg(e.message || "Failed to load video stream");
     }
-  }, [pkg, episodeUrl])
+  }, [pkg, episodeUrl]);
 
   useEffect(() => {
-    fetchStream()
-  }, [fetchStream])
+    fetchStream();
+  }, [fetchStream]);
 
   // 6. Navigation between episodes
   const navigateToEpisode = useCallback(
     (targetEp: any) => {
-      flushProgress()
-      setAutoNextCountdown(null)
+      flushProgress();
+      setAutoNextCountdown(null);
 
       DataService.db
         .addHistory({
@@ -426,75 +466,75 @@ export default function PlayerScreen() {
           chapterTitle: targetEp.title || `Episode ${targetEp.number}`,
           startedAt: new Date().toISOString(),
           pkg,
-          type: 'anime'
+          type: "anime",
         })
-        .catch(() => {})
+        .catch(() => {});
 
       router.replace({
-        pathname: '/player/[animeId]/[episodeId]' as any,
+        pathname: "/player/[animeId]/[episodeId]" as any,
         params: {
           animeId,
           episodeId: targetEp.id,
           pkg,
           episodeUrl: targetEp.url,
           episodeTitle: targetEp.title || `Episode ${targetEp.number}`,
-          animeTitle
-        }
-      })
+          animeTitle,
+        },
+      });
     },
-    [animeId, animeTitle, pkg, flushProgress]
-  )
+    [animeId, animeTitle, pkg, flushProgress],
+  );
 
   // 7. Auto-next episode countdown when video finishes
   const handleEpisodeEnd = useCallback(() => {
-    flushProgress()
+    flushProgress();
     if (nextEpisode) {
-      setAutoNextCountdown(5)
+      setAutoNextCountdown(5);
     }
-  }, [flushProgress, nextEpisode])
+  }, [flushProgress, nextEpisode]);
 
   useEffect(() => {
-    if (autoNextCountdown === null) return
+    if (autoNextCountdown === null) return;
     if (autoNextCountdown <= 0) {
-      setAutoNextCountdown(null)
+      setAutoNextCountdown(null);
       if (nextEpisode) {
-        navigateToEpisode(nextEpisode)
+        navigateToEpisode(nextEpisode);
       }
-      return
+      return;
     }
 
     const timer = setTimeout(() => {
-      setAutoNextCountdown((prev) => (prev !== null ? prev - 1 : null))
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [autoNextCountdown, nextEpisode, navigateToEpisode])
+      setAutoNextCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [autoNextCountdown, nextEpisode, navigateToEpisode]);
 
   // 8. Auto-hiding HUD controls
   const resetControlsTimer = useCallback(() => {
     if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current)
+      clearTimeout(controlsTimeoutRef.current);
     }
     controlsTimeoutRef.current = setTimeout(() => {
-      setShowControls(false)
-    }, 4500)
-  }, [])
+      setShowControls(false);
+    }, 4500);
+  }, []);
 
   const toggleControls = useCallback(() => {
     setShowControls((prev) => {
-      const next = !prev
-      if (next) resetControlsTimer()
-      return next
-    })
-  }, [resetControlsTimer])
+      const next = !prev;
+      if (next) resetControlsTimer();
+      return next;
+    });
+  }, [resetControlsTimer]);
 
   useEffect(() => {
-    resetControlsTimer()
+    resetControlsTimer();
     return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
-    }
-  }, [resetControlsTimer])
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [resetControlsTimer]);
 
-  const activeServer = servers[activeServerIdx] || null
+  const activeServer = servers[activeServerIdx] || null;
 
   return (
     <View className="flex-1 bg-black">
@@ -503,14 +543,14 @@ export default function PlayerScreen() {
 
       {/* Main Video Surface */}
       <View className="flex-1 items-center justify-center">
-        {status === 'loading' ? (
+        {status === "loading" ? (
           <View className="items-center justify-center p-8">
             <ActivityIndicator size="large" color="#3b82f6" />
             <Typography className="text-white/60 mt-4 text-center font-medium">
               Loading video stream...
             </Typography>
           </View>
-        ) : status === 'error' ? (
+        ) : status === "error" ? (
           <View className="items-center justify-center px-8">
             <AlertTriangle size={48} color="#ef4444" />
             <Typography className="text-white text-lg font-semibold mt-4 text-center">
@@ -530,8 +570,8 @@ export default function PlayerScreen() {
                 title="Go Back"
                 variant="outline"
                 onPress={() => {
-                  flushProgress()
-                  router.back()
+                  flushProgress();
+                  router.back();
                 }}
               />
             </View>
@@ -539,7 +579,7 @@ export default function PlayerScreen() {
         ) : activeServer ? (
           <TouchableWithoutFeedback onPress={toggleControls}>
             <View className="flex-1 w-full h-full">
-              {activeServer.type === 'embed' ? (
+              {activeServer.type === "embed" ? (
                 <EmbedVideoPlayer
                   key={activeServer.url}
                   server={activeServer}
@@ -563,7 +603,7 @@ export default function PlayerScreen() {
       </View>
 
       {/* Top Floating HUD */}
-      {showControls && status === 'ready' && (
+      {showControls && status === "ready" && (
         <View className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-10 pb-4 px-4">
           <View className="flex-row items-center justify-between">
             {/* Back button and Titles */}
@@ -571,18 +611,21 @@ export default function PlayerScreen() {
               <TouchableOpacity
                 className="p-2 rounded-full bg-white/10 active:bg-white/20 mr-2"
                 onPress={() => {
-                  flushProgress()
-                  router.back()
+                  flushProgress();
+                  router.back();
                 }}
               >
                 <ArrowLeft size={20} color="#fff" />
               </TouchableOpacity>
               <View className="flex-1">
-                <Typography className="text-white text-sm font-bold" numberOfLines={1}>
-                  {episodeTitle || 'Episode'}
+                <Typography
+                  className="text-white text-sm font-bold"
+                  numberOfLines={1}
+                >
+                  {episodeTitle || "Episode"}
                 </Typography>
                 <Typography className="text-white/60 text-xs" numberOfLines={1}>
-                  {animeTitle || ''}
+                  {animeTitle || ""}
                 </Typography>
               </View>
             </View>
@@ -606,11 +649,11 @@ export default function PlayerScreen() {
                   className="p-2 rounded-full bg-white/10 active:bg-white/20"
                   onPress={() => {
                     WebBrowser.openBrowserAsync(activeServer.url, {
-                      toolbarColor: '#09090b',
-                      controlsColor: '#ffffff'
-                    }).catch(() => {})
+                      toolbarColor: "#09090b",
+                      controlsColor: "#ffffff",
+                    }).catch(() => {});
                   }}
-                  title="Open in External Browser"
+                  accessibilityLabel="Open in External Browser"
                 >
                   <ExternalLink size={18} color="#fff" />
                 </TouchableOpacity>
@@ -627,7 +670,10 @@ export default function PlayerScreen() {
             <Typography className="text-white text-xs font-bold uppercase tracking-wider text-primary">
               Episode Finished
             </Typography>
-            <Typography className="text-white text-sm font-semibold mt-0.5" numberOfLines={1}>
+            <Typography
+              className="text-white text-sm font-semibold mt-0.5"
+              numberOfLines={1}
+            >
               Next: Episode {nextEpisode.number} ({autoNextCountdown}s)
             </Typography>
           </View>
@@ -650,42 +696,49 @@ export default function PlayerScreen() {
       )}
 
       {/* Bottom Floating Navigation HUD */}
-      {showControls && status === 'ready' && (
+      {showControls && status === "ready" && (
         <View className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent pb-6 pt-3 px-6">
           <View className="flex-row items-center justify-between">
             {/* Previous Episode */}
             <TouchableOpacity
               className={`flex-row items-center py-2 px-3 rounded-full bg-white/10 ${
-                !prevEpisode ? 'opacity-30' : 'active:bg-white/20'
+                !prevEpisode ? "opacity-30" : "active:bg-white/20"
               }`}
               disabled={!prevEpisode}
               onPress={() => prevEpisode && navigateToEpisode(prevEpisode)}
             >
               <ChevronLeft size={18} color="#fff" />
-              <Typography className="text-white text-xs font-medium ml-1">Prev</Typography>
+              <Typography className="text-white text-xs font-medium ml-1">
+                Prev
+              </Typography>
             </TouchableOpacity>
 
             {/* Stream Type Pill */}
             <View className="flex-row items-center bg-black/60 border border-white/10 px-3 py-1.5 rounded-full">
-              <Radio size={12} color={activeServer?.type === 'embed' ? '#f59e0b' : '#10b981'} />
+              <Radio
+                size={12}
+                color={activeServer?.type === "embed" ? "#f59e0b" : "#10b981"}
+              />
               <Typography className="text-white/80 text-[11px] font-bold uppercase tracking-wider ml-1.5">
-                {activeServer?.type === 'hls'
-                  ? 'Direct HLS'
-                  : activeServer?.type === 'mp4'
-                  ? 'Direct MP4'
-                  : 'Web Embed'}
+                {activeServer?.type === "hls"
+                  ? "Direct HLS"
+                  : activeServer?.type === "mp4"
+                    ? "Direct MP4"
+                    : "Web Embed"}
               </Typography>
             </View>
 
             {/* Next Episode */}
             <TouchableOpacity
               className={`flex-row items-center py-2 px-3 rounded-full bg-white/10 ${
-                !nextEpisode ? 'opacity-30' : 'active:bg-white/20'
+                !nextEpisode ? "opacity-30" : "active:bg-white/20"
               }`}
               disabled={!nextEpisode}
               onPress={() => nextEpisode && navigateToEpisode(nextEpisode)}
             >
-              <Typography className="text-white text-xs font-medium mr-1">Next</Typography>
+              <Typography className="text-white text-xs font-medium mr-1">
+                Next
+              </Typography>
               <ChevronRight size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -718,24 +771,24 @@ export default function PlayerScreen() {
 
             <ScrollView className="max-h-64 my-2">
               {servers.map((srv, idx) => {
-                const isSelected = idx === activeServerIdx
+                const isSelected = idx === activeServerIdx;
                 return (
                   <TouchableOpacity
                     key={`${srv.url}-${idx}`}
                     className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 ${
                       isSelected
-                        ? 'bg-primary/20 border border-primary/50'
-                        : 'bg-white/5 active:bg-white/10'
+                        ? "bg-primary/20 border border-primary/50"
+                        : "bg-white/5 active:bg-white/10"
                     }`}
                     onPress={() => {
-                      setActiveServerIdx(idx)
-                      setShowServerModal(false)
+                      setActiveServerIdx(idx);
+                      setShowServerModal(false);
                     }}
                   >
                     <View className="flex-1 mr-2">
                       <Typography
                         className={`text-sm font-semibold ${
-                          isSelected ? 'text-primary' : 'text-white'
+                          isSelected ? "text-primary" : "text-white"
                         }`}
                         numberOfLines={1}
                       >
@@ -744,28 +797,28 @@ export default function PlayerScreen() {
                     </View>
                     <View
                       className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
-                        srv.type === 'hls' || srv.type === 'mp4'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-amber-500/20 text-amber-400'
+                        srv.type === "hls" || srv.type === "mp4"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-amber-500/20 text-amber-400"
                       }`}
                     >
                       <Typography
                         className={`text-[10px] font-bold uppercase ${
-                          srv.type === 'hls' || srv.type === 'mp4'
-                            ? 'text-emerald-400'
-                            : 'text-amber-400'
+                          srv.type === "hls" || srv.type === "mp4"
+                            ? "text-emerald-400"
+                            : "text-amber-400"
                         }`}
                       >
                         {srv.type}
                       </Typography>
                     </View>
                   </TouchableOpacity>
-                )
+                );
               })}
             </ScrollView>
           </View>
         </View>
       </Modal>
     </View>
-  )
+  );
 }
