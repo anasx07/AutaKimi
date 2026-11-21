@@ -73,6 +73,48 @@ function getVideoType(server: any): 'hls' | 'mp4' | 'embed' {
   return 'embed'
 }
 
+const AD_DOMAINS = [
+  'a-ads.com',
+  'doubleclick.net',
+  'googlesyndication.com',
+  'googleadservices.com',
+  'popads.net',
+  'propellerads.com',
+  'adsterra.com',
+  'exoclick.com',
+  'juicyads.com',
+  'trafficjunky.com',
+  'adnxs.com',
+  'adform.net',
+  'wingsmob.com',
+  'sleeklyyallaer.com',
+  'luckypick.top',
+  'bc.game',
+  '1xbet',
+  'melbet',
+  'betway',
+  'bet365'
+]
+
+function isAdUrl(url?: string): boolean {
+  if (!url || typeof url !== 'string') return false
+  const lower = url.toLowerCase().trim()
+  if (!lower.startsWith('http://') && !lower.startsWith('https://') && !lower.startsWith('//')) {
+    return false
+  }
+  for (const domain of AD_DOMAINS) {
+    if (lower.includes(domain)) return true
+  }
+  if (
+    (lower.includes('/ad/') || lower.includes('/ads/') || lower.includes('/banner/')) &&
+    !lower.includes('.mp4') &&
+    !lower.includes('.m3u8')
+  ) {
+    return true
+  }
+  return false
+}
+
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return '00:00'
   const h = Math.floor(seconds / 3600)
@@ -384,8 +426,19 @@ export default function AnimeViewer() {
       setDebugInfo(debug)
 
       if (urls && urls.length > 0) {
+        // Filter out obvious advertisement and banner URLs
+        const validUrls = urls.filter((srv: any) => {
+          const u = typeof srv === 'object' ? srv?.url : String(srv || '')
+          return !isAdUrl(u)
+        })
+
+        if (validUrls.length === 0) {
+          setError('No playable streaming servers found for this episode (ad-only feeds filtered).')
+          return
+        }
+
         // Normalize candidate server items
-        const initialServers: ServerItem[] = urls.map((srv: any, idx: number) => {
+        const initialServers: ServerItem[] = validUrls.map((srv: any, idx: number) => {
           if (typeof srv === 'object') {
             return {
               name: srv.name || `Server ${idx + 1}`,
@@ -455,7 +508,9 @@ export default function AnimeViewer() {
 
             const current = updated[targetIdx]
             if (current && current.status === 'dead') {
-              const aliveDirectIdx = updated.findIndex((s) => s.status === 'alive' && (s.type === 'hls' || s.type === 'mp4'))
+              const aliveDirectIdx = updated.findIndex(
+                (s) => s.status === 'alive' && (s.type === 'hls' || s.type === 'mp4')
+              )
               if (aliveDirectIdx !== -1) {
                 nextAliveIdx = aliveDirectIdx
               } else {
@@ -467,7 +522,9 @@ export default function AnimeViewer() {
           })
 
           if (nextAliveIdx !== -1 && nextAliveIdx !== targetIdx) {
-            console.warn(`[AnimeViewer] Initial server probed DEAD, fast-switching to index ${nextAliveIdx}...`)
+            console.warn(
+              `[AnimeViewer] Initial server probed DEAD, fast-switching to index ${nextAliveIdx}...`
+            )
             setActiveServerIdx(nextAliveIdx)
           }
         })
@@ -496,7 +553,8 @@ export default function AnimeViewer() {
           }
 
           const existingProgress =
-            useProgressStore.getState().pageProgress[selectedManga.id]?.[activeChapter.id] || undefined
+            useProgressStore.getState().pageProgress[selectedManga.id]?.[activeChapter.id] ||
+            undefined
 
           markChapterRead(
             selectedManga.id,
@@ -572,7 +630,9 @@ export default function AnimeViewer() {
       if (!isMounted) return
       const video = videoRef.current
       if (videoType !== 'embed' && video && video.readyState < 2 && video.currentTime === 0) {
-        console.warn(`[AnimeViewer] Watchdog triggered on server ${activeServerIdx + 1} (${timeoutDuration}ms)`)
+        console.warn(
+          `[AnimeViewer] Watchdog triggered on server ${activeServerIdx + 1} (${timeoutDuration}ms)`
+        )
         failoverToNextServer('Server stream stalled or timed out.')
       }
     }, timeoutDuration)
@@ -1095,12 +1155,12 @@ export default function AnimeViewer() {
                         ? '🟢⚡ '
                         : '🟢 '
                       : isDead
-                      ? '🔴 '
-                      : isChecking
-                      ? '⏳ '
-                      : isDirect
-                      ? '⚡ '
-                      : '🌐 '
+                        ? '🔴 '
+                        : isChecking
+                          ? '⏳ '
+                          : isDirect
+                            ? '⚡ '
+                            : '🌐 '
                     const ping = srv.pingMs ? ` (${srv.pingMs}ms)` : ''
                     const displayName = `${badge}${name}${ping}`
                     return (
@@ -1189,7 +1249,8 @@ export default function AnimeViewer() {
                 Switching Server
               </h2>
               <p className="text-xs text-white/60 font-medium tracking-widest uppercase">
-                {switchingNotice || `Trying alternative source (${activeServerIdx + 1}/${servers.length})`}
+                {switchingNotice ||
+                  `Trying alternative source (${activeServerIdx + 1}/${servers.length})`}
               </p>
             </div>
           </div>
@@ -1266,8 +1327,7 @@ export default function AnimeViewer() {
                         debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
                       )}
                     >
-                      {debugInfo.htmlLength}{' '}
-                      {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
+                      {debugInfo.htmlLength} {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
                     </span>
                     <span className="text-neutral-500">CF Blocked:</span>
                     <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
@@ -1653,11 +1713,7 @@ export default function AnimeViewer() {
                 className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
                 title="Fullscreen (F)"
               >
-                {isFullscreen ? (
-                  <Minimize className="h-4 w-4" />
-                ) : (
-                  <Maximize className="h-4 w-4" />
-                )}
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -1669,7 +1725,8 @@ export default function AnimeViewer() {
         <div className="absolute bottom-20 right-8 z-50 bg-neutral-900/95 backdrop-blur-2xl border border-primary/40 p-5 rounded-2xl shadow-2xl shadow-black max-w-sm animate-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between gap-4 mb-2">
             <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
-              <Play className="h-3.5 w-3.5 fill-current animate-pulse" /> Next Episode in {autoNextCountdown}s
+              <Play className="h-3.5 w-3.5 fill-current animate-pulse" /> Next Episode in{' '}
+              {autoNextCountdown}s
             </span>
             <button
               onClick={() => setAutoNextCountdown(null)}
