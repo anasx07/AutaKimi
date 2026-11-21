@@ -76,7 +76,7 @@ export default function Home() {
       badge: "Discovery",
       title: "Index Search & Smart Filters",
       description: "Instantly locate your next series across community-managed scraping sources using customized language and safety filtration parameters.",
-      image: "/AutaKimi/assets/screenshot-themes.png",
+      image: "/AutaKimi/assets/screenshot-search.png",
       reverse: true
     }
   ]
