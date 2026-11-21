@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Sidebar } from '../components/Sidebar'
 import { MobileBottomNav } from '../components/MobileBottomNav'
 import { TitleBar } from '@renderer/widgets/title-bar'
@@ -10,11 +10,12 @@ import { useAppUpdater } from '../hooks/useAppUpdater'
 import { StoreInitializer } from '../StoreInitializer'
 import { useLibraryStore } from '@renderer/shared/model'
 import { ErrorBoundary } from '@renderer/shared/ui/ErrorBoundary'
-import MediaDetails from '@renderer/widgets/media-details/MediaDetails'
-import { ChapterReader } from '@renderer/widgets/reader'
-import { AnimeViewer } from '@renderer/widgets/anime-viewer'
 import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
+
+const MediaDetails = lazy(() => import('@renderer/widgets/media-details/MediaDetails'))
+const ChapterReader = lazy(() => import('@renderer/widgets/reader/ChapterReader'))
+const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewer'))
 
 
 export function AppLayout(): React.JSX.Element {
@@ -55,11 +56,19 @@ export function AppLayout(): React.JSX.Element {
               </ErrorBoundary>
             </div>
 
-            {/* Global Overlays - Still managed via store but isolated in Layout */}
+            {/* Global Overlays - Lazy loaded on demand */}
             {selectedManga && (
               <div className="absolute inset-0 z-30 bg-background animate-in fade-in slide-in-from-right-4 duration-300">
                 <ErrorBoundary label="Media Details">
-                  <MediaDetails mediaType={selectedManga.mediaType === 'anime' ? 'anime' : 'manga'} />
+                  <Suspense
+                    fallback={
+                      <div className="flex h-full w-full items-center justify-center bg-background">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+                      </div>
+                    }
+                  >
+                    <MediaDetails mediaType={selectedManga.mediaType === 'anime' ? 'anime' : 'manga'} />
+                  </Suspense>
                 </ErrorBoundary>
               </div>
             )}
@@ -69,7 +78,15 @@ export function AppLayout(): React.JSX.Element {
 
         {activeChapter && (
           <ErrorBoundary label="Viewer">
-            {selectedManga?.mediaType === 'anime' ? <AnimeViewer /> : <ChapterReader />}
+            <Suspense
+              fallback={
+                <div className="flex h-screen w-screen items-center justify-center bg-black">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+                </div>
+              }
+            >
+              {selectedManga?.mediaType === 'anime' ? <AnimeViewer /> : <ChapterReader />}
+            </Suspense>
           </ErrorBoundary>
         )}
         <Toast />
