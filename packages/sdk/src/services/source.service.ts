@@ -25,6 +25,11 @@ export class SourceService {
     this.catalogFiles = { manga: [], anime: [] }
   }
 
+  clear(): void {
+    this.sources.clear()
+    this.resetCatalogFiles()
+  }
+
   async hydrateManifest(manifest: any, installedLangs: string[] = []): Promise<{ success: boolean; totalCount: number }> {
     let totalCount = 0
     try {

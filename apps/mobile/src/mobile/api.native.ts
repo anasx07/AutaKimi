@@ -548,6 +548,10 @@ export const MobileApi: ElectronApi = {
         reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : [];
       repos = repos.filter((r) => r !== url);
       await MobileDB.setSetting("source_repositories", JSON.stringify(repos));
+      sourceService.clear();
+      if (repos.length > 0) {
+        await sourceService.loadAllRepositories(repos);
+      }
       return { ok: true, value: undefined };
     },
     refreshAll: async () => {
@@ -575,6 +579,14 @@ export const MobileApi: ElectronApi = {
       return { ok: true, value: sourceService.getAllSources() };
     },
     getCatalogExtensions: async (lang?: string) => {
+      const reposJson = await MobileDB.getSetting("source_repositories");
+      const repos: string[] =
+        reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : [];
+      if (repos.length === 0) {
+        sourceService.clear();
+        return { ok: true, value: [] };
+      }
+
       if (lang && lang !== "all") {
         await sourceService.fetchCatalogByLang(lang, "manga");
         await sourceService.fetchCatalogByLang(lang, "anime");

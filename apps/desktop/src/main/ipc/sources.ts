@@ -103,7 +103,10 @@ export function registerSourceHandlers() {
             const installedDb = await extensionRepo.getAll()
             installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
           } catch (e) {}
+          extensionRegistryOrchestrator.clearCache()
           await extensionRegistryOrchestrator.syncRepositories(repos, installedLangs)
+        } else {
+          extensionRegistryOrchestrator.clearCache()
         }
       } catch (err) {
         console.error('[SOURCES_REMOVE_REPO] Error cleaning up plugins:', err)
@@ -267,7 +270,12 @@ export function registerSourceHandlers() {
       const reposJson = await settingsRepo.get('source_repositories')
       const repos: string[] = reposJson ? JSON.parse(reposJson) : []
 
-      if (!sourceService.hasCatalogFiles() && repos.length > 0) {
+      if (repos.length === 0) {
+        extensionRegistryOrchestrator.clearCache()
+        return []
+      }
+
+      if (!sourceService.hasCatalogFiles()) {
         let installedLangs: string[] = []
         try {
           const installedDb = await extensionRepo.getAll()
