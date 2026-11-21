@@ -2,7 +2,7 @@ import { DataService } from '@renderer/shared/api'
 import { ISourceAdapter, Manga, Chapter, MangaPage, StreamingServer } from './types'
 import { SourceRegistry } from './SourceRegistry'
 import { useExtensionStore } from '@renderer/shared/model'
-import { normalizeManga } from '@common/utils/mangaNormalizer'
+import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 import { sourceService } from '@common/services/source.service'
 
 /**
@@ -62,14 +62,16 @@ export class SandboxRunner implements ISourceAdapter {
         ...extraArgs
       }
     })
-    const manga = (res?.data || []).map((m: any) => {
-      const norm = normalizeManga(m)
-      return {
-        ...norm,
-        pkg: norm.pkg || this.pkg,
-        url: norm.url || m.url || ''
-      } as Manga
-    })
+    const manga = (res?.data || [])
+      .filter(isValidMediaCatalogItem)
+      .map((m: any) => {
+        const norm = normalizeManga(m)
+        return {
+          ...norm,
+          pkg: norm.pkg || this.pkg,
+          url: norm.url || m.url || ''
+        } as Manga
+      })
     return { manga, hasNextPage: (res?.data?.length || 0) > 0 }
   }
 

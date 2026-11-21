@@ -6,7 +6,7 @@ import {
 import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
-import { normalizeManga } from '@common/utils/mangaNormalizer'
+import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 import { Typography, Button, Card, CardContent } from '@mobile/native/ui'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
@@ -109,7 +109,8 @@ export default function BrowseTab() {
             lang: ext.lang || 'all'
           }
         })
-        const items = Array.isArray(result) ? result : (result?.data || result?.manga || result?.items || [])
+        const rawItems = Array.isArray(result) ? result : (result?.data || result?.manga || result?.items || [])
+        const items = rawItems.filter(isValidMediaCatalogItem)
 
         if (isLoadMore) {
           if (items.length === 0) {
