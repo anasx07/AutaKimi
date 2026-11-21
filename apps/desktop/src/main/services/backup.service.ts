@@ -3,6 +3,8 @@ import fs from 'fs'
 import zlib from 'zlib'
 import { sqliteDb } from '../db'
 
+const MAX_BACKUP_SIZE = 100 * 1024 * 1024 // 100 MB max backup size limit (decompressed or raw)
+
 export interface BackupData {
   version: number
   appVersion: string
@@ -197,11 +199,25 @@ export class BackupService {
       const filePath = filePaths[0]
       const rawBuffer = await fs.promises.readFile(filePath)
 
-      // Decompress if gzipped
+      // Decompress if gzipped (with gzip bomb protection)
       let jsonStr: string
       if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
-        jsonStr = zlib.gunzipSync(rawBuffer).toString('utf-8')
+        try {
+          jsonStr = zlib
+            .gunzipSync(rawBuffer, { maxOutputLength: MAX_BACKUP_SIZE })
+            .toString('utf-8')
+        } catch (gzErr: any) {
+          if (gzErr?.code === 'ERR_BUFFER_TOO_LARGE' || gzErr?.name === 'RangeError') {
+            throw new Error(
+              'Backup file exceeds maximum allowed decompressed size of 100MB (potential gzip bomb)'
+            )
+          }
+          throw gzErr
+        }
       } else {
+        if (rawBuffer.length > MAX_BACKUP_SIZE) {
+          throw new Error('Backup file exceeds maximum allowed size of 100MB')
+        }
         jsonStr = rawBuffer.toString('utf-8')
       }
 
