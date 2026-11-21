@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite'
-import { Manga, IpcResult, HistoryEntry, Chapter, DownloadEntry } from '@common/types'
+import Constants from 'expo-constants'
+import { Manga, IpcResult, HistoryEntry, Chapter, DownloadEntry, BackupData } from '@common/types'
 import { Extension } from '@common/types'
 
 type SuccessResult = IpcResult<{ success?: boolean; error?: string }>
@@ -202,6 +203,24 @@ export const MobileDB = {
       }
 
       currentVersion = 21
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
+    }
+
+    if (currentVersion < 22) {
+      await connection.execAsync(`
+        CREATE TABLE IF NOT EXISTS trackers (
+          manga_id TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          remote_id TEXT NOT NULL,
+          score INTEGER,
+          status TEXT,
+          last_synced_chapter INTEGER DEFAULT 0,
+          updated_at TEXT,
+          PRIMARY KEY (manga_id, provider)
+        );
+        CREATE INDEX IF NOT EXISTS idx_trackers_manga ON trackers (manga_id);
+      `)
+      currentVersion = 22
       await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
     }
   },
@@ -664,5 +683,217 @@ export const MobileDB = {
       mangaTitle: row.manga_title ?? null,
       chapterTitle: row.chapter_title ?? null
     }
+  },
+
+  async getTrackers(mangaId: string): Promise<IpcResult<any[]>> {
+    await this.ensureReady()
+    const res = await db!.getAllAsync<any>('SELECT * FROM trackers WHERE manga_id = ?;', [mangaId])
+    return { ok: true, value: res }
+  },
+
+  async saveTracker(data: any): Promise<SuccessResult> {
+    await this.ensureReady()
+    const now = data.updatedAt || new Date().toISOString()
+    await db!.runAsync(
+      `INSERT OR REPLACE INTO trackers (manga_id, provider, remote_id, score, status, last_synced_chapter, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?);`,
+      [
+        data.mangaId,
+        data.provider,
+        data.remoteId,
+        data.score !== undefined ? data.score : null,
+        data.status || 'CURRENT',
+        data.lastSyncedChapter ?? 0,
+        now
+      ]
+    )
+    return { ok: true, value: { success: true } }
+  },
+
+  async deleteTracker(mangaId: string, provider: string): Promise<SuccessResult> {
+    await this.ensureReady()
+    await db!.runAsync('DELETE FROM trackers WHERE manga_id = ? AND provider = ?;', [mangaId, provider])
+    return { ok: true, value: { success: true } }
+  },
+
+  async exportBackupData(): Promise<BackupData> {
+    await this.ensureReady()
+
+    // 1. Library
+    const libraryRows = await db!.getAllAsync<any>(
+      'SELECT id, title, cover_url as coverUrl, status, metadata, type as mediaType FROM library;'
+    )
+
+    // 2. Reading Progress
+    const progressRows = await db!.getAllAsync<any>(
+      'SELECT manga_id as mangaId, chapter_id as chapterId, is_read as isRead, last_page as lastPage, updated_at as updatedAt FROM reading_progress;'
+    )
+
+    // 3. Reading History
+    const historyRows = await db!.getAllAsync<any>(
+      'SELECT manga_id as mangaId, manga_title as mangaTitle, manga_cover as mangaCover, manga_url as mangaUrl, chapter_id as chapterId, chapter_title as chapterTitle, started_at as startedAt, duration_seconds as durationSeconds, pkg, type as mediaType FROM reading_history;'
+    )
+
+    // 4. Source Repositories
+    let sourceRepositories: string[] = []
+    const reposRow = await db!.getFirstAsync<any>(
+      "SELECT value FROM settings WHERE key = 'source_repositories';"
+    )
+    if (reposRow?.value) {
+      try {
+        sourceRepositories = JSON.parse(reposRow.value)
+      } catch {}
+    }
+
+    // 5. Trackers
+    let trackers: any[] = []
+    try {
+      trackers = await db!.getAllAsync<any>(
+        'SELECT manga_id as mangaId, provider, remote_id as remoteId, score, status, last_synced_chapter as lastSyncedChapter, updated_at as updatedAt FROM trackers;'
+      )
+    } catch {}
+
+    return {
+      version: 1,
+      appVersion: Constants.expoConfig?.version || '2.1.0',
+      createdAt: new Date().toISOString(),
+      library: libraryRows || [],
+      readingProgress: (progressRows || []).map((r) => ({ ...r, isRead: Boolean(r.isRead) })),
+      readingHistory: historyRows || [],
+      sourceRepositories,
+      trackers
+    }
+  },
+
+  async restoreBackup(backup: BackupData): Promise<{
+    library: number
+    readingProgress: number
+    readingHistory: number
+    sourceRepositories: number
+    trackers: number
+  }> {
+    await this.ensureReady()
+
+    const restoredCounts = {
+      library: 0,
+      readingProgress: 0,
+      readingHistory: 0,
+      sourceRepositories: 0,
+      trackers: 0
+    }
+
+    await db!.withTransactionAsync(async () => {
+      // 1. Library
+      if (Array.isArray(backup.library) && backup.library.length > 0) {
+        for (const item of backup.library) {
+          if (!item.id) continue
+          await db!.runAsync(
+            `INSERT OR REPLACE INTO library (id, title, cover_url, status, metadata, type)
+             VALUES (?, ?, ?, ?, ?, ?);`,
+            [
+              item.id,
+              item.title ?? null,
+              item.coverUrl ?? (item as any).cover_url ?? null,
+              item.status ?? null,
+              typeof item.metadata === 'object' ? JSON.stringify(item.metadata) : item.metadata ?? null,
+              item.mediaType || (item as any).type || 'manga'
+            ]
+          )
+          restoredCounts.library++
+        }
+      }
+
+      // 2. Reading Progress
+      if (Array.isArray(backup.readingProgress) && backup.readingProgress.length > 0) {
+        for (const item of backup.readingProgress) {
+          if (!item.mangaId || !item.chapterId) continue
+          await db!.runAsync(
+            `INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at)
+             VALUES (?, ?, ?, ?, ?);`,
+            [
+              item.mangaId,
+              item.chapterId,
+              item.isRead ? 1 : 0,
+              item.lastPage ?? (item as any).last_page ?? 0,
+              item.updatedAt ?? (item as any).updated_at ?? new Date().toISOString()
+            ]
+          )
+          restoredCounts.readingProgress++
+        }
+      }
+
+      // 3. Reading History
+      if (Array.isArray(backup.readingHistory) && backup.readingHistory.length > 0) {
+        for (const item of backup.readingHistory) {
+          if (!item.mangaId || !item.chapterId) continue
+          const startedAt = item.startedAt ?? (item as any).started_at ?? new Date().toISOString()
+          const exists = await db!.getFirstAsync<any>(
+            'SELECT 1 FROM reading_history WHERE manga_id = ? AND chapter_id = ? AND started_at = ? LIMIT 1;',
+            [item.mangaId, item.chapterId, startedAt]
+          )
+          if (!exists) {
+            await db!.runAsync(
+              `INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+              [
+                item.mangaId,
+                item.mangaTitle ?? (item as any).manga_title ?? null,
+                item.mangaCover ?? (item as any).manga_cover ?? null,
+                item.mangaUrl ?? (item as any).manga_url ?? null,
+                item.chapterId,
+                item.chapterTitle ?? (item as any).chapter_title ?? null,
+                startedAt,
+                item.durationSeconds ?? (item as any).duration_seconds ?? 0,
+                item.pkg ?? null,
+                item.mediaType || (item as any).type || 'manga'
+              ]
+            )
+            restoredCounts.readingHistory++
+          }
+        }
+      }
+
+      // 4. Source Repositories
+      if (Array.isArray(backup.sourceRepositories) && backup.sourceRepositories.length > 0) {
+        const reposRow = await db!.getFirstAsync<any>(
+          "SELECT value FROM settings WHERE key = 'source_repositories';"
+        )
+        let currentRepos: string[] = []
+        if (reposRow?.value) {
+          try {
+            currentRepos = JSON.parse(reposRow.value)
+          } catch {}
+        }
+        const mergedRepos = Array.from(new Set([...currentRepos, ...backup.sourceRepositories]))
+        await db!.runAsync(
+          `INSERT OR REPLACE INTO settings (key, value) VALUES ('source_repositories', ?);`,
+          [JSON.stringify(mergedRepos)]
+        )
+        restoredCounts.sourceRepositories = backup.sourceRepositories.length
+      }
+
+      // 5. Trackers
+      if (Array.isArray(backup.trackers) && backup.trackers.length > 0) {
+        for (const item of backup.trackers) {
+          if (!item.mangaId || !item.remoteId) continue
+          await db!.runAsync(
+            `INSERT OR REPLACE INTO trackers (manga_id, provider, remote_id, score, status, last_synced_chapter, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?);`,
+            [
+              item.mangaId,
+              item.provider || 'anilist',
+              item.remoteId,
+              item.score ?? null,
+              item.status ?? 'CURRENT',
+              item.lastSyncedChapter ?? 0,
+              item.updatedAt ?? new Date().toISOString()
+            ]
+          )
+          restoredCounts.trackers++
+        }
+      }
+    })
+
+    return restoredCounts
   }
 }
