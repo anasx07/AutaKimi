@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IpcChannel, type ElectronApi, type IpcInvokeMap, type IpcEventMap } from '../main/types/ipc'
+import {
+  IpcChannel,
+  type ElectronApi,
+  type IpcInvokeMap,
+  type IpcEventMap
+} from '../main/types/ipc'
 import type { FetchOptions } from '@common/types/network'
 
 const invoke = <K extends keyof IpcInvokeMap>(
@@ -7,10 +12,7 @@ const invoke = <K extends keyof IpcInvokeMap>(
   ...args: Parameters<IpcInvokeMap[K]>
 ): ReturnType<IpcInvokeMap[K]> => ipcRenderer.invoke(channel, ...args) as any
 
-const on = <K extends keyof IpcEventMap>(
-  channel: K,
-  callback: IpcEventMap[K]
-) => {
+const on = <K extends keyof IpcEventMap>(channel: K, callback: IpcEventMap[K]) => {
   const subscription = (_event: any, data: any) => (callback as any)(data)
   ipcRenderer.on(channel as string, subscription)
   return () => ipcRenderer.removeListener(channel as string, subscription)
@@ -34,7 +36,8 @@ const api: ElectronApi = {
     removeRepo: (url: string) => invoke(IpcChannel.SOURCES_REMOVE_REPO, url),
     refreshAll: () => invoke(IpcChannel.SOURCES_REFRESH_ALL),
     getAllSources: () => invoke(IpcChannel.SOURCES_GET_ALL),
-    getCatalogExtensions: (lang?: string) => invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS, lang),
+    getCatalogExtensions: (lang?: string) =>
+      invoke(IpcChannel.SOURCES_GET_CATALOG_EXTENSIONS, lang),
     selectDirectory: () => invoke(IpcChannel.SOURCES_SELECT_DIRECTORY)
   },
   plugins: {
@@ -80,6 +83,8 @@ const api: ElectronApi = {
     restore: () => invoke(IpcChannel.WINDOW_RESTORE),
     close: () => invoke(IpcChannel.WINDOW_CLOSE),
     isMaximized: () => invoke(IpcChannel.WINDOW_IS_MAXIMIZED),
+    setFullScreen: (flag: boolean) => invoke(IpcChannel.WINDOW_SET_FULLSCREEN, flag),
+    isFullScreen: () => invoke(IpcChannel.WINDOW_IS_FULLSCREEN),
     updateOverlay: (options) => invoke(IpcChannel.WINDOW_UPDATE_OVERLAY, options),
     openExternal: (url: string) => invoke(IpcChannel.OPEN_EXTERNAL, url),
     openInternalBrowser: (url: string) => invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url)
@@ -126,7 +131,6 @@ const api: ElectronApi = {
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }
-
 
 // Expose APIs to the renderer via contextBridge.
 try {

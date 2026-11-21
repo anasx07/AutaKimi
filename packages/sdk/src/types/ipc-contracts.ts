@@ -75,7 +75,12 @@ export interface IpcContracts {
     result: { chapterId: string; isRead: boolean; lastPage: number }[]
   }
   [IpcChannel.DB_UPDATE_PROGRESS]: {
-    args: { mangaId: string; chapterId: string; isRead: boolean; lastPage?: number }
+    args: {
+      mangaId: string
+      chapterId: string
+      isRead: boolean
+      lastPage?: number
+    }
     result: boolean
   }
 
@@ -152,6 +157,8 @@ export interface IpcContracts {
   [IpcChannel.WINDOW_RESTORE]: { args: void; result: void }
   [IpcChannel.WINDOW_CLOSE]: { args: void; result: void }
   [IpcChannel.WINDOW_IS_MAXIMIZED]: { args: void; result: boolean }
+  [IpcChannel.WINDOW_SET_FULLSCREEN]: { args: boolean; result: void }
+  [IpcChannel.WINDOW_IS_FULLSCREEN]: { args: void; result: boolean }
   [IpcChannel.WINDOW_UPDATE_OVERLAY]: {
     args: { color: string; symbolColor: string }
     result: void

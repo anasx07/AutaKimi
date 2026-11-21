@@ -6,6 +6,8 @@ export const WindowService = {
   restore: () => callIpc(() => getApi().window.restore()),
   close: () => callIpc(() => getApi().window.close()),
   isMaximized: () => callIpc(() => getApi().window.isMaximized()),
+  setFullScreen: (flag: boolean) => callIpc(() => getApi().window.setFullScreen(flag)),
+  isFullScreen: () => callIpc(() => getApi().window.isFullScreen()),
   updateOverlay: (options: { color: string; symbolColor: string }) =>
     callIpc(() => getApi().window.updateOverlay(options)),
   openExternal: (url: string) => callIpc(() => getApi().openExternal(url)),

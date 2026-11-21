@@ -129,6 +129,7 @@ function formatTime(seconds: number): string {
 
 export default function AnimeViewer() {
   const mobile = isMobile()
+  const platform = DataService.platform
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
   const { activeExtension } = useExtensionStore()
   const { markChapterRead, loadProgress, pageProgress } = useProgressStore()
@@ -902,15 +903,81 @@ export default function AnimeViewer() {
     }
   }
 
-  const toggleFullscreen = useCallback(() => {
+  const toggleFullscreen = useCallback(async () => {
+    // 1. Desktop native window fullscreen via Electron
+    if (typeof window !== 'undefined' && window.api?.window) {
+      try {
+        const isFull = await DataService.window.isFullScreen()
+        const target = !isFull
+        await DataService.window.setFullScreen(target)
+        setIsFullscreen(target)
+        return
+      } catch (err) {
+        console.warn('[AnimeViewer] Native window fullscreen toggle failed, using fallback:', err)
+      }
+    }
+
+    // 2. HTML5 Fullscreen fallback
     if (!document.fullscreenElement) {
       const container = containerRef.current || document.documentElement
       if (container.requestFullscreen) {
-        container.requestFullscreen().catch(() => {})
+        container
+          .requestFullscreen()
+          .then(() => setIsFullscreen(true))
+          .catch(() => {})
       }
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {})
+        document
+          .exitFullscreen()
+          .then(() => setIsFullscreen(false))
+          .catch(() => {})
+      }
+    }
+  }, [])
+
+  // Sync fullscreen state with HTML5 / Electron and clean up on unmount
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isHtml5 = !!document.fullscreenElement
+      if (typeof window !== 'undefined' && window.api?.window) {
+        DataService.window
+          .isFullScreen()
+          .then((isNative) => {
+            setIsFullscreen(Boolean(isNative || isHtml5))
+          })
+          .catch(() => {
+            setIsFullscreen(isHtml5)
+          })
+      } else {
+        setIsFullscreen(isHtml5)
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+
+    // Check initial native fullscreen state
+    if (typeof window !== 'undefined' && window.api?.window) {
+      DataService.window
+        .isFullScreen()
+        .then((isNative) => {
+          if (isNative) setIsFullscreen(true)
+        })
+        .catch(() => {})
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      // When exiting anime viewer, restore native window from fullscreen
+      if (typeof window !== 'undefined' && window.api?.window) {
+        DataService.window
+          .isFullScreen()
+          .then((isNative) => {
+            if (isNative) {
+              DataService.window.setFullScreen(false).catch(() => {})
+            }
+          })
+          .catch(() => {})
       }
     }
   }, [])
@@ -1037,11 +1104,32 @@ export default function AnimeViewer() {
           if (prevEpisode) setActiveChapter(prevEpisode)
           break
         case 'm':
+          e.preventDefault()
+          if (videoRef.current) {
+            const nextMuted = !isMuted
+            videoRef.current.muted = nextMuted
+            setIsMuted(nextMuted)
+          }
+          break
+        case 'e':
+          e.preventDefault()
           setIsEpisodesOpen((prev) => !prev)
           break
+        case 't':
+          e.preventDefault()
+          if (isFullscreen) {
+            toggleFullscreen()
+          }
+          break
         case 'escape':
-          if (isEpisodesOpen) setIsEpisodesOpen(false)
-          else setActiveChapter(null)
+          if (isFullscreen) {
+            e.preventDefault()
+            toggleFullscreen()
+          } else if (isEpisodesOpen) {
+            setIsEpisodesOpen(false)
+          } else {
+            setActiveChapter(null)
+          }
           break
         case 'r':
           e.preventDefault()
@@ -1058,6 +1146,8 @@ export default function AnimeViewer() {
     seekBy,
     adjustVolume,
     toggleFullscreen,
+    isFullscreen,
+    isMuted,
     nextEpisode,
     prevEpisode,
     isEpisodesOpen,
@@ -1079,27 +1169,40 @@ export default function AnimeViewer() {
       {/* Top Header Overlay */}
       <div
         className={cn(
-          'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
+          'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/85 via-black/50 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
           !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
         )}
+        style={{ WebkitAppRegion: !isFullscreen ? 'drag' : 'no-drag' } as any}
       >
-        <div className="flex items-center gap-4">
+        <div
+          className={cn(
+            'flex items-center gap-4',
+            platform === 'darwin' && !isFullscreen && 'pl-20'
+          )}
+          style={{ WebkitAppRegion: 'no-drag' } as any}
+        >
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setActiveChapter(null)}
+            onClick={() => {
+              if (isFullscreen) {
+                toggleFullscreen()
+              }
+              setActiveChapter(null)
+            }}
             className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+            title="Back to Details (Esc)"
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
         </div>
 
         {/* Centered Title Section */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center min-w-0 text-center">
-          <h1 className="text-base font-black tracking-tighter text-white truncate max-w-[200px] sm:max-w-md uppercase italic">
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center min-w-0 text-center pointer-events-none">
+          <h1 className="text-base font-black tracking-tighter text-white truncate max-w-[200px] sm:max-w-md uppercase italic drop-shadow-md">
             {selectedManga.title}
           </h1>
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest drop-shadow-sm">
             <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">
               EP {activeChapter.number}
             </span>
@@ -1109,7 +1212,7 @@ export default function AnimeViewer() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <Button
             variant="ghost"
             size="sm"
@@ -1203,9 +1306,15 @@ export default function AnimeViewer() {
                 ? 'bg-primary text-white'
                 : 'text-white/70 hover:text-white hover:bg-white/10'
             )}
+            title="Episodes List (E)"
           >
             <Menu className="h-5 w-5" />
           </Button>
+
+          {/* Reserved Space for Native Windows Caption Buttons (— ❐ ✕) in Windowed/Cinematic Mode */}
+          {platform === 'win32' && !isFullscreen && (
+            <div className="w-[140px] h-8 shrink-0 pointer-events-none" />
+          )}
         </div>
       </div>
 
