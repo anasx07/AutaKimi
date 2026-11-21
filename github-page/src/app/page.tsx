@@ -25,10 +25,17 @@ import Image from "next/image";
 
 import { MediaButton } from "@/components/ui/media-button";
 import { GlowCard } from "@/components/ui/spotlight-card";
+import {
+  ImageLightbox,
+  ZoomBadge,
+  LightboxImage,
+} from "@/components/ui/image-lightbox";
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [version, setVersion] = useState("2.0.11");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     fetch("https://api.github.com/repos/anasx07/AutaKimi/releases/latest")
@@ -288,13 +295,20 @@ export default function Home() {
             </div>
 
             {/* Window preview screenshot */}
-            <div className="relative rounded-[16px] overflow-hidden border border-white/5 shadow-inner">
+            <div
+              className="relative rounded-[16px] overflow-hidden border border-white/5 shadow-inner cursor-zoom-in group/heroimg"
+              onClick={() => {
+                setActiveImageIndex(0);
+                setLightboxOpen(true);
+              }}
+              title="Click to view full screen"
+            >
               <Image
                 src="/AutaKimi/assets/manga-browse.webp"
                 alt="AutaKimi Desktop Reader Interface"
                 width={1280}
                 height={700}
-                className="w-full group-hover:scale-[1.02] transition-transform duration-700 z-0"
+                className="w-full group-hover/heroimg:scale-[1.03] transition-transform duration-700 z-0"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -306,6 +320,7 @@ export default function Home() {
                   0% Tracking
                 </span>
               </div>
+              <ZoomBadge />
             </div>
           </div>
         </div>
@@ -358,9 +373,11 @@ export default function Home() {
           {showcases.map((s, i) => (
             <div
               key={i}
-              className={`grid grid-cols-1 lg:grid-cols-2 gap-16 items-center ${s.reverse ? "lg:flex-row-reverse" : ""}`}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center"
             >
-              <div className={`space-y-6 ${s.reverse ? "lg:order-2" : ""}`}>
+              <div
+                className={`space-y-6 lg:col-span-5 ${s.reverse ? "lg:order-2" : "lg:order-1"}`}
+              >
                 <span className="premium-pill">{s.badge}</span>
                 <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
                   {s.title}
@@ -376,16 +393,22 @@ export default function Home() {
                 </div>
               </div>
               <div
-                className={`relative rounded-[28px] overflow-hidden border border-white/10 shadow-2xl transition-all duration-700 hover:border-white/20 group ${s.reverse ? "lg:order-1" : ""}`}
+                className={`relative rounded-[28px] overflow-hidden border border-white/10 shadow-2xl transition-all duration-700 hover:border-orange-500/40 hover:shadow-[0_0_50px_rgba(249,115,22,0.15)] group cursor-zoom-in lg:col-span-7 ${s.reverse ? "lg:order-1" : "lg:order-2"}`}
+                onClick={() => {
+                  setActiveImageIndex(i);
+                  setLightboxOpen(true);
+                }}
+                title="Click to view full screen"
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none" />
                 <Image
                   src={s.image}
                   alt={s.title}
-                  width={1280}
-                  height={800}
-                  className="w-full group-hover:scale-105 transition-transform duration-700 z-0"
+                  width={1920}
+                  height={1080}
+                  className="w-full group-hover:scale-[1.03] transition-transform duration-700 z-0"
                 />
+                <ZoomBadge />
               </div>
             </div>
           ))}
@@ -432,6 +455,21 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Fullscreen Screenshot Lightbox */}
+      <ImageLightbox
+        images={showcases.map((s) => ({
+          src: s.image,
+          alt: s.title,
+          title: s.title,
+          badge: s.badge,
+          description: s.description,
+        }))}
+        currentIndex={activeImageIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={setActiveImageIndex}
+      />
     </div>
   );
 }
