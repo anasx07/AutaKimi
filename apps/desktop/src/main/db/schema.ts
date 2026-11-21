@@ -139,7 +139,7 @@ export const trackers = sqliteTable(
     mangaId: text('manga_id').notNull(),
     provider: text('provider').$type<'anilist' | 'mal'>().notNull(),
     remoteId: text('remote_id').notNull(),
-    score: integer('score').default(0),
+    score: integer('score'),
     status: text('status'),
     lastSyncedChapter: integer('last_synced_chapter').default(0),
     updatedAt: text('updated_at')

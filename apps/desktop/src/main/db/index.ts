@@ -87,7 +87,7 @@ try {
       manga_id TEXT NOT NULL,
       provider TEXT NOT NULL,
       remote_id TEXT NOT NULL,
-      score INTEGER DEFAULT 0,
+      score INTEGER,
       status TEXT,
       last_synced_chapter INTEGER DEFAULT 0,
       updated_at TEXT,

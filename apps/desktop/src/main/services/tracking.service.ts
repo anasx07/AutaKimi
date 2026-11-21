@@ -268,7 +268,7 @@ export class TrackingService {
     const variables: Record<string, any> = { mediaId }
     if (status) variables.status = status
     if (progress !== undefined) variables.progress = progress
-    if (score !== undefined) variables.scoreRaw = score
+    if (score !== undefined && score !== null && score > 0) variables.scoreRaw = score
 
     const data = await this.queryAniList(mutation, variables, token)
     return data?.SaveMediaListEntry
@@ -320,7 +320,7 @@ export class TrackingService {
             parseInt(tracker.remoteId),
             tracker.status || 'CURRENT',
             targetNumber,
-            tracker.score
+            tracker.score && tracker.score > 0 ? tracker.score : undefined
           )
           await trackerRepo.updateSyncedChapter(mangaId, 'anilist', targetNumber)
         }
