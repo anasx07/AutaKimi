@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite'
-import { Manga, IpcResult, HistoryEntry, Chapter } from '@common/types'
+import { Manga, IpcResult, HistoryEntry, Chapter, DownloadEntry } from '@common/types'
 import { Extension } from '@common/types'
 
 type SuccessResult = IpcResult<{ success?: boolean; error?: string }>
@@ -110,6 +110,20 @@ export const MobileDB = {
           url TEXT,
           PRIMARY KEY (manga_id, id)
         );
+        CREATE TABLE IF NOT EXISTS downloads (
+          manga_id TEXT NOT NULL,
+          chapter_id TEXT NOT NULL,
+          total_pages INTEGER DEFAULT 0,
+          cached_pages INTEGER DEFAULT 0,
+          status TEXT,
+          page_urls TEXT,
+          error_message TEXT,
+          updated_at TEXT,
+          type TEXT DEFAULT 'manga',
+          manga_title TEXT,
+          chapter_title TEXT,
+          PRIMARY KEY (manga_id, chapter_id)
+        );
       `)
 
       // Indices
@@ -118,9 +132,76 @@ export const MobileDB = {
         CREATE INDEX IF NOT EXISTS idx_history_manga ON reading_history(manga_id);
         CREATE INDEX IF NOT EXISTS idx_history_started ON reading_history(started_at DESC);
         CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id);
+        CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
+        CREATE INDEX IF NOT EXISTS idx_downloads_type ON downloads(type);
       `)
 
-      currentVersion = 20
+      currentVersion = 21
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
+    }
+
+    if (currentVersion < 21) {
+      await connection.execAsync(`
+        CREATE TABLE IF NOT EXISTS downloads (
+          manga_id TEXT NOT NULL,
+          chapter_id TEXT NOT NULL,
+          total_pages INTEGER DEFAULT 0,
+          cached_pages INTEGER DEFAULT 0,
+          status TEXT,
+          page_urls TEXT,
+          error_message TEXT,
+          updated_at TEXT,
+          type TEXT DEFAULT 'manga',
+          manga_title TEXT,
+          chapter_title TEXT,
+          PRIMARY KEY (manga_id, chapter_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
+        CREATE INDEX IF NOT EXISTS idx_downloads_type ON downloads(type);
+      `)
+
+      // Migrate legacy downloads from settings if any exist
+      try {
+        const legacySettings = await connection.getAllAsync<{ key: string; value: string }>(
+          "SELECT key, value FROM settings WHERE key LIKE 'dl_meta_%';"
+        )
+        for (const item of legacySettings || []) {
+          try {
+            const raw = item.key.slice('dl_meta_'.length)
+            const statusRow = await connection.getFirstAsync<{ value: string }>(
+              'SELECT value FROM settings WHERE key = ?;',
+              [`dl_status_${raw}`]
+            )
+            const meta = JSON.parse(item.value || '{}')
+            const lastColon = raw.lastIndexOf(':')
+            if (lastColon > 0) {
+              const mangaId = raw.slice(0, lastColon)
+              const chapterId = raw.slice(lastColon + 1)
+              await connection.runAsync(
+                `INSERT OR IGNORE INTO downloads 
+                  (manga_id, chapter_id, total_pages, cached_pages, status, page_urls, updated_at, type, manga_title, chapter_title)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                [
+                  mangaId,
+                  chapterId,
+                  meta.totalPages || 0,
+                  meta.totalPages || 0,
+                  statusRow?.value || 'completed',
+                  meta.pageUrls ? JSON.stringify(meta.pageUrls) : null,
+                  meta.downloadedAt || new Date().toISOString(),
+                  meta.type || 'manga',
+                  meta.mangaTitle || null,
+                  meta.chapterTitle || null
+                ]
+              )
+            }
+          } catch {}
+        }
+      } catch (e) {
+        console.warn('[MobileDB] Legacy downloads migration skipped/failed:', e)
+      }
+
+      currentVersion = 21
       await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
     }
   },
@@ -447,5 +528,141 @@ export const MobileDB = {
       ]
     )
     return { ok: true, value: { success: true } }
+  },
+
+  async upsertDownload(data: {
+    mangaId: string
+    chapterId: string
+    totalPages?: number | null
+    cachedPages?: number | null
+    status?: string | null
+    pageUrls?: string | null
+    errorMessage?: string | null
+    updatedAt?: string | null
+    type?: string | null
+    mangaTitle?: string | null
+    chapterTitle?: string | null
+  }): Promise<SuccessResult> {
+    await this.ensureReady()
+    await db!.runAsync(
+      `INSERT INTO downloads (
+        manga_id, chapter_id, total_pages, cached_pages, status, 
+        page_urls, error_message, updated_at, type, manga_title, chapter_title
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(manga_id, chapter_id) DO UPDATE SET
+        total_pages = COALESCE(excluded.total_pages, downloads.total_pages),
+        cached_pages = COALESCE(excluded.cached_pages, downloads.cached_pages),
+        status = COALESCE(excluded.status, downloads.status),
+        page_urls = COALESCE(excluded.page_urls, downloads.page_urls),
+        error_message = excluded.error_message,
+        updated_at = excluded.updated_at,
+        type = COALESCE(excluded.type, downloads.type),
+        manga_title = COALESCE(excluded.manga_title, downloads.manga_title),
+        chapter_title = COALESCE(excluded.chapter_title, downloads.chapter_title);`,
+      [
+        data.mangaId,
+        data.chapterId,
+        data.totalPages ?? null,
+        data.cachedPages ?? null,
+        data.status ?? null,
+        data.pageUrls ?? null,
+        data.errorMessage ?? null,
+        data.updatedAt ?? new Date().toISOString(),
+        data.type ?? 'manga',
+        data.mangaTitle ?? null,
+        data.chapterTitle ?? null
+      ]
+    )
+    return { ok: true, value: { success: true } }
+  },
+
+  async getDownload(mangaId: string, chapterId: string): Promise<IpcResult<DownloadEntry | undefined>> {
+    await this.ensureReady()
+    const row = await db!.getFirstAsync<any>(
+      'SELECT * FROM downloads WHERE manga_id = ? AND chapter_id = ?;',
+      [mangaId, chapterId]
+    )
+    if (!row) return { ok: true, value: undefined }
+    return { ok: true, value: this.mapDownloadRow(row) }
+  },
+
+  async getDownloadsByManga(mangaId: string): Promise<IpcResult<DownloadEntry[]>> {
+    await this.ensureReady()
+    const rows = await db!.getAllAsync<any>(
+      'SELECT * FROM downloads WHERE manga_id = ? ORDER BY chapter_id ASC;',
+      [mangaId]
+    )
+    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) }
+  },
+
+  async getAllDownloads(type?: string): Promise<IpcResult<DownloadEntry[]>> {
+    await this.ensureReady()
+    let sql = 'SELECT * FROM downloads'
+    const params: any[] = []
+    if (type && type !== 'all') {
+      sql += ' WHERE type = ?'
+      params.push(type)
+    }
+    sql += ' ORDER BY updated_at DESC;'
+    const rows = await db!.getAllAsync<any>(sql, params)
+    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) }
+  },
+
+  async deleteDownload(mangaId: string, chapterId: string): Promise<IpcResult<boolean>> {
+    await this.ensureReady()
+    await db!.runAsync('DELETE FROM downloads WHERE manga_id = ? AND chapter_id = ?;', [mangaId, chapterId])
+    return { ok: true, value: true }
+  },
+
+  async clearDownloads(type?: string): Promise<IpcResult<boolean>> {
+    await this.ensureReady()
+    if (type && type !== 'all') {
+      await db!.runAsync('DELETE FROM downloads WHERE type = ?;', [type])
+    } else {
+      await db!.runAsync('DELETE FROM downloads;')
+    }
+    return { ok: true, value: true }
+  },
+
+  async updateDownloadProgress(mangaId: string, chapterId: string, cachedPages: number, totalPages?: number): Promise<IpcResult<boolean>> {
+    await this.ensureReady()
+    const now = new Date().toISOString()
+    if (typeof totalPages === 'number') {
+      await db!.runAsync(
+        'UPDATE downloads SET cached_pages = ?, total_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
+        [cachedPages, totalPages, now, mangaId, chapterId]
+      )
+    } else {
+      await db!.runAsync(
+        'UPDATE downloads SET cached_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
+        [cachedPages, now, mangaId, chapterId]
+      )
+    }
+    return { ok: true, value: true }
+  },
+
+  async updateDownloadStatus(mangaId: string, chapterId: string, status: string, error?: string): Promise<IpcResult<boolean>> {
+    await this.ensureReady()
+    await db!.runAsync(
+      'UPDATE downloads SET status = ?, error_message = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
+      [status, error || null, new Date().toISOString(), mangaId, chapterId]
+    )
+    return { ok: true, value: true }
+  },
+
+  mapDownloadRow(row: any): DownloadEntry {
+    return {
+      mangaId: row.manga_id,
+      chapterId: row.chapter_id,
+      totalPages: row.total_pages ?? null,
+      cachedPages: row.cached_pages ?? null,
+      status: row.status ?? null,
+      pageUrls: row.page_urls ?? null,
+      error: row.error_message ?? null,
+      updatedAt: row.updated_at ?? null,
+      mediaType: (row.type as 'manga' | 'anime') || 'manga',
+      mangaTitle: row.manga_title ?? null,
+      chapterTitle: row.chapter_title ?? null
+    }
   }
 }
