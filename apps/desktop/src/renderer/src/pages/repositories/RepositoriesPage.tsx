@@ -226,6 +226,7 @@ export default function RepositoriesPage({
   const handleRemoveRepo = async (url: string) => {
     try {
       await DataService.sources.removeRepo(url)
+      await queryClient.invalidateQueries({ queryKey: extensionKeys.all })
       await fetchRepos()
       await loadPlugins()
     } catch (e) {
