@@ -80,6 +80,54 @@ function getVideoType(server: any): "hls" | "mp4" | "embed" {
   return "embed";
 }
 
+const AD_DOMAINS = [
+  "a-ads.com",
+  "doubleclick.net",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "popads.net",
+  "propellerads.com",
+  "adsterra.com",
+  "exoclick.com",
+  "juicyads.com",
+  "trafficjunky.com",
+  "adnxs.com",
+  "adform.net",
+  "wingsmob.com",
+  "sleeklyyallaer.com",
+  "luckypick.top",
+  "bc.game",
+  "1xbet",
+  "melbet",
+  "betway",
+  "bet365",
+];
+
+function isAdUrl(url?: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  const lower = url.toLowerCase().trim();
+  if (
+    !lower.startsWith("http://") &&
+    !lower.startsWith("https://") &&
+    !lower.startsWith("//")
+  ) {
+    return false;
+  }
+  for (const domain of AD_DOMAINS) {
+    if (lower.includes(domain)) return true;
+  }
+  if (
+    (lower.includes("/ad/") ||
+      lower.includes("/ads/") ||
+      lower.includes("/banner/")) &&
+    !lower.includes(".mp4") &&
+    !lower.includes(".m3u8")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const INJECTED_POPUP_BLOCKER = `
 (function() {
   window.open = function() { return null; };
@@ -428,10 +476,12 @@ export default function PlayerScreen() {
             type: getVideoType(s),
           };
         })
-        .filter((s: ServerOption) => !!s.url);
+        .filter((s: ServerOption) => !!s.url && !isAdUrl(s.url));
 
       if (parsedServers.length === 0)
-        throw new Error("No playable video streams found");
+        throw new Error(
+          "No playable video streams found (ad-only feeds filtered)",
+        );
 
       setServers(parsedServers);
 
