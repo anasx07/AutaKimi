@@ -66,6 +66,7 @@ export function Navbar() {
             <Link 
               href="https://discord.gg/qRbpCusgan" 
               target="_blank"
+              rel="noopener noreferrer"
               aria-label="AutaKimi Discord"
               className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/30 text-[#5865F2] hover:bg-[#5865F2] hover:text-white transition-all duration-300"
             >
@@ -141,7 +142,7 @@ export function Navbar() {
               <a
                 href="https://github.com/anasx07/AutaKimi"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-semibold text-white transition-all"
               >
                 <Github className="w-3.5 h-3.5" />

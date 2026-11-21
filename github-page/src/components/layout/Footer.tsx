@@ -5,6 +5,7 @@ export function Footer() {
         <a 
           href="https://discord.gg/qRbpCusgan" 
           target="_blank" 
+          rel="noopener noreferrer"
           className="text-zinc-500 hover:text-[#5865F2] transition-colors text-sm font-bold uppercase tracking-widest"
         >
           Discord Community
@@ -12,6 +13,7 @@ export function Footer() {
         <a 
           href="https://github.com/anasx07/AutaKimi" 
           target="_blank" 
+          rel="noopener noreferrer"
           className="text-zinc-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
         >
           GitHub Repo
