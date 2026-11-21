@@ -119,3 +119,48 @@ All automated agent changes targeting `main` must strictly follow this workflow:
 - **Linting & Formatting**: Must pass `npm run lint` with 0 warnings/errors before opening PRs.
 - **Component Design**: Modular React components with clear separation between state (custom hooks/services) and presentation.
 - **Safe Case Sensitivity**: When mutating HTTP headers, perform case-insensitive key cleanup before applying new values to prevent duplicate conflicting headers (e.g. `Referer` vs `referer`).
+
+---
+
+## 6. 🚀 Release Protocol & CI/CD (`.github/workflows/release.yml`)
+
+AutaKimi uses GitHub Actions to automate cross-platform release builds:
+
+### A. Version Bumping Checklist
+When preparing a new release version `vX.Y.Z`, update:
+1. Root `package.json`: `"version": "X.Y.Z"`
+2. Desktop `apps/desktop/package.json`: `"version": "X.Y.Z"`
+3. Mobile `apps/mobile/app.json`: `"version": "X.Y.Z"` (and increment `android.versionCode` for Google Play / updates)
+
+### B. Triggering a Release
+A release is triggered automatically by pushing a Git tag or manually via workflow dispatch:
+```bash
+# 1. Ensure all changes are merged to main and local main is up to date
+git checkout main
+git pull origin main
+
+# 2. Create and push the release tag
+git tag v2.1.0
+git push origin v2.1.0
+
+# If re-tagging an existing release after a fix:
+git tag -f v2.1.0
+git push origin v2.1.0 --force
+```
+
+### C. Pipeline Jobs & Artifacts
+The GitHub Actions workflow runs three parallel/sequential jobs:
+1. **`build-desktop` (Windows)**:
+   - Builds `AutaKimi.exe` installer, `.blockmap`, and `latest.yml` via `electron-builder`.
+2. **`build-android` (Ubuntu Linux)**:
+   - Uses Java 21 Temurin, Gradle 9.4.1, Node 22.
+   - Decodes `ANDROID_KEYSTORE_BASE64` secret (or falls back to `debug.keystore`).
+   - Runs `./gradlew assembleRelease` generating 5 APK variants:
+     - `app-arm64-v8a-release.apk`
+     - `app-armeabi-v7a-release.apk`
+     - `app-universal-release.apk`
+     - `app-x86-release.apk`
+     - `app-x86_64-release.apk`
+3. **`publish`**:
+   - Collects both desktop and Android artifacts and creates or updates (`--clobber`) the GitHub Release under `TAG`.
+
