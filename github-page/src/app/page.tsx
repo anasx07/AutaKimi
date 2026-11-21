@@ -8,22 +8,9 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import dynamic from 'next/dynamic'
 
 import { MediaButton } from '@/components/ui/media-button'
 import { GlowCard } from '@/components/ui/spotlight-card'
-
-const AppSimulator = dynamic(() => import('@/components/ui/app-simulator'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full max-w-5xl mx-auto h-[580px] flex items-center justify-center rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
-        <span className="text-xs font-mono text-zinc-500">Loading interactive simulator...</span>
-      </div>
-    </div>
-  )
-})
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -249,20 +236,6 @@ export default function Home() {
           </div>
         </div>
       </header>
-
-      {/* APP INTERACTIVE SIMULATOR */}
-      <section className="w-full py-20 bg-gradient-to-b from-transparent via-orange-950/5 to-transparent border-y border-white/5 relative z-10">
-        <div className="max-w-6xl mx-auto px-6 mb-12 text-center space-y-4">
-          <span className="premium-pill bg-orange-500/10 border-orange-500/20 text-orange-300">Live Simulator</span>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-            Try AutaKimi <span className="text-gradient font-black">Now</span>
-          </h2>
-          <p className="text-zinc-400 max-w-xl mx-auto text-sm leading-relaxed">
-            Click tabs below to test out AutaKimi&apos;s native UI right in your browser. Install mock scrapers, search collections, and simulate the core reader.
-          </p>
-        </div>
-        <AppSimulator />
-      </section>
 
       {/* DETAILED FEATURES SECTION */}
       <section id="features" className="py-24 px-6 max-w-6xl w-full relative z-10">
