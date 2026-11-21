@@ -116,3 +116,28 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
     _raw: includeRaw ? manga : undefined
   }
 }
+
+/**
+ * Validates whether a scraped media item is a genuine entry rather than
+ * a navigation link, ad, or website root/homepage (e.g. logo link).
+ */
+export const isValidMediaCatalogItem = (item: any): boolean => {
+  if (!item) return false
+  const rawUrl = String(item.url || item.manga_url || item.link || item.id || '').trim()
+  if (!rawUrl || rawUrl === '/' || rawUrl === '#' || rawUrl.toLowerCase().startsWith('javascript:')) {
+    return false
+  }
+
+  try {
+    const parsed = new URL(rawUrl, 'https://autakimi.local')
+    // Exclude root domain / homepage links (e.g. "https://domain.com", "https://domain.com/", "/")
+    if ((parsed.pathname === '/' || parsed.pathname === '') && !parsed.search) {
+      return false
+    }
+  } catch {
+    if (rawUrl === '/' || rawUrl === '') return false
+  }
+
+  return true
+}
+

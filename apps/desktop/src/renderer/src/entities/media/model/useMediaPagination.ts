@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { NormalizedManga as Media, normalizeManga } from '@common/utils/mangaNormalizer'
+import { NormalizedManga as Media, normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { useBrowseCacheStore } from '@renderer/shared/model'
 import { useInfiniteScroll } from '@renderer/shared/lib'
@@ -125,7 +125,8 @@ export function useMediaPagination({
 
         if (res && res.manga) {
           const isAnimeExt = isAnimeExtension({ pkg: activeExtension })
-          const normalized = res.manga.map((m: any) => ({
+          const validManga = res.manga.filter(isValidMediaCatalogItem)
+          const normalized = validManga.map((m: any) => ({
             ...normalizeManga(m, extLang),
             pkg: activeExtension,
             mediaType: m.mediaType || (isAnimeExt ? 'anime' : 'manga')
