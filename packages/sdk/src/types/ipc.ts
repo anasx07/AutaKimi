@@ -62,6 +62,8 @@ export enum IpcChannel {
   WINDOW_RESTORE = 'window:restore',
   WINDOW_CLOSE = 'window:close',
   WINDOW_IS_MAXIMIZED = 'window:is-maximized',
+  WINDOW_SET_FULLSCREEN = 'window:set-fullscreen',
+  WINDOW_IS_FULLSCREEN = 'window:is-fullscreen',
   WINDOW_UPDATE_OVERLAY = 'window:update-overlay',
 
   // Downloads
@@ -138,13 +140,27 @@ export type IpcInvokeMap = {
   [IpcChannel.FETCH_TEXT]: (url: string, options?: FetchOptions) => Promise<IpcResult<FetchResult>>
   [IpcChannel.DETECT_THEME]: (baseUrl: string) => Promise<IpcResult<string>>
 
-  [IpcChannel.SYNC_START_SERVER]: () => Promise<IpcResult<{ success: boolean; port: number; ip: string }>>
+  [IpcChannel.SYNC_START_SERVER]: () => Promise<
+    IpcResult<{ success: boolean; port: number; ip: string }>
+  >
   [IpcChannel.SYNC_STOP_SERVER]: () => Promise<IpcResult<void>>
-  [IpcChannel.SYNC_GET_STATUS]: () => Promise<IpcResult<{ isRunning: boolean; port: number; ip: string; deviceId: string }>>
-  [IpcChannel.SYNC_GET_PAIRING_PAYLOAD]: (args: { ip: string; port: number }) => Promise<IpcResult<string>>
+  [IpcChannel.SYNC_GET_STATUS]: () => Promise<
+    IpcResult<{
+      isRunning: boolean
+      port: number
+      ip: string
+      deviceId: string
+    }>
+  >
+  [IpcChannel.SYNC_GET_PAIRING_PAYLOAD]: (args: {
+    ip: string
+    port: number
+  }) => Promise<IpcResult<string>>
 
   [IpcChannel.SOURCES_GET_REPOS]: () => Promise<IpcResult<string[]>>
-  [IpcChannel.SOURCES_ADD_REPO]: (url: string) => Promise<IpcResult<{ success: boolean; count: number; error?: string }>>
+  [IpcChannel.SOURCES_ADD_REPO]: (
+    url: string
+  ) => Promise<IpcResult<{ success: boolean; count: number; error?: string }>>
   [IpcChannel.SOURCES_REMOVE_REPO]: (url: string) => Promise<IpcResult<void>>
   [IpcChannel.SOURCES_REFRESH_ALL]: () => Promise<IpcResult<{ totalCount: number }>>
   [IpcChannel.SOURCES_GET_ALL]: () => Promise<IpcResult<any[]>>
@@ -216,19 +232,27 @@ export type IpcInvokeMap = {
   [IpcChannel.DB_GET_HISTORY]: (
     args?: { limit?: number; offset?: number; type?: string } | number
   ) => Promise<IpcResult<HistoryEntry[]>>
-  [IpcChannel.DB_DELETE_HISTORY_ENTRY]: (id: number) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_DELETE_HISTORY_ENTRY]: (
+    id: number
+  ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_DELETE_HISTORY_BY_MANGA]: (
     mangaId: string
   ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-  [IpcChannel.DB_CLEAR_HISTORY]: (type?: string) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-  [IpcChannel.DB_CLEAR_LIBRARY]: (type?: string) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_CLEAR_HISTORY]: (
+    type?: string
+  ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_CLEAR_LIBRARY]: (
+    type?: string
+  ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_GET_CHAPTERS]: (mangaId: string) => Promise<IpcResult<Chapter[]>>
   [IpcChannel.DB_SAVE_CHAPTERS]: (args: {
     mangaId: string
     chapters: Chapter[]
   }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.DB_GET_MANGA_CACHE]: (mangaId: string) => Promise<IpcResult<Manga | null>>
-  [IpcChannel.DB_SAVE_MANGA_CACHE]: (manga: Manga) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_SAVE_MANGA_CACHE]: (
+    manga: Manga
+  ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
 
   [IpcChannel.EXECUTE_EXTENSION]: (args: {
     pkg: string
@@ -252,7 +276,12 @@ export type IpcInvokeMap = {
   [IpcChannel.WINDOW_RESTORE]: () => Promise<IpcResult<void>>
   [IpcChannel.WINDOW_CLOSE]: () => Promise<IpcResult<void>>
   [IpcChannel.WINDOW_IS_MAXIMIZED]: () => Promise<IpcResult<boolean>>
-  [IpcChannel.WINDOW_UPDATE_OVERLAY]: (options: { color: string; symbolColor: string }) => Promise<IpcResult<void>>
+  [IpcChannel.WINDOW_SET_FULLSCREEN]: (flag: boolean) => Promise<IpcResult<void>>
+  [IpcChannel.WINDOW_IS_FULLSCREEN]: () => Promise<IpcResult<boolean>>
+  [IpcChannel.WINDOW_UPDATE_OVERLAY]: (options: {
+    color: string
+    symbolColor: string
+  }) => Promise<IpcResult<void>>
 
   [IpcChannel.DOWNLOAD_CHAPTER]: (args: {
     mangaId: string
@@ -263,14 +292,20 @@ export type IpcInvokeMap = {
     extensionName?: string
     chapterTitle?: string
   }) => Promise<IpcResult<boolean>>
-  [IpcChannel.CANCEL_DOWNLOAD]: (args: { mangaId: string; chapterId: string }) => Promise<IpcResult<boolean>>
+  [IpcChannel.CANCEL_DOWNLOAD]: (args: {
+    mangaId: string
+    chapterId: string
+  }) => Promise<IpcResult<boolean>>
   [IpcChannel.GET_DOWNLOAD_STATUS]: (args: {
     mangaId: string
     chapterId: string
   }) => Promise<IpcResult<DownloadEntry | undefined>>
   [IpcChannel.GET_MANGA_DOWNLOADS]: (mangaId: string) => Promise<IpcResult<DownloadEntry[]>>
   [IpcChannel.DOWNLOAD_GET_ALL_MANGA]: (type?: string) => Promise<IpcResult<DownloadEntry[]>>
-  [IpcChannel.REMOVE_DOWNLOAD]: (args: { mangaId: string; chapterId: string }) => Promise<IpcResult<boolean>>
+  [IpcChannel.REMOVE_DOWNLOAD]: (args: {
+    mangaId: string
+    chapterId: string
+  }) => Promise<IpcResult<boolean>>
   [IpcChannel.DOWNLOAD_CLEAR_ALL]: (type?: string) => Promise<IpcResult<boolean>>
 
   [IpcChannel.INSTALL_UPDATE]: () => Promise<IpcResult<void>>
@@ -280,39 +315,85 @@ export type IpcInvokeMap = {
   [IpcChannel.CF_BYPASS]: (url: string, silent?: boolean) => Promise<IpcResult<boolean>>
   [IpcChannel.CF_FETCH_HTML]: (url: string, silent?: boolean) => Promise<IpcResult<string | null>>
   [IpcChannel.GET_SYSTEM_STATE]: () => Promise<IpcResult<SystemState>>
-  [IpcChannel.SET_STREAM_HEADERS]: (args: { url: string; headers: Record<string, string> }) => Promise<IpcResult<boolean>>
+  [IpcChannel.SET_STREAM_HEADERS]: (args: {
+    url: string
+    headers: Record<string, string>
+  }) => Promise<IpcResult<boolean>>
   [IpcChannel.PROBE_STREAM]: (args: {
     url: string
     headers?: Record<string, string>
     timeoutMs?: number
-  }) => Promise<IpcResult<{ alive: boolean; status: number; pingMs: number; error?: string }>>
+  }) => Promise<
+    IpcResult<{
+      alive: boolean
+      status: number
+      pingMs: number
+      error?: string
+    }>
+  >
 
   [IpcChannel.DB_GET_TRACKERS]: (mangaId: string) => Promise<IpcResult<Tracker[]>>
-  [IpcChannel.DB_SAVE_TRACKER]: (tracker: Tracker) => Promise<IpcResult<{ success?: boolean; error?: string }>>
-  [IpcChannel.DB_DELETE_TRACKER]: (args: { mangaId: string; provider: TrackerProvider }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_SAVE_TRACKER]: (
+    tracker: Tracker
+  ) => Promise<IpcResult<{ success?: boolean; error?: string }>>
+  [IpcChannel.DB_DELETE_TRACKER]: (args: {
+    mangaId: string
+    provider: TrackerProvider
+  }) => Promise<IpcResult<{ success?: boolean; error?: string }>>
   [IpcChannel.TRACKER_AUTH_ANILIST]: () => Promise<IpcResult<{ token: string; user: AniListUser }>>
   [IpcChannel.TRACKER_GET_USER_ANILIST]: () => Promise<IpcResult<AniListUser | null>>
   [IpcChannel.TRACKER_SET_TOKEN_ANILIST]: (token: string) => Promise<IpcResult<AniListUser>>
   [IpcChannel.TRACKER_LOGOUT_ANILIST]: () => Promise<IpcResult<void>>
-  [IpcChannel.TRACKER_SEARCH_ANILIST]: (args: { query: string; type?: 'ANIME' | 'MANGA' }) => Promise<IpcResult<AniListMedia[]>>
-  [IpcChannel.TRACKER_GET_MEDIA_ANILIST]: (mediaId: number) => Promise<IpcResult<AniListMedia | null>>
+  [IpcChannel.TRACKER_SEARCH_ANILIST]: (args: {
+    query: string
+    type?: 'ANIME' | 'MANGA'
+  }) => Promise<IpcResult<AniListMedia[]>>
+  [IpcChannel.TRACKER_GET_MEDIA_ANILIST]: (
+    mediaId: number
+  ) => Promise<IpcResult<AniListMedia | null>>
   [IpcChannel.TRACKER_UPDATE_ANILIST]: (args: {
     mediaId: number
     status?: string
     progress?: number
     score?: number
   }) => Promise<IpcResult<any>>
-  [IpcChannel.TRACKER_PROCESS_QUEUE]: () => Promise<IpcResult<{ processed: number; succeeded: number; failed: number }>>
+  [IpcChannel.TRACKER_PROCESS_QUEUE]: () => Promise<
+    IpcResult<{ processed: number; succeeded: number; failed: number }>
+  >
 
-  [IpcChannel.BACKUP_EXPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; filePath?: string; counts?: any; error?: string }>>
-  [IpcChannel.BACKUP_IMPORT]: () => Promise<IpcResult<{ success: boolean; canceled?: boolean; counts?: any; error?: string }>>
+  [IpcChannel.BACKUP_EXPORT]: () => Promise<
+    IpcResult<{
+      success: boolean
+      canceled?: boolean
+      filePath?: string
+      counts?: any
+      error?: string
+    }>
+  >
+  [IpcChannel.BACKUP_IMPORT]: () => Promise<
+    IpcResult<{
+      success: boolean
+      canceled?: boolean
+      counts?: any
+      error?: string
+    }>
+  >
 }
 
 /**
  * Mapping of IPC channels to their event payloads for `ipcRenderer.on`.
  */
 export type IpcEventMap = {
-  [IpcChannel.APP_UPDATE]: (data: { status: string; progress?: { percent: number; bytesPerSecond: number; total: number; transferred: number }; error?: string }) => void
+  [IpcChannel.APP_UPDATE]: (data: {
+    status: string
+    progress?: {
+      percent: number
+      bytesPerSecond: number
+      total: number
+      transferred: number
+    }
+    error?: string
+  }) => void
   [IpcChannel.DOWNLOAD_EVENT]: (data: {
     type: 'start' | 'progress' | 'completed' | 'error' | 'canceled'
     mangaId: string
@@ -321,7 +402,10 @@ export type IpcEventMap = {
     total?: number
     error?: string
   }) => void
-  [IpcChannel.CF_STATUS]: (data: { status: 'started' | 'completed' | 'failed'; domain?: string }) => void
+  [IpcChannel.CF_STATUS]: (data: {
+    status: 'started' | 'completed' | 'failed'
+    domain?: string
+  }) => void
   ['CACHE_INVALIDATE']: (data: { group: string; key?: string }) => void
   [IpcChannel.SYSTEM_STATE_UPDATE]: (data: StateUpdateEvent) => void
 }
@@ -402,6 +486,8 @@ export interface ElectronApi {
     restore: IpcInvokeMap[IpcChannel.WINDOW_RESTORE]
     close: IpcInvokeMap[IpcChannel.WINDOW_CLOSE]
     isMaximized: IpcInvokeMap[IpcChannel.WINDOW_IS_MAXIMIZED]
+    setFullScreen: IpcInvokeMap[IpcChannel.WINDOW_SET_FULLSCREEN]
+    isFullScreen: IpcInvokeMap[IpcChannel.WINDOW_IS_FULLSCREEN]
     updateOverlay: IpcInvokeMap[IpcChannel.WINDOW_UPDATE_OVERLAY]
     openExternal: IpcInvokeMap[IpcChannel.OPEN_EXTERNAL]
     openInternalBrowser: IpcInvokeMap[IpcChannel.OPEN_INTERNAL_BROWSER]
@@ -439,4 +525,3 @@ export interface ElectronApi {
   platform: string
   version: string
 }
-

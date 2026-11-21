@@ -41,6 +41,23 @@ export function registerWindowHandlers() {
   )
 
   registerHandler(
+    IpcChannel.WINDOW_SET_FULLSCREEN,
+    wrapIpc(async (event, flag: boolean) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (win) {
+        win.setFullScreen(Boolean(flag))
+      }
+    })
+  )
+
+  registerHandler(
+    IpcChannel.WINDOW_IS_FULLSCREEN,
+    wrapIpc(async (event) => {
+      return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false
+    })
+  )
+
+  registerHandler(
     IpcChannel.WINDOW_UPDATE_OVERLAY,
     wrapIpc(async (event, options: { color: string; symbolColor: string }) => {
       if (!options || typeof options !== 'object') throw new Error('Invalid options')
@@ -57,7 +74,8 @@ export function registerWindowHandlers() {
   registerHandler(
     IpcChannel.OPEN_EXTERNAL,
     wrapIpc(async (_, url: string) => {
-      if (typeof url !== 'string' || !isValidUrl(url)) throw new Error('Invalid URL: only http/https is allowed')
+      if (typeof url !== 'string' || !isValidUrl(url))
+        throw new Error('Invalid URL: only http/https is allowed')
       await shell.openExternal(url)
     })
   )
@@ -89,14 +107,18 @@ export function registerWindowHandlers() {
         }
         if (new URL(navUrl).hostname !== allowedHost) {
           event.preventDefault()
-          shell.openExternal(navUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
+          shell
+            .openExternal(navUrl)
+            .catch((e) => console.error('[Window] Failed to open external URL:', e))
         }
       })
 
       // Block new windows entirely — open them externally only if safe http/https URL
       win.webContents.setWindowOpenHandler(({ url: newUrl }) => {
         if (isValidUrl(newUrl)) {
-          shell.openExternal(newUrl).catch((e) => console.error('[Window] Failed to open external URL:', e))
+          shell
+            .openExternal(newUrl)
+            .catch((e) => console.error('[Window] Failed to open external URL:', e))
         }
         return { action: 'deny' }
       })
@@ -125,4 +147,3 @@ export function registerWindowHandlers() {
     })
   )
 }
-
