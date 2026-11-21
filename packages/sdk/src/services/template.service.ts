@@ -446,7 +446,19 @@ export class TemplateService {
       }
 
       const data = await response.json()
+
+      // If data is a repository manifest pointing to a relative templates file, resolve and fetch that file
+      if (typeof data.templates === 'string') {
+        const lastSlash = url.lastIndexOf('/')
+        const baseUrl = lastSlash !== -1 ? url.substring(0, lastSlash + 1) : `${url}/`
+        return this.fetchTemplates(`${baseUrl}${data.templates}`)
+      }
+
       if (!data.templates || !Array.isArray(data.templates)) {
+        // If it's a Keiyoushi manifest or catalog-only manifest with no templates, succeed gracefully
+        if (data.catalogs || data.sources || data.isKeiyoushi) {
+          return { success: true, count: 0 }
+        }
         throw new Error('Invalid template repository format')
       }
 

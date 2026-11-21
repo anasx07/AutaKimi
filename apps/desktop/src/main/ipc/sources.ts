@@ -1,6 +1,5 @@
 import { IpcChannel } from '@common/types/ipc'
 import { extensionRepo, settingsRepo } from '../db'
-import { templateService } from '@common/services/template.service'
 import { sourceService } from '@common/services/source.service'
 import { pluginService } from '@common/services/plugin.service'
 import { extensionRegistryOrchestrator } from '@common/services/extensionRegistryOrchestrator'
@@ -58,22 +57,22 @@ export function registerSourceHandlers() {
         return { success: true, count: 0 } // Already exists
       }
 
-      // Test fetch before adding
-      const templatesRes = await templateService.fetchTemplates(url)
-      if (templatesRes.success) {
-        repos.push(url)
-        await settingsRepo.set('source_repositories', JSON.stringify(repos))
+      let installedLangs: string[] = []
+      try {
+        const installedDb = await extensionRepo.getAll()
+        installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
+      } catch (e) {}
 
-        let installedLangs: string[] = []
-        try {
-          const installedDb = await extensionRepo.getAll()
-          installedLangs = Array.from(new Set(installedDb.map((e) => e.lang || 'en')))
-        } catch (e) {}
-
-        // Instantly load plugins and sources from this new repository via orchestrator
-        await extensionRegistryOrchestrator.syncRepositories([url], installedLangs)
+      // Validate and instantly sync via orchestrator
+      const syncRes = await extensionRegistryOrchestrator.syncRepositories([url], installedLangs)
+      if (!syncRes.success || syncRes.manifestsCount === 0) {
+        throw new Error('Failed to resolve repository manifest')
       }
-      return templatesRes as any
+
+      repos.push(url)
+      await settingsRepo.set('source_repositories', JSON.stringify(repos))
+
+      return { success: true, count: syncRes.sourcesCount || syncRes.templatesCount }
     })
   )
 

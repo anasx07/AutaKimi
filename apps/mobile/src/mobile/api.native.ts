@@ -533,13 +533,35 @@ export const MobileApi: ElectronApi = {
         return { ok: true, value: { success: true, count: 0 } };
       }
 
-      const res = await templateService.fetchTemplates(url);
-      if (res.success) {
-        repos.push(url);
-        await MobileDB.setSetting("source_repositories", JSON.stringify(repos));
-        await sourceService.loadAllRepositories([url]);
+      let installedLangs: string[] = [];
+      try {
+        const installedDb = await MobileDB.getExtensions();
+        if (installedDb.ok && installedDb.value) {
+          installedLangs = Array.from(
+            new Set(installedDb.value.map((e) => e.lang || "en")),
+          );
+        }
+      } catch (e) {
+        console.warn("[MobileApi] Failed to read installed languages:", e);
       }
-      return { ok: true, value: res };
+
+      const syncRes = await extensionRegistryOrchestrator.syncRepositories(
+        [url],
+        installedLangs,
+      );
+      if (!syncRes.success || syncRes.manifestsCount === 0) {
+        throw new Error("Failed to resolve repository manifest");
+      }
+
+      repos.push(url);
+      await MobileDB.setSetting("source_repositories", JSON.stringify(repos));
+      return {
+        ok: true,
+        value: {
+          success: true,
+          count: syncRes.sourcesCount || syncRes.templatesCount,
+        },
+      };
     },
     removeRepo: async (url: string) => {
       if (typeof url !== "string") throw new Error("Invalid URL");
