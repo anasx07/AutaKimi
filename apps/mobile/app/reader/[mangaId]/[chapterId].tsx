@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View, FlatList, TouchableOpacity, ActivityIndicator,
   Dimensions, TouchableWithoutFeedback, PanResponder
@@ -12,14 +12,22 @@ import { Typography, Button } from '@mobile/native/ui';
 import { DataService } from '@renderer/shared/api'
 import { ArrowLeft, AlertTriangle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { getImageHeaders } from '../../../src/mobile/cf-cookies'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 // --- ReaderImage Component ---
-const ReaderImage = ({ url, index }: { url: string; index: number }) => {
+const ReaderImage = ({ url, index, refererUrl }: { url: string; index: number; refererUrl?: string }) => {
   const [imgHeight, setImgHeight] = useState<number>(SCREEN_WIDTH * 1.4)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+
+  const headers = useMemo(() => {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return undefined
+    }
+    return getImageHeaders(url, refererUrl)
+  }, [url, refererUrl])
 
   if (error) {
     return (
@@ -48,10 +56,7 @@ const ReaderImage = ({ url, index }: { url: string; index: number }) => {
       <ExpoImage
         source={{
           uri: url,
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
+          ...(headers ? { headers } : {})
         }}
         style={{ width: SCREEN_WIDTH, height: imgHeight }}
         contentFit="contain"
@@ -93,6 +98,11 @@ export default function ReaderScreen() {
   const [scrubbingPage, setScrubbingPage] = useState<number | null>(null)
   const listRef = useRef<FlatList>(null)
   const startLocationXRef = useRef(0)
+
+  const effectiveReferer =
+    chapterUrl ||
+    (chapterId && (chapterId.startsWith('http://') || chapterId.startsWith('https://')) ? chapterId : undefined) ||
+    (mangaId && (mangaId.startsWith('http://') || mangaId.startsWith('https://')) ? mangaId : undefined)
   const scrubbingPageRef = useRef<number | null>(null)
   scrubbingPageRef.current = scrubbingPage
 
@@ -400,7 +410,9 @@ export default function ReaderScreen() {
               ref={listRef}
               data={pages}
               keyExtractor={(_item, index) => `${index}`}
-              renderItem={({ item, index }) => <ReaderImage url={item} index={index} />}
+              renderItem={({ item, index }) => (
+                <ReaderImage url={item} index={index} refererUrl={effectiveReferer} />
+              )}
               showsVerticalScrollIndicator={false}
               windowSize={5}
               initialNumToRender={3}
