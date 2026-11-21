@@ -48,7 +48,7 @@ export class TrackerRepository {
         mangaId: data.mangaId,
         provider: data.provider,
         remoteId: data.remoteId,
-        score: data.score ?? 0,
+        score: data.score !== undefined ? data.score : null,
         status: data.status || 'CURRENT',
         lastSyncedChapter: data.lastSyncedChapter ?? 0,
         updatedAt: now
