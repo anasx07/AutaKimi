@@ -11,5 +11,7 @@ tmp
 *.lnk
 critical_info.txt
 autakimi-extensions/
+# AI Agent Guides & Local Instructions
 GEMINI.md
+CLAUDE.md
 AGENTS.md
