@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, net } from 'electron'
 import { trackerRepo, settingsRepo, chapterRepo } from '../db'
 import { AniListUser, AniListMedia } from '@common/types'
 
@@ -6,6 +6,43 @@ const ANILIST_CLIENT_ID = '16329'
 const ANILIST_GRAPHQL_ENDPOINT = 'https://graphql.anilist.co'
 
 export class TrackingService {
+  private mediaCache = new Map<number, AniListMedia>()
+  private isProcessingQueue = false
+  private queueInterval: NodeJS.Timeout | null = null
+
+  constructor() {
+    // Periodically process offline retry queue (every 45s)
+    this.queueInterval = setInterval(() => {
+      this.processRetryQueue().catch(() => {})
+    }, 45000)
+  }
+
+  /**
+   * Helper to check whether an error is caused by missing internet or network failure
+   */
+  private isNetworkOrOfflineError(error: any): boolean {
+    if (!error) return false
+    if (typeof net !== 'undefined' && net.isOnline && !net.isOnline()) return true
+
+    const msg = String(error?.message || error || '').toLowerCase()
+    const code = String(error?.code || error?.cause?.code || '').toLowerCase()
+
+    return (
+      msg.includes('fetch failed') ||
+      msg.includes('network') ||
+      msg.includes('enotfound') ||
+      msg.includes('econnrefused') ||
+      msg.includes('etimedout') ||
+      msg.includes('eai_again') ||
+      msg.includes('offline') ||
+      msg.includes('abort') ||
+      code.includes('enotfound') ||
+      code.includes('econnrefused') ||
+      code.includes('etimedout') ||
+      code.includes('eai_again')
+    )
+  }
+
   /**
    * Helper to execute GraphQL queries/mutations against AniList
    */
@@ -73,6 +110,7 @@ export class TrackingService {
               await settingsRepo.set('anilist_token', token)
               await settingsRepo.set('anilist_user', JSON.stringify(user))
               authWindow.close()
+              this.processRetryQueue().catch(() => {})
               resolve({ token, user })
             })
             .catch((err) => {
@@ -113,6 +151,7 @@ export class TrackingService {
     const user = await this.fetchViewer(token)
     await settingsRepo.set('anilist_token', token)
     await settingsRepo.set('anilist_user', JSON.stringify(user))
+    this.processRetryQueue().catch(() => {})
     return user
   }
 
@@ -199,7 +238,13 @@ export class TrackingService {
       search,
       type
     })
-    return data?.Page?.media || []
+    const list = data?.Page?.media || []
+    for (const item of list) {
+      if (item && item.id) {
+        this.mediaCache.set(item.id, item)
+      }
+    }
+    return list
   }
 
   /**
@@ -239,7 +284,39 @@ export class TrackingService {
       { mediaId },
       token || undefined
     )
+    if (data?.Media) {
+      this.mediaCache.set(mediaId, data.Media)
+    }
     return data?.Media || null
+  }
+
+  /**
+   * Resolves smart status: if targetNumber equals or exceeds media.chapters / episodes, sets status to 'COMPLETED'.
+   */
+  async resolveSmartStatus(
+    mediaId: number,
+    targetNumber: number,
+    currentStatus?: string
+  ): Promise<string> {
+    let resolvedStatus = currentStatus || 'CURRENT'
+    try {
+      let media = this.mediaCache.get(mediaId)
+      if (!media && (typeof net === 'undefined' || !net.isOnline || net.isOnline())) {
+        const remote = await this.getAniListMedia(mediaId)
+        if (remote) {
+          media = remote
+          this.mediaCache.set(mediaId, remote)
+        }
+      }
+
+      const totalChapters = media?.chapters || media?.episodes
+      if (totalChapters && targetNumber >= totalChapters) {
+        resolvedStatus = 'COMPLETED'
+      }
+    } catch (err) {
+      console.warn('[TrackingService] Could not resolve media chapters for smart status:', err)
+    }
+    return resolvedStatus
   }
 
   /**
@@ -254,6 +331,12 @@ export class TrackingService {
     const token = await settingsRepo.get('anilist_token')
     if (!token) throw new Error('AniList account is not connected.')
 
+    // Smart Status auto-completion check if progress is passed
+    let finalStatus = status
+    if (progress !== undefined && progress > 0 && finalStatus !== 'COMPLETED') {
+      finalStatus = await this.resolveSmartStatus(mediaId, progress, finalStatus)
+    }
+
     const mutation = `
       mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $scoreRaw: Int) {
         SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, scoreRaw: $scoreRaw) {
@@ -266,12 +349,32 @@ export class TrackingService {
       }
     `
     const variables: Record<string, any> = { mediaId }
-    if (status) variables.status = status
+    if (finalStatus) variables.status = finalStatus
     if (progress !== undefined) variables.progress = progress
     if (score !== undefined && score !== null && score > 0) variables.scoreRaw = score
 
-    const data = await this.queryAniList(mutation, variables, token)
-    return data?.SaveMediaListEntry
+    try {
+      const data = await this.queryAniList(mutation, variables, token)
+      // On success, process any pending offline queue items in background
+      this.processRetryQueue().catch(() => {})
+      return data?.SaveMediaListEntry
+    } catch (err: any) {
+      if (this.isNetworkOrOfflineError(err) && progress !== undefined) {
+        console.log(
+          `[TrackingService] Network error in updateAniListMedia. Enqueuing update for media ${mediaId} -> progress ${progress}`
+        )
+        const tracker = await trackerRepo.getTrackerByRemoteId(String(mediaId), 'anilist')
+        await trackerRepo.enqueueSync({
+          mangaId: tracker?.mangaId || String(mediaId),
+          mediaId,
+          status: finalStatus,
+          progress,
+          score: score && score > 0 ? score : undefined,
+          lastError: err.message || 'Offline'
+        })
+      }
+      throw err
+    }
   }
 
   /**
@@ -313,20 +416,196 @@ export class TrackingService {
         const lastSynced = tracker.lastSyncedChapter || 0
 
         if (targetNumber > lastSynced) {
-          console.log(
-            `[TrackingService] Auto-syncing manga ${mangaId} to AniList media ${tracker.remoteId} -> progress ${targetNumber}`
-          )
-          await this.updateAniListMedia(
-            parseInt(tracker.remoteId),
-            tracker.status || 'CURRENT',
+          const remoteMediaId = parseInt(tracker.remoteId)
+          const targetStatus = await this.resolveSmartStatus(
+            remoteMediaId,
             targetNumber,
-            tracker.score && tracker.score > 0 ? tracker.score : undefined
+            tracker.status || 'CURRENT'
           )
-          await trackerRepo.updateSyncedChapter(mangaId, 'anilist', targetNumber)
+
+          // 1. If currently offline, queue update immediately without failing
+          const isOffline = typeof net !== 'undefined' && net.isOnline ? !net.isOnline() : false
+          if (isOffline) {
+            console.log(
+              `[TrackingService] Device is offline. Queuing AniList update for media ${remoteMediaId} -> progress ${targetNumber} (status: ${targetStatus})`
+            )
+            await trackerRepo.enqueueSync({
+              mangaId,
+              mediaId: remoteMediaId,
+              status: targetStatus,
+              progress: targetNumber,
+              score: tracker.score && tracker.score > 0 ? tracker.score : undefined,
+              lastError: 'Device is offline'
+            })
+            await trackerRepo.updateSyncedChapter(mangaId, 'anilist', targetNumber)
+            if (targetStatus === 'COMPLETED' && tracker.status !== 'COMPLETED') {
+              await trackerRepo.saveTracker({
+                mangaId,
+                provider: 'anilist',
+                remoteId: tracker.remoteId,
+                status: 'COMPLETED',
+                score: tracker.score,
+                lastSyncedChapter: targetNumber
+              })
+            }
+            return
+          }
+
+          // 2. Online: attempt live sync with retry queue fallback
+          try {
+            console.log(
+              `[TrackingService] Auto-syncing manga ${mangaId} to AniList media ${tracker.remoteId} -> progress ${targetNumber} (status: ${targetStatus})`
+            )
+            await this.updateAniListMedia(
+              remoteMediaId,
+              targetStatus,
+              targetNumber,
+              tracker.score && tracker.score > 0 ? tracker.score : undefined
+            )
+            await trackerRepo.updateSyncedChapter(mangaId, 'anilist', targetNumber)
+            if (targetStatus === 'COMPLETED' && tracker.status !== 'COMPLETED') {
+              await trackerRepo.saveTracker({
+                mangaId,
+                provider: 'anilist',
+                remoteId: tracker.remoteId,
+                status: 'COMPLETED',
+                score: tracker.score,
+                lastSyncedChapter: targetNumber
+              })
+            }
+            // Trigger retry queue processing
+            this.processRetryQueue().catch(() => {})
+          } catch (syncErr: any) {
+            if (this.isNetworkOrOfflineError(syncErr)) {
+              console.log(
+                `[TrackingService] Network error during auto-sync. Enqueuing update for media ${remoteMediaId}:`,
+                syncErr.message
+              )
+              await trackerRepo.enqueueSync({
+                mangaId,
+                mediaId: remoteMediaId,
+                status: targetStatus,
+                progress: targetNumber,
+                score: tracker.score && tracker.score > 0 ? tracker.score : undefined,
+                lastError: syncErr.message || 'Network error'
+              })
+              await trackerRepo.updateSyncedChapter(mangaId, 'anilist', targetNumber)
+              if (targetStatus === 'COMPLETED' && tracker.status !== 'COMPLETED') {
+                await trackerRepo.saveTracker({
+                  mangaId,
+                  provider: 'anilist',
+                  remoteId: tracker.remoteId,
+                  status: 'COMPLETED',
+                  score: tracker.score,
+                  lastSyncedChapter: targetNumber
+                })
+              }
+            } else {
+              throw syncErr
+            }
+          }
         }
       }
     } catch (err) {
       console.warn('[TrackingService] Auto-sync failed:', err)
+    }
+  }
+
+  /**
+   * Process all pending sync updates in SQLite retry queue when online.
+   */
+  async processRetryQueue(): Promise<{ processed: number; succeeded: number; failed: number }> {
+    if (this.isProcessingQueue) return { processed: 0, succeeded: 0, failed: 0 }
+    if (typeof net !== 'undefined' && net.isOnline && !net.isOnline()) {
+      return { processed: 0, succeeded: 0, failed: 0 }
+    }
+
+    const token = await settingsRepo.get('anilist_token')
+    if (!token) return { processed: 0, succeeded: 0, failed: 0 }
+
+    const queue = await trackerRepo.getPendingSyncs()
+    if (!queue || queue.length === 0) return { processed: 0, succeeded: 0, failed: 0 }
+
+    this.isProcessingQueue = true
+    let succeeded = 0
+    let failed = 0
+
+    console.log(`[TrackingService] Processing AniList retry queue (${queue.length} pending items)...`)
+
+    for (const item of queue) {
+      try {
+        // Resolve smart status (e.g. check if progress reached total chapters)
+        let targetStatus = item.status || 'CURRENT'
+        if (targetStatus !== 'COMPLETED' && item.progress > 0) {
+          targetStatus = await this.resolveSmartStatus(item.mediaId, item.progress, targetStatus)
+        }
+
+        const mutation = `
+          mutation ($mediaId: Int, $status: MediaListStatus, $progress: Int, $scoreRaw: Int) {
+            SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, scoreRaw: $scoreRaw) {
+              id
+              mediaId
+              status
+              progress
+            }
+          }
+        `
+        const variables: Record<string, any> = { mediaId: item.mediaId }
+        if (targetStatus) variables.status = targetStatus
+        if (item.progress !== undefined) variables.progress = item.progress
+        if (item.score !== undefined && item.score !== null && item.score > 0) {
+          variables.scoreRaw = item.score
+        }
+
+        await this.queryAniList(mutation, variables, token)
+        await trackerRepo.removeSyncQueueItem(item.id)
+        succeeded++
+
+        if (item.mangaId) {
+          await trackerRepo.updateSyncedChapter(item.mangaId, 'anilist', item.progress)
+          if (targetStatus === 'COMPLETED') {
+            const currentTracker = await trackerRepo.getTracker(item.mangaId, 'anilist')
+            if (currentTracker && currentTracker.status !== 'COMPLETED') {
+              await trackerRepo.saveTracker({
+                mangaId: item.mangaId,
+                provider: 'anilist',
+                remoteId: String(item.mediaId),
+                status: 'COMPLETED',
+                score: item.score ?? currentTracker.score,
+                lastSyncedChapter: item.progress
+              })
+            }
+          }
+        }
+      } catch (err: any) {
+        failed++
+        if (this.isNetworkOrOfflineError(err)) {
+          console.warn('[TrackingService] Network still unavailable during retry queue execution, halting:', err.message)
+          await trackerRepo.incrementSyncAttempts(item.id, err.message)
+          break
+        } else {
+          console.error(`[TrackingService] Failed to sync queued item ${item.mediaId}:`, err)
+          await trackerRepo.incrementSyncAttempts(item.id, err.message || 'API error')
+          // If persistent non-network error after 5 attempts (e.g. invalid media ID or permission revoked), discard
+          if (item.attempts >= 5) {
+            console.warn(`[TrackingService] Discarding queued item ${item.mediaId} after 5 failed attempts`)
+            await trackerRepo.removeSyncQueueItem(item.id)
+          }
+        }
+      }
+    }
+
+    this.isProcessingQueue = false
+    return { processed: queue.length, succeeded, failed }
+  }
+
+  /**
+   * Cleanup timer on service shutdown
+   */
+  destroy(): void {
+    if (this.queueInterval) {
+      clearInterval(this.queueInterval)
+      this.queueInterval = null
     }
   }
 }
