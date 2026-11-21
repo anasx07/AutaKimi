@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { GlowCard } from '@/components/ui/spotlight-card';
 import { History, Download, Calendar } from 'lucide-react';
 
@@ -10,6 +10,101 @@ interface Release {
   published_at: string;
   html_url: string;
   body: string;
+}
+
+function renderMarkdownInline(text: string): ReactNode[] {
+  // Regex matches:
+  // 1. Markdown link: [text](url) -> group 2 and 3
+  // 2. Inline code: `code` -> group 4
+  // 3. Bold: **text** -> group 5
+  // 4. Bare URL: https://... -> group 6
+  // 5. GitHub mention: @user -> group 7
+  const tokenRegex = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|`([^`]+)`|\*\*([^*]+)\*\*|(https?:\/\/[^\s<]+)|(@[a-zA-Z0-9_-]+))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const nodes: ReactNode[] = [];
+  let key = 0;
+
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
+    if (match[2] && match[3]) {
+      // [text](url)
+      nodes.push(
+        <a
+          key={`link-${key++}`}
+          href={match[3]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-orange-400 hover:text-orange-300 hover:underline font-semibold transition-colors"
+        >
+          {match[2]}
+        </a>
+      );
+    } else if (match[4]) {
+      // `code`
+      nodes.push(
+        <code
+          key={`code-${key++}`}
+          className="bg-black/50 text-orange-300 font-mono text-xs px-1.5 py-0.5 rounded border border-white/10"
+        >
+          {match[4]}
+        </code>
+      );
+    } else if (match[5]) {
+      // **bold**
+      nodes.push(
+        <strong key={`bold-${key++}`} className="text-white font-bold">
+          {renderMarkdownInline(match[5])}
+        </strong>
+      );
+    } else if (match[6]) {
+      // Bare URL
+      const rawUrl = match[6];
+      const trailMatch = rawUrl.match(/^(.*?)([.,;:!)]*)$/);
+      const cleanHref = trailMatch ? trailMatch[1] : rawUrl;
+      const trailing = trailMatch ? trailMatch[2] : '';
+
+      nodes.push(
+        <a
+          key={`url-${key++}`}
+          href={cleanHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-orange-400 hover:text-orange-300 hover:underline font-medium break-all transition-colors"
+        >
+          {cleanHref}
+        </a>
+      );
+      if (trailing) {
+        nodes.push(trailing);
+      }
+    } else if (match[7]) {
+      // @mention
+      const username = match[7];
+      nodes.push(
+        <a
+          key={`mention-${key++}`}
+          href={`https://github.com/${username.replace(/^@/, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-400 hover:text-amber-300 hover:underline font-medium transition-colors"
+        >
+          {username}
+        </a>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 export default function ChangelogPage() {
@@ -92,26 +187,73 @@ export default function ChangelogPage() {
 
             {/* Release Notes Parser */}
             <div className="text-zinc-300 relative z-10 space-y-2 text-[15px] leading-relaxed font-medium">
-              {release.body ? release.body.split('\n').map((line, j) => {
-                // Extremely simple formatting for Github markdown lists
-                const isHeader = line.startsWith('#');
-                const isListItem = line.trim().startsWith('-');
+              {release.body ? (
+                release.body.split('\n').map((line, j) => {
+                  const trimmed = line.trim();
 
-                if (isHeader) {
-                  return <h3 key={j} className="text-white font-bold text-lg mt-6 mb-2">{line.replace(/#/g, '').trim()}</h3>;
-                }
+                  // Blank line spacing
+                  if (!trimmed) {
+                    return <div key={j} className="h-1.5" />;
+                  }
 
-                if (isListItem) {
+                  // Headers: #, ##, ###
+                  if (trimmed.startsWith('#')) {
+                    const level = trimmed.match(/^#+/)?.[0].length || 1;
+                    const headerText = trimmed.replace(/^#+\s*/, '');
+                    if (level === 1) {
+                      return (
+                        <h2 key={j} className="text-white font-black text-xl mt-6 mb-2 flex items-center gap-2">
+                          {renderMarkdownInline(headerText)}
+                        </h2>
+                      );
+                    }
+                    if (level === 2) {
+                      return (
+                        <h3 key={j} className="text-white font-extrabold text-lg mt-5 mb-2">
+                          {renderMarkdownInline(headerText)}
+                        </h3>
+                      );
+                    }
+                    return (
+                      <h4 key={j} className="text-zinc-100 font-bold text-base mt-4 mb-1">
+                        {renderMarkdownInline(headerText)}
+                      </h4>
+                    );
+                  }
+
+                  // Blockquotes: > ...
+                  if (trimmed.startsWith('>')) {
+                    const quoteText = trimmed.replace(/^>\s*/, '');
+                    return (
+                      <div key={j} className="border-l-2 border-orange-500/40 pl-4 py-1 text-zinc-400 italic bg-white/[0.02] rounded-r my-2">
+                        {renderMarkdownInline(quoteText)}
+                      </div>
+                    );
+                  }
+
+                  // List items: starts with - or * or +
+                  if (/^[-*+]\s+/.test(trimmed)) {
+                    const itemContent = trimmed.replace(/^[-*+]\s+/, '');
+                    return (
+                      <div key={j} className="flex items-start gap-3 mt-1.5 pl-1">
+                        <span className="text-orange-400 mt-1 select-none font-bold">•</span>
+                        <div className="flex-1 leading-normal">
+                          {renderMarkdownInline(itemContent)}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Regular paragraph
                   return (
-                    <div key={j} className="flex items-start gap-3 mt-1">
-                      <span className="text-primary mt-1">•</span>
-                      <span>{line.replace(/^-/, '').trim()}</span>
-                    </div>
+                    <p key={j} className="min-h-[1em] leading-normal">
+                      {renderMarkdownInline(line)}
+                    </p>
                   );
-                }
-
-                return <p key={j} className="min-h-[1em]">{line}</p>;
-              }) : <p className="italic text-zinc-500">No release notes provided.</p>}
+                })
+              ) : (
+                <p className="italic text-zinc-500">No release notes provided.</p>
+              )}
             </div>
           </GlowCard>
         ))}
