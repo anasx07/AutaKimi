@@ -16,6 +16,11 @@ AutaKimi is a modern, cross-platform media and manga viewer built with a monorep
 | **Web Page** | `github-page` | Next.js, Tailwind CSS | Public landing page and documentation |
 
 ### 🛡️ Legal Boundary & External Extensions Repository
+- **Repositories Ecosystem**:
+  | Repository | Role | Link |
+  | :--- | :--- | :--- |
+  | **Core App (Empty Shell)** | Desktop/Mobile apps, reader, sync, video player, and sandboxed engine | [anasx07/AutaKimi](https://github.com/anasx07/AutaKimi) |
+  | **Extensions Ecosystem** | Community scrapers, source templates (`templates.json`), and site parsers | [Autakimi-Ecosystem/autakimi-extensions](https://github.com/Autakimi-Ecosystem/autakimi-extensions) |
 - **Empty Shell Architecture**: AutaKimi core repo is strictly an empty media viewer shell. It **never** contains hardcoded scrapers, site parsers, or direct references to copyrighted third-party media sources.
 - **Dedicated External Repository**:
   - All scrapers, parsers, and source definitions reside in the dedicated external repository:
