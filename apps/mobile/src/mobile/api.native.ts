@@ -6,6 +6,7 @@ import { MobileDownload } from './download.native'
 import { MobileCache, setCacheInvalidateCallback } from './cache.native'
 import { identityService } from './identity.native'
 import { mobileBypassProvider } from './bypass.native'
+import { CfCookieStore } from './cf-cookies'
 import { sourceService, templateService, ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
 import Constants from 'expo-constants'
 import * as WebBrowser from 'expo-web-browser'
@@ -55,6 +56,7 @@ const extensionEngine = new ExtensionEngine(mobileExtensionPlatform)
 export const MobileApi: ElectronApi = {
   init: async () => {
     await MobileDB.init()
+    await CfCookieStore.init()
     await identityService.initialize()
     mobileBypassProvider.initialize()
     return { ok: true, value: undefined }
