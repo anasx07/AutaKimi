@@ -13,17 +13,17 @@ const outfit = Outfit({
 
 export const metadata = {
   metadataBase: new URL("https://anasx07.github.io/AutaKimi"),
-  title: "AutaKimi - The Ultimate Manga Reader",
-  description: "The ultimate manga experience on Windows. Free, extensible, and built for speed.",
-  keywords: ["Manga", "Reader", "Windows", "AutaKimi", "Anime", "Free", "Extensions", "Arabic localization"],
+  title: "AutaKimi - Modern Cross-Platform Manga & Anime Reader (Windows & Android)",
+  description: "The ultimate privacy-first manga & anime reader for Windows and Android. Features local Wi-Fi sync, AniList tracking, offline CBZ downloads, zero ads, and community scraping extensions.",
+  keywords: ["Manga", "Anime", "Reader", "Windows", "Android", "APK", "AutaKimi", "AniList", "LAN Sync", "CBZ", "Free", "Extensions", "Arabic localization"],
   icons: {
     icon: "/AutaKimi/favicon.png",
     shortcut: "/AutaKimi/favicon.png",
     apple: "/AutaKimi/assets/icon.png",
   },
   openGraph: {
-    title: "AutaKimi - The Ultimate Manga Reader",
-    description: "The ultimate manga experience on Windows. Free, extensible, and built for speed.",
+    title: "AutaKimi - Modern Cross-Platform Manga & Anime Reader (Windows & Android)",
+    description: "The ultimate privacy-first manga & anime reader for Windows and Android. Features local Wi-Fi sync, AniList tracking, offline CBZ downloads, zero ads, and community scraping extensions.",
     url: "https://anasx07.github.io/AutaKimi",
     siteName: "AutaKimi",
     images: [
