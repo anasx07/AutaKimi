@@ -139,14 +139,14 @@ export default function Home() {
               label="Download Installer"
               href="https://github.com/anasx07/AutaKimi/releases/latest/download/AutaKimi.exe"
               icon={<Download className="w-5 h-5 text-white" />}
-              mediaUrl="https://v1.pinimg.com/videos/mc/720p/c6/65/cd/c665cdad613f37177c727ba93a5a4512.mp4"
+              mediaUrl="/AutaKimi/assets/installer-preview.mp4"
               className="w-full sm:w-auto shadow-lg shadow-orange-500/10"
             />
             <MediaButton
               label="Join Discord"
               href="https://discord.gg/qRbpCusgan"
               icon={<MessageSquare className="w-5 h-5 text-white" />}
-              mediaUrl="https://i.pinimg.com/originals/13/35/60/133560789fd0fce5291e32c021cc7515.gif"
+              mediaUrl="/AutaKimi/assets/discord-preview.mp4"
               className="w-full sm:w-auto"
             />
           </div>
