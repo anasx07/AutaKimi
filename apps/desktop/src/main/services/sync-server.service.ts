@@ -159,8 +159,10 @@ export class SyncServer implements AppService {
           return
         }
 
-        if (data && data.length > 64000) {
-          console.warn(`[SyncServer] Message from ${ip} rejected: size exceeds 64,000 limit (${data.length} chars)`)
+        const isAuthenticated = Boolean((ws as any).authenticated)
+        const maxLimit = isAuthenticated ? 5 * 1024 * 1024 : 64000 // 5 MB for authenticated, 64 KB for unauthenticated
+        if (data && data.length > maxLimit) {
+          console.warn(`[SyncServer] Message from ${ip} rejected: size exceeds ${maxLimit} limit (${data.length} chars)`)
           ws.close()
           return
         }
@@ -292,9 +294,21 @@ export class SyncServer implements AppService {
               await libraryRepo.add(mangaObj)
             }
           }
-          console.log('[SyncServer] Library push merged successfully')
+          console.log(`[SyncServer] Library push merged successfully: ${pushed.length} items`)
+          ws.send(JSON.stringify({
+            type: 'push_ack',
+            target: 'library',
+            count: pushed.length,
+            batchId: message.batchId
+          }))
         } catch (e) {
           console.error('[SyncServer] Failed to merge pushed library:', e)
+          ws.send(JSON.stringify({
+            type: 'push_error',
+            target: 'library',
+            error: String(e),
+            batchId: message.batchId
+          }))
         }
         break
 
@@ -326,9 +340,21 @@ export class SyncServer implements AppService {
               }
             }
           }
-          console.log('[SyncServer] History push merged successfully')
+          console.log(`[SyncServer] History push merged successfully: ${pushed.length} items`)
+          ws.send(JSON.stringify({
+            type: 'push_ack',
+            target: 'history',
+            count: pushed.length,
+            batchId: message.batchId
+          }))
         } catch (e) {
           console.error('[SyncServer] Failed to merge pushed history:', e)
+          ws.send(JSON.stringify({
+            type: 'push_error',
+            target: 'history',
+            error: String(e),
+            batchId: message.batchId
+          }))
         }
         break
 
@@ -363,8 +389,20 @@ export class SyncServer implements AppService {
             }
           }
           console.log(`[SyncServer] Progress push merged successfully: ${pushed.length} items`)
+          ws.send(JSON.stringify({
+            type: 'push_ack',
+            target: 'progress',
+            count: pushed.length,
+            batchId: message.batchId
+          }))
         } catch (e) {
           console.error('[SyncServer] Failed to merge pushed progress:', e)
+          ws.send(JSON.stringify({
+            type: 'push_error',
+            target: 'progress',
+            error: String(e),
+            batchId: message.batchId
+          }))
         }
         break
       
