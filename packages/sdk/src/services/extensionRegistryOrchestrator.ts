@@ -28,6 +28,7 @@ export class ExtensionRegistryOrchestrator {
    */
   async syncRepositories(urls: string[], installedLangs: string[] = []): Promise<SyncResult> {
     if (!urls || urls.length === 0) {
+      this.clearCache()
       return {
         success: true,
         manifestsCount: 0,
@@ -90,6 +91,11 @@ export class ExtensionRegistryOrchestrator {
 
   getAllCachedManifests(): RepositoryManifest[] {
     return Array.from(this.repositoryCache.values())
+  }
+
+  clearCache(): void {
+    this.repositoryCache.clear()
+    sourceService.clear()
   }
 }
 
