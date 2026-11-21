@@ -220,3 +220,55 @@ export function getImageHeaders(imageUrl: string, refererUrl?: string): Record<s
   return headers
 }
 
+export function getVideoHeaders(videoUrl: string, refererUrl?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'User-Agent': DEFAULT_MOBILE_USER_AGENT,
+    'Accept': '*/*'
+  }
+
+  // 1. Referer Header for anti-hotlinking
+  if (refererUrl && (refererUrl.startsWith('http://') || refererUrl.startsWith('https://'))) {
+    headers['Referer'] = refererUrl
+  } else if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+    try {
+      const u = new URL(videoUrl)
+      headers['Referer'] = u.origin
+    } catch {}
+  }
+
+  // 2. Cookie Header from CfCookieStore
+  if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+    try {
+      const vidDomain = new URL(videoUrl).hostname
+      let cfCookie = CfCookieStore.get(vidDomain)
+
+      if (!cfCookie && refererUrl) {
+        try {
+          const refDomain = new URL(refererUrl).hostname
+          cfCookie = CfCookieStore.get(refDomain)
+        } catch {}
+      }
+
+      if (!cfCookie) {
+        const allCookies = CfCookieStore.getAll()
+        for (const [storedDomain, cookieVal] of Object.entries(allCookies)) {
+          if (
+            vidDomain === storedDomain ||
+            vidDomain.endsWith('.' + storedDomain) ||
+            storedDomain.endsWith('.' + vidDomain)
+          ) {
+            cfCookie = cookieVal
+            break
+          }
+        }
+      }
+
+      if (cfCookie) {
+        headers['Cookie'] = cfCookie.startsWith('cf_clearance=') ? cfCookie : `cf_clearance=${cfCookie}`
+      }
+    } catch {}
+  }
+
+  return headers
+}
+
