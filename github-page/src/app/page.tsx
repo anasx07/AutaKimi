@@ -8,10 +8,22 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 
 import { MediaButton } from '@/components/ui/media-button'
 import { GlowCard } from '@/components/ui/spotlight-card'
-import AppSimulator from '@/components/ui/app-simulator'
+
+const AppSimulator = dynamic(() => import('@/components/ui/app-simulator'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full max-w-5xl mx-auto h-[580px] flex items-center justify-center rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+        <span className="text-xs font-mono text-zinc-500">Loading interactive simulator...</span>
+      </div>
+    </div>
+  )
+})
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)

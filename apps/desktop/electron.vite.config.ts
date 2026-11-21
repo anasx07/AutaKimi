@@ -78,12 +78,39 @@ export default defineConfig(({ mode }) => {
         }
       },
       build: {
-        sourcemap: !isProd
+        sourcemap: !isProd,
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                if (id.includes('hls.js')) {
+                  return 'vendor-hls'
+                }
+                if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/')) {
+                  return 'vendor-react'
+                }
+                if (id.includes('lucide-react')) {
+                  return 'vendor-icons'
+                }
+                if (id.includes('framer-motion')) {
+                  return 'vendor-motion'
+                }
+                if (id.includes('@tanstack/react-query')) {
+                  return 'vendor-query'
+                }
+                if (id.includes('react-virtuoso')) {
+                  return 'vendor-virtuoso'
+                }
+              }
+              return undefined
+            }
+          }
+        }
       },
       plugins: [
         react(),
         ...obfuscatorPlugin(
-          { reservedStrings: ['@renderer/pages/.*'] },
+          { reservedStrings: ['@renderer/pages/.*', '@renderer/widgets/.*'] },
           [/extension\.store\.ts/, /network\.ts/]
         )
       ]
