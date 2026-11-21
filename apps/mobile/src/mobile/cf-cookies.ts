@@ -2,6 +2,9 @@ const cfCookies: Record<string, string> = {}
 const pendingResolvers = new Map<string, Array<(cookie: string | null) => void>>()
 let pendingUrls: string[] = []
 
+export const DEFAULT_MOBILE_USER_AGENT =
+  'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+
 export const CfCookieStore = {
   get(domain: string): string | null {
     return cfCookies[domain] || null
@@ -120,3 +123,56 @@ export const CfBypassFlow = {
     this.complete(null, targetUrl)
   }
 }
+
+export function getImageHeaders(imageUrl: string, refererUrl?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'User-Agent': DEFAULT_MOBILE_USER_AGENT,
+    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+  }
+
+  // 1. Referer Header for anti-hotlinking
+  if (refererUrl && (refererUrl.startsWith('http://') || refererUrl.startsWith('https://'))) {
+    headers['Referer'] = refererUrl
+  } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    try {
+      const u = new URL(imageUrl)
+      headers['Referer'] = u.origin
+    } catch {}
+  }
+
+  // 2. Cookie Header from CfCookieStore
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    try {
+      const imgDomain = new URL(imageUrl).hostname
+      let cfCookie = CfCookieStore.get(imgDomain)
+
+      if (!cfCookie && refererUrl) {
+        try {
+          const refDomain = new URL(refererUrl).hostname
+          cfCookie = CfCookieStore.get(refDomain)
+        } catch {}
+      }
+
+      if (!cfCookie) {
+        const allCookies = CfCookieStore.getAll()
+        for (const [storedDomain, cookieVal] of Object.entries(allCookies)) {
+          if (
+            imgDomain === storedDomain ||
+            imgDomain.endsWith('.' + storedDomain) ||
+            storedDomain.endsWith('.' + imgDomain)
+          ) {
+            cfCookie = cookieVal
+            break
+          }
+        }
+      }
+
+      if (cfCookie) {
+        headers['Cookie'] = cfCookie.startsWith('cf_clearance=') ? cfCookie : `cf_clearance=${cfCookie}`
+      }
+    } catch {}
+  }
+
+  return headers
+}
+

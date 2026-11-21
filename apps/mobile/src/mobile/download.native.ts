@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { MobileDB } from './db.native'
 import { IpcResult, DownloadEntry } from '@common/types'
+import { getImageHeaders } from './cf-cookies'
 
 export type DownloadEventCallback = (data: any) => void
 const downloadCallbacks = new Set<DownloadEventCallback>()
@@ -141,11 +142,16 @@ export const MobileDownload = {
           const filename = `${String(i + 1).padStart(3, '0')}.jpg`
           const fileUri = `${targetDirUri}${filename}`
 
+          const referer =
+            args.chapterId && (args.chapterId.startsWith('http://') || args.chapterId.startsWith('https://'))
+              ? args.chapterId
+              : args.mangaId && (args.mangaId.startsWith('http://') || args.mangaId.startsWith('https://'))
+                ? args.mangaId
+                : undefined
+          const downloadHeaders = getImageHeaders(url, referer)
+
           const downloadRes = await FileSystem.downloadAsync(url, fileUri, {
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
+            headers: downloadHeaders
           })
 
           if (downloadRes.status >= 200 && downloadRes.status < 300) {
