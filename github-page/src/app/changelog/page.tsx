@@ -55,7 +55,7 @@ export default function ChangelogPage() {
             <a 
               href="https://github.com/anasx07/AutaKimi/releases" 
               target="_blank" 
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="px-6 py-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 rounded-xl text-sm font-bold transition-all"
             >
               View Releases on GitHub
@@ -82,7 +82,7 @@ export default function ChangelogPage() {
               <a
                 href={release.html_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-transform hover:scale-105 active:scale-95 relative z-10 w-full md:w-auto shadow-lg"
               >
                 <Download className="w-4 h-4" />
