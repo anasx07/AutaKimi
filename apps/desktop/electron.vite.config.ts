@@ -6,11 +6,11 @@ import obfuscator from 'vite-plugin-javascript-obfuscator'
 export default defineConfig(({ mode }) => {
   const isProd = mode === 'production'
 
-  const obfuscatorPlugin = (options: Record<string, any> = {}, exclude: RegExp[] = [/network\.ts/]) =>
+  const obfuscatorPlugin = (options: Record<string, any> = {}, exclude: (RegExp | string)[] = [/network\.ts/]) =>
     isProd
       ? [
           obfuscator({
-            exclude,
+            exclude: [/node_modules/, /\.nuxt/, ...exclude],
             options: {
               compact: true,
               controlFlowFlattening: true,

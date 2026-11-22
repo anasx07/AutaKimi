@@ -1,6 +1,6 @@
 {
   "name": "@autakimi/sdk",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
