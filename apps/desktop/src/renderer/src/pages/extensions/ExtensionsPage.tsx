@@ -1,4 +1,4 @@
-import { forwardRef, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Package,
@@ -21,7 +21,6 @@ import { Button, Input, Card, Badge, MobilePage, Sheet, Checkbox } from '@render
 import { cn } from '@renderer/shared/lib/utils'
 import { getFlagEmoji, LANGUAGE_NAMES, isAnimeExtension } from '@renderer/shared/lib/constants'
 import { isMobile } from '@renderer/shared/platform'
-import { VirtuosoGrid } from 'react-virtuoso'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   useExtensionsCatalog,
@@ -276,21 +275,6 @@ export default function ExtensionsPage({
       </>
     )
   }
-
-  const VirtuosoScroller = useMemo(() => {
-    const Scroller = forwardRef<HTMLDivElement, { style?: React.CSSProperties }>(
-      ({ style, ...props }, ref) => (
-        <div
-          {...props}
-          ref={ref}
-          style={style}
-          className="custom-scrollbar overflow-y-auto overflow-x-hidden pr-2"
-        />
-      )
-    )
-    Scroller.displayName = 'VirtuosoScroller'
-    return Scroller
-  }, [])
 
   const updatesCount = useMemo(() => {
     return (updates || []).filter((ext) =>
@@ -605,7 +589,7 @@ export default function ExtensionsPage({
     <div className={cn('flex-1 min-h-0 flex flex-col -mb-4', activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar')}>
       {activeSubTab === 'global' ? (
         <GlobalSearch />
-      ) : catalogLoading ? (
+      ) : (catalogLoading || (isRefetching && (!catalog || catalog.length === 0))) ? (
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 9 }).map((_, i) => (
             <div
@@ -620,7 +604,7 @@ export default function ExtensionsPage({
           ))}
         </div>
       ) : (filteredData || []).length === 0 ? (
-        catalog.length === 0 && !searchQuery ? (
+        (catalog || []).length === 0 && !searchQuery ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 animate-in fade-in duration-500">
             <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
               <Globe className="h-10 w-10 text-primary" />
@@ -665,18 +649,14 @@ export default function ExtensionsPage({
           </div>
         )
       ) : (
-        <VirtuosoGrid
-          data={filteredData || []}
-          totalCount={(filteredData || []).length}
-          overscan={200}
-          style={{ height: '100%' }}
-          listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-4"
-          itemContent={(_, ext) => ext ? <ExtensionCard key={ext.pkg} ext={ext} /> : null}
-          components={{
-            Scroller: VirtuosoScroller,
-            Footer: () => <div className="h-24" />
-          }}
-        />
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-4">
+            {(filteredData || []).map((ext) =>
+              ext && ext.pkg ? <ExtensionCard key={ext.pkg} ext={ext} /> : null
+            )}
+          </div>
+          <div className="h-24" />
+        </div>
       )}
     </div>
   )
