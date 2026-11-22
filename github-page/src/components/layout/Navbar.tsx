@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Sparkles, BookOpen, History, Github } from 'lucide-react';
+import { Menu, X, Sparkles, BookOpen, History, Github, Puzzle } from 'lucide-react';
 import GitHubButton from '@/components/ui/github-button';
 
 export function Navbar() {
@@ -55,10 +55,14 @@ export function Navbar() {
           </Link>
 
           {/* Centered Links (Desktop only) */}
-          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-10 bg-black/30 px-8 py-2.5 rounded-2xl border border-white/5 shadow-inner z-10">
+          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 bg-black/30 px-8 py-2.5 rounded-2xl border border-white/5 shadow-inner z-10">
             <Link href="/#features" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-white transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-white after:rounded-full after:transition-all">Features</Link>
             <Link href="/docs" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-white transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-white after:rounded-full after:transition-all">Docs</Link>
             <Link href="/changelog" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-white transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-white after:rounded-full after:transition-all">Changelog</Link>
+            <a href="https://github.com/Autakimi-Ecosystem/autakimi-extensions" target="_blank" rel="noopener noreferrer" className="text-[13px] font-bold tracking-wide text-zinc-400 hover:text-orange-400 transition-all hover:-translate-y-0.5 uppercase relative after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-0 hover:after:w-4 after:h-[2px] after:bg-orange-400 after:rounded-full after:transition-all flex items-center gap-1.5">
+              <span>Extensions</span>
+              <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-mono lowercase">repo</span>
+            </a>
           </div>
 
           {/* Right Action */}
@@ -135,6 +139,25 @@ export function Navbar() {
                 <span className="text-xs text-zinc-400">Latest updates and release notes</span>
               </div>
             </Link>
+
+            <a
+              href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] active:bg-white/10 border border-white/5 text-zinc-300 hover:text-white font-medium transition-all"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                <Puzzle className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">Community Extensions</span>
+                  <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-mono lowercase">repo</span>
+                </div>
+                <span className="text-xs text-zinc-400">Community scrapers, templates & sources</span>
+              </div>
+            </a>
 
             {/* Mobile GitHub link for screens where the desktop button was hidden */}
             <div className="pt-2 mt-1 border-t border-white/10 flex items-center justify-between sm:hidden px-2 py-1">
