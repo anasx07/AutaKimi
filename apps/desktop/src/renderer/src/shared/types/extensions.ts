@@ -7,6 +7,9 @@ export interface Extension {
   nsfw?: boolean
   hasReadme?: boolean
   hasChangelog?: boolean
+  status?: string
+  isFullySupported?: boolean
+  type?: 'manga' | 'anime'
 }
 
 export interface RepoResponse {

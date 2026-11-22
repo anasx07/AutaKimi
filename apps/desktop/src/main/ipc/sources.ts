@@ -305,7 +305,9 @@ export function registerSourceHandlers() {
           baseUrl: s.baseUrl || s.url || '',
           nsfw: !!s.nsfw,
           repoUrl: 'remote', // Denotes it's managed via remote repository
-          type: s.type || (fullPkg.toLowerCase().includes('anime') ? 'anime' : 'manga')
+          type: s.type || (fullPkg.toLowerCase().includes('anime') ? 'anime' : 'manga'),
+          status: s.status,
+          isFullySupported: s.isFullySupported !== undefined ? s.isFullySupported : undefined
         }
       }) as any
     })

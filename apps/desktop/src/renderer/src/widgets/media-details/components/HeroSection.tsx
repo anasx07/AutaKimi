@@ -90,8 +90,7 @@ export const HeroSection = ({
                     {extension?.name || manga.pkg?.split('.').pop()} ({extLang.toUpperCase()})
                   </button>
                 </Tooltip>
-                {mediaType === 'manga' &&
-                  manga.pkg &&
+                {manga.pkg &&
                   (isFullySupported ? (
                     <Badge
                       variant="outline"
