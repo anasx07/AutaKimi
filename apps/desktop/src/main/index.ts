@@ -372,11 +372,15 @@ app.whenReady().then(async () => {
               path.join(process.cwd(), 'autakimi-extensions', 'dist', 'icons'),
               path.join(process.cwd(), 'autakimi-extensions', 'icons'),
               path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'icons'),
-              path.resolve(process.cwd(), '..', 'autakimi-extensions', 'icons')
+              path.resolve(process.cwd(), '..', 'autakimi-extensions', 'icons'),
+              path.resolve(__dirname, '../../src/renderer/src/app/assets/Animeicon'),
+              path.resolve(__dirname, '../renderer/assets/Animeicon')
             ]
           : [
               path.join(process.resourcesPath, 'icons'),
-              path.join(process.resourcesPath, 'extensions', 'icons')
+              path.join(process.resourcesPath, 'extensions', 'icons'),
+              path.join(process.resourcesPath, 'Animeicon'),
+              path.join(process.resourcesPath, 'app.asar', 'out', 'renderer', 'assets', 'Animeicon')
             ]
 
         for (const localIconBase of localIconBases) {
