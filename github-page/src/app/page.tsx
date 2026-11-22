@@ -34,7 +34,7 @@ import {
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [version, setVersion] = useState("2.0.11");
+  const [version, setVersion] = useState("2.1.1");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
