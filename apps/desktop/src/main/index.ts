@@ -341,29 +341,36 @@ app.whenReady().then(async () => {
         }
 
         const filename = path.basename(iconCheck.url.toString())
+        const altFilename = filename.startsWith('ma.autakimi.extension.')
+          ? filename.replace(/^ma\.autakimi\.extension\./, '')
+          : `ma.autakimi.extension.${filename}`
+        const candidateFilenames = Array.from(new Set([filename, altFilename]))
+
         const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
         if (!fs.existsSync(userDataIconsDir)) {
           fs.mkdirSync(userDataIconsDir, { recursive: true })
         }
-        const cachedIconPath = path.join(userDataIconsDir, filename)
 
         // 1. Check userData/icons cache first (defense in depth: ensure path
         //    stays inside the icons directory even though basename + join
         //    already prevents traversal).
-        try {
-          if (
-            isPathInside(cachedIconPath, userDataIconsDir) &&
-            fs.existsSync(cachedIconPath)
-          ) {
-            return new Response(fs.readFileSync(cachedIconPath), {
-              headers: {
-                'Content-Type': 'image/png',
-                'X-Content-Type-Options': 'nosniff'
-              }
-            })
+        for (const fname of candidateFilenames) {
+          const cachedIconPath = path.join(userDataIconsDir, fname)
+          try {
+            if (
+              isPathInside(cachedIconPath, userDataIconsDir) &&
+              fs.existsSync(cachedIconPath)
+            ) {
+              return new Response(fs.readFileSync(cachedIconPath), {
+                headers: {
+                  'Content-Type': 'image/png',
+                  'X-Content-Type-Options': 'nosniff'
+                }
+              })
+            }
+          } catch (e) {
+            console.error('Cached icon load failed:', e)
           }
-        } catch (e) {
-          console.error('Cached icon load failed:', e)
         }
 
         // 2. Check bundled local icon (dev workspace dist/icons, icons, or resourcesPath)
@@ -384,18 +391,20 @@ app.whenReady().then(async () => {
             ]
 
         for (const localIconBase of localIconBases) {
-          const localIconPath = path.join(localIconBase, filename)
-          try {
-            if (isPathInside(localIconPath, localIconBase) && fs.existsSync(localIconPath)) {
-              return new Response(fs.readFileSync(localIconPath), {
-                headers: {
-                  'Content-Type': 'image/png',
-                  'X-Content-Type-Options': 'nosniff'
-                }
-              })
+          for (const fname of candidateFilenames) {
+            const localIconPath = path.join(localIconBase, fname)
+            try {
+              if (isPathInside(localIconPath, localIconBase) && fs.existsSync(localIconPath)) {
+                return new Response(fs.readFileSync(localIconPath), {
+                  headers: {
+                    'Content-Type': 'image/png',
+                    'X-Content-Type-Options': 'nosniff'
+                  }
+                })
+              }
+            } catch (e) {
+              console.error('Local icon load failed:', e)
             }
-          } catch (e) {
-            console.error('Local icon load failed:', e)
           }
         }
 
@@ -409,43 +418,45 @@ app.whenReady().then(async () => {
               ? repo.replace('templates.json', '')
               : repo.endsWith('/') ? repo : `${repo}/`
 
-            const remoteUrl = `${baseUrl}icons/${filename}`
-            try {
-              const remoteCheck = validateGenericCacheUrl(remoteUrl, allowlist)
-              if (!remoteCheck.ok) continue
+            for (const fname of candidateFilenames) {
+              const remoteUrl = `${baseUrl}icons/${fname}`
+              try {
+                const remoteCheck = validateGenericCacheUrl(remoteUrl, allowlist)
+                if (!remoteCheck.ok) continue
 
-              const res = await fetch(remoteUrl, { redirect: 'error' })
-              if (res.ok) {
-                const declared = res.headers.get('content-length')
-                if (declared && parseInt(declared, 10) > MAX_ICON_REMOTE_BYTES) {
-                  console.warn(`[autakimi-cache] Icon too large, skipping: ${remoteUrl}`)
-                  continue
-                }
-                const buffer = await res.arrayBuffer()
-                if (buffer.byteLength > MAX_ICON_REMOTE_BYTES) {
-                  console.warn(`[autakimi-cache] Icon body too large, skipping: ${remoteUrl}`)
-                  continue
-                }
-
-                // Cache it locally so it works offline. The cache path has
-                // already been validated against the icons directory above.
-                try {
-                  if (isPathInside(cachedIconPath, userDataIconsDir)) {
-                    fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
+                const res = await fetch(remoteUrl, { redirect: 'error' })
+                if (res.ok) {
+                  const declared = res.headers.get('content-length')
+                  if (declared && parseInt(declared, 10) > MAX_ICON_REMOTE_BYTES) {
+                    console.warn(`[autakimi-cache] Icon too large, skipping: ${remoteUrl}`)
+                    continue
                   }
-                } catch (writeErr) {
-                  console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
-                }
-
-                return new Response(buffer, {
-                  headers: {
-                    'Content-Type': 'image/png',
-                    'X-Content-Type-Options': 'nosniff'
+                  const buffer = await res.arrayBuffer()
+                  if (buffer.byteLength > MAX_ICON_REMOTE_BYTES) {
+                    console.warn(`[autakimi-cache] Icon body too large, skipping: ${remoteUrl}`)
+                    continue
                   }
-                })
+
+                  // Cache it locally so it works offline.
+                  const savePath = path.join(userDataIconsDir, filename)
+                  try {
+                    if (isPathInside(savePath, userDataIconsDir)) {
+                      fs.writeFileSync(savePath, Buffer.from(buffer))
+                    }
+                  } catch (writeErr) {
+                    console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
+                  }
+
+                  return new Response(buffer, {
+                    headers: {
+                      'Content-Type': 'image/png',
+                      'X-Content-Type-Options': 'nosniff'
+                    }
+                  })
+                }
+              } catch (e) {
+                console.error(`Remote icon fetch failed for ${remoteUrl}:`, e)
               }
-            } catch (e) {
-              console.error('Remote icon load failed:', e)
             }
           }
         }
