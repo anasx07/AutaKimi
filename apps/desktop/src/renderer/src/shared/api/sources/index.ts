@@ -1,5 +1,6 @@
 import { SourceRegistry, generatedSourcesJson } from './SourceRegistry'
 import { ISourceAdapter } from './types'
+import { isAnimeExtension } from '@renderer/shared/lib/constants'
 
 export function reloadSource(pkg: string): void {
   SourceRegistry.reload(pkg)
@@ -20,15 +21,23 @@ export function isFullySupported(pkg?: string): boolean {
   }
 
   // Anime source check: RistoAnime is currently the only fully supported anime extension
-  const isAnime =
-    meta?.type === 'anime' ||
-    cleanPkg.includes('anime') ||
-    fullPkg.includes('anime') ||
-    cleanPkg.startsWith('ar.') ||
-    fullPkg.includes('.ar.')
+  const isAnime = isAnimeExtension({
+    pkg: fullPkg,
+    type: meta?.type
+  })
 
   if (isAnime) {
     return cleanPkg === 'ar.ristoanime' || fullPkg === 'ma.autakimi.extension.ar.ristoanime'
+  }
+
+  // Arabic Manga: MangaSid is verified and fully supported
+  if (cleanPkg === 'ar.mangasid' || fullPkg === 'ma.autakimi.extension.ar.mangasid') {
+    return true
+  }
+
+  // Other manga sources: if explicitly marked WIP or not supported
+  if (meta?.status === 'wip' || meta?.isFullySupported === false) {
+    return false
   }
 
   return !!meta
