@@ -8,4 +8,6 @@ export interface Extension {
   nsfw?: boolean
   repoUrl?: string
   code?: string
+  status?: string
+  isFullySupported?: boolean
 }

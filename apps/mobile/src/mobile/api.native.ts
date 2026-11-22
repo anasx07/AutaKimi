@@ -623,6 +623,8 @@ export const MobileApi: ElectronApi = {
         baseUrl: s.baseUrl || s.url || "",
         nsfw: !!s.nsfw,
         repoUrl: "remote",
+        status: s.status,
+        isFullySupported: s.isFullySupported !== undefined ? s.isFullySupported : undefined,
       }));
       return { ok: true, value };
     },
