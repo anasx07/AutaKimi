@@ -123,6 +123,156 @@ export const ChapterEpisodeList = ({
     })
   }, [items, search, sortOrder, filterMode, readChapterIds, downloadStatuses])
 
+  const renderChapterItem = (item: Chapter): React.JSX.Element | null => {
+    if (!item) return null
+    const isFinished = readChapterIds.includes(item.id)
+    const hasProgress = (pageProgress[item.id] || 0) > 1
+    const isRead = isFinished || hasProgress
+    const downloadStatus = downloadStatuses[item.id] || 'none'
+    const displayChapterNum =
+      item.number !== undefined && item.number !== null && Number(item.number) > 0
+        ? item.number
+        : (String(item.title || '').match(/[\d.]+/) || [item.number ?? 0])[0]
+
+    const cleanTitle = (item.title || '').trim().toLowerCase()
+    const cleanPrefix = prefix.toLowerCase()
+    const numStr = String(displayChapterNum).toLowerCase()
+    const isTitleRedundant =
+      !item.title ||
+      cleanTitle === numStr ||
+      cleanTitle === `${cleanPrefix} ${numStr}` ||
+      cleanTitle === `episode ${numStr}` ||
+      cleanTitle === `chapter ${numStr}` ||
+      cleanTitle === `ep ${numStr}` ||
+      cleanTitle === `ch ${numStr}` ||
+      cleanTitle === `ep. ${numStr}` ||
+      cleanTitle === `ch. ${numStr}` ||
+      cleanTitle === `الحلقة ${numStr}` ||
+      cleanTitle === `الفصل ${numStr}`
+
+    return (
+      <div
+        key={item.id}
+        className={cn(
+          'flex items-center justify-between w-full px-5 py-4 hover:bg-primary/5 transition-all duration-300 group cursor-pointer relative border-b border-border/10 last:border-b-0',
+          'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40'
+        )}
+        onClick={() => onItemClick(item)}
+      >
+        <div className="flex-1 flex flex-col items-start text-left min-w-0 pr-4">
+          <div className="flex items-center gap-2 max-w-full">
+            <span
+              className={cn(
+                'font-semibold text-sm transition-colors truncate',
+                isRead ? 'text-muted-foreground/70' : 'text-foreground group-hover:text-primary'
+              )}
+            >
+              {prefix} {displayChapterNum}
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {isFinished && (
+                <CheckCircle className="h-3.5 w-3.5 text-muted-foreground/40 fill-muted-foreground/10 flex-shrink-0" />
+              )}
+
+              {/* Partial Progress */}
+              {hasProgress && !isFinished && (
+                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 whitespace-nowrap flex-shrink-0">
+                  {isAnime
+                    ? `${Math.floor(pageProgress[item.id] / 60)}m`
+                    : `P. ${pageProgress[item.id]}`}
+                </span>
+              )}
+
+              {/* Most Recently Read */}
+              {isFinished && readChapterIds[readChapterIds.length - 1] === item.id && (
+                <span className="text-[10px] font-bold bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full border border-secondary whitespace-nowrap flex-shrink-0">
+                  Last Read
+                </span>
+              )}
+            </div>
+          </div>
+          {!isTitleRedundant && item.title && (
+            <p
+              className={cn(
+                'text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity',
+                isRead && 'text-muted-foreground/50'
+              )}
+            >
+              {item.title}
+            </p>
+          )}
+          {item.date && (
+            <div
+              className={cn(
+                'flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium',
+                isRead && 'text-muted-foreground/40'
+              )}
+            >
+              <CalendarDays className="h-3 w-3" />
+              <span dir="auto">{item.date}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!isAnime && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'h-10 w-10 text-muted-foreground/60 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
+                isRead && 'opacity-80 bg-accent'
+              )}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (downloadStatus === 'downloading') {
+                  onCancelDownload(item)
+                } else if (downloadStatus === 'completed') {
+                  onRemoveDownload(item)
+                } else {
+                  onDownload(item)
+                }
+              }}
+            >
+              {downloadStatus === 'downloading' ? (
+                <div className="relative flex items-center justify-center group/cancel">
+                  {/* Progress State */}
+                  <div className="flex items-center justify-center transition-all duration-300 group-hover/cancel:scale-0 group-hover/cancel:opacity-0">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" />
+                    <span className="absolute text-[8px] font-bold text-primary">
+                      {Math.round((downloadProgress?.[item.id] || 0) * 100)}%
+                    </span>
+                  </div>
+                  {/* Cancel State (Visible on Hover) */}
+                  <XCircle className="absolute h-5 w-5 text-destructive opacity-0 scale-50 transition-all duration-300 group-hover/cancel:opacity-100 group-hover/cancel:scale-110" />
+                </div>
+              ) : downloadStatus === 'completed' ? (
+                <Trash2 className="h-4 w-4 text-destructive" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'h-10 w-10 text-primary/70 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
+              isRead && 'opacity-80'
+            )}
+          >
+            <Play
+              className={cn(
+                'h-4 w-4 transition-transform group-hover:translate-x-0.5',
+                !isAnime && 'fill-current'
+              )}
+            />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -275,160 +425,17 @@ export const ChapterEpisodeList = ({
                   ? `No downloaded ${isAnime ? 'episodes' : 'chapters'}.`
                   : `No ${isAnime ? 'episodes' : 'chapters'} available.`}
           </div>
+        ) : filteredItems.length <= 100 ? (
+          <div className="divide-y divide-border/10 max-h-[550px] overflow-y-auto custom-scrollbar">
+            {filteredItems.map((item) => renderChapterItem(item))}
+          </div>
         ) : (
           <Virtuoso
             style={{ height: '550px' }}
             className="custom-scrollbar"
             data={filteredItems}
             increaseViewportBy={{ top: 200, bottom: 200 }}
-            itemContent={(_index, item) => {
-              const isFinished = readChapterIds.includes(item.id)
-              const hasProgress = (pageProgress[item.id] || 0) > 1
-              const isRead = isFinished || hasProgress
-              const downloadStatus = downloadStatuses[item.id] || 'none'
-              const displayChapterNum =
-                item.number !== undefined && item.number !== null && Number(item.number) > 0
-                  ? item.number
-                  : (String(item.title || '').match(/[\d.]+/) || [item.number ?? 0])[0]
-
-              const cleanTitle = (item.title || '').trim().toLowerCase()
-              const cleanPrefix = prefix.toLowerCase()
-              const numStr = String(displayChapterNum).toLowerCase()
-              const isTitleRedundant =
-                !item.title ||
-                cleanTitle === numStr ||
-                cleanTitle === `${cleanPrefix} ${numStr}` ||
-                cleanTitle === `episode ${numStr}` ||
-                cleanTitle === `chapter ${numStr}` ||
-                cleanTitle === `ep ${numStr}` ||
-                cleanTitle === `ch ${numStr}` ||
-                cleanTitle === `ep. ${numStr}` ||
-                cleanTitle === `ch. ${numStr}` ||
-                cleanTitle === `الحلقة ${numStr}` ||
-                cleanTitle === `الفصل ${numStr}`
-
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    'flex items-center justify-between w-full px-5 py-4 hover:bg-primary/5 transition-all duration-300 group cursor-pointer relative border-b border-border/10 last:border-b-0',
-                    'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40'
-                  )}
-                  onClick={() => onItemClick(item)}
-                >
-                  <div className="flex-1 flex flex-col items-start text-left min-w-0 pr-4">
-                    <div className="flex items-center gap-2 max-w-full">
-                      <span
-                        className={cn(
-                          'font-semibold text-sm transition-colors truncate',
-                          isRead ? 'text-muted-foreground/70' : 'text-foreground group-hover:text-primary'
-                        )}
-                      >
-                        {prefix} {displayChapterNum}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {isFinished && (
-                          <CheckCircle className="h-3.5 w-3.5 text-muted-foreground/40 fill-muted-foreground/10 flex-shrink-0" />
-                        )}
-
-                        {/* Partial Progress */}
-                        {hasProgress && !isFinished && (
-                          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 whitespace-nowrap flex-shrink-0">
-                            {isAnime
-                              ? `${Math.floor(pageProgress[item.id] / 60)}m`
-                              : `P. ${pageProgress[item.id]}`}
-                          </span>
-                        )}
-
-                        {/* Most Recently Read */}
-                        {isFinished && readChapterIds[readChapterIds.length - 1] === item.id && (
-                          <span className="text-[10px] font-bold bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full border border-secondary whitespace-nowrap flex-shrink-0">
-                            Last Read
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {!isTitleRedundant && item.title && (
-                      <p
-                        className={cn(
-                          'text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-80 group-hover:opacity-100 transition-opacity',
-                          isRead && 'text-muted-foreground/50'
-                        )}
-                      >
-                        {item.title}
-                      </p>
-                    )}
-                    {item.date && (
-                      <div
-                        className={cn(
-                          'flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity font-medium',
-                          isRead && 'text-muted-foreground/40'
-                        )}
-                      >
-                        <CalendarDays className="h-3 w-3" />
-                        <span dir="auto">{item.date}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!isAnime && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          'h-10 w-10 text-muted-foreground/60 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
-                          isRead && 'opacity-80 bg-accent'
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (downloadStatus === 'downloading') {
-                            onCancelDownload(item)
-                          } else if (downloadStatus === 'completed') {
-                            onRemoveDownload(item)
-                          } else {
-                            onDownload(item)
-                          }
-                        }}
-                      >
-                        {downloadStatus === 'downloading' ? (
-                          <div className="relative flex items-center justify-center group/cancel">
-                            {/* Progress State */}
-                            <div className="flex items-center justify-center transition-all duration-300 group-hover/cancel:scale-0 group-hover/cancel:opacity-0">
-                              <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" />
-                              <span className="absolute text-[8px] font-bold text-primary">
-                                {Math.round((downloadProgress?.[item.id] || 0) * 100)}%
-                              </span>
-                            </div>
-                            {/* Cancel State (Visible on Hover) */}
-                            <XCircle className="absolute h-5 w-5 text-destructive opacity-0 scale-50 transition-all duration-300 group-hover/cancel:opacity-100 group-hover/cancel:scale-110" />
-                          </div>
-                        ) : downloadStatus === 'completed' ? (
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        'h-10 w-10 text-primary/70 hover:text-primary transition-all duration-300 transform group-hover:scale-110',
-                        isRead && 'opacity-80'
-                      )}
-                    >
-                      <Play
-                        className={cn(
-                          'h-4 w-4 transition-transform group-hover:translate-x-0.5',
-                          !isAnime && 'fill-current'
-                        )}
-                      />
-                    </Button>
-                  </div>
-                </div>
-              )
-            }}
+            itemContent={(_index, item) => renderChapterItem(item)}
           />
         )}
       </div>
