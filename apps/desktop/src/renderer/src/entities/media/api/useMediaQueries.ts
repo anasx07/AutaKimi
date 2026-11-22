@@ -56,6 +56,7 @@ export function useMediaDetails(type: MediaType, id: string, pkg: string | null,
                 ...cached,
                 ...fresh,
                 title: hasValidTitle ? fresh.title : cached?.title || fresh.title,
+                coverUrl: fresh.coverUrl || cached?.coverUrl || null,
                 pkg,
                 mediaType: type
               } as Media

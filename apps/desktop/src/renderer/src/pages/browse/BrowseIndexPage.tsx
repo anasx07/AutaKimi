@@ -137,7 +137,12 @@ export default function BrowseIndexPage(): React.JSX.Element {
             variant="ghost"
             size="sm"
             disabled={isRefetching}
-            onClick={() => refreshCatalog()}
+            onClick={async () => {
+              try {
+                await DataService.sources.refreshAll()
+              } catch {}
+              refreshCatalog()
+            }}
             className="h-10 w-10 p-0 rounded-xl hover:bg-secondary transition-all"
             title="Refresh Catalog"
           >
