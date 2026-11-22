@@ -341,10 +341,22 @@ app.whenReady().then(async () => {
         }
 
         const filename = path.basename(iconCheck.url.toString())
-        const altFilename = filename.startsWith('ma.autakimi.extension.')
-          ? filename.replace(/^ma\.autakimi\.extension\./, '')
-          : `ma.autakimi.extension.${filename}`
-        const candidateFilenames = Array.from(new Set([filename, altFilename]))
+        const candidates = new Set<string>([filename])
+        if (filename.startsWith('ma.autakimi.extension.')) {
+          const withoutPrefix = filename.replace(/^ma\.autakimi\.extension\./, '')
+          candidates.add(withoutPrefix)
+          const parts = withoutPrefix.split('.')
+          if (parts.length > 1) {
+            candidates.add(parts.slice(1).join('.'))
+          }
+        } else {
+          candidates.add(`ma.autakimi.extension.${filename}`)
+          const parts = filename.split('.')
+          if (parts.length > 1) {
+            candidates.add(parts.slice(1).join('.'))
+          }
+        }
+        const candidateFilenames = Array.from(candidates)
 
         const userDataIconsDir = path.join(app.getPath('userData'), 'icons')
         if (!fs.existsSync(userDataIconsDir)) {
@@ -373,29 +385,62 @@ app.whenReady().then(async () => {
           }
         }
 
-        // 2. Check bundled local icon (dev workspace dist/icons, icons, or resourcesPath)
-        const localIconBases = is.dev
-          ? [
-              path.join(process.cwd(), 'autakimi-extensions', 'dist', 'icons'),
-              path.join(process.cwd(), 'autakimi-extensions', 'icons'),
-              path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'icons'),
-              path.resolve(process.cwd(), '..', 'autakimi-extensions', 'icons'),
-              path.resolve(__dirname, '../../src/renderer/src/app/assets/Animeicon'),
-              path.resolve(__dirname, '../renderer/assets/Animeicon')
-            ]
-          : [
-              path.join(process.resourcesPath, 'icons'),
-              path.join(process.resourcesPath, 'extensions', 'icons'),
-              path.join(process.resourcesPath, 'Animeicon'),
-              path.join(process.resourcesPath, 'app.asar', 'out', 'renderer', 'assets', 'Animeicon')
-            ]
+        // 2. Resolve icons from registered local repositories (e.g. autakimi-local://...)
+        const localRepoDirs: string[] = []
+        for (const repo of Array.isArray(repos) ? repos : []) {
+          if (
+            typeof repo === 'string' &&
+            (repo.startsWith('autakimi-local://') || repo.startsWith('file://') || path.isAbsolute(repo))
+          ) {
+            try {
+              const rawPath = decodeURIComponent(
+                repo.replace(/^autakimi-local:\/\//i, '').replace(/^file:\/\//i, '')
+              )
+              const dir = path.dirname(rawPath)
+              localRepoDirs.push(path.join(dir, 'icons'))
+              localRepoDirs.push(path.join(dir, '..', 'icons'))
+              localRepoDirs.push(path.join(dir, '..', 'dist', 'icons'))
+            } catch {}
+          }
+        }
+
+        // 3. Check bundled local icon locations (dev workspace dist/icons, icons, or resourcesPath)
+        const localIconBases = Array.from(
+          new Set([
+            ...localRepoDirs,
+            path.join(process.cwd(), 'autakimi-extensions', 'dist', 'icons'),
+            path.join(process.cwd(), 'autakimi-extensions', 'icons'),
+            path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'icons'),
+            path.resolve(process.cwd(), '..', 'autakimi-extensions', 'icons'),
+            path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'icons'),
+            path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'icons'),
+            path.resolve(app.getAppPath(), 'autakimi-extensions', 'dist', 'icons'),
+            path.resolve(app.getAppPath(), '..', 'autakimi-extensions', 'dist', 'icons'),
+            path.resolve(app.getAppPath(), '..', '..', 'autakimi-extensions', 'dist', 'icons'),
+            path.resolve(__dirname, '../../src/renderer/src/app/assets/Animeicon'),
+            path.resolve(__dirname, '../renderer/assets/Animeicon'),
+            path.join(process.resourcesPath, 'icons'),
+            path.join(process.resourcesPath, 'extensions', 'icons'),
+            path.join(process.resourcesPath, 'Animeicon'),
+            path.join(process.resourcesPath, 'app.asar', 'out', 'renderer', 'assets', 'Animeicon')
+          ])
+        ).filter(Boolean)
 
         for (const localIconBase of localIconBases) {
           for (const fname of candidateFilenames) {
             const localIconPath = path.join(localIconBase, fname)
             try {
               if (isPathInside(localIconPath, localIconBase) && fs.existsSync(localIconPath)) {
-                return new Response(fs.readFileSync(localIconPath), {
+                const buffer = fs.readFileSync(localIconPath)
+                // Cache it locally so subsequent lookups are instant
+                const savePath = path.join(userDataIconsDir, filename)
+                try {
+                  if (isPathInside(savePath, userDataIconsDir)) {
+                    fs.writeFileSync(savePath, buffer)
+                  }
+                } catch {}
+
+                return new Response(buffer, {
                   headers: {
                     'Content-Type': 'image/png',
                     'X-Content-Type-Options': 'nosniff'
@@ -408,55 +453,53 @@ app.whenReady().then(async () => {
           }
         }
 
-        // 3. Fallback: Check remote repositories for the icon, and cache it.
-        //    The remote URL is constructed from the registered repo's baseUrl,
-        //    so we never fetch an attacker-controlled host directly.
-        if (allowlist.size > 0) {
-          for (const repo of Array.isArray(repos) ? repos : []) {
-            if (typeof repo !== 'string') continue
-            const baseUrl = repo.endsWith('templates.json')
-              ? repo.replace('templates.json', '')
-              : repo.endsWith('/') ? repo : `${repo}/`
+        // 4. Fallback: Check remote repositories for the icon and ecosystem CDN, and cache it.
+        const remoteRepos = (Array.isArray(repos) ? repos : []).filter(
+          (r): r is string => typeof r === 'string' && (r.startsWith('https://') || r.startsWith('http://'))
+        )
+        const officialRepo = 'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/'
+        const reposToCheck = Array.from(new Set([...remoteRepos, officialRepo]))
 
-            for (const fname of candidateFilenames) {
-              const remoteUrl = `${baseUrl}icons/${fname}`
-              try {
-                const remoteCheck = validateGenericCacheUrl(remoteUrl, allowlist)
-                if (!remoteCheck.ok) continue
+        for (const repo of reposToCheck) {
+          const baseUrl = repo
+            .replace(/[\\/]?(manifest|templates)\.json$/i, '')
+            .replace(/\/?$/, '/')
 
-                const res = await fetch(remoteUrl, { redirect: 'error' })
-                if (res.ok) {
-                  const declared = res.headers.get('content-length')
-                  if (declared && parseInt(declared, 10) > MAX_ICON_REMOTE_BYTES) {
-                    console.warn(`[autakimi-cache] Icon too large, skipping: ${remoteUrl}`)
-                    continue
-                  }
-                  const buffer = await res.arrayBuffer()
-                  if (buffer.byteLength > MAX_ICON_REMOTE_BYTES) {
-                    console.warn(`[autakimi-cache] Icon body too large, skipping: ${remoteUrl}`)
-                    continue
-                  }
-
-                  // Cache it locally so it works offline.
-                  const savePath = path.join(userDataIconsDir, filename)
-                  try {
-                    if (isPathInside(savePath, userDataIconsDir)) {
-                      fs.writeFileSync(savePath, Buffer.from(buffer))
-                    }
-                  } catch (writeErr) {
-                    console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
-                  }
-
-                  return new Response(buffer, {
-                    headers: {
-                      'Content-Type': 'image/png',
-                      'X-Content-Type-Options': 'nosniff'
-                    }
-                  })
+          for (const fname of candidateFilenames) {
+            const remoteUrl = `${baseUrl}icons/${fname}`
+            try {
+              const res = await fetch(remoteUrl, { redirect: 'error' })
+              if (res.ok) {
+                const declared = res.headers.get('content-length')
+                if (declared && parseInt(declared, 10) > MAX_ICON_REMOTE_BYTES) {
+                  console.warn(`[autakimi-cache] Icon too large, skipping: ${remoteUrl}`)
+                  continue
                 }
-              } catch (e) {
-                console.error(`Remote icon fetch failed for ${remoteUrl}:`, e)
+                const buffer = await res.arrayBuffer()
+                if (buffer.byteLength > MAX_ICON_REMOTE_BYTES) {
+                  console.warn(`[autakimi-cache] Icon body too large, skipping: ${remoteUrl}`)
+                  continue
+                }
+
+                // Cache it locally so it works offline.
+                const savePath = path.join(userDataIconsDir, filename)
+                try {
+                  if (isPathInside(savePath, userDataIconsDir)) {
+                    fs.writeFileSync(savePath, Buffer.from(buffer))
+                  }
+                } catch (writeErr) {
+                  console.error('[autakimi-cache] Failed to write cached icon:', writeErr)
+                }
+
+                return new Response(buffer, {
+                  headers: {
+                    'Content-Type': 'image/png',
+                    'X-Content-Type-Options': 'nosniff'
+                  }
+                })
               }
+            } catch (e) {
+              // Remote fallback network error
             }
           }
         }
