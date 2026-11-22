@@ -20,14 +20,14 @@ export class MangaCacheRepository {
       await this.db
         .update(schema.mangaCache)
         .set({
-          title: manga.title,
-          coverUrl: manga.coverUrl || null,
-          description: manga.description || null,
-          author: manga.author || null,
-          artist: manga.artist || null,
-          status: manga.status || null,
-          genres: genres,
-          url: manga.url || null,
+          title: manga.title || existing.title,
+          coverUrl: manga.coverUrl || existing.coverUrl || null,
+          description: manga.description || existing.description || null,
+          author: manga.author || existing.author || null,
+          artist: manga.artist || existing.artist || null,
+          status: manga.status || existing.status || null,
+          genres: genres || existing.genres,
+          url: manga.url || existing.url || null,
           mediaType: type,
           updatedAt: new Date().toISOString(),
           expiresAt: expiresAt || null

@@ -35,7 +35,8 @@ export function useMediaData(type: MediaType, initialMedia: Media | null) {
       title:
         fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
           ? fresh.title
-          : initialMedia.title || fresh.title
+          : initialMedia.title || fresh.title,
+      coverUrl: fresh.coverUrl || initialMedia.coverUrl || null
     }
   }, [initialMedia, detailQuery.data])
 
