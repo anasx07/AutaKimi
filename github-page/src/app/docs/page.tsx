@@ -128,6 +128,20 @@ export default function DocsPage() {
               safety ratings.
             </li>
           </ul>
+          <div className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+            <div>
+              <p className="font-semibold text-white">Community Extensions Repository</p>
+              <p className="text-xs text-zinc-400 mt-0.5">Explore source scrapers, contribute new providers, or add repository manifests.</p>
+            </div>
+            <a
+              href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs transition-all whitespace-nowrap"
+            >
+              Browse Extensions ➔
+            </a>
+          </div>
           <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
             <a
               href="/AutaKimi/assets/manga-browse.png"

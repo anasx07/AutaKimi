@@ -186,7 +186,7 @@ export default function Home() {
     },
     {
       q: "How do I install extensions?",
-      a: "Extensions are sandboxed community JavaScript plugins that can be installed instantly via the extension catalog inside the application with a single click.",
+      a: "Extensions are sandboxed community JavaScript plugins that can be installed instantly via the extension catalog inside the application with a single click. You can also explore and contribute to the community catalog at the Autakimi-Ecosystem/autakimi-extensions repository.",
     },
   ];
 
