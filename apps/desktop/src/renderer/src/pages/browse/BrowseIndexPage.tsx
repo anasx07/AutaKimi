@@ -409,12 +409,19 @@ export default function BrowseIndexPage(): React.JSX.Element {
                                 {ext.name}
                               </h3>
                               <div className="flex items-center gap-1.5 shrink-0">
-                                {isSupported && (
+                                {isSupported ? (
                                   <Badge
                                     variant="secondary"
                                     className="text-[9px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter"
                                   >
                                     Supported
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] px-1.5 h-4 bg-amber-500/10 text-amber-500/80 border-amber-500/20 uppercase font-bold tracking-tighter opacity-70"
+                                  >
+                                    WIP
                                   </Badge>
                                 )}
                                 <Badge

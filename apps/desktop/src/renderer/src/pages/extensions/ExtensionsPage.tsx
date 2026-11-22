@@ -354,6 +354,21 @@ export default function ExtensionsPage({
                     <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
                       {ext.name}
                     </h3>
+                    {isFullySupported(ext.pkg) ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[8px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter shrink-0"
+                      >
+                        Supported
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="text-[8px] px-1.5 h-4 bg-amber-500/10 text-amber-500/80 border-amber-500/20 uppercase font-bold tracking-tighter shrink-0"
+                      >
+                        WIP
+                      </Badge>
+                    )}
                     {ext.pkg === 'ma.autakimi.extension.ar.mangasid' && (
                       <Badge
                         variant="default"
