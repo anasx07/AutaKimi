@@ -264,6 +264,9 @@ function EmbedVideoPlayer({
     ) {
       return false;
     }
+    if (isAdUrl(reqUrl)) {
+      return false;
+    }
     return true;
   }, []);
 
