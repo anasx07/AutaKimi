@@ -536,16 +536,6 @@ export const MobileExtension = {
   var URL = __URL;
   var URLSearchParams = __URLSearchParams;
 
-  if (typeof globalThis !== 'undefined') {
-    globalThis.Buffer = __Buffer;
-    globalThis.SafeBuffer = __Buffer;
-    globalThis.atob = __atob;
-    globalThis.btoa = __btoa;
-    globalThis.URL = __URL;
-    globalThis.URLSearchParams = __URLSearchParams;
-    globalThis.cheerio = __cheerio;
-  }
-
   var require = function(m) {
     if (m === 'cheerio') return __cheerio;
     if (m === 'buffer') return { Buffer: __Buffer };
