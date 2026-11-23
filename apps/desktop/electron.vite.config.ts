@@ -1,33 +1,9 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
-import obfuscator from 'vite-plugin-javascript-obfuscator'
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === 'production'
-
-  const obfuscatorPlugin = (options: Record<string, any> = {}, exclude: (RegExp | string)[] = [/network\.ts/]) =>
-    isProd
-      ? [
-          obfuscator({
-            exclude: [/node_modules/, /\.nuxt/, ...exclude],
-            options: {
-              compact: true,
-              controlFlowFlattening: true,
-              controlFlowFlatteningThreshold: 0.75,
-              numbersToExpressions: true,
-              simplify: true,
-              stringArray: true,
-              stringArrayCallsTransform: true,
-              stringArrayThreshold: 0.75,
-              splitStrings: true,
-              splitStringsChunkLength: 10,
-              unicodeEscapeSequence: true,
-              ...options
-            }
-          })
-        ]
-      : []
 
   return {
     main: {
@@ -48,8 +24,7 @@ export default defineConfig(({ mode }) => {
             'localFileInterceptor': resolve(__dirname, '../../packages/sdk/src/services/localFileInterceptor.ts')
           }
         }
-      },
-      plugins: [...obfuscatorPlugin()]
+      }
     },
     preload: {
       resolve: {
@@ -66,8 +41,7 @@ export default defineConfig(({ mode }) => {
             'cf-stealth-preload': resolve(__dirname, 'src/preload/cf-stealth-preload.ts')
           }
         }
-      },
-      plugins: [...obfuscatorPlugin()]
+      }
     },
     renderer: {
       resolve: {
@@ -107,13 +81,7 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      plugins: [
-        react(),
-        ...obfuscatorPlugin(
-          { reservedStrings: ['@renderer/pages/.*', '@renderer/widgets/.*'] },
-          [/extension\.store\.ts/, /network\.ts/]
-        )
-      ]
+      plugins: [react()]
     }
   }
 })
