@@ -28,8 +28,6 @@ export default ts.config(
       },
     },
     rules: {
-      // Turn off almost everything that blocks commits
-      "no-undef": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off",
@@ -41,7 +39,7 @@ export default ts.config(
       "react/display-name": "off",
       "react/no-unescaped-entities": "off",
       "react-hooks/rules-of-hooks": "warn",
-      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/exhaustive-deps": "warn",
       "no-empty": "off",
       "prefer-const": "off",
       "no-useless-catch": "off",
@@ -50,14 +48,23 @@ export default ts.config(
       "no-case-declarations": "off",
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/triple-slash-reference": "off",
-      
-      // Specifically disable React Compiler errors if they exist
-      "react-compiler/react-compiler": "off",
     },
     settings: {
       react: {
         version: "detect",
       },
+    },
+  },
+  {
+    files: ["**/*.{js,mjs,cjs}"],
+    rules: {
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "no-undef": "off", // Handled with superior accuracy by TypeScript compiler
     },
   },
   {
@@ -69,7 +76,8 @@ export default ts.config(
       "**/node_modules/**",
       "**/.expo/**",
       "**/android/**",
-      "**/ios/**"
+      "**/ios/**",
+      "autakimi-extensions/**",
     ],
   }
 );
