@@ -157,14 +157,30 @@ export const MobileBackup = {
 
       const rawBytes = base64ToUint8Array(base64Data)
 
-      // Decompress if gzipped (magic bytes: 0x1f, 0x8b) with gzip bomb protection
+      // Decompress if gzipped (magic bytes: 0x1f, 0x8b) with streaming gzip bomb protection
       let jsonStr: string
       if (rawBytes.length >= 2 && rawBytes[0] === 0x1f && rawBytes[1] === 0x8b) {
         try {
-          jsonStr = pako.ungzip(rawBytes, { to: 'string' })
-          if (jsonStr.length > MAX_BACKUP_SIZE) {
-            throw new Error('Backup file exceeds maximum allowed decompressed size of 100MB')
+          const inflator = new pako.Inflate({ to: 'string' })
+          let totalDecompressed = 0
+          const chunks: string[] = []
+
+          inflator.onData = (chunk: pako.Data) => {
+            const strChunk = typeof chunk === 'string' ? chunk : decodeUtf8(new Uint8Array(chunk as any))
+            totalDecompressed += strChunk.length
+            if (totalDecompressed > MAX_BACKUP_SIZE) {
+              throw new Error('Backup file exceeds maximum allowed decompressed size of 100MB')
+            }
+            chunks.push(strChunk)
           }
+
+          inflator.push(rawBytes, true)
+
+          if (inflator.err) {
+            throw new Error(inflator.msg || 'Decompression error')
+          }
+
+          jsonStr = chunks.join('')
         } catch (gzErr: any) {
           throw new Error(`Decompression failed: ${gzErr.message}`)
         }
