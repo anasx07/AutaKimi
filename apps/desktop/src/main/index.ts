@@ -236,6 +236,31 @@ function createWindow(): void {
   // 3. Ensure valid Referer header for third-party streaming video embeds & registered stream proxy headers
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     let requestHeaders = { ...details.requestHeaders }
+
+    // Stealth: Sanitize User-Agent to remove any Electron/AutaKimi leakage and mimic pure Google Chrome
+    const currentUA = requestHeaders['User-Agent'] || requestHeaders['user-agent']
+    if (!currentUA || currentUA.includes('Electron') || currentUA.includes('AutaKimi')) {
+      requestHeaders['User-Agent'] = NetworkConfig.DEFAULT_UA
+      delete requestHeaders['user-agent']
+    }
+
+    // Stealth: Inject standard Google Chrome Client Hints
+    const platformStr =
+      process.platform === 'win32'
+        ? '"Windows"'
+        : process.platform === 'darwin'
+          ? '"macOS"'
+          : '"Linux"'
+    if (!requestHeaders['sec-ch-ua'] && !requestHeaders['Sec-CH-UA']) {
+      requestHeaders['sec-ch-ua'] = '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"'
+    }
+    if (!requestHeaders['sec-ch-ua-mobile'] && !requestHeaders['Sec-CH-UA-Mobile']) {
+      requestHeaders['sec-ch-ua-mobile'] = '?0'
+    }
+    if (!requestHeaders['sec-ch-ua-platform'] && !requestHeaders['Sec-CH-UA-Platform']) {
+      requestHeaders['sec-ch-ua-platform'] = platformStr
+    }
+
     const url = details.url.toLowerCase()
     if (
       url.includes('vidmoly') ||
@@ -286,6 +311,9 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  // Set real Chrome User-Agent across all web requests and iframes
+  session.defaultSession.setUserAgent(NetworkConfig.DEFAULT_UA)
+
   // Initialize Services
   await ServiceRegistry.initializeAll()
 

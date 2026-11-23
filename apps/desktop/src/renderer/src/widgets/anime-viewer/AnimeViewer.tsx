@@ -1461,7 +1461,6 @@ export default function AnimeViewer() {
               className="w-full h-full border-none shadow-2xl bg-black"
               allowFullScreen
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
               title="Video Player"
               onLoad={() => {
                 if (watchdogRef.current) {
