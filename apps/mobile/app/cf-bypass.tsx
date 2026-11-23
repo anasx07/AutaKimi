@@ -23,6 +23,17 @@ const CF_CHECK_JS = `
   })();
 `
 
+function serializeCookies(cookies: Record<string, any>): string {
+  const pairs: string[] = []
+  for (const [key, entry] of Object.entries(cookies)) {
+    const val = typeof entry === 'object' && entry !== null ? entry.value : entry
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      pairs.push(`${key}=${val}`)
+    }
+  }
+  return pairs.join('; ')
+}
+
 export default function CfBypassScreen() {
   const webViewRef = useRef<any>(null)
   const [status, setStatus] = useState<'loading' | 'waiting' | 'solved' | 'error'>('loading')
@@ -54,11 +65,12 @@ export default function CfBypassScreen() {
       const cookies = await CookieManager.get(url, true)
       if (cookies) {
         const cfEntry = cookies['cf_clearance']
-        const cfValue = typeof cfEntry === 'object' ? cfEntry?.value : cfEntry
+        const cfValue = typeof cfEntry === 'object' && cfEntry !== null ? cfEntry?.value : cfEntry
         if (cfValue) {
-          console.log('[CfBypass] Resolved cf_clearance via native CookieManager:', String(cfValue).slice(0, 10) + '...')
+          const cookieJar = serializeCookies(cookies) || `cf_clearance=${cfValue}`
+          console.log('[CfBypass] Resolved full cookie jar via native CookieManager:', cookieJar.slice(0, 30) + '...')
           setStatus('solved')
-          CfBypassFlow.complete(cfValue, url)
+          CfBypassFlow.complete(cookieJar, url)
           setTimeout(() => {
             if (router.canGoBack()) router.back()
           }, 1500)
@@ -83,12 +95,23 @@ export default function CfBypassScreen() {
     return () => clearInterval(interval)
   }, [url, status, checkCookies])
 
-  const handleMessage = (event: any) => {
+  const handleMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data)
       if (data.type === 'cf_cookie' && data.value && status !== 'solved') {
+        let cookieJar = `cf_clearance=${data.value}`
+        try {
+          const cookies = await CookieManager.get(url, true)
+          if (cookies) {
+            const serialized = serializeCookies(cookies)
+            if (serialized) {
+              cookieJar = serialized
+            }
+          }
+        } catch (_) {}
+
         setStatus('solved')
-        CfBypassFlow.complete(data.value, url)
+        CfBypassFlow.complete(cookieJar, url)
         setTimeout(() => {
           if (router.canGoBack()) router.back()
         }, 1500)

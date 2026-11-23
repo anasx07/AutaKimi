@@ -39,7 +39,22 @@ export const CfCookieStore = {
     if (!isInitialized) {
       this.init().catch(() => {})
     }
-    return cfCookies[domain] || null
+    if (cfCookies[domain]) return cfCookies[domain]
+    for (const [storedDomain, cookieVal] of Object.entries(cfCookies)) {
+      if (
+        domain === storedDomain ||
+        domain.endsWith('.' + storedDomain) ||
+        storedDomain.endsWith('.' + domain)
+      ) {
+        return cookieVal
+      }
+    }
+    return null
+  },
+
+  async getAsync(domain: string): Promise<string | null> {
+    await this.init()
+    return this.get(domain)
   },
 
   set(domain: string, cookie: string) {
@@ -80,12 +95,13 @@ export const CfBypassFlow = {
     return pendingResolvers.size > 0
   },
 
-  start(url: string): Promise<string | null> {
+  async start(url: string): Promise<string | null> {
     try {
+      await CfCookieStore.init()
       const domain = new URL(url).hostname
       const cached = CfCookieStore.get(domain)
       if (cached) {
-        return Promise.resolve(cached)
+        return cached
       }
 
       return new Promise(resolve => {
@@ -212,7 +228,7 @@ export function getImageHeaders(imageUrl: string, refererUrl?: string): Record<s
       }
 
       if (cfCookie) {
-        headers['Cookie'] = cfCookie.startsWith('cf_clearance=') ? cfCookie : `cf_clearance=${cfCookie}`
+        headers['Cookie'] = cfCookie.includes('=') ? cfCookie : `cf_clearance=${cfCookie}`
       }
     } catch {}
   }
@@ -264,7 +280,7 @@ export function getVideoHeaders(videoUrl: string, refererUrl?: string): Record<s
       }
 
       if (cfCookie) {
-        headers['Cookie'] = cfCookie.startsWith('cf_clearance=') ? cfCookie : `cf_clearance=${cfCookie}`
+        headers['Cookie'] = cfCookie.includes('=') ? cfCookie : `cf_clearance=${cfCookie}`
       }
     } catch {}
   }
