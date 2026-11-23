@@ -14,11 +14,12 @@ export class MobileBypassProvider implements IBypassProvider {
   }
 
   async getCredentials(url: string): Promise<{ userAgent: string; cookies: string }> {
+    await CfCookieStore.init()
     const domain = new URL(url).hostname
     const cfCookie = CfCookieStore.get(domain)
     return {
       userAgent: this.userAgent,
-      cookies: cfCookie ? `cf_clearance=${cfCookie}` : ''
+      cookies: cfCookie ? (cfCookie.includes('=') ? cfCookie : `cf_clearance=${cfCookie}`) : ''
     }
   }
 
@@ -36,7 +37,7 @@ export class MobileBypassProvider implements IBypassProvider {
           ok: true, 
           value: { 
             userAgent: this.userAgent, 
-            cookies: `cf_clearance=${cookie}` 
+            cookies: cookie.includes('=') ? cookie : `cf_clearance=${cookie}` 
           } 
         }
       }
