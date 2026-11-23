@@ -658,7 +658,7 @@ export default function AnimeViewer() {
     setSelectedQuality(-1)
     setCurrentQualityLabel('')
     setMp4QualityLabel('')
-  }, [activeChapter?.id, activeServerIdx])
+  }, [activeChapter?.id, activeServerIdx, volume])
 
   // Setup HLS / Video playback & attach proxy headers
   useEffect(() => {
@@ -868,6 +868,7 @@ export default function AnimeViewer() {
 
     setupPlayer()
 
+    const videoEl = videoRef.current
     return () => {
       isMounted = false
       if (watchdogRef.current) {
@@ -878,13 +879,13 @@ export default function AnimeViewer() {
         hlsRef.current.destroy()
         hlsRef.current = null
       }
-      if (videoRef.current) {
-        videoRef.current.pause()
-        videoRef.current.removeAttribute('src')
-        videoRef.current.load()
+      if (videoEl) {
+        videoEl.pause()
+        videoEl.removeAttribute('src')
+        videoEl.load()
       }
     }
-  }, [activeServerUrl, videoType, s, failoverToNextServer, activeServerIdx])
+  }, [activeServerUrl, videoType, s, failoverToNextServer, activeServerIdx, volume])
 
   const handleLoadedMetadata = () => {
     if (watchdogRef.current) {
