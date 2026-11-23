@@ -138,3 +138,13 @@ try {
 } catch (error) {
   console.error('[Preload] Failed to expose API via contextBridge:', error)
 }
+
+// Stealth: Ensure navigator.webdriver is undefined to match standard Google Chrome
+try {
+  Object.defineProperty(navigator, 'webdriver', {
+    get: () => undefined,
+    configurable: true
+  })
+} catch {
+  // Ignore in restricted environments
+}
