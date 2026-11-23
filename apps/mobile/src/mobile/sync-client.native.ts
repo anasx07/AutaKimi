@@ -74,23 +74,29 @@ export class SyncClient {
         console.log(`[SyncClient] Connecting to ${url}`)
         this.ws = new WebSocket(url)
 
-        let authFallbackTimer: any = null
+        let challengeTimer: ReturnType<typeof setTimeout> | null = null
+        let challengeReceived = false
+
+        const cleanupChallengeTimer = () => {
+          if (challengeTimer) {
+            clearTimeout(challengeTimer)
+            challengeTimer = null
+          }
+        }
 
         this.ws.onopen = () => {
           console.log('[SyncClient] WebSocket opened, waiting for auth challenge...')
-          // Legacy fallback: if server doesn't send challenge within 1s, send legacy auth
-          authFallbackTimer = setTimeout(() => {
-            if (!this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
-              console.log('[SyncClient] No challenge received, falling back to legacy auth...')
-              this.ws?.send(
-                JSON.stringify({
-                  type: 'auth',
-                  id: identityService.getDeviceId(),
-                  secret: info.secret
-                })
-              )
+          // Reject connection if server does not issue an HMAC auth challenge within 3s
+          challengeTimer = setTimeout(() => {
+            if (!this.isConnected) {
+              console.warn('[SyncClient] No auth challenge received within timeout. Rejecting connection (HMAC required).')
+              cleanupChallengeTimer()
+              this.ws?.close()
+              this.isConnected = false
+              this.abortSync()
+              resolve(false)
             }
-          }, 1000)
+          }, 3000)
         }
 
         this.ws.onmessage = async (e) => {
@@ -98,7 +104,8 @@ export class SyncClient {
             const message = JSON.parse(e.data)
 
             if (message.type === 'auth_challenge' && message.challenge) {
-              if (authFallbackTimer) clearTimeout(authFallbackTimer)
+              challengeReceived = true
+              cleanupChallengeTimer()
               console.log('[SyncClient] Received challenge, replying with HMAC response...')
               const response = await computeHmacResponse(info.secret, message.challenge)
               this.ws?.send(
@@ -111,7 +118,18 @@ export class SyncClient {
               return
             }
 
+            if (!challengeReceived) {
+              console.warn('[SyncClient] Unexpected message before auth_challenge, rejecting connection:', message.type)
+              cleanupChallengeTimer()
+              this.ws?.close()
+              this.isConnected = false
+              this.abortSync()
+              resolve(false)
+              return
+            }
+
             await this.handleMessage(message, async (success) => {
+              cleanupChallengeTimer()
               if (success) {
                 try {
                   await MobileDB.setSetting('last_paired_device', JSON.stringify(info))
@@ -128,7 +146,7 @@ export class SyncClient {
         }
 
         this.ws.onerror = (e) => {
-          if (authFallbackTimer) clearTimeout(authFallbackTimer)
+          cleanupChallengeTimer()
           console.error('[SyncClient] WebSocket error:', e)
           this.isConnected = false
           this.abortSync()
@@ -136,7 +154,7 @@ export class SyncClient {
         }
 
         this.ws.onclose = () => {
-          if (authFallbackTimer) clearTimeout(authFallbackTimer)
+          cleanupChallengeTimer()
           console.log('[SyncClient] WebSocket closed')
           this.isConnected = false
           this.abortSync()
