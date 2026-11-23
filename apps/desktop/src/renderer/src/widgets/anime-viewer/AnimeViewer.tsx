@@ -43,6 +43,13 @@ export interface ServerItem {
   error?: string
 }
 
+export interface QualityLevel {
+  index: number
+  height: number
+  bitrate?: number
+  label: string
+}
+
 function getVideoType(server: any): 'hls' | 'mp4' | 'embed' {
   if (!server) return 'embed'
   if (typeof server === 'object' && server.type) {
@@ -156,6 +163,10 @@ export default function AnimeViewer() {
   const [hoverTime, setHoverTime] = useState<number | null>(null)
   const [hoverX, setHoverX] = useState<number>(0)
   const [resumeNotice, setResumeNotice] = useState<string | null>(null)
+  const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([])
+  const [selectedQuality, setSelectedQuality] = useState<number>(-1) // -1 = Auto
+  const [currentQualityLabel, setCurrentQualityLabel] = useState<string>('')
+  const [mp4QualityLabel, setMp4QualityLabel] = useState<string>('')
 
   const hasResumedRef = useRef(false)
   const lastProgressSaveRef = useRef(0)
@@ -604,7 +615,7 @@ export default function AnimeViewer() {
   const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
   const videoType = useMemo(() => getVideoType(s), [s])
 
-  // Automatically append autoplay parameters to embed URLs so they trigger playback immediately
+  // Automatically append autoplay parameters and ensure unmuted parameters for embed URLs
   const activeEmbedUrl = useMemo(() => {
     if (videoType !== 'embed' || !activeServerUrl) return activeServerUrl
     try {
@@ -612,14 +623,21 @@ export default function AnimeViewer() {
       if (!parsed.searchParams.has('autoplay')) {
         parsed.searchParams.set('autoplay', '1')
       }
+      if (parsed.searchParams.get('mute') === '1') {
+        parsed.searchParams.set('mute', '0')
+      }
+      if (parsed.searchParams.get('muted') === '1') {
+        parsed.searchParams.set('muted', '0')
+      }
       return parsed.toString()
     } catch {
-      if (!activeServerUrl.includes('autoplay=')) {
-        return activeServerUrl.includes('?')
-          ? `${activeServerUrl}&autoplay=1`
-          : `${activeServerUrl}?autoplay=1`
+      let url = activeServerUrl
+      if (!url.includes('autoplay=')) {
+        url = url.includes('?') ? `${url}&autoplay=1` : `${url}?autoplay=1`
       }
-      return activeServerUrl
+      url = url.replace(/([?&])muted=1\b/g, '$1muted=0')
+      url = url.replace(/([?&])mute=1\b/g, '$1mute=0')
+      return url
     }
   }, [activeServerUrl, videoType])
 
@@ -631,6 +649,15 @@ export default function AnimeViewer() {
     setDuration(0)
     setBufferedPercent(0)
     setIsBuffering(false)
+    setIsMuted(false)
+    if (videoRef.current) {
+      videoRef.current.muted = false
+      videoRef.current.volume = volume > 0 ? volume : 1
+    }
+    setQualityLevels([])
+    setSelectedQuality(-1)
+    setCurrentQualityLabel('')
+    setMp4QualityLabel('')
   }, [activeChapter?.id, activeServerIdx])
 
   // Setup HLS / Video playback & attach proxy headers
@@ -680,6 +707,11 @@ export default function AnimeViewer() {
       const video = videoRef.current
       if (!video) return
 
+      // Ensure audio is ALWAYS unmuted and volume is full by default across all providers
+      video.muted = false
+      setIsMuted(false)
+      video.volume = volume > 0 ? volume : 1
+
       if (hlsRef.current) {
         hlsRef.current.destroy()
         hlsRef.current = null
@@ -694,6 +726,8 @@ export default function AnimeViewer() {
             maxBufferLength: 60,
             maxMaxBufferLength: 180,
             maxBufferSize: 60 * 1000 * 1000,
+            abrEwmaDefaultEstimate: 8000000,
+            abrEwmaDefaultEstimateMax: 25000000,
             manifestLoadingTimeOut: 5000,
             manifestLoadingMaxRetry: 2,
             manifestLoadingRetryDelay: 500,
@@ -706,20 +740,81 @@ export default function AnimeViewer() {
           hls.loadSource(activeServerUrl)
           hls.attachMedia(video)
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
             if (watchdogRef.current) {
               clearTimeout(watchdogRef.current)
               watchdogRef.current = null
             }
             if (isMounted) {
+              const rawLevels = (data as any)?.levels || hls.levels || []
+              if (rawLevels && rawLevels.length > 0) {
+                const parsed: QualityLevel[] = rawLevels.map((lvl: any, idx: number) => {
+                  const height = lvl.height || 0
+                  const label =
+                    height > 0 ? `${height}p` : lvl.name || `${Math.round(lvl.bitrate / 1000)}k`
+                  return {
+                    index: idx,
+                    height,
+                    bitrate: lvl.bitrate,
+                    label
+                  }
+                })
+
+                // Deduplicate by height keeping highest bitrate, and sort descending
+                const heightMap = new Map<number, QualityLevel>()
+                for (const lvl of parsed) {
+                  const existing = heightMap.get(lvl.height)
+                  if (!existing || (lvl.bitrate && lvl.bitrate > (existing.bitrate || 0))) {
+                    heightMap.set(lvl.height, lvl)
+                  }
+                }
+                const sorted = Array.from(heightMap.values()).sort((a, b) => b.height - a.height)
+                setQualityLevels(sorted)
+
+                // Check stored preference
+                const savedQuality =
+                  localStorage.getItem('autakimi-anime-preferred-quality') || 'auto'
+                if (savedQuality && savedQuality !== 'auto') {
+                  const matched = sorted.find(
+                    (q) =>
+                      q.label.toLowerCase() === savedQuality.toLowerCase() ||
+                      (parseInt(savedQuality, 10) > 0 && q.height === parseInt(savedQuality, 10))
+                  )
+                  if (matched) {
+                    hls.currentLevel = matched.index
+                    setSelectedQuality(matched.index)
+                    setCurrentQualityLabel(matched.label)
+                  } else {
+                    hls.currentLevel = -1
+                    setSelectedQuality(-1)
+                  }
+                } else {
+                  hls.currentLevel = -1
+                  setSelectedQuality(-1)
+                }
+              }
+
+              video.muted = false
+              setIsMuted(false)
               const playPromise = video.play()
               if (playPromise !== undefined) {
                 playPromise.catch(() => {
-                  video.muted = true
-                  setIsMuted(true)
+                  video.muted = false
+                  setIsMuted(false)
                   video.play().catch(() => {})
                 })
               }
+            }
+          })
+
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+            if (!isMounted) return
+            const currentLvl = hls.levels[data.level]
+            if (currentLvl) {
+              const lbl = currentLvl.height
+                ? `${currentLvl.height}p`
+                : `${Math.round(currentLvl.bitrate / 1000)}k`
+              setCurrentQualityLabel(lbl)
             }
           })
 
@@ -757,12 +852,14 @@ export default function AnimeViewer() {
         }
       } else if (videoType === 'mp4') {
         video.src = activeServerUrl
+        video.muted = false
+        setIsMuted(false)
         video.load()
         const playPromise = video.play()
         if (playPromise !== undefined) {
           playPromise.catch(() => {
-            video.muted = true
-            setIsMuted(true)
+            video.muted = false
+            setIsMuted(false)
             video.play().catch(() => {})
           })
         }
@@ -799,6 +896,14 @@ export default function AnimeViewer() {
     const dur = video.duration || 0
     setDuration(dur)
 
+    video.muted = false
+    setIsMuted(false)
+    video.volume = volume > 0 ? volume : 1
+
+    if (video.videoHeight) {
+      setMp4QualityLabel(`${video.videoHeight}p`)
+    }
+
     // Auto-resume from saved progress if user was at least 10s into the video
     // and not within the last 15 seconds
     if (!hasResumedRef.current && savedProgressSeconds > 10 && savedProgressSeconds < dur - 15) {
@@ -812,6 +917,25 @@ export default function AnimeViewer() {
       video.play().catch(() => {})
     }
   }
+
+  const handleQualityChange = useCallback(
+    (levelIndex: number) => {
+      setSelectedQuality(levelIndex)
+      if (hlsRef.current) {
+        hlsRef.current.currentLevel = levelIndex
+      }
+      if (levelIndex === -1) {
+        localStorage.setItem('autakimi-anime-preferred-quality', 'auto')
+      } else {
+        const chosen = qualityLevels.find((q) => q.index === levelIndex)
+        if (chosen) {
+          localStorage.setItem('autakimi-anime-preferred-quality', chosen.label)
+          setCurrentQualityLabel(chosen.label)
+        }
+      }
+    },
+    [qualityLevels]
+  )
 
   const handleTimeUpdate = () => {
     if (watchdogRef.current) {
@@ -1723,7 +1847,7 @@ export default function AnimeViewer() {
           </div>
 
           {/* Controls Row */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between relative">
             {/* Left Controls */}
             <div className="flex items-center gap-3">
               {/* Play / Pause */}
@@ -1822,8 +1946,52 @@ export default function AnimeViewer() {
               </div>
             </div>
 
+            {/* Center Branding / Player Indicator */}
+            <div className="absolute left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md select-none pointer-events-none shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-[11px] font-black tracking-wider uppercase italic text-white/90">
+                AutaKimi <span className="text-primary not-italic font-bold">Player</span>
+              </span>
+            </div>
+
             {/* Right Controls */}
             <div className="flex items-center gap-2">
+              {/* HLS Multi-Quality Selector */}
+              {videoType === 'hls' && qualityLevels.length > 0 && (
+                <div className="flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-2.5 h-8 transition-colors">
+                  <span className="text-[10px] text-white/40 font-bold mr-2 uppercase tracking-tight select-none">
+                    Quality
+                  </span>
+                  <select
+                    value={selectedQuality}
+                    onChange={(e) => handleQualityChange(parseInt(e.target.value, 10))}
+                    className="bg-transparent text-xs font-bold text-white/90 outline-none cursor-pointer"
+                    title="Select Video Quality"
+                  >
+                    <option value={-1} className="bg-neutral-900 text-white">
+                      {selectedQuality === -1 && currentQualityLabel
+                        ? `Auto (${currentQualityLabel})`
+                        : 'Auto'}
+                    </option>
+                    {qualityLevels.map((q) => (
+                      <option key={q.index} value={q.index} className="bg-neutral-900 text-white">
+                        {q.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* MP4 Fixed Quality Badge */}
+              {videoType === 'mp4' && mp4QualityLabel && (
+                <span
+                  className="h-8 px-2.5 flex items-center text-xs font-bold text-white/50 bg-white/5 border border-white/5 rounded-lg select-none"
+                  title="Direct Stream Quality (Fixed)"
+                >
+                  {mp4QualityLabel}
+                </span>
+              )}
+
               {/* Speed */}
               <Button
                 variant="ghost"
