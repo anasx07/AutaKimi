@@ -19,6 +19,7 @@ import { MobileBackup } from "./backup.native";
 import {
   sourceService,
   templateService,
+  extensionRegistryOrchestrator,
   ExtensionEngine,
   IExtensionPlatform,
   networkClient,

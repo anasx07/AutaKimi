@@ -9,6 +9,8 @@ node_modules
 .aider*
 tmp
 *.lnk
+.expo/
+*.tsbuildinfo
 critical_info.txt
 autakimi-extensions/
 # AI Agent Guides & Local Instructions
