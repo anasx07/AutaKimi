@@ -1,13 +1,29 @@
 import { SourceRegistry, generatedSourcesJson } from './SourceRegistry'
 import { ISourceAdapter } from './types'
-import { isAnimeExtension } from '@renderer/shared/lib/constants'
 
 export function reloadSource(pkg: string): void {
   SourceRegistry.reload(pkg)
 }
 
-export function isFullySupported(pkg?: string): boolean {
+/**
+ * Determines if an extension is fully supported based on its metadata.
+ * Driven dynamically by the extension's own config/manifest from autakimi-extensions.
+ */
+export function isFullySupported(
+  pkgOrExt?: string | { pkg?: string; id?: string; status?: string; isFullySupported?: boolean }
+): boolean {
+  if (!pkgOrExt) return false
+
+  // 1. Direct object inspection (e.g. from catalog or active extension instance)
+  if (typeof pkgOrExt === 'object') {
+    if (pkgOrExt.isFullySupported !== undefined) return Boolean(pkgOrExt.isFullySupported)
+    if (pkgOrExt.status !== undefined) return pkgOrExt.status === 'supported'
+  }
+
+  // 2. Package string lookup in generatedSourcesJson (catalog metadata cache)
+  const pkg = typeof pkgOrExt === 'string' ? pkgOrExt : pkgOrExt.pkg || pkgOrExt.id
   if (!pkg) return false
+
   const cleanPkg = pkg.replace(/^ma\.autakimi\.extension\./, '')
   const fullPkg = pkg.startsWith('ma.autakimi.extension.') ? pkg : `ma.autakimi.extension.${pkg}`
   const meta =
@@ -17,30 +33,10 @@ export function isFullySupported(pkg?: string): boolean {
 
   if (meta) {
     if (meta.isFullySupported !== undefined) return Boolean(meta.isFullySupported)
-    if (meta.status) return meta.status === 'supported'
+    if (meta.status !== undefined) return meta.status === 'supported'
   }
 
-  // Anime source check: RistoAnime is currently the only fully supported anime extension
-  const isAnime = isAnimeExtension({
-    pkg: fullPkg,
-    type: meta?.type
-  })
-
-  if (isAnime) {
-    return cleanPkg === 'ar.ristoanime' || fullPkg === 'ma.autakimi.extension.ar.ristoanime'
-  }
-
-  // Arabic Manga: MangaSid is verified and fully supported
-  if (cleanPkg === 'ar.mangasid' || fullPkg === 'ma.autakimi.extension.ar.mangasid') {
-    return true
-  }
-
-  // Other manga sources: if explicitly marked WIP or not supported
-  if (meta?.status === 'wip' || meta?.isFullySupported === false) {
-    return false
-  }
-
-  return !!meta
+  return false
 }
 
 export function getNativeSource(pkg: string): ISourceAdapter | null {
