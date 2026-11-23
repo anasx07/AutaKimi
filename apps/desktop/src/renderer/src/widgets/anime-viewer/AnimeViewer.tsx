@@ -168,6 +168,17 @@ export default function AnimeViewer() {
   const [currentQualityLabel, setCurrentQualityLabel] = useState<string>('')
   const [mp4QualityLabel, setMp4QualityLabel] = useState<string>('')
 
+  const volumeRef = useRef(volume)
+  const isMutedRef = useRef(isMuted)
+
+  useEffect(() => {
+    volumeRef.current = volume
+  }, [volume])
+
+  useEffect(() => {
+    isMutedRef.current = isMuted
+  }, [isMuted])
+
   const hasResumedRef = useRef(false)
   const lastProgressSaveRef = useRef(0)
 
@@ -649,16 +660,15 @@ export default function AnimeViewer() {
     setDuration(0)
     setBufferedPercent(0)
     setIsBuffering(false)
-    setIsMuted(false)
     if (videoRef.current) {
-      videoRef.current.muted = false
-      videoRef.current.volume = volume > 0 ? volume : 1
+      videoRef.current.muted = isMutedRef.current
+      videoRef.current.volume = volumeRef.current > 0 ? volumeRef.current : 1
     }
     setQualityLevels([])
     setSelectedQuality(-1)
     setCurrentQualityLabel('')
     setMp4QualityLabel('')
-  }, [activeChapter?.id, activeServerIdx, volume])
+  }, [activeChapter?.id, activeServerIdx])
 
   // Setup HLS / Video playback & attach proxy headers
   useEffect(() => {
@@ -707,10 +717,8 @@ export default function AnimeViewer() {
       const video = videoRef.current
       if (!video) return
 
-      // Ensure audio is ALWAYS unmuted and volume is full by default across all providers
-      video.muted = false
-      setIsMuted(false)
-      video.volume = volume > 0 ? volume : 1
+      video.muted = isMutedRef.current
+      video.volume = volumeRef.current > 0 ? volumeRef.current : 1
 
       if (hlsRef.current) {
         hlsRef.current.destroy()
@@ -885,7 +893,7 @@ export default function AnimeViewer() {
         videoEl.load()
       }
     }
-  }, [activeServerUrl, videoType, s, failoverToNextServer, activeServerIdx, volume])
+  }, [activeServerUrl, videoType, s, failoverToNextServer, activeServerIdx])
 
   const handleLoadedMetadata = () => {
     if (watchdogRef.current) {
@@ -897,9 +905,8 @@ export default function AnimeViewer() {
     const dur = video.duration || 0
     setDuration(dur)
 
-    video.muted = false
-    setIsMuted(false)
-    video.volume = volume > 0 ? volume : 1
+    video.muted = isMutedRef.current
+    video.volume = volumeRef.current > 0 ? volumeRef.current : 1
 
     if (video.videoHeight) {
       setMp4QualityLabel(`${video.videoHeight}p`)
@@ -1012,6 +1019,8 @@ export default function AnimeViewer() {
     const newVol = Math.max(0, Math.min(1, Number((video.volume + delta).toFixed(2))))
     video.volume = newVol
     video.muted = newVol === 0
+    volumeRef.current = newVol
+    isMutedRef.current = newVol === 0
     setVolume(newVol)
     setIsMuted(newVol === 0)
   }, [])
@@ -1022,15 +1031,20 @@ export default function AnimeViewer() {
     if (isMuted) {
       video.muted = false
       setIsMuted(false)
-      video.volume = volume || 1
+      isMutedRef.current = false
+      video.volume = volume > 0 ? volume : 1
+      volumeRef.current = volume > 0 ? volume : 1
     } else {
       video.muted = true
       setIsMuted(true)
+      isMutedRef.current = true
     }
   }, [isMuted, volume])
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value)
+    volumeRef.current = val
+    isMutedRef.current = val === 0
     setVolume(val)
     setIsMuted(val === 0)
     if (videoRef.current) {
@@ -1252,11 +1266,7 @@ export default function AnimeViewer() {
           break
         case 'm':
           e.preventDefault()
-          if (videoRef.current) {
-            const nextMuted = !isMuted
-            videoRef.current.muted = nextMuted
-            setIsMuted(nextMuted)
-          }
+          toggleMute()
           break
         case 'e':
           e.preventDefault()
@@ -1294,7 +1304,7 @@ export default function AnimeViewer() {
     adjustVolume,
     toggleFullscreen,
     isFullscreen,
-    isMuted,
+    toggleMute,
     nextEpisode,
     prevEpisode,
     isEpisodesOpen,
