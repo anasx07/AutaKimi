@@ -1,4 +1,4 @@
-import { BrowserWindow, net } from 'electron'
+import { BrowserWindow, net, safeStorage } from 'electron'
 import { trackerRepo, settingsRepo, chapterRepo } from '../db'
 import { AniListUser, AniListMedia } from '@common/types'
 import { AppService, ServicePriority } from './service.registry'
@@ -31,6 +31,67 @@ export class TrackingService implements AppService {
 
   public async shutdown(): Promise<void> {
     this.destroy()
+  }
+
+  /**
+   * Encrypt and store AniList access token
+   */
+  private async saveToken(token: string): Promise<void> {
+    if (!token) {
+      await settingsRepo.set('anilist_token', '')
+      return
+    }
+
+    try {
+      if (safeStorage.isEncryptionAvailable()) {
+        const encrypted = safeStorage.encryptString(token)
+        await settingsRepo.set('anilist_token', `enc:${encrypted.toString('base64')}`)
+        return
+      }
+    } catch (err) {
+      console.warn('[TrackingService] safeStorage encryption failed, falling back to plaintext:', err)
+    }
+
+    await settingsRepo.set('anilist_token', token)
+  }
+
+  /**
+   * Retrieve and decrypt AniList access token
+   */
+  private async getToken(): Promise<string | null> {
+    const raw = await settingsRepo.get('anilist_token')
+    if (!raw) return null
+
+    if (raw.startsWith('enc:')) {
+      try {
+        if (safeStorage.isEncryptionAvailable()) {
+          const buffer = Buffer.from(raw.slice(4), 'base64')
+          return safeStorage.decryptString(buffer)
+        } else {
+          console.warn('[TrackingService] safeStorage is not available to decrypt token')
+          return null
+        }
+      } catch (err) {
+        console.error('[TrackingService] Failed to decrypt anilist_token:', err)
+        return null
+      }
+    }
+
+    // Auto-migrate legacy unencrypted token to encrypted format
+    try {
+      if (safeStorage.isEncryptionAvailable()) {
+        await this.saveToken(raw)
+      }
+    } catch {}
+
+    return raw
+  }
+
+  /**
+   * Clear stored AniList access token
+   */
+  private async clearToken(): Promise<void> {
+    await settingsRepo.set('anilist_token', '')
   }
 
   /**
@@ -123,7 +184,7 @@ export class TrackingService implements AppService {
           // Fetch authenticated user info
           this.fetchViewer(token)
             .then(async (user) => {
-              await settingsRepo.set('anilist_token', token)
+              await this.saveToken(token)
               await settingsRepo.set('anilist_user', JSON.stringify(user))
               authWindow.close()
               this.processRetryQueue().catch(() => {})
@@ -165,7 +226,7 @@ export class TrackingService implements AppService {
    */
   async setAniListToken(token: string): Promise<AniListUser> {
     const user = await this.fetchViewer(token)
-    await settingsRepo.set('anilist_token', token)
+    await this.saveToken(token)
     await settingsRepo.set('anilist_user', JSON.stringify(user))
     this.processRetryQueue().catch(() => {})
     return user
@@ -196,7 +257,7 @@ export class TrackingService implements AppService {
    * Get cached or stored AniList user profile
    */
   async getAniListUser(): Promise<AniListUser | null> {
-    const token = await settingsRepo.get('anilist_token')
+    const token = await this.getToken()
     if (!token) return null
 
     const cached = await settingsRepo.get('anilist_user')
@@ -219,7 +280,7 @@ export class TrackingService implements AppService {
    * Disconnect AniList account
    */
   async logoutAniList(): Promise<void> {
-    await settingsRepo.set('anilist_token', '')
+    await this.clearToken()
     await settingsRepo.set('anilist_user', '')
   }
 
@@ -267,7 +328,7 @@ export class TrackingService implements AppService {
    * Retrieve AniList media details along with current user list progress
    */
   async getAniListMedia(mediaId: number): Promise<AniListMedia | null> {
-    const token = await settingsRepo.get('anilist_token')
+    const token = await this.getToken()
     const query = `
       query ($mediaId: Int) {
         Media(id: $mediaId) {
@@ -344,7 +405,7 @@ export class TrackingService implements AppService {
     progress?: number,
     score?: number
   ): Promise<any> {
-    const token = await settingsRepo.get('anilist_token')
+    const token = await this.getToken()
     if (!token) throw new Error('AniList account is not connected.')
 
     // Smart Status auto-completion check if progress is passed
@@ -406,7 +467,7 @@ export class TrackingService implements AppService {
       const autoMarkRead = await settingsRepo.get('auto_mark_read')
       if (autoMarkRead === 'false') return
 
-      const token = await settingsRepo.get('anilist_token')
+      const token = await this.getToken()
       if (!token) return
 
       const tracker = await trackerRepo.getTracker(mangaId, 'anilist')
@@ -536,7 +597,7 @@ export class TrackingService implements AppService {
       return { processed: 0, succeeded: 0, failed: 0 }
     }
 
-    const token = await settingsRepo.get('anilist_token')
+    const token = await this.getToken()
     if (!token) return { processed: 0, succeeded: 0, failed: 0 }
 
     const queue = await trackerRepo.getPendingSyncs()
