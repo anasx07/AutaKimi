@@ -54,6 +54,7 @@ import { cloudflareService } from './services/cloudflare.service'
 import { pluginManager } from './services/plugin.manager'
 import { broadcastService } from './services/broadcast.service'
 import { streamProxyService } from './services/stream-proxy.service'
+import { trackingService } from './services/tracking.service'
 
 cacheManager.setMangaRepo(mangaCacheRepo)
 ServiceRegistry.register(cacheManager)
@@ -65,6 +66,7 @@ ServiceRegistry.register(downloadManager)
 ServiceRegistry.register(extensionOrchestrator)
 ServiceRegistry.register(pluginManager)
 ServiceRegistry.register(streamProxyService)
+ServiceRegistry.register(trackingService)
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
@@ -717,6 +719,8 @@ app.on('before-quit', async (event) => {
     await ServiceRegistry.shutdownAll()
   } catch (err) {
     console.error('Error during ServiceRegistry shutdown:', err)
+  } finally {
+    trackingService.destroy()
   }
 
   app.quit()

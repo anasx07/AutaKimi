@@ -1,20 +1,36 @@
 import { BrowserWindow, net } from 'electron'
 import { trackerRepo, settingsRepo, chapterRepo } from '../db'
 import { AniListUser, AniListMedia } from '@common/types'
+import { AppService, ServicePriority } from './service.registry'
 
 const ANILIST_CLIENT_ID = '16329'
 const ANILIST_GRAPHQL_ENDPOINT = 'https://graphql.anilist.co'
 
-export class TrackingService {
+export class TrackingService implements AppService {
+  public priority = ServicePriority.FEATURE
   private mediaCache = new Map<number, AniListMedia>()
   private isProcessingQueue = false
   private queueInterval: NodeJS.Timeout | null = null
 
   constructor() {
-    // Periodically process offline retry queue (every 45s)
-    this.queueInterval = setInterval(() => {
-      this.processRetryQueue().catch(() => {})
-    }, 45000)
+    this.startQueueTimer()
+  }
+
+  private startQueueTimer(): void {
+    if (!this.queueInterval) {
+      // Periodically process offline retry queue (every 45s)
+      this.queueInterval = setInterval(() => {
+        this.processRetryQueue().catch(() => {})
+      }, 45000)
+    }
+  }
+
+  public async initialize(): Promise<void> {
+    this.startQueueTimer()
+  }
+
+  public async shutdown(): Promise<void> {
+    this.destroy()
   }
 
   /**
