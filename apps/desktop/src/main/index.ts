@@ -25,6 +25,8 @@ app.on('second-instance', () => {
 
 // Disable Chromium automation detection flags (required for Cloudflare bypass)
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+// Allow unmuted video autoplay without requiring user gesture across native and embed players
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 
 import { networkClient } from '@common'
 import path from 'path'
@@ -271,7 +273,9 @@ function createWindow(): void {
       url.includes('uqload') ||
       url.includes('voe.sx') ||
       url.includes('mixdrop') ||
-      url.includes('streamtape')
+      url.includes('streamtape') ||
+      url.includes('ok.ru') ||
+      url.includes('okcdn.ru')
     ) {
       const currentRef = requestHeaders['Referer']
       if (!currentRef || currentRef.includes('localhost') || currentRef.startsWith('file:')) {

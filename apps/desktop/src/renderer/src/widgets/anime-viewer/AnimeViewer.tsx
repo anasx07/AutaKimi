@@ -604,6 +604,25 @@ export default function AnimeViewer() {
   const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
   const videoType = useMemo(() => getVideoType(s), [s])
 
+  // Automatically append autoplay parameters to embed URLs so they trigger playback immediately
+  const activeEmbedUrl = useMemo(() => {
+    if (videoType !== 'embed' || !activeServerUrl) return activeServerUrl
+    try {
+      const parsed = new URL(activeServerUrl)
+      if (!parsed.searchParams.has('autoplay')) {
+        parsed.searchParams.set('autoplay', '1')
+      }
+      return parsed.toString()
+    } catch {
+      if (!activeServerUrl.includes('autoplay=')) {
+        return activeServerUrl.includes('?')
+          ? `${activeServerUrl}&autoplay=1`
+          : `${activeServerUrl}?autoplay=1`
+      }
+      return activeServerUrl
+    }
+  }, [activeServerUrl, videoType])
+
   // Reset player state on episode or server change
   useEffect(() => {
     hasResumedRef.current = false
@@ -1456,8 +1475,8 @@ export default function AnimeViewer() {
         ) : activeServerUrl ? (
           videoType === 'embed' ? (
             <iframe
-              key={activeServerUrl}
-              src={activeServerUrl}
+              key={activeEmbedUrl}
+              src={activeEmbedUrl}
               className="w-full h-full border-none shadow-2xl bg-black"
               allowFullScreen
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
