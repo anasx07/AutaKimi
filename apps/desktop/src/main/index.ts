@@ -208,20 +208,28 @@ function createWindow(): void {
   // 1. Strip frame-blocking headers (X-Frame-Options, Content-Security-Policy) so embeds load in iframes, and allow CORS
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     let responseHeaders = { ...details.responseHeaders }
-    for (const key in responseHeaders) {
-      const lower = key.toLowerCase()
-      if (
-        lower === 'x-frame-options' ||
-        lower === 'content-security-policy' ||
-        lower === 'content-security-policy-report-only'
-      ) {
-        delete responseHeaders[key]
+
+    // Scope CSP, X-Frame-Options, and CORS modifications to subframes (embeds), media streams, and XHR/fetch
+    if (
+      details.resourceType === 'subFrame' ||
+      details.resourceType === 'media' ||
+      details.resourceType === 'xhr'
+    ) {
+      for (const key in responseHeaders) {
+        const lower = key.toLowerCase()
+        if (
+          lower === 'x-frame-options' ||
+          lower === 'content-security-policy' ||
+          lower === 'content-security-policy-report-only'
+        ) {
+          delete responseHeaders[key]
+        }
       }
+      // Allow CORS headers for media streaming and API calls
+      responseHeaders['Access-Control-Allow-Origin'] = ['*']
+      responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS, POST']
+      responseHeaders['Access-Control-Allow-Headers'] = ['*']
     }
-    // Allow CORS headers for media streaming and API calls
-    responseHeaders['Access-Control-Allow-Origin'] = ['*']
-    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS, POST']
-    responseHeaders['Access-Control-Allow-Headers'] = ['*']
 
     // Central dispatcher: apply stream proxy rules for CORS and anime streaming
     responseHeaders = streamProxyService.applyResponseHeaders(details.url, responseHeaders)
