@@ -4,29 +4,10 @@ import crypto from 'crypto'
 import * as cheerio from 'cheerio'
 import { networkClient } from '@common'
 import { NetworkConfig } from '@common/config/network'
-import { isPrivateOrLoopbackHost } from './utils/cacheProtocol'
-
-const MULTI_PART_SECOND_LEVEL_TLDS = new Set([
-  'co', 'com', 'org', 'net', 'edu', 'gov', 'ac', 'ne', 'or', 'mil'
-])
-
-function getDomainBaseName(hostname: string): string {
-  if (!hostname) return ''
-  const parts = hostname.toLowerCase().split('.').filter(Boolean)
-  if (parts.length < 2) return ''
-
-  const lastPart = parts[parts.length - 1]
-  const secondLastPart = parts[parts.length - 2]
-
-  if (lastPart.length === 2 && MULTI_PART_SECOND_LEVEL_TLDS.has(secondLastPart)) {
-    if (parts.length >= 3) {
-      return parts[parts.length - 3].replace(/-/g, '')
-    }
-    return ''
-  }
-
-  return secondLastPart.replace(/-/g, '')
-}
+import {
+  isPrivateOrLoopbackHost,
+  getDomainBaseName
+} from './utils/cacheProtocol'
 
 const ALLOWED_STREAMING_DOMAINS = [
   'vidmoly.to', 'vidmoly.me', 'vidmoly.net', 'vidmoly.org',

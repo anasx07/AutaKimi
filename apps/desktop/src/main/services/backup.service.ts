@@ -1,10 +1,8 @@
 import { app, dialog } from 'electron'
 import fs from 'fs'
-import zlib from 'zlib'
 import { sqliteDb } from '../db'
 import { BackupData } from '@common/types'
-
-const MAX_BACKUP_SIZE = 100 * 1024 * 1024 // 100 MB max backup size limit (decompressed or raw)
+import { serializeBackup, deserializeBackup } from '../utils/backupPayload'
 
 export type { BackupData }
 
@@ -98,14 +96,8 @@ export class BackupService {
         trackers
       }
 
-      const jsonStr = JSON.stringify(backupData)
-      let fileBuffer: Buffer
-
-      if (filePath.endsWith('.json') && !filePath.endsWith('.json.gz')) {
-        fileBuffer = Buffer.from(jsonStr, 'utf-8')
-      } else {
-        fileBuffer = zlib.gzipSync(Buffer.from(jsonStr, 'utf-8'))
-      }
+      const isJsonOnly = filePath.endsWith('.json') && !filePath.endsWith('.json.gz')
+      const fileBuffer = serializeBackup(backupData, !isJsonOnly)
 
       await fs.promises.writeFile(filePath, fileBuffer)
 
@@ -158,34 +150,7 @@ export class BackupService {
 
       const filePath = filePaths[0]
       const rawBuffer = await fs.promises.readFile(filePath)
-
-      // Decompress if gzipped (with gzip bomb protection)
-      let jsonStr: string
-      if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
-        try {
-          jsonStr = zlib
-            .gunzipSync(rawBuffer, { maxOutputLength: MAX_BACKUP_SIZE })
-            .toString('utf-8')
-        } catch (gzErr: any) {
-          if (gzErr?.code === 'ERR_BUFFER_TOO_LARGE' || gzErr?.name === 'RangeError') {
-            throw new Error(
-              'Backup file exceeds maximum allowed decompressed size of 100MB (potential gzip bomb)'
-            )
-          }
-          throw gzErr
-        }
-      } else {
-        if (rawBuffer.length > MAX_BACKUP_SIZE) {
-          throw new Error('Backup file exceeds maximum allowed size of 100MB')
-        }
-        jsonStr = rawBuffer.toString('utf-8')
-      }
-
-      const data: BackupData = JSON.parse(jsonStr)
-
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid backup file format: Root is not an object')
-      }
+      const data: BackupData = deserializeBackup(rawBuffer)
 
       let restoredCounts = {
         library: 0,

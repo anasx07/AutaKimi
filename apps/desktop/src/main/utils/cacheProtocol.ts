@@ -248,6 +248,28 @@ export function isPrivateOrLoopbackHost(hostname: string): boolean {
   return false
 }
 
+export const MULTI_PART_SECOND_LEVEL_TLDS = new Set([
+  'co', 'com', 'org', 'net', 'edu', 'gov', 'ac', 'ne', 'or', 'mil'
+])
+
+export function getDomainBaseName(hostname: string): string {
+  if (!hostname) return ''
+  const parts = hostname.toLowerCase().split('.').filter(Boolean)
+  if (parts.length < 2) return ''
+
+  const lastPart = parts[parts.length - 1]
+  const secondLastPart = parts[parts.length - 2]
+
+  if (lastPart.length === 2 && MULTI_PART_SECOND_LEVEL_TLDS.has(secondLastPart)) {
+    if (parts.length >= 3) {
+      return parts[parts.length - 3].replace(/-/g, '')
+    }
+    return ''
+  }
+
+  return secondLastPart.replace(/-/g, '')
+}
+
 export function isPathSafe(pathname: string): boolean {
   if (!pathname) return true
   for (const seg of pathname.split('/')) {
