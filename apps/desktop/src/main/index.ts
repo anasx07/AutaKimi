@@ -275,7 +275,9 @@ function createWindow(): void {
       url.includes('mixdrop') ||
       url.includes('streamtape') ||
       url.includes('ok.ru') ||
-      url.includes('okcdn.ru')
+      url.includes('okcdn.ru') ||
+      url.includes('vkuser.net') ||
+      url.includes('vk.com')
     ) {
       const currentRef = requestHeaders['Referer']
       if (!currentRef || currentRef.includes('localhost') || currentRef.startsWith('file:')) {
