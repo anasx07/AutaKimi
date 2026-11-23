@@ -16,6 +16,7 @@
     "dev:page": "npm run dev -w github-page",
     "build:page": "npm run build -w github-page",
     "lint": "eslint .",
+    "test": "vitest run",
     "format": "prettier --write .",
     "android:studio": "scripts\\open_in_android_studio.bat",
     "build:apk": "scripts\\Build_Apk.bat",
@@ -35,7 +36,8 @@
     "prettier": "^3.7.4",
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "react-native-worklets": "0.7.4"
