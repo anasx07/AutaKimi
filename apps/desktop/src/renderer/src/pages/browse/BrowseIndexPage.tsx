@@ -375,7 +375,7 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-10">
                   {filteredSources.map((ext, idx) => {
                     const isPinned = (pinnedExtensions || []).includes(ext.pkg)
-                    const isSupported = isFullySupported(ext.pkg)
+                    const isSupported = isFullySupported(ext)
                     const iconUrl = ext.icon || DataService.getExtensionIcon(ext.pkg || '')
                     return (
                       <Card

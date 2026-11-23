@@ -70,9 +70,11 @@ export const ANIME_SOURCE_PKGS = [
   'ma.autakimi.extension.ar.shahiidanime',
   'ma.autakimi.extension.ar.shahidanime',
   'ma.autakimi.extension.ar.ristoanime',
+  'ma.autakimi.extension.ar.okanime',
   'ar.shahiidanime',
   'ar.shahidanime',
-  'ar.ristoanime'
+  'ar.ristoanime',
+  'ar.okanime'
 ]
 
 export const isAnimeExtension = (ext?: { pkg?: string; name?: string; type?: string }): boolean => {
@@ -85,6 +87,8 @@ export const isAnimeExtension = (ext?: { pkg?: string; name?: string; type?: str
     ANIME_SOURCE_PKGS.includes(pkg) ||
     pkg.includes('anime') ||
     name.includes('anime') ||
+    pkg.includes('okanime') ||
+    name.includes('okanime') ||
     pkg.includes('witanime') ||
     pkg.includes('anime4up') ||
     pkg.includes('gogoanime') ||

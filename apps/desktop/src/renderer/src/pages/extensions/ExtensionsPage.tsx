@@ -124,8 +124,8 @@ export default function ExtensionsPage({
       if (!a || !b) return 0
 
       if (extensionSortBy === 'supported') {
-        const aSupp = isFullySupported(a.pkg) ? 1 : 0
-        const bSupp = isFullySupported(b.pkg) ? 1 : 0
+        const aSupp = isFullySupported(a) ? 1 : 0
+        const bSupp = isFullySupported(b) ? 1 : 0
         if (aSupp !== bSupp) return extensionSortOrder === 'asc' ? bSupp - aSupp : aSupp - bSupp
       }
 
@@ -338,7 +338,7 @@ export default function ExtensionsPage({
                     <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
                       {ext.name}
                     </h3>
-                    {isFullySupported(ext.pkg) ? (
+                    {isFullySupported(ext) ? (
                       <Badge
                         variant="secondary"
                         className="text-[8px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter shrink-0"
