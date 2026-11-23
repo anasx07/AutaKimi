@@ -690,14 +690,17 @@ export default function AnimeViewer() {
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            backBufferLength: 60,
-            manifestLoadingTimeOut: 3500,
-            manifestLoadingMaxRetry: 1,
+            backBufferLength: 120,
+            maxBufferLength: 60,
+            maxMaxBufferLength: 180,
+            maxBufferSize: 60 * 1000 * 1000,
+            manifestLoadingTimeOut: 5000,
+            manifestLoadingMaxRetry: 2,
             manifestLoadingRetryDelay: 500,
-            levelLoadingTimeOut: 4000,
-            levelLoadingMaxRetry: 1,
-            fragLoadingTimeOut: 5000,
-            fragLoadingMaxRetry: 2
+            levelLoadingTimeOut: 5000,
+            levelLoadingMaxRetry: 2,
+            fragLoadingTimeOut: 10000,
+            fragLoadingMaxRetry: 3
           })
           hlsRef.current = hls
           hls.loadSource(activeServerUrl)
