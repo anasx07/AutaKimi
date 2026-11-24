@@ -8,7 +8,6 @@ import { ServiceRegistry } from './services/service.registry'
 import { downloadManager } from './services/download.service'
 import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
-import { trayManager } from './tray'
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -161,31 +160,6 @@ function createWindow(): void {
 
   mainWindow.on('move', saveState)
   mainWindow.on('resize', saveState)
-
-  // System Tray Initialization
-  trayManager.createTray(mainWindow, icon)
-
-  // Handle window close (minimize to tray)
-  mainWindow.on('close', (event) => {
-    // If the app is quitting (via tray or system quit), let it close
-    if ((app as any).isQuitting) {
-      trayManager.destroy()
-      return
-    }
-
-    // Check setting (synchronous DB read for immediate event handling)
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('minimize_to_tray') as
-      | { value: string }
-      | undefined
-    const minimizeToTray = row ? row.value !== 'false' : true
-
-    if (minimizeToTray) {
-      event.preventDefault()
-      mainWindow?.hide()
-    } else {
-      trayManager.destroy()
-    }
-  })
 
     mainWindow?.on('ready-to-show', () => {
       mainWindow?.show()
@@ -721,7 +695,6 @@ app.on('before-quit', async (event) => {
 
   event.preventDefault()
   isShuttingDown = true
-  ;(app as any).isQuitting = true
 
   try {
     await ServiceRegistry.shutdownAll()
