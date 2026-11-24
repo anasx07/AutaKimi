@@ -28,8 +28,6 @@ export function GeneralSettings({ onThemeSelect }: GeneralSettingsProps): React.
     setDisplayMode,
     showNsfw,
     setShowNsfw,
-    minimizeToTray,
-    setMinimizeToTray,
     lockMediaTabs,
     setLockMediaTabs
   } = useSettingsStore()
@@ -153,12 +151,6 @@ export function GeneralSettings({ onThemeSelect }: GeneralSettingsProps): React.
             description="Display 18+ extensions and content."
           >
             <Switch checked={showNsfw} onCheckedChange={setShowNsfw} />
-          </SettingsRow>
-          <SettingsRow
-            title="Minimize to Tray"
-            description="App stays running in background when closed."
-          >
-            <Switch checked={minimizeToTray} onCheckedChange={setMinimizeToTray} />
           </SettingsRow>
           <SettingsRow
             title="Lock Media Tabs"

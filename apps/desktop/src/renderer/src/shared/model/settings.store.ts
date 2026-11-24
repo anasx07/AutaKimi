@@ -24,7 +24,6 @@ type SettingsState = SettingsSchema['app'] &
     setTimeoutInterval: (val: string) => Promise<void>
     setEnableLog: (val: boolean) => Promise<void>
     setDownloadConcurrency: (val: number) => Promise<void>
-    setMinimizeToTray: (val: boolean) => Promise<void>
     setAutoNextAnime: (val: boolean) => Promise<void>
     setAutoSwitchServer: (val: boolean) => Promise<void>
     setDevMode: (val: boolean) => Promise<void>
@@ -100,7 +99,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: 'system',
   colorTheme: 'default',
   customThemeConfig: DEFAULT_CUSTOM_THEME,
-  minimizeToTray: true,
   showNsfw: false,
   selectedLangs: ['all'],
   browseMediaType: 'manga',
@@ -163,11 +161,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const clamped = Math.max(1, Math.min(5, val))
     await DataService.db.setSetting('download_concurrency', clamped.toString())
     set({ downloadConcurrency: clamped })
-  },
-
-  setMinimizeToTray: async (val) => {
-    await DataService.db.setSetting('minimize_to_tray', val.toString())
-    set({ minimizeToTray: val })
   },
 
   setAutoNextAnime: async (val) => {

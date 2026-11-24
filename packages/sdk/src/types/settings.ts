@@ -20,7 +20,6 @@ export interface SettingsSchema {
     theme: ThemeType
     colorTheme: ColorThemeType
     customThemeConfig?: CustomThemeConfig
-    minimizeToTray: boolean
     showNsfw: boolean
     selectedLangs: string[]
     autoNextAnime: boolean
@@ -66,7 +65,6 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
     theme: 'system',
     colorTheme: 'default',
     customThemeConfig: DEFAULT_CUSTOM_THEME,
-    minimizeToTray: true,
     showNsfw: false,
     selectedLangs: ['all'],
     autoNextAnime: true,
@@ -118,7 +116,6 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   theme: 'app.theme',
   colorTheme: 'app.colorTheme',
   custom_theme_config: 'app.customThemeConfig',
-  minimize_to_tray: 'app.minimizeToTray',
   showNsfw: 'app.showNsfw',
   selectedLangs: 'app.selectedLangs',
   autoNextAnime: 'app.autoNextAnime',
