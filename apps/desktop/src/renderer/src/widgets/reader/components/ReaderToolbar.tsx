@@ -1,7 +1,21 @@
-import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2, Crop, ZoomIn } from 'lucide-react'
+import {
+  ArrowLeft,
+  ExternalLink,
+  Play,
+  Pause,
+  Hand,
+  Share2,
+  Crop,
+  ZoomIn,
+  PanelTopClose,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
+} from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
+import { Chapter } from '@renderer/shared/api/sources/types'
 import { cn } from '@renderer/shared/lib/utils'
 import { memo } from 'react'
 
@@ -21,6 +35,15 @@ interface ReaderToolbarProps {
   readerTheme?: string
   cropBorders?: boolean
   zoomLevel?: number
+  isZenMode?: boolean
+  chapters?: Chapter[]
+  activeChapterId?: string
+  hasPrevChapter?: boolean
+  hasNextChapter?: boolean
+  onPrevChapter?: () => void
+  onNextChapter?: () => void
+  onSelectChapter?: (chapterId: string) => void
+  onToggleZenMode?: () => void
   onResetZoom?: () => void
   onToggleCropBorders?: () => void
   onReadingModeChange: (mode: ReadingMode) => void
@@ -48,6 +71,15 @@ export const ReaderToolbar = memo(
     readerTheme,
     cropBorders = false,
     zoomLevel = 1,
+    isZenMode = false,
+    chapters = [],
+    activeChapterId,
+    hasPrevChapter = false,
+    hasNextChapter = false,
+    onPrevChapter,
+    onNextChapter,
+    onSelectChapter,
+    onToggleZenMode,
     onResetZoom,
     onToggleCropBorders,
     onReadingModeChange,
@@ -111,19 +143,88 @@ export const ReaderToolbar = memo(
           </div>
         </div>
 
-        {/* ── Center: Chapter & Page indicator ── */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center select-none pointer-events-none">
-          <span className={cn('text-[11px] font-black tracking-widest uppercase', textTitle)}>
-            Ch.&nbsp;{chapterNumber}
-          </span>
-          {totalPages > 0 ? (
-            <span className="text-[9px] text-primary font-bold tracking-wider tabular-nums">
-              {currentPage}&nbsp;/&nbsp;{totalPages}
-            </span>
-          ) : (
-            <span className="text-[9px] text-neutral-500 font-semibold tracking-wider">
-              {isInfiniteScroll ? 'Loading…' : ''}
-            </span>
+        {/* ── Center: Chapter Switcher (< Prev | Ch. Dropdown | Next >) & Page indicator ── */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 select-none"
+          style={{ WebkitAppRegion: 'no-drag' } as any}
+        >
+          {/* Prev Chapter Button */}
+          {onPrevChapter && (
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!hasPrevChapter}
+              onClick={onPrevChapter}
+              className={cn(
+                'h-7 w-7 rounded-full transition-colors',
+                textSub,
+                'hover:text-primary hover:bg-black/5 disabled:opacity-20'
+              )}
+              title="Previous Chapter ([)"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Chapter Selector Dropdown / Badge */}
+          <div className="flex flex-col items-center px-1">
+            {chapters && chapters.length > 1 && onSelectChapter ? (
+              <div className="relative flex items-center group/ch">
+                <select
+                  value={activeChapterId}
+                  onChange={(e) => onSelectChapter(e.target.value)}
+                  className={cn(
+                    'bg-transparent text-[11px] font-black tracking-wider uppercase cursor-pointer outline-none appearance-none pr-3.5 py-0.5 text-center transition-colors max-w-[130px] sm:max-w-[180px] truncate',
+                    textTitle,
+                    'group-hover/ch:text-primary'
+                  )}
+                  title="Switch Chapter (or use [ and ])"
+                >
+                  {chapters.map((ch) => (
+                    <option
+                      key={ch.id}
+                      value={ch.id}
+                      className="bg-neutral-900 text-white font-sans text-xs"
+                    >
+                      Ch. {ch.number} {ch.title ? `• ${ch.title}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="h-2.5 w-2.5 absolute right-0 text-neutral-400 pointer-events-none group-hover/ch:text-primary transition-colors" />
+              </div>
+            ) : (
+              <span className={cn('text-[11px] font-black tracking-widest uppercase', textTitle)}>
+                Ch.&nbsp;{chapterNumber}
+              </span>
+            )}
+
+            {totalPages > 0 ? (
+              <span className="text-[9px] text-primary font-bold tracking-wider tabular-nums leading-none">
+                {currentPage}&nbsp;/&nbsp;{totalPages}
+              </span>
+            ) : (
+              <span className="text-[9px] text-neutral-500 font-semibold tracking-wider leading-none">
+                {isInfiniteScroll ? 'Loading…' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Next Chapter Button */}
+          {onNextChapter && (
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!hasNextChapter}
+              onClick={onNextChapter}
+              className={cn(
+                'h-7 w-7 rounded-full transition-colors',
+                textSub,
+                'hover:text-primary hover:bg-black/5 disabled:opacity-20'
+              )}
+              title="Next Chapter (])"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           )}
         </div>
 
@@ -210,6 +311,24 @@ export const ReaderToolbar = memo(
             <ZoomIn className={cn('h-3.5 w-3.5', zoomLevel !== 1 && 'text-primary')} />
             <span className="tabular-nums">{Math.round(zoomLevel * 100)}%</span>
           </Button>
+
+          {/* Zen / Borderless Mode Toggle Button */}
+          {onToggleZenMode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleZenMode}
+              className={cn(
+                'h-9 w-9 transition-colors',
+                isZenMode
+                  ? 'text-primary bg-primary/10 border border-primary/30'
+                  : cn(textSub, 'hover:text-primary hover:bg-primary/10')
+              )}
+              title={isZenMode ? 'Exit Zen Mode (H)' : 'Zen Mode: Hide Toolbar (H)'}
+            >
+              <PanelTopClose className="h-4 w-4" />
+            </Button>
+          )}
 
           <Button
             variant="ghost"

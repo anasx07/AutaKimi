@@ -13,6 +13,9 @@ export interface UseKeyboardControlsOptions {
   readingMode?: ReadingMode
   onNextPage?: () => void
   onPrevPage?: () => void
+  onToggleZenMode?: () => void
+  onNextChapter?: () => void
+  onPrevChapter?: () => void
 }
 
 export function getPagedNavigationAction(
@@ -93,10 +96,43 @@ export const useKeyboardControls = (
   const onPrevPageRef = useRef(options?.onPrevPage)
   onPrevPageRef.current = options?.onPrevPage
 
+  const onToggleZenModeRef = useRef(options?.onToggleZenMode)
+  onToggleZenModeRef.current = options?.onToggleZenMode
+
+  const onNextChapterRef = useRef(options?.onNextChapter)
+  onNextChapterRef.current = options?.onNextChapter
+
+  const onPrevChapterRef = useRef(options?.onPrevChapter)
+  onPrevChapterRef.current = options?.onPrevChapter
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return
+
+      // Toggle Zen / Full Borderless Mode (H / h)
+      if (
+        (e.key === 'h' || e.key === 'H' || e.code === 'KeyH') &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        e.preventDefault()
+        onToggleZenModeRef.current?.()
+        return
+      }
+
+      // Previous / Next Chapter ([ and ])
+      if ((e.key === '[' || e.code === 'BracketLeft') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        onPrevChapterRef.current?.()
+        return
+      }
+      if ((e.key === ']' || e.code === 'BracketRight') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        onNextChapterRef.current?.()
+        return
+      }
 
       const readingMode = readingModeRef.current
       const isPaged = readingMode?.startsWith('paged-')

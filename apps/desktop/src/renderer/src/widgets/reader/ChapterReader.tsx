@@ -9,7 +9,11 @@ import {
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { isMobile } from '@renderer/shared/platform'
-import { useMediaItems, mediaKeys, usePrefetchNextChapter } from '@renderer/entities/media/api/useMediaQueries'
+import {
+  useMediaItems,
+  mediaKeys,
+  usePrefetchNextChapter
+} from '@renderer/entities/media/api/useMediaQueries'
 import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
 import { Chapter } from '@renderer/shared/api/sources/types'
@@ -55,12 +59,63 @@ export default function ChapterReader() {
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [scrubberHover, setScrubberHover] = useState<{ x: number; page: number } | null>(null)
+  const [isZenMode, setIsZenMode] = useState(false)
+  const [zenToast, setZenToast] = useState<string | null>(null)
+  const [isTopHovered, setIsTopHovered] = useState(false)
+  const topHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollPage = useRef<number | null>(null)
   const lastSyncId = useRef<string | null>(null)
   const visiblePagesRef = useRef<Record<string, number>>({})
   const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(null)
+  const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(
+    null
+  )
+
+  const toggleZenMode = useCallback(() => {
+    setIsZenMode((prev) => {
+      const next = !prev
+      if (next) {
+        setZenToast('Zen Mode Active • Press H or Double-Click to exit')
+        setTimeout(() => setZenToast(null), 3000)
+      } else {
+        setZenToast(null)
+      }
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isZenMode) {
+      setIsTopHovered(false)
+      return
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientY <= 30) {
+        setIsTopHovered(true)
+        if (topHoverTimeoutRef.current) {
+          clearTimeout(topHoverTimeoutRef.current)
+          topHoverTimeoutRef.current = null
+        }
+      } else if (e.clientY > 65) {
+        if (!topHoverTimeoutRef.current) {
+          topHoverTimeoutRef.current = setTimeout(() => {
+            setIsTopHovered(false)
+            topHoverTimeoutRef.current = null
+          }, 600)
+        }
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      if (topHoverTimeoutRef.current) {
+        clearTimeout(topHoverTimeoutRef.current)
+      }
+    }
+  }, [isZenMode])
 
   // Track reading duration on unmount
   useEffect(() => {
@@ -105,11 +160,45 @@ export default function ChapterReader() {
     selectedManga?.url
   )
 
-  usePrefetchNextChapter(
-    selectedManga?.id || '',
-    resolvedPkg,
-    chapters,
-    activeChapter
+  usePrefetchNextChapter(selectedManga?.id || '', resolvedPkg, chapters, activeChapter)
+
+  const sortedChapters = useMemo(() => {
+    return [...chapters].sort((a, b) => {
+      const getNum = (c: any) => {
+        if (typeof c.number === 'number') return c.number
+        const str = String(c.number || '').replace(/[^0-9.]/g, '')
+        const parsed = parseFloat(str)
+        return isNaN(parsed) ? 0 : parsed
+      }
+      return getNum(a) - getNum(b)
+    })
+  }, [chapters])
+
+  const currentChapterIdx = sortedChapters.findIndex((c) => c.id === activeChapter?.id)
+  const prevChapter = currentChapterIdx > 0 ? sortedChapters[currentChapterIdx - 1] : null
+  const nextChapter =
+    currentChapterIdx !== -1 && currentChapterIdx + 1 < sortedChapters.length
+      ? sortedChapters[currentChapterIdx + 1]
+      : null
+
+  const goToChapter = useCallback(
+    (chapter: Chapter) => {
+      if (!chapter || chapter.id === activeChapter?.id) return
+      setLoadedChapters([chapter])
+      lastSyncId.current = chapter.id
+      setActiveChapter(chapter)
+      const savedPage = (selectedManga && pageProgress[selectedManga.id]?.[chapter.id]) || 1
+      setCurrentPage(savedPage)
+      if (savedPage > 1) {
+        pendingScrollPage.current = savedPage
+      } else {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = 0
+          scrollRef.current.scrollLeft = 0
+        }
+      }
+    },
+    [activeChapter?.id, selectedManga, pageProgress, setActiveChapter]
   )
 
   const isInfiniteScroll = readingMode === 'webtoon' || readingMode === 'continuous-vertical'
@@ -174,7 +263,10 @@ export default function ChapterReader() {
     {
       readingMode,
       onNextPage: pagedNext,
-      onPrevPage: pagedPrev
+      onPrevPage: pagedPrev,
+      onToggleZenMode: toggleZenMode,
+      onNextChapter: () => nextChapter && goToChapter(nextChapter),
+      onPrevChapter: () => prevChapter && goToChapter(prevChapter)
     }
   )
 
@@ -277,6 +369,7 @@ export default function ChapterReader() {
     },
     [
       activeChapter?.id,
+      setActiveChapter,
       chapterPageCounts,
       savePageProgress,
       selectedManga,
@@ -296,8 +389,7 @@ export default function ChapterReader() {
 
       if (lastSyncId.current !== chapterId) {
         const targetChapter =
-          loadedChapters.find((c) => c.id === chapterId) ||
-          chapters.find((c) => c.id === chapterId)
+          loadedChapters.find((c) => c.id === chapterId) || chapters.find((c) => c.id === chapterId)
         if (targetChapter) {
           handleVisible(targetChapter)
         }
@@ -370,20 +462,13 @@ export default function ChapterReader() {
     }
   }, [activeChapter?.id, chapterPageCounts])
 
-  const findNextChapter = useCallback((current: Chapter) => {
-    if (chapters.length === 0) return null
-    const sorted = [...chapters].sort((a, b) => {
-      const getNum = (c: any) => {
-        if (typeof c.number === 'number') return c.number
-        const str = String(c.number || '').replace(/[^0-9.]/g, '')
-        const parsed = parseFloat(str)
-        return isNaN(parsed) ? 0 : parsed
-      }
-      return getNum(a) - getNum(b)
-    })
-    const idx = sorted.findIndex((c) => c.id === current.id)
-    return idx !== -1 && idx + 1 < sorted.length ? sorted[idx + 1] : null
-  }, [chapters])
+  const findNextChapter = useCallback(
+    (current: Chapter) => {
+      const idx = sortedChapters.findIndex((c) => c.id === current.id)
+      return idx !== -1 && idx + 1 < sortedChapters.length ? sortedChapters[idx + 1] : null
+    },
+    [sortedChapters]
+  )
 
   const handleHalfway = useCallback(
     (chapter: Chapter) => {
@@ -416,31 +501,63 @@ export default function ChapterReader() {
         readerBg
       )}
     >
-      <ReaderToolbar
-        chapterNumber={activeChapter.number}
-        chapterTitle={activeChapter.title}
-        extensionName={extensionName}
-        chapterUrl={activeChapter.url}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        isInfiniteScroll={isInfiniteScroll}
-        autoScrollEnabled={autoScrollEnabled}
-        autoScrollSpeed={autoScrollSpeed}
-        isKbdPaused={isKbdPaused}
-        dragToScroll={dragToScroll}
-        readingMode={readingMode}
-        onReadingModeChange={setReadingMode}
-        readerTheme={readerTheme}
-        cropBorders={cropBorders}
-        zoomLevel={zoomLevel}
-        onResetZoom={resetZoom}
-        onToggleCropBorders={() => setCropBorders(!cropBorders)}
-        onClose={() => setActiveChapter(null)}
-        onOpenInBrowser={openInBrowser}
-        onToggleAutoScroll={() => setAutoScrollEnabled(!autoScrollEnabled)}
-        onChangeAutoScrollSpeed={setAutoScrollSpeed}
-        onShare={() => setShowShareModal(true)}
-      />
+      <div
+        className={cn(
+          'transition-all duration-300 ease-in-out z-40',
+          isZenMode
+            ? cn(
+                'fixed top-0 left-0 right-0 shadow-2xl',
+                isTopHovered
+                  ? 'translate-y-0 opacity-100 pointer-events-auto'
+                  : '-translate-y-full opacity-0 pointer-events-none'
+              )
+            : 'relative flex-shrink-0'
+        )}
+      >
+        <ReaderToolbar
+          chapterNumber={activeChapter.number}
+          chapterTitle={activeChapter.title}
+          extensionName={extensionName}
+          chapterUrl={activeChapter.url}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isInfiniteScroll={isInfiniteScroll}
+          autoScrollEnabled={autoScrollEnabled}
+          autoScrollSpeed={autoScrollSpeed}
+          isKbdPaused={isKbdPaused}
+          dragToScroll={dragToScroll}
+          readingMode={readingMode}
+          onReadingModeChange={setReadingMode}
+          readerTheme={readerTheme}
+          cropBorders={cropBorders}
+          zoomLevel={zoomLevel}
+          isZenMode={isZenMode}
+          chapters={sortedChapters}
+          activeChapterId={activeChapter.id}
+          hasPrevChapter={prevChapter !== null}
+          hasNextChapter={nextChapter !== null}
+          onPrevChapter={() => prevChapter && goToChapter(prevChapter)}
+          onNextChapter={() => nextChapter && goToChapter(nextChapter)}
+          onSelectChapter={(chapterId) => {
+            const ch = sortedChapters.find((c) => c.id === chapterId)
+            if (ch) goToChapter(ch)
+          }}
+          onToggleZenMode={toggleZenMode}
+          onResetZoom={resetZoom}
+          onToggleCropBorders={() => setCropBorders(!cropBorders)}
+          onClose={() => setActiveChapter(null)}
+          onOpenInBrowser={openInBrowser}
+          onToggleAutoScroll={() => setAutoScrollEnabled(!autoScrollEnabled)}
+          onChangeAutoScrollSpeed={setAutoScrollSpeed}
+          onShare={() => setShowShareModal(true)}
+        />
+      </div>
+
+      {zenToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[120] bg-neutral-900/95 backdrop-blur-xl border border-primary/40 px-4 py-2 rounded-full text-xs font-bold text-primary shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 pointer-events-none select-none">
+          {zenToast}
+        </div>
+      )}
 
       <div
         ref={(el) => {
@@ -449,6 +566,18 @@ export default function ChapterReader() {
           setScrollEl(el)
         }}
         tabIndex={0}
+        onDoubleClick={(e) => {
+          const target = e.target as HTMLElement | null
+          if (
+            target?.closest('button') ||
+            target?.closest('input') ||
+            target?.closest('select') ||
+            target?.closest('a')
+          ) {
+            return
+          }
+          toggleZenMode()
+        }}
         {...dragHandlers}
         className={cn(
           'flex-1 relative outline-none overscroll-contain no-scrollbar',
@@ -521,7 +650,10 @@ export default function ChapterReader() {
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
             const x = e.clientX - rect.left
-            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl'
+            const isRtl =
+              readingMode === 'paged-rtl' ||
+              readingMode === 'continuous-rtl' ||
+              readingMode === 'paged-double-rtl'
             const ratio = isRtl ? 1 - x / rect.width : x / rect.width
             const hoverPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
             setScrubberHover({ x, page: hoverPage })
@@ -530,7 +662,10 @@ export default function ChapterReader() {
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
             const x = e.clientX - rect.left
-            const isRtl = readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl'
+            const isRtl =
+              readingMode === 'paged-rtl' ||
+              readingMode === 'continuous-rtl' ||
+              readingMode === 'paged-double-rtl'
             const ratio = isRtl ? 1 - x / rect.width : x / rect.width
             const targetPage = Math.max(1, Math.min(totalPages, Math.ceil(ratio * totalPages)))
 
@@ -556,7 +691,11 @@ export default function ChapterReader() {
           <div
             className={cn(
               'absolute top-0 bottom-0 bg-primary transition-all duration-150 shadow-[0_0_15px_rgba(var(--primary),0.6)]',
-              readingMode === 'paged-rtl' || readingMode === 'continuous-rtl' || readingMode === 'paged-double-rtl' ? 'right-0' : 'left-0'
+              readingMode === 'paged-rtl' ||
+                readingMode === 'continuous-rtl' ||
+                readingMode === 'paged-double-rtl'
+                ? 'right-0'
+                : 'left-0'
             )}
             style={{ width: `${(currentPage / totalPages) * 100}%` }}
           />
