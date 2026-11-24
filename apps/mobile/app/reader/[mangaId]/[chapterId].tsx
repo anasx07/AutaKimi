@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View, FlatList, TouchableOpacity, ActivityIndicator,
-  Dimensions, TouchableWithoutFeedback, PanResponder
+  Dimensions, TouchableWithoutFeedback, PanResponder, Animated
 } from 'react-native'
 
 import { useLocalSearchParams, router, Stack } from 'expo-router'
@@ -10,7 +10,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { useQuery } from '@tanstack/react-query'
 import { Typography, Button } from '@mobile/native/ui';
 import { DataService } from '@renderer/shared/api'
-import { ArrowLeft, AlertTriangle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react-native'
+import { ArrowLeft, AlertTriangle, Loader2, ChevronLeft, ChevronRight, RefreshCw, ShieldCheck } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getImageHeaders } from '../../../src/mobile/cf-cookies'
 
@@ -21,59 +21,291 @@ const ReaderImage = ({ url, index, refererUrl }: { url: string; index: number; r
   const [imgHeight, setImgHeight] = useState<number>(SCREEN_WIDTH * 1.4)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
+  const [isBypassingCf, setIsBypassingCf] = useState(false)
+
+  // Zoom & Pan state for pinch-to-zoom
+  const scale = useRef(new Animated.Value(1)).current
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
+  const scaleRef = useRef(1)
+  const panXRef = useRef(0)
+  const panYRef = useRef(0)
+  const lastPanX = useRef(0)
+  const lastPanY = useRef(0)
+  const initialDistanceRef = useRef(0)
+  const initialScaleRef = useRef(1)
+  const lastTapRef = useRef(0)
 
   const headers = useMemo(() => {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return undefined
     }
+    void retryKey
     return getImageHeaders(url, refererUrl)
-  }, [url, refererUrl])
+  }, [url, refererUrl, retryKey])
+
+  const handleRetry = () => {
+    setError(false)
+    setLoading(true)
+    setRetryKey((k) => k + 1)
+  }
+
+  const handleCloudflareRefresh = async () => {
+    setIsBypassingCf(true)
+    try {
+      const targetUrl = refererUrl || url
+      await DataService.cfBypass(targetUrl)
+      setError(false)
+      setLoading(true)
+      setRetryKey((k) => k + 1)
+    } catch (err) {
+      console.error('[ReaderImage] Failed to resolve Cloudflare challenge:', err)
+    } finally {
+      setIsBypassingCf(false)
+    }
+  }
+
+  const resetZoom = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 7
+      }),
+      Animated.spring(pan, {
+        toValue: { x: 0, y: 0 },
+        useNativeDriver: true,
+        friction: 7
+      })
+    ]).start(() => {
+      scaleRef.current = 1
+      panXRef.current = 0
+      panYRef.current = 0
+      lastPanX.current = 0
+      lastPanY.current = 0
+    })
+  }, [pan, scale])
+
+  const zoomTo = useCallback(
+    (targetScale: number) => {
+      Animated.parallel([
+        Animated.spring(scale, {
+          toValue: targetScale,
+          useNativeDriver: true,
+          friction: 7
+        }),
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: true,
+          friction: 7
+        })
+      ]).start(() => {
+        scaleRef.current = targetScale
+        panXRef.current = 0
+        panYRef.current = 0
+        lastPanX.current = 0
+        lastPanY.current = 0
+      })
+    },
+    [pan, scale]
+  )
+
+  const getDistance = (touches: readonly any[]) => {
+    const [t1, t2] = touches
+    return Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY)
+  }
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: (evt) => {
+          // If already zoomed in, capture touch to allow panning or double-tap reset
+          if (scaleRef.current > 1.05) return true
+          return evt.nativeEvent.touches.length === 2
+        },
+        onMoveShouldSetPanResponder: (evt) => {
+          // Pinch with 2 fingers or pan when zoomed
+          if (evt.nativeEvent.touches.length === 2) return true
+          if (scaleRef.current > 1.05) return true
+          return false
+        },
+        onPanResponderGrant: (evt) => {
+          if (evt.nativeEvent.touches.length === 2) {
+            initialDistanceRef.current = getDistance(evt.nativeEvent.touches)
+            initialScaleRef.current = scaleRef.current
+          } else {
+            lastPanX.current = panXRef.current
+            lastPanY.current = panYRef.current
+
+            // Double tap to reset or zoom in
+            const now = Date.now()
+            if (now - lastTapRef.current < 300) {
+              if (scaleRef.current > 1.2) {
+                resetZoom()
+              } else {
+                zoomTo(2.5)
+              }
+              lastTapRef.current = 0
+            } else {
+              lastTapRef.current = now
+            }
+          }
+        },
+        onPanResponderMove: (evt, gestureState) => {
+          if (evt.nativeEvent.touches.length === 2) {
+            const dist = getDistance(evt.nativeEvent.touches)
+            if (initialDistanceRef.current > 0) {
+              const factor = dist / initialDistanceRef.current
+              const newScale = Math.max(1, Math.min(4, initialScaleRef.current * factor))
+              scale.setValue(newScale)
+              scaleRef.current = newScale
+            }
+          } else if (evt.nativeEvent.touches.length === 1 && scaleRef.current > 1.05) {
+            const maxPanX = (SCREEN_WIDTH * (scaleRef.current - 1)) / 2
+            const maxPanY = (imgHeight * (scaleRef.current - 1)) / 2
+            const nextX = Math.max(
+              -maxPanX,
+              Math.min(maxPanX, lastPanX.current + gestureState.dx)
+            )
+            const nextY = Math.max(
+              -maxPanY,
+              Math.min(maxPanY, lastPanY.current + gestureState.dy)
+            )
+            pan.setValue({ x: nextX, y: nextY })
+            panXRef.current = nextX
+            panYRef.current = nextY
+          }
+        },
+        onPanResponderRelease: () => {
+          if (scaleRef.current < 1.05) {
+            resetZoom()
+          } else {
+            lastPanX.current = panXRef.current
+            lastPanY.current = panYRef.current
+          }
+        },
+        onPanResponderTerminate: () => {
+          if (scaleRef.current < 1.05) {
+            resetZoom()
+          }
+        }
+      }),
+    [imgHeight, pan, resetZoom, scale, zoomTo]
+  )
 
   if (error) {
+    const isRemote = url.startsWith('http://') || url.startsWith('https://')
     return (
       <View
-        style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.4 }}
-        className="bg-zinc-900 items-center justify-center"
+        style={{ width: SCREEN_WIDTH, minHeight: SCREEN_WIDTH * 1.1 }}
+        className="bg-zinc-900/90 border border-red-500/20 rounded-2xl my-3 p-6 items-center justify-center mx-auto"
       >
-        <AlertTriangle size={24} color="#666" />
-        <Typography className="text-zinc-500 text-xs mt-2">
-          Page {index + 1} Failed
+        <View className="w-12 h-12 rounded-full bg-red-500/10 items-center justify-center mb-3">
+          <AlertTriangle size={24} color="#ef4444" />
+        </View>
+
+        <Typography className="text-white text-sm font-bold text-center">
+          Page {index + 1} Failed to Load
         </Typography>
+
+        <Typography className="text-zinc-400 text-xs text-center mt-1 px-4 mb-5">
+          {isRemote
+            ? 'The image might be temporarily blocked by Cloudflare (expired session) or a network error.'
+            : 'The local cached image file could not be read.'}
+        </Typography>
+
+        <View className="flex-row items-center justify-center gap-3">
+          <TouchableOpacity
+            onPress={handleRetry}
+            disabled={isBypassingCf}
+            activeOpacity={0.7}
+            className="flex-row items-center gap-2 bg-zinc-800 px-4 py-2.5 rounded-full border border-zinc-700 active:bg-zinc-700"
+          >
+            <RefreshCw size={14} color="#f4f4f5" />
+            <Typography className="text-zinc-100 text-xs font-semibold">
+              Retry Page
+            </Typography>
+          </TouchableOpacity>
+
+          {isRemote && (
+            <TouchableOpacity
+              onPress={handleCloudflareRefresh}
+              disabled={isBypassingCf}
+              activeOpacity={0.7}
+              className="flex-row items-center gap-2 bg-amber-500/10 px-4 py-2.5 rounded-full border border-amber-500/30 active:bg-amber-500/20"
+            >
+              {isBypassingCf ? (
+                <>
+                  <ActivityIndicator size="small" color="#f59e0b" />
+                  <Typography className="text-amber-400 text-xs font-semibold">
+                    Bypassing...
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={14} color="#f59e0b" />
+                  <Typography className="text-amber-400 text-xs font-semibold">
+                    Cloudflare Refresh
+                  </Typography>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     )
   }
 
+  const displayUrl =
+    retryKey > 0
+      ? url.includes('?')
+        ? `${url}&cf_retry=${retryKey}`
+        : `${url}?cf_retry=${retryKey}`
+      : url
+
   return (
     <View
       style={{ width: SCREEN_WIDTH, minHeight: imgHeight }}
-      className="bg-black justify-center items-center"
+      className="bg-black justify-center items-center overflow-hidden"
+      {...panResponder.panHandlers}
     >
       {loading && (
         <View className="absolute inset-0 items-center justify-center z-10">
           <ActivityIndicator size="small" color="#e11d48" />
         </View>
       )}
-      <ExpoImage
-        source={{
-          uri: url,
-          ...(headers ? { headers } : {})
+      <Animated.View
+        style={{
+          transform: [
+            { scale },
+            { translateX: pan.x },
+            { translateY: pan.y }
+          ]
         }}
-        style={{ width: SCREEN_WIDTH, height: imgHeight }}
-        contentFit="contain"
-        cachePolicy="memory-disk"
-        priority={index < 5 ? 'high' : 'normal'}
-        onLoad={(e) => {
-          const { width, height } = e.source
-          if (width > 0 && height > 0) {
-            setImgHeight(Math.round(SCREEN_WIDTH * (height / width)))
-          }
-          setLoading(false)
-        }}
-        onError={() => {
-          setError(true)
-          setLoading(false)
-        }}
-      />
+      >
+        <ExpoImage
+          key={`${url}-${retryKey}`}
+          source={{
+            uri: displayUrl,
+            ...(headers ? { headers } : {})
+          }}
+          style={{ width: SCREEN_WIDTH, height: imgHeight }}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          priority={index < 5 ? 'high' : 'normal'}
+          onLoad={(e) => {
+            const { width, height } = e.source
+            if (width > 0 && height > 0) {
+              setImgHeight(Math.round(SCREEN_WIDTH * (height / width)))
+            }
+            setLoading(false)
+          }}
+          onError={() => {
+            setError(true)
+            setLoading(false)
+          }}
+        />
+      </Animated.View>
     </View>
   )
 }
