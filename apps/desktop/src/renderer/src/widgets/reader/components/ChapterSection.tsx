@@ -402,7 +402,14 @@ export const ChapterSection = memo(
             )}
             onClick={handleModeClick}
           >
-            <div className="flex items-center justify-center min-w-full min-h-full m-auto gap-2">
+            <div
+              className="flex items-center justify-center min-w-full min-h-full m-auto gap-2"
+              style={
+                zoomLevel !== 1
+                  ? { transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }
+                  : undefined
+              }
+            >
               {isDouble && currentPage > 1 ? (
                 isDoubleRtl ? (
                   <>

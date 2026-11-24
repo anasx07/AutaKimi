@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2, Crop } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Play, Pause, Hand, Share2, Crop, ZoomIn } from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
@@ -20,6 +20,8 @@ interface ReaderToolbarProps {
   readingMode: ReadingMode
   readerTheme?: string
   cropBorders?: boolean
+  zoomLevel?: number
+  onResetZoom?: () => void
   onToggleCropBorders?: () => void
   onReadingModeChange: (mode: ReadingMode) => void
   onClose: () => void
@@ -45,6 +47,8 @@ export const ReaderToolbar = memo(
     readingMode,
     readerTheme,
     cropBorders = false,
+    zoomLevel = 1,
+    onResetZoom,
     onToggleCropBorders,
     onReadingModeChange,
     onClose,
@@ -186,6 +190,27 @@ export const ReaderToolbar = memo(
               <Hand className="h-3.5 w-3.5" /> Drag On
             </div>
           )}
+          {/* Zoom Indicator */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onResetZoom}
+            className={cn(
+              'h-8 px-2 flex items-center gap-1 text-[11px] font-mono font-bold rounded-full transition-all border',
+              zoomLevel !== 1
+                ? 'text-primary bg-primary/10 border-primary/40 hover:bg-primary/20 shadow-sm'
+                : cn(textSub, 'border-transparent hover:text-primary hover:bg-black/5')
+            )}
+            title={
+              zoomLevel !== 1
+                ? `Zoom: ${Math.round(zoomLevel * 100)}% (Click or Ctrl+0 to reset to 100%)`
+                : 'Zoom: 100% (Ctrl+Wheel or Ctrl +/- to zoom)'
+            }
+          >
+            <ZoomIn className={cn('h-3.5 w-3.5', zoomLevel !== 1 && 'text-primary')} />
+            <span className="tabular-nums">{Math.round(zoomLevel * 100)}%</span>
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
