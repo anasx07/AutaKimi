@@ -17,14 +17,11 @@ const MediaDetails = lazy(() => import('@renderer/widgets/media-details/MediaDet
 const ChapterReader = lazy(() => import('@renderer/widgets/reader/ChapterReader'))
 const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewer'))
 
-
 export function AppLayout(): React.JSX.Element {
   useAppUpdater()
   const { selectedManga, setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
   const location = useLocation()
   const mobile = isMobile()
-
-
 
   // Dismiss details and reader on route change
   useEffect(() => {
@@ -67,7 +64,9 @@ export function AppLayout(): React.JSX.Element {
                       </div>
                     }
                   >
-                    <MediaDetails mediaType={selectedManga.mediaType === 'anime' ? 'anime' : 'manga'} />
+                    <MediaDetails
+                      mediaType={selectedManga.mediaType === 'anime' ? 'anime' : 'manga'}
+                    />
                   </Suspense>
                 </ErrorBoundary>
               </div>
@@ -76,7 +75,7 @@ export function AppLayout(): React.JSX.Element {
           {mobile && <MobileBottomNav />}
         </div>
 
-        {activeChapter && (
+        {activeChapter && (mobile || selectedManga?.mediaType !== 'anime') && (
           <ErrorBoundary label="Viewer">
             <Suspense
               fallback={

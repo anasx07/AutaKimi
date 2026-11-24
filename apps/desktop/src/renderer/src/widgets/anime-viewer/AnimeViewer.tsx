@@ -9,7 +9,10 @@ import {
   Menu,
   Zap,
   X,
-  SkipForward
+  SkipForward,
+  Maximize,
+  RectangleHorizontal,
+  ShieldAlert
 } from 'lucide-react'
 import {
   parseEpisodeNumber,
@@ -131,7 +134,18 @@ async function probeEpisodeServers(
   return results
 }
 
-export default function AnimeViewer() {
+export interface AnimeViewerProps {
+  variant?: 'overlay' | 'inline'
+  isTheaterMode?: boolean
+  onToggleTheaterMode?: () => void
+}
+
+export default function AnimeViewer({
+  variant = 'overlay',
+  isTheaterMode = false,
+  onToggleTheaterMode
+}: AnimeViewerProps) {
+  const isInline = variant === 'inline'
   const mobile = isMobile()
   const platform = DataService.platform
   const { activeChapter, setActiveChapter, selectedManga } = useLibraryStore()
@@ -1040,7 +1054,31 @@ export default function AnimeViewer() {
   }, [playbackRate, videoRef])
 
   const toggleFullscreen = useCallback(async () => {
-    // 1. Desktop native window fullscreen via Electron
+    // Inline mode uses Element.requestFullscreen() so ONLY the video container (not Sidebar/Episodes) enters fullscreen
+    if (isInline) {
+      if (!document.fullscreenElement) {
+        const container = containerRef.current
+        if (container?.requestFullscreen) {
+          try {
+            await container.requestFullscreen()
+            setIsFullscreen(true)
+            return
+          } catch (err) {
+            console.warn('[AnimeViewer] Element fullscreen failed, trying native window:', err)
+          }
+        }
+      } else if (document.exitFullscreen) {
+        try {
+          await document.exitFullscreen()
+          setIsFullscreen(false)
+          return
+        } catch (err) {
+          console.warn('[AnimeViewer] Exit element fullscreen failed:', err)
+        }
+      }
+    }
+
+    // 1. Desktop native window fullscreen via Electron (default for overlay or fallback)
     if (typeof window !== 'undefined' && window.api?.window) {
       try {
         const isFull = await DataService.window.isFullScreen()
@@ -1062,20 +1100,22 @@ export default function AnimeViewer() {
           .then(() => setIsFullscreen(true))
           .catch(() => {})
       }
-    } else {
-      if (document.exitFullscreen) {
-        document
-          .exitFullscreen()
-          .then(() => setIsFullscreen(false))
-          .catch(() => {})
-      }
+    } else if (document.exitFullscreen) {
+      document
+        .exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => {})
     }
-  }, [])
+  }, [isInline])
 
   // Sync fullscreen state with HTML5 / Electron and clean up on unmount
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isHtml5 = !!document.fullscreenElement
+      if (isInline) {
+        setIsFullscreen(isHtml5)
+        return
+      }
       if (typeof window !== 'undefined' && window.api?.window) {
         DataService.window
           .isFullScreen()
@@ -1092,8 +1132,8 @@ export default function AnimeViewer() {
 
     document.addEventListener('fullscreenchange', handleFullscreenChange)
 
-    // Check initial native fullscreen state
-    if (typeof window !== 'undefined' && window.api?.window) {
+    // Check initial native fullscreen state in overlay mode
+    if (!isInline && typeof window !== 'undefined' && window.api?.window) {
       DataService.window
         .isFullScreen()
         .then((isNative) => {
@@ -1104,8 +1144,10 @@ export default function AnimeViewer() {
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
-      // When exiting anime viewer, restore native window from fullscreen
-      if (typeof window !== 'undefined' && window.api?.window) {
+      if (isInline && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      } else if (!isInline && typeof window !== 'undefined' && window.api?.window) {
+        // When exiting overlay anime viewer, restore native window from fullscreen
         DataService.window
           .isFullScreen()
           .then((isNative) => {
@@ -1116,7 +1158,7 @@ export default function AnimeViewer() {
           .catch(() => {})
       }
     }
-  }, [])
+  }, [isInline])
 
   const reloadPlayer = useCallback(() => {
     if (videoType !== 'embed' && videoRef.current) {
@@ -1161,7 +1203,16 @@ export default function AnimeViewer() {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey
+      ) {
+        return
+      }
 
       switch (e.key.toLowerCase()) {
         case ' ':
@@ -1275,6 +1326,8 @@ export default function AnimeViewer() {
           e.preventDefault()
           if (isFullscreen) {
             toggleFullscreen()
+          } else if (isInline && onToggleTheaterMode) {
+            onToggleTheaterMode()
           }
           break
         case 'escape':
@@ -1283,6 +1336,8 @@ export default function AnimeViewer() {
             toggleFullscreen()
           } else if (isEpisodesOpen) {
             setIsEpisodesOpen(false)
+          } else if (isInline && isTheaterMode && onToggleTheaterMode) {
+            onToggleTheaterMode()
           } else {
             setActiveChapter(null)
           }
@@ -1343,535 +1398,729 @@ export default function AnimeViewer() {
     isEpisodesOpen,
     setActiveChapter,
     reloadPlayer,
-    videoRef
+    videoRef,
+    isInline,
+    isTheaterMode,
+    onToggleTheaterMode
   ])
 
   if (!activeChapter || !selectedManga) return null
 
+  const showBoxedInline = isInline && !isFullscreen
+  const handleSelectServer = (idx: number) => {
+    setActiveServerIdx(idx)
+    const server = servers[idx]
+    const sName = typeof server === 'object' ? server.name : server
+    if (sName) {
+      localStorage.setItem('autakimi-anime-preferred-server', sName)
+    }
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'fixed inset-0 bg-black z-[100] flex flex-col overflow-hidden animate-in fade-in duration-500 text-white select-none',
-        !showControls && 'cursor-none',
-        mobile && 'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
-      )}
-    >
-      {/* Top Header Overlay */}
+    <div className={cn(showBoxedInline ? 'w-full flex flex-col gap-3' : 'contents')}>
       <div
+        ref={containerRef}
+        onMouseLeave={() => {
+          if (showBoxedInline && isPlaying) {
+            setShowControls(false)
+          }
+        }}
         className={cn(
-          'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/85 via-black/50 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
-          !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
+          'bg-black flex flex-col overflow-hidden text-white select-none',
+          showBoxedInline
+            ? 'relative w-full aspect-video rounded-2xl border border-white/10 shadow-2xl'
+            : 'fixed inset-0 z-[100] animate-in fade-in duration-500',
+          !showControls && !showBoxedInline && 'cursor-none',
+          mobile &&
+            !showBoxedInline &&
+            'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
         )}
-        style={{ WebkitAppRegion: !isFullscreen ? 'drag' : 'no-drag' } as any}
       >
-        <div
-          className={cn(
-            'flex items-center gap-4',
-            platform === 'darwin' && !isFullscreen && 'pl-20'
-          )}
-          style={{ WebkitAppRegion: 'no-drag' } as any}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (isFullscreen) {
-                toggleFullscreen()
-              }
-              setActiveChapter(null)
-            }}
-            className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
-            title="Back to Details (Esc)"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-        </div>
-
-        {/* Centered Title Section */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center min-w-0 text-center pointer-events-none">
-          <h1 className="text-base font-black tracking-tighter text-white truncate max-w-[200px] sm:max-w-md uppercase italic drop-shadow-md">
-            {selectedManga.title}
-          </h1>
-          <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest drop-shadow-sm">
-            <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">
-              EP {activeChapter.number}
-            </span>
-            <span className="truncate max-w-[150px] opacity-60 italic">
-              {activeChapter.title || 'Watching Now'}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setAutoNextAnime(!autoNextAnime)}
+        {/* Top Header Overlay */}
+        {showBoxedInline ? (
+          <div
             className={cn(
-              'h-9 px-3 text-[11px] font-bold rounded-full border transition-all',
-              autoNextAnime
-                ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
-                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+              'absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-4 flex items-center justify-between z-40 transition-all duration-300',
+              !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
             )}
           >
-            <Zap className={cn('h-3.5 w-3.5 mr-2', autoNextAnime && 'fill-current')} />
-            Auto-Next
-          </Button>
-
-          <ServerSelector
-            servers={servers}
-            activeServerIdx={activeServerIdx}
-            onSelectServer={(idx) => {
-              setActiveServerIdx(idx)
-              const server = servers[idx]
-              const sName = typeof server === 'object' ? server.name : server
-              if (sName) {
-                localStorage.setItem('autakimi-anime-preferred-server', sName)
-              }
-            }}
-            onSwitchServer={handleManualSwitch}
-          />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={reloadPlayer}
-            className="h-9 w-9 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
-            title="Reload Player (R)"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsEpisodesOpen(!isEpisodesOpen)}
-            className={cn(
-              'h-10 w-10 rounded-full transition-all',
-              isEpisodesOpen
-                ? 'bg-primary text-white'
-                : 'text-white/70 hover:text-white hover:bg-white/10'
-            )}
-            title="Episodes List (E)"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-
-          {/* Reserved Space for Native Windows Caption Buttons (— ❐ ✕) in Windowed/Cinematic Mode */}
-          {platform === 'win32' && !isFullscreen && (
-            <div className="w-[140px] h-8 shrink-0 pointer-events-none" />
-          )}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 relative flex items-center justify-center bg-black group">
-        {/* Navigation Overlays (Invisible zones for quick prev/next on sides) */}
-        {!loading && !error && (
-          <>
-            <div
-              className={cn(
-                'absolute left-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-6',
-                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
-                !prevEpisode && 'hidden'
-              )}
-              onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
-            >
-              <ChevronLeft className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0">
+                EP {activeChapter.number}
+              </span>
+              <span className="text-xs font-bold text-white/90 truncate">
+                {activeChapter.title || selectedManga.title}
+              </span>
             </div>
-
-            <div
-              className={cn(
-                'absolute right-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-6',
-                showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
-                !nextEpisode && 'hidden'
-              )}
-              onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
-            >
-              <ChevronRight className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
-            </div>
-          </>
-        )}
-
-        {isSwitchingServer && (
-          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="relative">
-              <RefreshCw className="h-14 w-14 text-primary animate-spin opacity-20" />
-              <Loader2 className="absolute inset-0 h-14 w-14 text-primary animate-spin" />
-            </div>
-            <div className="mt-6 text-center space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-white uppercase italic">
-                Switching Server
-              </h2>
-              <p className="text-xs text-white/60 font-medium tracking-widest uppercase">
-                {switchingNotice ||
-                  `Trying alternative source (${activeServerIdx + 1}/${servers.length})`}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex flex-col items-center gap-4 text-neutral-500">
-            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-            <p className="text-sm font-medium animate-pulse italic tracking-widest uppercase">
-              Initializing player...
-            </p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center gap-6 p-8 text-center max-w-2xl bg-neutral-900/50 rounded-2xl border border-white/5 backdrop-blur-xl z-20">
-            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-              <Play className="h-8 w-8 rotate-180" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xl font-bold text-neutral-200">
-                {error.includes('No streaming servers') || error.includes('failed to respond')
-                  ? 'This Video is not available on this Server at this time.'
-                  : error}
-              </p>
-              <p className="text-sm text-white/40 max-w-md mx-auto italic">
-                Please try changing to another server or resolving Cloudflare protection.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button
-                onClick={loadServers}
-                className="bg-primary hover:bg-primary/90 text-white gap-2 font-bold"
-              >
-                <RefreshCw className="h-4 w-4" /> Retry All Servers
-              </Button>
-              <Button
-                onClick={() => DataService.openInternalBrowser(activeChapter.url)}
-                variant="outline"
-                className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 gap-2 font-bold"
-              >
-                <RefreshCw className="h-4 w-4" /> Resolve Cloudflare
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowDebug(!showDebug)}
-                className="border-neutral-700 text-neutral-400 gap-2"
-              >
-                {showDebug ? 'Hide Debug' : 'Show Debug Info'}
-              </Button>
-              {servers.length > 1 && (
+            <div className="flex items-center gap-1 shrink-0">
+              {onToggleTheaterMode && (
                 <Button
                   variant="ghost"
-                  onClick={handleManualSwitch}
-                  className="text-primary hover:bg-primary/10 gap-2 font-bold"
+                  size="icon"
+                  onClick={onToggleTheaterMode}
+                  className={cn(
+                    'h-8 w-8 rounded-full',
+                    isTheaterMode
+                      ? 'bg-primary/25 text-primary'
+                      : 'text-white/75 hover:text-white hover:bg-white/10'
+                  )}
+                  title="Theater Mode (T)"
                 >
-                  <RefreshCw className="h-4 w-4" /> Try Next Server
+                  <RectangleHorizontal className="h-4 w-4" />
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="h-8 w-8 rounded-full text-white/75 hover:text-white hover:bg-white/10"
+                title="Fullscreen (F)"
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setActiveChapter(null)}
+                className="h-8 w-8 rounded-full text-white/75 hover:text-white hover:bg-white/10"
+                title="Close Player"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/85 via-black/50 to-transparent backdrop-blur-sm px-6 flex items-center justify-between z-40 transition-all duration-500',
+              !showControls && 'translate-y-[-110%] opacity-0 pointer-events-none'
+            )}
+            style={{ WebkitAppRegion: !isFullscreen ? 'drag' : 'no-drag' } as any}
+          >
+            <div
+              className={cn(
+                'flex items-center gap-4',
+                platform === 'darwin' && !isFullscreen && 'pl-20'
+              )}
+              style={{ WebkitAppRegion: 'no-drag' } as any}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (isFullscreen) {
+                    toggleFullscreen()
+                  }
+                  if (!isInline) {
+                    setActiveChapter(null)
+                  }
+                }}
+                className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                title={isInline ? 'Exit Fullscreen (Esc)' : 'Back to Details (Esc)'}
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
             </div>
 
-            {showDebug && (
-              <div className="w-full mt-4 text-left p-4 bg-black/60 rounded-lg border border-white/10 font-mono text-[10px] space-y-2 overflow-x-auto max-h-60">
-                <p className="text-primary font-bold uppercase tracking-wider border-b border-primary/20 pb-1 mb-2">
-                  Technical Logs
+            {/* Centered Title Section */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center min-w-0 text-center pointer-events-none">
+              <h1 className="text-base font-black tracking-tighter text-white truncate max-w-[200px] sm:max-w-md uppercase italic drop-shadow-md">
+                {selectedManga.title}
+              </h1>
+              <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest drop-shadow-sm">
+                <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">
+                  EP {activeChapter.number}
+                </span>
+                <span className="truncate max-w-[150px] opacity-60 italic">
+                  {activeChapter.title || 'Watching Now'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAutoNextAnime(!autoNextAnime)}
+                className={cn(
+                  'h-9 px-3 text-[11px] font-bold rounded-full border transition-all',
+                  autoNextAnime
+                    ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                )}
+              >
+                <Zap className={cn('h-3.5 w-3.5 mr-2', autoNextAnime && 'fill-current')} />
+                Auto-Next
+              </Button>
+
+              <ServerSelector
+                servers={servers}
+                activeServerIdx={activeServerIdx}
+                onSelectServer={handleSelectServer}
+                onSwitchServer={handleManualSwitch}
+              />
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={reloadPlayer}
+                className="h-9 w-9 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+                title="Reload Player (R)"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEpisodesOpen(!isEpisodesOpen)}
+                className={cn(
+                  'h-10 w-10 rounded-full transition-all',
+                  isEpisodesOpen
+                    ? 'bg-primary text-white'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                )}
+                title="Episodes List (E)"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+
+              {/* Reserved Space for Native Windows Caption Buttons (— ❐ ✕) in Windowed/Cinematic Mode */}
+              {platform === 'win32' && !isFullscreen && (
+                <div className="w-[140px] h-8 shrink-0 pointer-events-none" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 relative flex items-center justify-center bg-black group">
+          {/* Navigation Overlays (Invisible zones for quick prev/next on sides) */}
+          {!loading && !error && (
+            <>
+              <div
+                className={cn(
+                  'absolute left-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-r from-black/60 to-transparent flex items-center justify-start pl-6',
+                  showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                  !prevEpisode && 'hidden'
+                )}
+                onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+              >
+                <ChevronLeft className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
+              </div>
+
+              <div
+                className={cn(
+                  'absolute right-0 top-0 bottom-0 w-24 z-30 cursor-pointer transition-all duration-300 bg-gradient-to-l from-black/60 to-transparent flex items-center justify-end pr-6',
+                  showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                  !nextEpisode && 'hidden'
+                )}
+                onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+              >
+                <ChevronRight className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
+              </div>
+            </>
+          )}
+
+          {isSwitchingServer && (
+            <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+              <div className="relative">
+                <RefreshCw className="h-14 w-14 text-primary animate-spin opacity-20" />
+                <Loader2 className="absolute inset-0 h-14 w-14 text-primary animate-spin" />
+              </div>
+              <div className="mt-6 text-center space-y-1">
+                <h2 className="text-lg font-bold tracking-tight text-white uppercase italic">
+                  Switching Server
+                </h2>
+                <p className="text-xs text-white/60 font-medium tracking-widest uppercase">
+                  {switchingNotice ||
+                    `Trying alternative source (${activeServerIdx + 1}/${servers.length})`}
                 </p>
-                {debugInfo ? (
-                  <div className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1">
-                    <span className="text-neutral-500">Target URL:</span>
-                    <span className="text-neutral-300 break-all">{debugInfo.url}</span>
-                    <span className="text-neutral-500">HTML Bytes:</span>
-                    <span
-                      className={cn(
-                        'font-bold',
-                        debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
-                      )}
-                    >
-                      {debugInfo.htmlLength} {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
-                    </span>
-                    <span className="text-neutral-500">CF Blocked:</span>
-                    <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
-                      {debugInfo.isBlocked ? 'YES (Challenge Detected)' : 'NO (Clear HTML)'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] text-amber-200 font-mono">
-                      <p>⚠️ No structured telemetry returned from extension.</p>
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex flex-col items-center gap-4 text-neutral-500">
+              <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
+              <p className="text-sm font-medium animate-pulse italic tracking-widest uppercase">
+                Initializing player...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-6 p-8 text-center max-w-2xl bg-neutral-900/50 rounded-2xl border border-white/5 backdrop-blur-xl z-20">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                <Play className="h-8 w-8 rotate-180" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xl font-bold text-neutral-200">
+                  {error.includes('No streaming servers') || error.includes('failed to respond')
+                    ? 'This Video is not available on this Server at this time.'
+                    : error}
+                </p>
+                <p className="text-sm text-white/40 max-w-md mx-auto italic">
+                  Please try changing to another server or resolving Cloudflare protection.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  onClick={loadServers}
+                  className="bg-primary hover:bg-primary/90 text-white gap-2 font-bold"
+                >
+                  <RefreshCw className="h-4 w-4" /> Retry All Servers
+                </Button>
+                <Button
+                  onClick={() => DataService.openInternalBrowser(activeChapter.url)}
+                  variant="outline"
+                  className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 gap-2 font-bold"
+                >
+                  <RefreshCw className="h-4 w-4" /> Resolve Cloudflare
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="border-neutral-700 text-neutral-400 gap-2"
+                >
+                  {showDebug ? 'Hide Debug' : 'Show Debug Info'}
+                </Button>
+                {servers.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleManualSwitch}
+                    className="text-primary hover:bg-primary/10 gap-2 font-bold"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Try Next Server
+                  </Button>
+                )}
+              </div>
+
+              {showDebug && (
+                <div className="w-full mt-4 text-left p-4 bg-black/60 rounded-lg border border-white/10 font-mono text-[10px] space-y-2 overflow-x-auto max-h-60">
+                  <p className="text-primary font-bold uppercase tracking-wider border-b border-primary/20 pb-1 mb-2">
+                    Technical Logs
+                  </p>
+                  {debugInfo ? (
+                    <div className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1">
+                      <span className="text-neutral-500">Target URL:</span>
+                      <span className="text-neutral-300 break-all">{debugInfo.url}</span>
+                      <span className="text-neutral-500">HTML Bytes:</span>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          debugInfo.htmlLength > 1000 ? 'text-green-500' : 'text-red-500'
+                        )}
+                      >
+                        {debugInfo.htmlLength}{' '}
+                        {debugInfo.htmlLength < 500 ? '(Likely blocked)' : ''}
+                      </span>
+                      <span className="text-neutral-500">CF Blocked:</span>
+                      <span className={debugInfo.isBlocked ? 'text-amber-500' : 'text-green-500'}>
+                        {debugInfo.isBlocked ? 'YES (Challenge Detected)' : 'NO (Clear HTML)'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] text-amber-200 font-mono">
+                        <p>⚠️ No structured telemetry returned from extension.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : activeServerUrl ? (
+            videoType === 'embed' ? (
+              <iframe
+                key={activeEmbedUrl}
+                src={activeEmbedUrl}
+                className="w-full h-full border-none shadow-2xl bg-black"
+                allowFullScreen
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                title="Video Player"
+                onLoad={() => {
+                  clearWatchdog()
+                }}
+                onError={() => {
+                  failoverToNextServer(`Server ${activeServerIdx + 1} failed to respond.`)
+                }}
+              />
+            ) : (
+              <div
+                className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden"
+                onClick={togglePlay}
+                onDoubleClick={toggleFullscreen}
+              >
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-contain cursor-pointer"
+                  playsInline
+                  autoPlay
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onTimeUpdate={handleTimeUpdate}
+                  onCanPlay={() => {
+                    clearWatchdog()
+                    if (videoRef.current && videoRef.current.paused) {
+                      videoRef.current.play().catch(() => {})
+                    }
+                  }}
+                  onPlay={() => {
+                    clearWatchdog()
+                    setIsPlaying(true)
+                  }}
+                  onPause={() => setIsPlaying(false)}
+                  onWaiting={() => setIsBuffering(true)}
+                  onPlaying={() => {
+                    clearWatchdog()
+                    setIsBuffering(false)
+                  }}
+                  onEnded={handleVideoEnded}
+                  onError={handleVideoError}
+                >
+                  {typeof s === 'object' &&
+                    Array.isArray((s as any).subtitles) &&
+                    (s as any).subtitles.map((sub: any, idx: number) => (
+                      <track
+                        key={sub.url || idx}
+                        kind="subtitles"
+                        src={sub.url}
+                        srcLang={sub.lang || 'en'}
+                        label={sub.label || sub.lang || `Track ${idx + 1}`}
+                        default={sub.default || idx === 0}
+                      />
+                    ))}
+                </video>
+
+                {/* Buffering Indicator */}
+                {isBuffering && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                    <div className="p-4 rounded-full bg-black/60 backdrop-blur-md">
+                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
                     </div>
                   </div>
                 )}
               </div>
+            )
+          ) : null}
+        </div>
+
+        {/* Hold-to-2x Speed Pill */}
+        {isHold2x && (
+          <div className="absolute top-6 sm:top-12 left-1/2 -translate-x-1/2 z-50 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-white text-xs font-black tracking-wider flex items-center gap-1.5 shadow-2xl pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+            <span>2x</span>
+            <span className="text-primary tracking-tighter">&gt;&gt;</span>
+          </div>
+        )}
+
+        {/* Resume Progress Toast */}
+        {resumeNotice && (
+          <div className="absolute top-12 sm:top-16 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md border border-primary/40 px-4 py-2 rounded-full text-xs font-bold text-primary shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
+            {resumeNotice}
+          </div>
+        )}
+
+        {/* Episodes Sidebar Overlay (Fullscreen / Overlay / Theater mode) */}
+        {(!showBoxedInline || isTheaterMode) && (
+          <EpisodeDrawer
+            isOpen={isEpisodesOpen}
+            onClose={() => setIsEpisodesOpen(false)}
+            episodes={sortedEpisodes}
+            activeChapterId={activeChapter.id}
+            onSelectEpisode={(ep) => setActiveChapter(ep)}
+          />
+        )}
+
+        {/* Bottom Floating Navigation (HUD) for Embed/Iframe Mode */}
+        {videoType === 'embed' && (
+          <div
+            className={cn(
+              'absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500',
+              !showControls && 'translate-y-[150%] opacity-0 pointer-events-none'
+            )}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!prevEpisode}
+              onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+              className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+
+            <div className="h-8 w-px bg-white/10 mx-1" />
+
+            <div className="px-6 py-2 flex flex-col items-center justify-center min-w-[140px]">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">
+                Playing Now
+              </span>
+              <span className="text-xs font-bold text-primary tracking-tight">
+                EPISODE {activeChapter.number}
+              </span>
+            </div>
+
+            <div className="h-8 w-px bg-white/10 mx-1" />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!nextEpisode}
+              onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+              className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
+
+        {/* Native Video Player Control Bar */}
+        {videoType !== 'embed' && !loading && !error && activeServerUrl && (
+          <VideoControls
+            showControls={showControls}
+            currentTime={currentTime}
+            duration={duration}
+            bufferedPercent={bufferedPercent}
+            isPlaying={isPlaying}
+            isMuted={isMuted}
+            volume={volume}
+            playbackRate={playbackRate}
+            isFullscreen={isFullscreen}
+            isPiP={isPiP}
+            videoType={videoType}
+            qualityLevels={qualityLevels}
+            selectedQuality={selectedQuality}
+            currentQualityLabel={currentQualityLabel}
+            mp4QualityLabel={mp4QualityLabel}
+            prevEpisode={prevEpisode}
+            nextEpisode={nextEpisode}
+            onTogglePlay={togglePlay}
+            onSeekTo={seekTo}
+            onSeekBy={seekBy}
+            onToggleMute={toggleMute}
+            onVolumeChange={handleVolumeChange}
+            onChangeSpeed={changeSpeed}
+            onToggleFullscreen={toggleFullscreen}
+            onTogglePiP={togglePiP}
+            onQualityChange={handleQualityChange}
+            onPrevEpisode={() => prevEpisode && setActiveChapter(prevEpisode)}
+            onNextEpisode={() => nextEpisode && setActiveChapter(nextEpisode)}
+            skipTimes={skipTimes}
+          />
+        )}
+
+        {/* Netflix-style Floating Skip Intro / Next Episode Buttons */}
+        {videoType !== 'embed' && !loading && !error && activeServerUrl && !isEpisodesOpen && (
+          <div
+            className={cn(
+              'absolute right-4 sm:right-6 z-50 flex flex-col items-end gap-2.5 transition-all duration-300',
+              showControls ? 'bottom-20 sm:bottom-24' : 'bottom-5 sm:bottom-8'
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {skipUIState.isInIntro && (
+              <button
+                type="button"
+                onClick={handleSkipIntro}
+                className="group/skip flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-neutral-900/90 hover:bg-white text-white hover:text-black border border-white/25 hover:border-white backdrop-blur-xl shadow-2xl shadow-black/70 font-bold text-sm transition-all duration-200 cursor-pointer animate-in fade-in slide-in-from-bottom-2"
+              >
+                <SkipForward className="h-4 w-4 fill-current" />
+                <span>Skip Intro</span>
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/15 group-hover/skip:bg-black/15 text-white/80 group-hover/skip:text-black/80">
+                  S
+                </span>
+              </button>
+            )}
+
+            {skipUIState.showNextEpisode && autoNextCountdown === null && nextEpisode && (
+              <div className="flex items-center gap-1.5 rounded-xl bg-neutral-900/95 border border-primary/40 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-bottom-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOutroCountdown(null)
+                    setActiveChapter(nextEpisode)
+                  }}
+                  className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-colors cursor-pointer"
+                >
+                  <Play className="h-4 w-4 fill-current" />
+                  <div className="flex flex-col items-start leading-tight">
+                    <span>
+                      Next Episode →{outroCountdown !== null ? ` (${outroCountdown}s)` : ''}
+                    </span>
+                    <span className="text-[10px] font-medium opacity-85 truncate max-w-[180px]">
+                      Ep {nextEpisode.number}
+                      {nextEpisode.title ? ` • ${nextEpisode.title}` : ''}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOutroDismissed(true)
+                    setOutroCountdown(null)
+                  }}
+                  className="px-2.5 py-2 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Cancel / Dismiss"
+                >
+                  {outroCountdown !== null ? 'Cancel' : <X className="h-4 w-4" />}
+                </button>
+              </div>
             )}
           </div>
-        ) : activeServerUrl ? (
-          videoType === 'embed' ? (
-            <iframe
-              key={activeEmbedUrl}
-              src={activeEmbedUrl}
-              className="w-full h-full border-none shadow-2xl bg-black"
-              allowFullScreen
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              title="Video Player"
-              onLoad={() => {
-                clearWatchdog()
-              }}
-              onError={() => {
-                failoverToNextServer(`Server ${activeServerIdx + 1} failed to respond.`)
-              }}
-            />
-          ) : (
-            <div
-              className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden"
-              onClick={togglePlay}
-              onDoubleClick={toggleFullscreen}
-            >
-              <video
-                ref={videoRef}
-                className="w-full h-full object-contain cursor-pointer"
-                playsInline
-                autoPlay
-                onLoadedMetadata={handleLoadedMetadata}
-                onTimeUpdate={handleTimeUpdate}
-                onCanPlay={() => {
-                  clearWatchdog()
-                  if (videoRef.current && videoRef.current.paused) {
-                    videoRef.current.play().catch(() => {})
-                  }
-                }}
-                onPlay={() => {
-                  clearWatchdog()
-                  setIsPlaying(true)
-                }}
-                onPause={() => setIsPlaying(false)}
-                onWaiting={() => setIsBuffering(true)}
-                onPlaying={() => {
-                  clearWatchdog()
-                  setIsBuffering(false)
-                }}
-                onEnded={handleVideoEnded}
-                onError={handleVideoError}
-              >
-                {typeof s === 'object' &&
-                  Array.isArray((s as any).subtitles) &&
-                  (s as any).subtitles.map((sub: any, idx: number) => (
-                    <track
-                      key={sub.url || idx}
-                      kind="subtitles"
-                      src={sub.url}
-                      srcLang={sub.lang || 'en'}
-                      label={sub.label || sub.lang || `Track ${idx + 1}`}
-                      default={sub.default || idx === 0}
-                    />
-                  ))}
-              </video>
+        )}
 
-              {/* Buffering Indicator */}
-              {isBuffering && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                  <div className="p-4 rounded-full bg-black/60 backdrop-blur-md">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        ) : null}
-      </div>
-
-      {/* Hold-to-2x Speed Pill */}
-      {isHold2x && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-white text-xs font-black tracking-wider flex items-center gap-1.5 shadow-2xl pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-          <span>2x</span>
-          <span className="text-primary tracking-tighter">&gt;&gt;</span>
-        </div>
-      )}
-
-      {/* Resume Progress Toast */}
-      {resumeNotice && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md border border-primary/40 px-4 py-2 rounded-full text-xs font-bold text-primary shadow-xl animate-in fade-in slide-in-from-top-2 duration-300">
-          {resumeNotice}
-        </div>
-      )}
-
-      {/* Episodes Sidebar Overlay */}
-      <EpisodeDrawer
-        isOpen={isEpisodesOpen}
-        onClose={() => setIsEpisodesOpen(false)}
-        episodes={sortedEpisodes}
-        activeChapterId={activeChapter.id}
-        onSelectEpisode={(ep) => setActiveChapter(ep)}
-      />
-
-      {/* Bottom Floating Navigation (HUD) for Embed/Iframe Mode */}
-      {videoType === 'embed' && (
-        <div
-          className={cn(
-            'absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full z-40 transition-all duration-500',
-            !showControls && 'translate-y-[150%] opacity-0 pointer-events-none'
-          )}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!prevEpisode}
-            onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
-            className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-
-          <div className="h-8 w-px bg-white/10 mx-1" />
-
-          <div className="px-6 py-2 flex flex-col items-center justify-center min-w-[140px]">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none mb-1">
-              Playing Now
-            </span>
-            <span className="text-xs font-bold text-primary tracking-tight">
-              EPISODE {activeChapter.number}
-            </span>
-          </div>
-
-          <div className="h-8 w-px bg-white/10 mx-1" />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!nextEpisode}
-            onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
-            className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
-        </div>
-      )}
-
-      {/* Native Video Player Control Bar */}
-      {videoType !== 'embed' && !loading && !error && activeServerUrl && (
-        <VideoControls
-          showControls={showControls}
-          currentTime={currentTime}
-          duration={duration}
-          bufferedPercent={bufferedPercent}
-          isPlaying={isPlaying}
-          isMuted={isMuted}
-          volume={volume}
-          playbackRate={playbackRate}
-          isFullscreen={isFullscreen}
-          isPiP={isPiP}
-          videoType={videoType}
-          qualityLevels={qualityLevels}
-          selectedQuality={selectedQuality}
-          currentQualityLabel={currentQualityLabel}
-          mp4QualityLabel={mp4QualityLabel}
-          prevEpisode={prevEpisode}
-          nextEpisode={nextEpisode}
-          onTogglePlay={togglePlay}
-          onSeekTo={seekTo}
-          onSeekBy={seekBy}
-          onToggleMute={toggleMute}
-          onVolumeChange={handleVolumeChange}
-          onChangeSpeed={changeSpeed}
-          onToggleFullscreen={toggleFullscreen}
-          onTogglePiP={togglePiP}
-          onQualityChange={handleQualityChange}
-          onPrevEpisode={() => prevEpisode && setActiveChapter(prevEpisode)}
-          onNextEpisode={() => nextEpisode && setActiveChapter(nextEpisode)}
-          skipTimes={skipTimes}
-        />
-      )}
-
-      {/* Netflix-style Floating Skip Intro / Next Episode Buttons */}
-      {videoType !== 'embed' && !loading && !error && activeServerUrl && !isEpisodesOpen && (
-        <div
-          className={cn(
-            'fixed right-8 z-50 flex flex-col items-end gap-2.5 transition-all duration-300',
-            showControls ? 'bottom-24' : 'bottom-8'
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {skipUIState.isInIntro && (
-            <button
-              type="button"
-              onClick={handleSkipIntro}
-              className="group/skip flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-neutral-900/90 hover:bg-white text-white hover:text-black border border-white/25 hover:border-white backdrop-blur-xl shadow-2xl shadow-black/70 font-bold text-sm transition-all duration-200 cursor-pointer animate-in fade-in slide-in-from-bottom-2"
-            >
-              <SkipForward className="h-4 w-4 fill-current" />
-              <span>Skip Intro</span>
-              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/15 group-hover/skip:bg-black/15 text-white/80 group-hover/skip:text-black/80">
-                S
+        {/* Animated Auto-Next Countdown HUD Card */}
+        {autoNextCountdown !== null && nextEpisode && (
+          <div className="absolute bottom-20 right-8 z-50 bg-neutral-900/95 backdrop-blur-2xl border border-primary/40 p-5 rounded-2xl shadow-2xl shadow-black max-w-sm animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
+                <Play className="h-3.5 w-3.5 fill-current animate-pulse" /> Next Episode in{' '}
+                {autoNextCountdown}s
               </span>
-            </button>
-          )}
-
-          {skipUIState.showNextEpisode && autoNextCountdown === null && nextEpisode && (
-            <div className="flex items-center gap-1.5 rounded-xl bg-neutral-900/95 border border-primary/40 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-bottom-2">
               <button
-                type="button"
+                onClick={() => setAutoNextCountdown(null)}
+                className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                title="Cancel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm font-semibold text-white truncate mb-4">
+              Episode {nextEpisode.number} {nextEpisode.title ? `• ${nextEpisode.title}` : ''}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
                 onClick={() => {
-                  setOutroCountdown(null)
+                  setAutoNextCountdown(null)
                   setActiveChapter(nextEpisode)
                 }}
-                className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-colors cursor-pointer"
+                className="flex-1 bg-primary text-primary-foreground font-bold text-xs h-9 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90"
               >
-                <Play className="h-4 w-4 fill-current" />
-                <div className="flex flex-col items-start leading-tight">
-                  <span>
-                    Next Episode →{outroCountdown !== null ? ` (${outroCountdown}s)` : ''}
-                  </span>
-                  <span className="text-[10px] font-medium opacity-85 truncate max-w-[180px]">
-                    Ep {nextEpisode.number}
-                    {nextEpisode.title ? ` • ${nextEpisode.title}` : ''}
-                  </span>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOutroDismissed(true)
-                  setOutroCountdown(null)
-                }}
-                className="px-2.5 py-2 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                title="Cancel / Dismiss"
+                Watch Now
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setAutoNextCountdown(null)}
+                className="border-neutral-700 hover:bg-white/5 text-neutral-300 text-xs h-9 rounded-xl"
               >
-                {outroCountdown !== null ? 'Cancel' : <X className="h-4 w-4" />}
-              </button>
+                Cancel
+              </Button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
-      {/* Animated Auto-Next Countdown HUD Card */}
-      {autoNextCountdown !== null && nextEpisode && (
-        <div className="absolute bottom-20 right-8 z-50 bg-neutral-900/95 backdrop-blur-2xl border border-primary/40 p-5 rounded-2xl shadow-2xl shadow-black max-w-sm animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <span className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-1.5">
-              <Play className="h-3.5 w-3.5 fill-current animate-pulse" /> Next Episode in{' '}
-              {autoNextCountdown}s
-            </span>
-            <button
-              onClick={() => setAutoNextCountdown(null)}
-              className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              title="Cancel"
+      {/* Compact Control Strip Below Video in Inline Watch Mode */}
+      {showBoxedInline && (
+        <div className="rounded-xl bg-card/90 backdrop-blur-md border border-border/80 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 rounded-lg bg-secondary/60 p-0.5 border border-border/60">
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!prevEpisode}
+                onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+                className="h-7 w-7 rounded-md"
+                title="Previous Episode (P)"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="px-2 text-xs font-bold text-foreground whitespace-nowrap">
+                EP {activeChapter.number}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!nextEpisode}
+                onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+                className="h-7 w-7 rounded-md"
+                title="Next Episode (N)"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAutoNextAnime(!autoNextAnime)}
+              className={cn(
+                'h-8 px-3 text-[11px] font-bold rounded-full border transition-all',
+                autoNextAnime
+                  ? 'bg-primary/15 border-primary/40 text-primary hover:bg-primary/25'
+                  : 'bg-secondary/50 border-border text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Zap className={cn('h-3.5 w-3.5 mr-1.5', autoNextAnime && 'fill-current')} />
+              Auto-Next
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <ServerSelector
+              servers={servers}
+              activeServerIdx={activeServerIdx}
+              onSelectServer={handleSelectServer}
+              onSwitchServer={handleManualSwitch}
+              tone="surface"
+            />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => DataService.openInternalBrowser(activeChapter.url)}
+              className="h-8 w-8 rounded-full text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+              title="Resolve Cloudflare in Browser"
+            >
+              <ShieldAlert className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={reloadPlayer}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+              title="Reload Player (R)"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+
+            {onToggleTheaterMode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleTheaterMode}
+                className={cn(
+                  'h-8 px-2.5 rounded-full text-xs font-semibold gap-1.5 border',
+                  isTheaterMode
+                    ? 'bg-primary/15 border-primary/40 text-primary'
+                    : 'border-border/70 text-muted-foreground hover:text-foreground'
+                )}
+                title="Toggle Theater Mode (T)"
+              >
+                <RectangleHorizontal className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Theater</span>
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="h-8 px-2.5 rounded-full text-xs font-semibold gap-1.5 border border-border/70 text-muted-foreground hover:text-foreground"
+              title="Fullscreen (F)"
+            >
+              <Maximize className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Fullscreen</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setActiveChapter(null)}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Close Player"
             >
               <X className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="text-sm font-semibold text-white truncate mb-4">
-            Episode {nextEpisode.number} {nextEpisode.title ? `• ${nextEpisode.title}` : ''}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => {
-                setAutoNextCountdown(null)
-                setActiveChapter(nextEpisode)
-              }}
-              className="flex-1 bg-primary text-primary-foreground font-bold text-xs h-9 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90"
-            >
-              Watch Now
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setAutoNextCountdown(null)}
-              className="border-neutral-700 hover:bg-white/5 text-neutral-300 text-xs h-9 rounded-xl"
-            >
-              Cancel
             </Button>
           </div>
         </div>

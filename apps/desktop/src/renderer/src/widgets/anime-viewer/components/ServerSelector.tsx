@@ -17,20 +17,36 @@ export interface ServerSelectorProps {
   activeServerIdx: number
   onSelectServer: (idx: number) => void
   onSwitchServer: () => void
+  tone?: 'overlay' | 'surface'
 }
 
 export const ServerSelector = memo(function ServerSelector({
   servers,
   activeServerIdx,
   onSelectServer,
-  onSwitchServer
+  onSwitchServer,
+  tone = 'overlay'
 }: ServerSelectorProps) {
   if (servers.length <= 1) return null
 
+  const isSurface = tone === 'surface'
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center bg-white/5 backdrop-blur-md rounded-full px-4 py-1.5 border border-white/10">
-        <span className="text-[10px] text-white/40 font-bold mr-3 uppercase tracking-tighter">
+    <div className="flex items-center gap-1.5">
+      <div
+        className={
+          isSurface
+            ? 'flex items-center bg-secondary/70 rounded-full px-3.5 py-1.5 border border-border'
+            : 'flex items-center bg-white/5 backdrop-blur-md rounded-full px-4 py-1.5 border border-white/10'
+        }
+      >
+        <span
+          className={
+            isSurface
+              ? 'text-[10px] text-muted-foreground font-bold mr-2.5 uppercase tracking-tighter'
+              : 'text-[10px] text-white/40 font-bold mr-3 uppercase tracking-tighter'
+          }
+        >
           Server
         </span>
         <select
