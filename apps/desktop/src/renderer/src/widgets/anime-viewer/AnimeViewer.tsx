@@ -12,7 +12,8 @@ import {
   SkipForward,
   Maximize,
   RectangleHorizontal,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react'
 import {
   parseEpisodeNumber,
@@ -40,6 +41,7 @@ import {
 } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
+import { buildAmbientGradientStyle } from '@renderer/shared/lib/ambientColors'
 import { useMediaItems } from '@renderer/entities/media/api/useMediaQueries'
 import { DataService } from '@renderer/shared/api'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
@@ -49,6 +51,7 @@ import { EpisodeDrawer } from './components/EpisodeDrawer'
 import { VideoControls, QualityLevel } from './components/VideoControls'
 import { useHlsPlayer } from './hooks/useHlsPlayer'
 import { useMediaSession } from './hooks/useMediaSession'
+import { useAmbientGlow } from './hooks/useAmbientGlow'
 
 export type { ServerItem, QualityLevel }
 
@@ -194,6 +197,24 @@ export default function AnimeViewer({
   const [isBuffering, setIsBuffering] = useState(false)
   const [isHold2x, setIsHold2x] = useState(false)
   const [resumeNotice, setResumeNotice] = useState<string | null>(null)
+  const [ambientEnabled, setAmbientEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('autakimi-anime-ambient-mode')
+      return saved === null ? true : saved === 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const toggleAmbientMode = useCallback(() => {
+    setAmbientEnabled((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('autakimi-anime-ambient-mode', String(next))
+      } catch {}
+      return next
+    })
+  }, [])
 
   const volumeRef = useRef(volume)
   const isMutedRef = useRef(isMuted)
@@ -918,6 +939,14 @@ export default function AnimeViewer({
     }
   })
 
+  const { ambientPalette } = useAmbientGlow({
+    enabled: Boolean(isInline && !isFullscreen && ambientEnabled && !loading && !error),
+    videoRef,
+    videoType,
+    activeServerUrl,
+    isPlaying
+  })
+
   const skipUIState = useMemo(
     () =>
       evaluateSkipUIState({
@@ -1417,7 +1446,24 @@ export default function AnimeViewer({
   }
 
   return (
-    <div className={cn(showBoxedInline ? 'w-full flex flex-col gap-3' : 'contents')}>
+    <div className={cn(showBoxedInline ? 'relative w-full flex flex-col gap-3' : 'contents')}>
+      {showBoxedInline && ambientEnabled && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-5 z-0 rounded-3xl opacity-65 dark:opacity-75 blur-3xl saturate-150 transition-all duration-[1600ms] ease-out overflow-hidden"
+          style={
+            ambientPalette ? { background: buildAmbientGradientStyle(ambientPalette) } : undefined
+          }
+        >
+          {!ambientPalette && selectedManga.coverUrl && (
+            <img
+              src={selectedManga.coverUrl}
+              alt=""
+              className="w-full h-full object-cover scale-125 opacity-70"
+            />
+          )}
+        </div>
+      )}
       <div
         ref={containerRef}
         onMouseLeave={() => {
@@ -1428,7 +1474,7 @@ export default function AnimeViewer({
         className={cn(
           'bg-black flex flex-col overflow-hidden text-white select-none',
           showBoxedInline
-            ? 'relative w-full aspect-video max-h-[76vh] rounded-2xl border border-white/10 shadow-2xl'
+            ? 'relative z-10 w-full aspect-video max-h-[76vh] rounded-2xl border border-white/10 shadow-2xl'
             : 'fixed inset-0 z-[100] animate-in fade-in duration-500',
           !showControls && !showBoxedInline && 'cursor-none',
           mobile &&
@@ -2011,7 +2057,7 @@ export default function AnimeViewer({
 
       {/* Compact Control Strip Below Video in Inline Watch Mode */}
       {showBoxedInline && (
-        <div className="rounded-xl bg-card/90 backdrop-blur-md border border-border/80 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-sm">
+        <div className="relative z-10 rounded-xl bg-card/90 backdrop-blur-md border border-border/80 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 shadow-sm">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 rounded-lg bg-secondary/60 p-0.5 border border-border/60">
               <Button
@@ -2082,6 +2128,22 @@ export default function AnimeViewer({
               title="Reload Player (R)"
             >
               <RefreshCw className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleAmbientMode}
+              className={cn(
+                'h-8 px-2.5 rounded-full text-xs font-semibold gap-1.5 border',
+                ambientEnabled
+                  ? 'bg-primary/15 border-primary/40 text-primary'
+                  : 'border-border/70 text-muted-foreground hover:text-foreground'
+              )}
+              title="Toggle Ambient Glow"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ambient</span>
             </Button>
 
             {onToggleTheaterMode && (
