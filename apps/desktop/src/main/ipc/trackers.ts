@@ -83,10 +83,7 @@ export function registerTrackerHandlers(): void {
   registerHandler(
     IpcChannel.TRACKER_UPDATE_ANILIST,
     wrapIpc(
-      async (
-        _,
-        args: { mediaId: number; status?: string; progress?: number; score?: number }
-      ) => {
+      async (_, args: { mediaId: number; status?: string; progress?: number; score?: number }) => {
         if (!args || typeof args.mediaId !== 'number') throw new Error('Invalid mediaId')
         return trackingService.updateAniListMedia(
           args.mediaId,
@@ -102,6 +99,16 @@ export function registerTrackerHandlers(): void {
     IpcChannel.TRACKER_PROCESS_QUEUE,
     wrapIpc(async () => {
       return trackingService.processRetryQueue()
+    })
+  )
+
+  registerHandler(
+    IpcChannel.TRACKER_GET_SKIP_TIMES,
+    wrapIpc(async (_, args: any) => {
+      if (!args || typeof args.episodeNumber !== 'number') {
+        throw new Error('Invalid getSkipTimes arguments: episodeNumber required')
+      }
+      return trackingService.getSkipTimes(args)
     })
   )
 }

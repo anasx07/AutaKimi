@@ -2,12 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 import {
   SkipTimesService,
   normalizeAnimeSearchTitle,
+  buildAnimeTitleCandidates,
   parseEpisodeNumber,
   evaluateSkipUIState,
 } from "../packages/sdk/src/services/skipTimes.service";
 
 describe("skipTimes.service utilities", () => {
-  it("normalizes anime titles by stripping release tags", () => {
+  it("normalizes anime titles by stripping release and Arabic scraper tags", () => {
     expect(normalizeAnimeSearchTitle("Jujutsu Kaisen (TV) [Sub]")).toBe(
       "Jujutsu Kaisen",
     );
@@ -15,6 +16,26 @@ describe("skipTimes.service utilities", () => {
       "Attack on Titan",
     );
     expect(normalizeAnimeSearchTitle("One Piece")).toBe("One Piece");
+    expect(
+      normalizeAnimeSearchTitle("انمي Black Clover الموسم 2 مترجم اون لاين"),
+    ).toBe("Black Clover");
+    expect(normalizeAnimeSearchTitle("فيلم Jujutsu Kaisen 0 مترجم")).toBe(
+      "Jujutsu Kaisen 0",
+    );
+  });
+
+  it("builds season + base title fallback candidates for Arabic/English season titles", () => {
+    expect(buildAnimeTitleCandidates("انمي Black Clover الموسم 2")).toEqual([
+      "Black Clover Season 2",
+      "Black Clover",
+    ]);
+    expect(buildAnimeTitleCandidates("Attack on Titan الموسم الثالث")).toEqual([
+      "Attack on Titan Season 3",
+      "Attack on Titan",
+    ]);
+    expect(buildAnimeTitleCandidates("Naruto Shippuden")).toEqual([
+      "Naruto Shippuden",
+    ]);
   });
 
   it("parses episode numbers from numbers and titles", () => {
@@ -22,6 +43,7 @@ describe("skipTimes.service utilities", () => {
     expect(parseEpisodeNumber("12")).toBe(12);
     expect(parseEpisodeNumber(undefined, "Episode 24: Finale")).toBe(24);
     expect(parseEpisodeNumber(undefined, "EP 3.5 Special")).toBe(3.5);
+    expect(parseEpisodeNumber(undefined, "الحلقة 9 مترجمة")).toBe(9);
     expect(parseEpisodeNumber(0, "Prologue")).toBeNull();
   });
 });
@@ -154,6 +176,68 @@ describe("SkipTimesService AniSkip & AniList resolution", () => {
 
     expect(res).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to base title when season candidate has no AniSkip data (e.g. Black Clover الموسم 2)", async () => {
+    const fetchMock = vi.fn(
+      async (url: RequestInfo | URL, init?: RequestInit) => {
+        const target = String(url);
+        if (target.includes("graphql.anilist.co")) {
+          const body = JSON.parse(String(init?.body || "{}"));
+          const search = body.variables?.search;
+          if (search === "Black Clover Season 2") {
+            return new Response(
+              JSON.stringify({
+                data: { Page: { media: [{ id: 195604, idMal: 61967 }] } },
+              }),
+              { status: 200 },
+            );
+          }
+          if (search === "Black Clover") {
+            return new Response(
+              JSON.stringify({
+                data: { Page: { media: [{ id: 97940, idMal: 34572 }] } },
+              }),
+              { status: 200 },
+            );
+          }
+        }
+        if (target.includes("/61967/")) {
+          return new Response(JSON.stringify({ found: false, results: [] }), {
+            status: 404,
+          });
+        }
+        if (target.includes("/34572/")) {
+          return new Response(
+            JSON.stringify({
+              found: true,
+              results: [
+                {
+                  skipType: "op",
+                  interval: { startTime: 180.683, endTime: 270.683 },
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(null, { status: 404 });
+      },
+    );
+
+    const service = new SkipTimesService(
+      fetchMock as unknown as typeof fetch,
+      2000,
+    );
+    const res = await service.getSkipTimes({
+      title: "انمي Black Clover الموسم 2",
+      episodeNumber: 1,
+    });
+
+    expect(res).toEqual({
+      malId: 34572,
+      op: { startTime: 180.683, endTime: 270.683 },
+    });
   });
 
   it("returns null silently on network errors", async () => {

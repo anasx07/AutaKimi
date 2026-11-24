@@ -1,5 +1,6 @@
 import { getApi, callIpc } from './base'
 import { Tracker, TrackerProvider } from '@common/types'
+import type { SkipTimesRequest } from '@common/services/skipTimes.service'
 
 export const TrackerService = {
   getByManga: (mangaId: string) => callIpc(() => getApi().trackers.getByManga(mangaId)),
@@ -13,11 +14,8 @@ export const TrackerService = {
   searchAniList: (query: string, type: 'ANIME' | 'MANGA' = 'MANGA') =>
     callIpc(() => getApi().trackers.searchAniList({ query, type })),
   getMediaAniList: (mediaId: number) => callIpc(() => getApi().trackers.getMediaAniList(mediaId)),
-  updateAniList: (args: {
-    mediaId: number
-    status?: string
-    progress?: number
-    score?: number
-  }) => callIpc(() => getApi().trackers.updateAniList(args)),
-  processQueue: () => callIpc(() => getApi().trackers.processQueue())
+  updateAniList: (args: { mediaId: number; status?: string; progress?: number; score?: number }) =>
+    callIpc(() => getApi().trackers.updateAniList(args)),
+  processQueue: () => callIpc(() => getApi().trackers.processQueue()),
+  getSkipTimes: (args: SkipTimesRequest) => callIpc(() => getApi().trackers.getSkipTimes(args))
 }

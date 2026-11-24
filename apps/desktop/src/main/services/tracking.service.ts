@@ -1,6 +1,11 @@
 import { BrowserWindow, net, safeStorage } from 'electron'
 import { trackerRepo, settingsRepo, chapterRepo } from '../db'
 import { AniListUser, AniListMedia } from '@common/types'
+import {
+  skipTimesService,
+  type EpisodeSkipTimes,
+  type SkipTimesRequest
+} from '@common/services/skipTimes.service'
 import { AppService, ServicePriority } from './service.registry'
 
 const ANILIST_CLIENT_ID = '16329'
@@ -370,6 +375,17 @@ export class TrackingService implements AppService {
       this.mediaCache.set(mediaId, data.Media)
     }
     return data?.Media || null
+  }
+
+  /**
+   * Resolves AniSkip OP/ED timestamps via MAL ID / AniList ID / cleaned title candidates.
+   * Logs resolution steps to main process stdout.
+   */
+  async getSkipTimes(args: SkipTimesRequest): Promise<EpisodeSkipTimes | null> {
+    return skipTimesService.getSkipTimes({
+      ...args,
+      resolveAniListMedia: (id) => this.getAniListMedia(id)
+    })
   }
 
   /**
