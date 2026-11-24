@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Pressable,
   Modal,
   ScrollView,
   Dimensions,
@@ -186,6 +187,7 @@ function DirectVideoPlayer({
   onProgress,
   onEnd,
   onRegisterSeek,
+  onRegisterPlaybackRate,
 }: {
   server: ServerOption;
   refererUrl?: string;
@@ -193,6 +195,7 @@ function DirectVideoPlayer({
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
   onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
+  onRegisterPlaybackRate?: (fn: ((rate: number) => void) | null) => void;
 }) {
   const headers = useMemo(() => {
     return {
@@ -239,6 +242,14 @@ function DirectVideoPlayer({
     return () => onRegisterSeek(null);
   }, [player, onRegisterSeek]);
 
+  useEffect(() => {
+    if (!onRegisterPlaybackRate) return;
+    onRegisterPlaybackRate((rate: number) => {
+      player.playbackRate = rate;
+    });
+    return () => onRegisterPlaybackRate(null);
+  }, [player, onRegisterPlaybackRate]);
+
   return (
     <VideoView
       player={player}
@@ -256,12 +267,14 @@ function EmbedVideoPlayer({
   onProgress,
   onEnd,
   onRegisterSeek,
+  onRegisterPlaybackRate,
 }: {
   server: ServerOption;
   refererUrl?: string;
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
   onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
+  onRegisterPlaybackRate?: (fn: ((rate: number) => void) | null) => void;
 }) {
   const webViewRef = useRef<any>(null);
 
@@ -281,6 +294,23 @@ function EmbedVideoPlayer({
     });
     return () => onRegisterSeek(null);
   }, [onRegisterSeek]);
+
+  useEffect(() => {
+    if (!onRegisterPlaybackRate) return;
+    onRegisterPlaybackRate((rate: number) => {
+      const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+      webViewRef.current?.injectJavaScript(`
+        (function() {
+          var videos = document.querySelectorAll('video');
+          for (var i = 0; i < videos.length; i++) {
+            videos[i].playbackRate = ${safeRate};
+          }
+        })();
+        true;
+      `);
+    });
+    return () => onRegisterPlaybackRate(null);
+  }, [onRegisterPlaybackRate]);
 
   const headers = useMemo(() => {
     return {
@@ -363,6 +393,7 @@ export default function PlayerScreen() {
   const [duration, setDuration] = useState(0);
   const [skipTimes, setSkipTimes] = useState<EpisodeSkipTimes | null>(null);
   const [outroDismissed, setOutroDismissed] = useState(false);
+  const [isHold2x, setIsHold2x] = useState(false);
   const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(
     null,
   );
@@ -374,6 +405,26 @@ export default function PlayerScreen() {
     },
     [],
   );
+  const playerPlaybackRateRef = useRef<((rate: number) => void) | null>(null);
+  const registerPlayerPlaybackRate = useCallback(
+    (fn: ((rate: number) => void) | null) => {
+      playerPlaybackRateRef.current = fn;
+    },
+    [],
+  );
+  const isHold2xRef = useRef(false);
+  const startHold2x = useCallback(() => {
+    if (isHold2xRef.current) return;
+    isHold2xRef.current = true;
+    setIsHold2x(true);
+    playerPlaybackRateRef.current?.(2);
+  }, []);
+  const stopHold2x = useCallback(() => {
+    if (!isHold2xRef.current) return;
+    isHold2xRef.current = false;
+    setIsHold2x(false);
+    playerPlaybackRateRef.current?.(1);
+  }, []);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(
@@ -415,7 +466,8 @@ export default function PlayerScreen() {
     setDuration(0);
     setSkipTimes(null);
     setOutroDismissed(false);
-  }, [episodeId]);
+    stopHold2x();
+  }, [episodeId, stopHold2x]);
 
   // Fetch AniSkip timestamps (MAL tracker -> AniList tracker -> AniList title search)
   const durationBucket = duration > 60 ? Math.floor(duration) : 0;
@@ -776,32 +828,59 @@ export default function PlayerScreen() {
             </View>
           </View>
         ) : activeServer ? (
-          <TouchableWithoutFeedback onPress={toggleControls}>
-            <View className="flex-1 w-full h-full">
-              {activeServer.type === "embed" ? (
-                <EmbedVideoPlayer
-                  key={activeServer.url}
-                  server={activeServer}
-                  refererUrl={episodeUrl}
-                  onProgress={handleProgress}
-                  onEnd={handleEpisodeEnd}
-                  onRegisterSeek={registerPlayerSeek}
-                />
-              ) : (
-                <DirectVideoPlayer
-                  key={activeServer.url}
-                  server={activeServer}
-                  refererUrl={episodeUrl}
-                  initialTime={initialTime}
-                  onProgress={handleProgress}
-                  onEnd={handleEpisodeEnd}
-                  onRegisterSeek={registerPlayerSeek}
-                />
-              )}
-            </View>
-          </TouchableWithoutFeedback>
+          <View className="flex-1 w-full h-full relative">
+            <TouchableWithoutFeedback onPress={toggleControls}>
+              <View className="flex-1 w-full h-full">
+                {activeServer.type === "embed" ? (
+                  <EmbedVideoPlayer
+                    key={activeServer.url}
+                    server={activeServer}
+                    refererUrl={episodeUrl}
+                    onProgress={handleProgress}
+                    onEnd={handleEpisodeEnd}
+                    onRegisterSeek={registerPlayerSeek}
+                    onRegisterPlaybackRate={registerPlayerPlaybackRate}
+                  />
+                ) : (
+                  <DirectVideoPlayer
+                    key={activeServer.url}
+                    server={activeServer}
+                    refererUrl={episodeUrl}
+                    initialTime={initialTime}
+                    onProgress={handleProgress}
+                    onEnd={handleEpisodeEnd}
+                    onRegisterSeek={registerPlayerSeek}
+                    onRegisterPlaybackRate={registerPlayerPlaybackRate}
+                  />
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+
+            {/* Right-side Long-Press Hold-to-2x Gesture Zone */}
+            {activeServer.type !== "embed" && (
+              <Pressable
+                onPress={toggleControls}
+                onLongPress={startHold2x}
+                onPressOut={stopHold2x}
+                delayLongPress={250}
+                className="absolute right-0 top-16 bottom-20 w-[35%] z-20"
+              />
+            )}
+          </View>
         ) : null}
       </View>
+
+      {/* Hold-to-2x Speed Pill */}
+      {isHold2x && status === "ready" && (
+        <View
+          pointerEvents="none"
+          className="absolute top-14 self-center z-50 bg-black/80 border border-white/25 px-4 py-1.5 rounded-full flex-row items-center shadow-2xl"
+        >
+          <Typography className="text-white text-xs font-extrabold tracking-wider">
+            2x &gt;&gt;
+          </Typography>
+        </View>
+      )}
 
       {/* Top Floating HUD */}
       {showControls && status === "ready" && (

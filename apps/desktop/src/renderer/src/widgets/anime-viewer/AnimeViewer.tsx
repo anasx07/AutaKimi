@@ -155,11 +155,15 @@ export default function AnimeViewer() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isPiP, setIsPiP] = useState(false)
   const [isBuffering, setIsBuffering] = useState(false)
+  const [isHold2x, setIsHold2x] = useState(false)
   const [resumeNotice, setResumeNotice] = useState<string | null>(null)
 
   const volumeRef = useRef(volume)
   const isMutedRef = useRef(isMuted)
   const playbackRateRef = useRef(playbackRate)
+  const spaceHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isHold2xRef = useRef(false)
+  const spaceDownRef = useRef(false)
 
   useEffect(() => {
     volumeRef.current = volume
@@ -1084,6 +1088,20 @@ export default function AnimeViewer() {
     }
   }, [videoType, loadServers, hlsRef, videoRef])
 
+  const stopHold2x = useCallback(() => {
+    if (spaceHoldTimerRef.current) {
+      clearTimeout(spaceHoldTimerRef.current)
+      spaceHoldTimerRef.current = null
+    }
+    if (isHold2xRef.current) {
+      isHold2xRef.current = false
+      setIsHold2x(false)
+      if (videoRef.current) {
+        videoRef.current.playbackRate = playbackRateRef.current
+      }
+    }
+  }, [videoRef])
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1091,6 +1109,27 @@ export default function AnimeViewer() {
 
       switch (e.key.toLowerCase()) {
         case ' ':
+          e.preventDefault()
+          if (videoType === 'embed' || !videoRef.current) {
+            if (!e.repeat) {
+              try {
+                const iframe = document.querySelector('iframe')
+                iframe?.contentWindow?.postMessage({ type: 'togglePlay' }, '*')
+              } catch {}
+            }
+            break
+          }
+          if (e.repeat) break
+          spaceDownRef.current = true
+          if (spaceHoldTimerRef.current) clearTimeout(spaceHoldTimerRef.current)
+          spaceHoldTimerRef.current = setTimeout(() => {
+            spaceHoldTimerRef.current = null
+            if (!videoRef.current) return
+            isHold2xRef.current = true
+            setIsHold2x(true)
+            videoRef.current.playbackRate = 2
+          }, 220)
+          break
         case 'k':
           e.preventDefault()
           if (videoType !== 'embed' && videoRef.current) {
@@ -1199,11 +1238,43 @@ export default function AnimeViewer() {
       }
     }
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key !== ' ') return
+      if (!spaceDownRef.current) return
+      e.preventDefault()
+      spaceDownRef.current = false
+      if (isHold2xRef.current) {
+        stopHold2x()
+      } else {
+        if (spaceHoldTimerRef.current) {
+          clearTimeout(spaceHoldTimerRef.current)
+          spaceHoldTimerRef.current = null
+        }
+        if (videoType !== 'embed' && videoRef.current) {
+          togglePlay()
+        }
+      }
+    }
+
+    const handleWindowBlur = () => {
+      spaceDownRef.current = false
+      stopHold2x()
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleWindowBlur)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleWindowBlur)
+      spaceDownRef.current = false
+      stopHold2x()
+    }
   }, [
     videoType,
     togglePlay,
+    stopHold2x,
     seekBy,
     handleSkipIntro,
     togglePiP,
@@ -1547,6 +1618,14 @@ export default function AnimeViewer() {
           )
         ) : null}
       </div>
+
+      {/* Hold-to-2x Speed Pill */}
+      {isHold2x && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/25 text-white text-xs font-black tracking-wider flex items-center gap-1.5 shadow-2xl pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          <span>2x</span>
+          <span className="text-primary tracking-tighter">&gt;&gt;</span>
+        </div>
+      )}
 
       {/* Resume Progress Toast */}
       {resumeNotice && (
