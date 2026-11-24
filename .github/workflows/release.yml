@@ -248,9 +248,40 @@ jobs:
             echo "🚀 Release $TAG already exists. Uploading new/updated artifacts..."
             gh release upload "$TAG" "${FILES[@]}" --repo ${{ github.repository }} --clobber
           else
+            # Carry over unchanged platform assets from the current latest release so links & auto-updater keep working
+            CARRIED_FROM=""
+            if [ "$HAS_DESKTOP" = false ] || [ "$HAS_APK" = false ]; then
+              PREV_TAG=$(gh release view --repo ${{ github.repository }} --json tagName -q '.tagName' 2>/dev/null || true)
+              if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$TAG" ]; then
+                mkdir -p carried-artifacts
+                if [ "$HAS_DESKTOP" = false ]; then
+                  echo "📦 Carrying over Desktop artifacts from $PREV_TAG..."
+                  for pat in "AutaKimi.exe" "AutaKimi.exe.blockmap" "latest.yml"; do
+                    gh release download "$PREV_TAG" --repo ${{ github.repository }} --pattern "$pat" --dir carried-artifacts || true
+                  done
+                fi
+                if [ "$HAS_APK" = false ]; then
+                  echo "📦 Carrying over Android APK from $PREV_TAG..."
+                  gh release download "$PREV_TAG" --repo ${{ github.repository }} --pattern "app-arm64-v8a-release.apk" --dir carried-artifacts || true
+                fi
+                for f in carried-artifacts/*; do
+                  if [ -f "$f" ]; then
+                    echo "📎 Carried over: $f"
+                    FILES+=("$f")
+                    CARRIED_FROM="$PREV_TAG"
+                  fi
+                done
+              fi
+            fi
+
+            if [ -n "$CARRIED_FROM" ]; then
+              NOTES="$NOTES"$'\n'"ℹ️ Unchanged platform assets carried over from \`$CARRIED_FROM\` to keep download links and auto-updater working."
+            fi
+
             echo "🚀 Creating new GitHub Release $TAG..."
             gh release create "$TAG" "${FILES[@]}" \
               --repo ${{ github.repository }} \
+              --target "${{ github.sha }}" \
               --title "Release $TAG" \
               --notes "$NOTES" \
               --generate-notes
