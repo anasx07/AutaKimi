@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
 import { ArrowLeft, Share2, Download, ShieldAlert } from 'lucide-react'
 import {
   useUIStore,
@@ -12,10 +12,14 @@ import { DataService } from '@renderer/shared/api'
 import { DownloadEntry } from '@common/types'
 import { Button, HeroSkeleton } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
+import { isMobile } from '@renderer/shared/platform'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { isFullySupported } from '@renderer/shared/api/sources'
 import { Chapter } from '@renderer/shared/api/sources/types'
+import { InlineEpisodesPanel } from '@renderer/widgets/anime-viewer/components/InlineEpisodesPanel'
+
+const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewer'))
 
 // Sub-components
 import { HeroSection } from '../components/HeroSection'
@@ -54,8 +58,9 @@ export function MediaDetailsView({
   const itemNoun = isAnime ? 'Episode' : 'Chapter'
   const itemsNoun = isAnime ? 'Episodes' : 'Chapters'
 
+  const mobile = isMobile()
   const { setActiveTab, addToast } = useUIStore()
-  const { setSelectedManga, setActiveChapter } = useLibraryStore()
+  const { setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { readingProgress, pageProgress, markAllChaptersRead } = useProgressStore()
   const { downloadQueue, addToDownloadQueue, activeTasks } = useDownloadStore()
@@ -63,7 +68,17 @@ export function MediaDetailsView({
 
   const [downloadStatuses, setDownloadStatuses] = useState<Record<string, DownloadStatus>>({})
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
+  const [isTheaterMode, setIsTheaterMode] = useState(false)
   const downloadMenuRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const isInlineWatchActive = isAnime && Boolean(activeChapter) && !mobile
+
+  useEffect(() => {
+    if (isInlineWatchActive && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [isInlineWatchActive, activeChapter?.id])
 
   const readIds = mergedMedia ? readingProgress[mergedMedia.id] || [] : []
   const extension = installedExtensions.find((e) => e.pkg === (mergedMedia?.pkg || activeExtension))
@@ -299,16 +314,32 @@ export function MediaDetailsView({
   })()
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background overflow-y-auto anime-details-page">
-      <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/60 backdrop-blur-md border-b border-border/50">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSelectedManga(null)}
-          className="h-8 w-8"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 flex flex-col h-full bg-background overflow-y-auto anime-details-page"
+    >
+      <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/60 backdrop-blur-md border-b border-border/50 gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setActiveChapter(null)
+              setSelectedManga(null)
+            }}
+            className="h-8 w-8 shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          {isInlineWatchActive && activeChapter && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-bold truncate text-foreground">{normalized.title}</span>
+              <span className="px-2 py-0.5 rounded-md bg-primary/15 text-primary text-xs font-bold shrink-0">
+                EP {activeChapter.number}
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -369,6 +400,45 @@ export function MediaDetailsView({
         </div>
       </div>
 
+      {isInlineWatchActive && activeChapter && (
+        <div className="w-full max-w-[1600px] mx-auto px-6 pt-5 pb-2">
+          <div
+            className={cn(
+              'grid gap-5 items-start',
+              isTheaterMode
+                ? 'grid-cols-1 max-w-6xl mx-auto'
+                : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px]'
+            )}
+          >
+            <div className="min-w-0">
+              <Suspense
+                fallback={
+                  <div className="w-full aspect-video rounded-2xl bg-black flex items-center justify-center border border-white/10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+                  </div>
+                }
+              >
+                <AnimeViewer
+                  variant="inline"
+                  isTheaterMode={isTheaterMode}
+                  onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+                />
+              </Suspense>
+            </div>
+            {!isTheaterMode && (
+              <InlineEpisodesPanel
+                episodes={items}
+                activeChapterId={activeChapter.id}
+                readChapterIds={readIds}
+                pageProgress={pageProgress[mergedMedia.id] || {}}
+                extLang={extLang}
+                onSelectEpisode={(ep) => setActiveChapter(ep)}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <HeroSkeleton />
       ) : (
@@ -379,6 +449,7 @@ export function MediaDetailsView({
           isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
           extLang={extLang}
           onBrowseSource={() => {
+            setActiveChapter(null)
             setActiveTab('browse')
             setSelectedManga(null)
           }}
@@ -401,14 +472,16 @@ export function MediaDetailsView({
           isAnime={isAnime}
         />
 
-        <ContinueBanner
-          nextToRead={nextItem}
-          mediaId={mergedMedia.id}
-          pageProgress={pageProgress}
-          readChapterIds={readIds}
-          mediaType={mediaType}
-          onContinue={setActiveChapter}
-        />
+        {!isInlineWatchActive && (
+          <ContinueBanner
+            nextToRead={nextItem}
+            mediaId={mergedMedia.id}
+            pageProgress={pageProgress}
+            readChapterIds={readIds}
+            mediaType={mediaType}
+            onContinue={setActiveChapter}
+          />
+        )}
 
         <ChapterEpisodeList
           items={items}
