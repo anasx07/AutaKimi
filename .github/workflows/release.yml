@@ -7,9 +7,18 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Target Tag / Release version (e.g. v2.1.1)'
+        description: 'Target Tag / Release version (e.g. v2.1.9). Leave empty to auto-detect.'
         required: false
-        default: 'v2.1.1'
+        default: ''
+      platform:
+        description: 'Target platform to build and publish'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - desktop
+          - android
 
 permissions:
   contents: write
@@ -17,6 +26,7 @@ permissions:
 jobs:
   build-desktop:
     name: Build Desktop (Windows)
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'desktop'
     runs-on: windows-latest
 
     steps:
@@ -53,6 +63,7 @@ jobs:
 
   build-android:
     name: Build Android (Linux)
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android'
     runs-on: ubuntu-latest
 
     steps:
@@ -109,10 +120,22 @@ jobs:
   publish:
     name: Publish Release
     needs: [build-desktop, build-android]
+    if: >-
+      always() &&
+      !cancelled() &&
+      (needs.build-desktop.result == 'success' || needs.build-android.result == 'success')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout package.json (for version fallback)
+        if: github.event.inputs.tag == '' && github.ref_type != 'tag'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            package.json
+
       - name: Download Desktop Artifacts
+        if: needs.build-desktop.result == 'success'
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -120,6 +143,7 @@ jobs:
           path: release-artifacts
 
       - name: Download Android Artifacts
+        if: needs.build-android.result == 'success'
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -131,7 +155,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              TAG="${{ github.ref_name }}"
+            elif [ -f package.json ]; then
+              TAG="v$(node -p "require('./package.json').version")"
+            else
+              echo "❌ Unable to determine release tag."
+              exit 1
+            fi
+          fi
           echo "Processing release for tag: $TAG"
           
           # Inspect collected artifacts
@@ -150,6 +184,14 @@ jobs:
             exit 1
           fi
           
+          HAS_DESKTOP=false
+          for f in release-artifacts/*.exe; do
+            if [ -f "$f" ]; then
+              HAS_DESKTOP=true
+              break
+            fi
+          done
+
           HAS_APK=false
           for f in release-artifacts/*.apk; do
             if [ -f "$f" ]; then
@@ -158,9 +200,19 @@ jobs:
             fi
           done
           
-          NOTES="Automated release of AutaKimi Monorepo (Windows & Android)."
-          if [ "$HAS_APK" = false ]; then
-            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Android APK is missing from this release.**"
+          if [ "$HAS_DESKTOP" = true ] && [ "$HAS_APK" = true ]; then
+            NOTES="Automated release of AutaKimi Monorepo (Windows & Android)."
+          elif [ "$HAS_DESKTOP" = true ]; then
+            NOTES="Automated release of AutaKimi Desktop (Windows)."
+          else
+            NOTES="Automated release of AutaKimi Mobile (Android)."
+          fi
+
+          if [ "${{ needs.build-desktop.result }}" = "failure" ]; then
+            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Windows Desktop build failed in this run.**"
+          fi
+          if [ "${{ needs.build-android.result }}" = "failure" ]; then
+            NOTES="$NOTES"$'\n'$'\n'"⚠️ **Android APK build failed in this run.**"
           fi
           
           # Check if the release already exists
