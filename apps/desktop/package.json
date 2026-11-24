@@ -1,7 +1,7 @@
 {
   "name": "@autakimi/desktop",
   "productName": "AutaKimi",
-  "version": "2.1.10",
+  "version": "2.1.11",
   "description": "A professional, privacy-first, cross-platform media framework for organized content viewing.",
   "main": "./out/main/index.js",
   "author": "AutaKimi Team <https://github.com/anasx07>",
