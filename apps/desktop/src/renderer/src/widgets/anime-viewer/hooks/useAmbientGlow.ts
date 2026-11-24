@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  AMBIENT_SAMPLE_HEIGHT,
   AMBIENT_SAMPLE_INTERVAL_MS,
-  sampleElementAmbientPalette,
-  type AmbientColorPalette
+  AMBIENT_SAMPLE_WIDTH
 } from '@renderer/shared/lib/ambientColors'
 
 export interface UseAmbientGlowOptions {
@@ -13,9 +13,17 @@ export interface UseAmbientGlowOptions {
   isPlaying: boolean
 }
 
+export interface UseAmbientGlowResult {
+  canvasARef: React.RefObject<HTMLCanvasElement | null>
+  canvasBRef: React.RefObject<HTMLCanvasElement | null>
+  activeBuffer: 'A' | 'B'
+  hasVideoFrame: boolean
+}
+
 /**
- * Periodically samples a tiny 16x9 offscreen canvas from the active HTML5 video every 2s to
- * produce soft directional ambient glow colors, falling back cleanly when streams are tainted.
+ * Draws the active HTML5 video onto alternating 16x9 offscreen-sized canvases every 2 seconds
+ * for smooth GPU cross-fade glow behind the player without triggering cross-origin getImageData
+ * SecurityErrors on remote MP4/HLS streams.
  */
 export function useAmbientGlow({
   enabled,
@@ -23,71 +31,65 @@ export function useAmbientGlow({
   videoType,
   activeServerUrl,
   isPlaying
-}: UseAmbientGlowOptions): {
-  ambientPalette: AmbientColorPalette | null
-  sampleNow: () => void
-} {
-  const [ambientPalette, setAmbientPalette] = useState<AmbientColorPalette | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const taintedRef = useRef(false)
+}: UseAmbientGlowOptions): UseAmbientGlowResult {
+  const canvasARef = useRef<HTMLCanvasElement | null>(null)
+  const canvasBRef = useRef<HTMLCanvasElement | null>(null)
+  const activeBufferRef = useRef<'A' | 'B'>('A')
 
-  // Reset taint tracking whenever stream source changes
+  const [activeBuffer, setActiveBuffer] = useState<'A' | 'B'>('A')
+  const [hasVideoFrame, setHasVideoFrame] = useState(false)
+
   useEffect(() => {
-    taintedRef.current = false
-    setAmbientPalette(null)
-  }, [activeServerUrl, videoType])
+    setHasVideoFrame(false)
+    activeBufferRef.current = 'A'
+    setActiveBuffer('A')
+  }, [activeServerUrl, videoType, enabled])
 
-  const sampleNow = useCallback(() => {
-    if (!enabled || videoType === 'embed' || taintedRef.current) return
+  const captureFrame = useCallback(() => {
+    if (!enabled || videoType === 'embed') return
     const video = videoRef.current
     if (!video || video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) return
 
-    if (!canvasRef.current && typeof document !== 'undefined') {
-      canvasRef.current = document.createElement('canvas')
-    }
+    const nextBuffer = activeBufferRef.current === 'A' ? 'B' : 'A'
+    const targetCanvas = nextBuffer === 'A' ? canvasARef.current : canvasBRef.current
+    if (!targetCanvas) return
 
-    const { palette, tainted } = sampleElementAmbientPalette(video, canvasRef.current)
-    if (tainted) {
-      taintedRef.current = true
-      setAmbientPalette(null)
-      return
-    }
+    if (targetCanvas.width !== AMBIENT_SAMPLE_WIDTH) targetCanvas.width = AMBIENT_SAMPLE_WIDTH
+    if (targetCanvas.height !== AMBIENT_SAMPLE_HEIGHT) targetCanvas.height = AMBIENT_SAMPLE_HEIGHT
 
-    if (palette) {
-      setAmbientPalette((prev) => {
-        if (
-          prev &&
-          prev.left === palette.left &&
-          prev.center === palette.center &&
-          prev.right === palette.right
-        ) {
-          return prev
-        }
-        return palette
-      })
+    const ctx = targetCanvas.getContext('2d')
+    if (!ctx) return
+
+    try {
+      ctx.drawImage(video, 0, 0, AMBIENT_SAMPLE_WIDTH, AMBIENT_SAMPLE_HEIGHT)
+      activeBufferRef.current = nextBuffer
+      setActiveBuffer(nextBuffer)
+      setHasVideoFrame(true)
+    } catch {
+      // Video stream unavailable for drawImage; retain fallback
     }
   }, [enabled, videoType, videoRef])
 
   useEffect(() => {
     if (!enabled || videoType === 'embed' || !activeServerUrl) {
-      setAmbientPalette(null)
+      setHasVideoFrame(false)
       return
     }
 
     const video = videoRef.current
     if (!video) return
 
-    const handleFrameReady = () => sampleNow()
+    const handleFrameReady = () => captureFrame()
     video.addEventListener('loadeddata', handleFrameReady)
     video.addEventListener('seeked', handleFrameReady)
 
     if (video.readyState >= 2) {
-      sampleNow()
+      captureFrame()
     }
 
     let timer: ReturnType<typeof setInterval> | null = null
-    if (isPlaying && !taintedRef.current) {
-      timer = setInterval(sampleNow, AMBIENT_SAMPLE_INTERVAL_MS)
+    if (isPlaying) {
+      timer = setInterval(captureFrame, AMBIENT_SAMPLE_INTERVAL_MS)
     }
 
     return () => {
@@ -95,7 +97,12 @@ export function useAmbientGlow({
       video.removeEventListener('seeked', handleFrameReady)
       if (timer) clearInterval(timer)
     }
-  }, [enabled, videoType, activeServerUrl, isPlaying, sampleNow, videoRef])
+  }, [enabled, videoType, activeServerUrl, isPlaying, captureFrame, videoRef])
 
-  return { ambientPalette, sampleNow }
+  return {
+    canvasARef,
+    canvasBRef,
+    activeBuffer,
+    hasVideoFrame
+  }
 }
