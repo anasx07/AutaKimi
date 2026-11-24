@@ -49,7 +49,10 @@ export class TrackingService implements AppService {
         return
       }
     } catch (err) {
-      console.warn('[TrackingService] safeStorage encryption failed, falling back to plaintext:', err)
+      console.warn(
+        '[TrackingService] safeStorage encryption failed, falling back to plaintext:',
+        err
+      )
     }
 
     await settingsRepo.set('anilist_token', token)
@@ -293,6 +296,7 @@ export class TrackingService implements AppService {
         Page(page: 1, perPage: 15) {
           media(search: $search, type: $type) {
             id
+            idMal
             title {
               romaji
               english
@@ -333,6 +337,7 @@ export class TrackingService implements AppService {
       query ($mediaId: Int) {
         Media(id: $mediaId) {
           id
+          idMal
           title {
             romaji
             english
@@ -607,7 +612,9 @@ export class TrackingService implements AppService {
     let succeeded = 0
     let failed = 0
 
-    console.log(`[TrackingService] Processing AniList retry queue (${queue.length} pending items)...`)
+    console.log(
+      `[TrackingService] Processing AniList retry queue (${queue.length} pending items)...`
+    )
 
     for (const item of queue) {
       try {
@@ -657,7 +664,10 @@ export class TrackingService implements AppService {
       } catch (err: any) {
         failed++
         if (this.isNetworkOrOfflineError(err)) {
-          console.warn('[TrackingService] Network still unavailable during retry queue execution, halting:', err.message)
+          console.warn(
+            '[TrackingService] Network still unavailable during retry queue execution, halting:',
+            err.message
+          )
           await trackerRepo.incrementSyncAttempts(item.id, err.message)
           break
         } else {
@@ -665,7 +675,9 @@ export class TrackingService implements AppService {
           await trackerRepo.incrementSyncAttempts(item.id, err.message || 'API error')
           // If persistent non-network error after 5 attempts (e.g. invalid media ID or permission revoked), discard
           if (item.attempts >= 5) {
-            console.warn(`[TrackingService] Discarding queued item ${item.mediaId} after 5 failed attempts`)
+            console.warn(
+              `[TrackingService] Discarding queued item ${item.mediaId} after 5 failed attempts`
+            )
             await trackerRepo.removeSyncQueueItem(item.id)
           }
         }

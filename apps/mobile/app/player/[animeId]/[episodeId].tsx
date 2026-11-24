@@ -34,7 +34,14 @@ import {
   Play,
   X,
   Radio,
+  SkipForward,
 } from "lucide-react-native";
+import {
+  skipTimesService,
+  parseEpisodeNumber,
+  evaluateSkipUIState,
+  type EpisodeSkipTimes,
+} from "@common/services/skipTimes.service";
 import {
   getVideoHeaders,
   DEFAULT_MOBILE_USER_AGENT,
@@ -179,12 +186,14 @@ function DirectVideoPlayer({
   initialTime,
   onProgress,
   onEnd,
+  onRegisterSeek,
 }: {
   server: ServerOption;
   refererUrl?: string;
   initialTime: number;
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
+  onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
 }) {
   const headers = useMemo(() => {
     return {
@@ -223,6 +232,14 @@ function DirectVideoPlayer({
     onEnd();
   });
 
+  useEffect(() => {
+    if (!onRegisterSeek) return;
+    onRegisterSeek((seconds: number) => {
+      player.currentTime = seconds;
+    });
+    return () => onRegisterSeek(null);
+  }, [player, onRegisterSeek]);
+
   return (
     <VideoView
       player={player}
@@ -239,12 +256,33 @@ function EmbedVideoPlayer({
   refererUrl,
   onProgress,
   onEnd,
+  onRegisterSeek,
 }: {
   server: ServerOption;
   refererUrl?: string;
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
+  onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
 }) {
+  const webViewRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!onRegisterSeek) return;
+    onRegisterSeek((seconds: number) => {
+      const safeSec = Number.isFinite(seconds) ? seconds : 0;
+      webViewRef.current?.injectJavaScript(`
+        (function() {
+          var videos = document.querySelectorAll('video');
+          for (var i = 0; i < videos.length; i++) {
+            videos[i].currentTime = ${safeSec};
+          }
+        })();
+        true;
+      `);
+    });
+    return () => onRegisterSeek(null);
+  }, [onRegisterSeek]);
+
   const headers = useMemo(() => {
     return {
       ...getVideoHeaders(server.url, refererUrl),
@@ -272,6 +310,7 @@ function EmbedVideoPlayer({
 
   return (
     <WebView
+      ref={webViewRef}
       source={{
         uri: server.url,
         headers,
@@ -285,7 +324,7 @@ function EmbedVideoPlayer({
       setSupportMultipleWindows={false}
       javaScriptCanOpenWindowsAutomatically={false}
       injectedJavaScript={INJECTED_POPUP_BLOCKER}
-      onMessage={(event) => {
+      onMessage={(event: any) => {
         try {
           const data = JSON.parse(event.nativeEvent.data);
           if (data.type === "timeupdate") {
@@ -321,10 +360,21 @@ export default function PlayerScreen() {
   const [showControls, setShowControls] = useState(true);
   const [showServerModal, setShowServerModal] = useState(false);
   const [initialTime, setInitialTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [skipTimes, setSkipTimes] = useState<EpisodeSkipTimes | null>(null);
+  const [outroDismissed, setOutroDismissed] = useState(false);
   const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(
     null,
   );
 
+  const playerSeekRef = useRef<((seconds: number) => void) | null>(null);
+  const registerPlayerSeek = useCallback(
+    (fn: ((seconds: number) => void) | null) => {
+      playerSeekRef.current = fn;
+    },
+    [],
+  );
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(
@@ -351,12 +401,103 @@ export default function PlayerScreen() {
   const currentEpIndex = sortedEpisodes.findIndex(
     (e: any) => e.id === episodeId,
   );
+  const currentEpisode =
+    currentEpIndex >= 0 ? sortedEpisodes[currentEpIndex] : null;
   const prevEpisode =
     currentEpIndex > 0 ? sortedEpisodes[currentEpIndex - 1] : null;
   const nextEpisode =
     currentEpIndex >= 0 && currentEpIndex < sortedEpisodes.length - 1
       ? sortedEpisodes[currentEpIndex + 1]
       : null;
+
+  // Reset Skip Intro / Outro state when episode changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+    setSkipTimes(null);
+    setOutroDismissed(false);
+  }, [episodeId]);
+
+  // Fetch AniSkip timestamps (MAL tracker -> AniList tracker -> AniList title search)
+  const durationBucket = duration > 60 ? Math.floor(duration) : 0;
+  useEffect(() => {
+    const episodeNumber = parseEpisodeNumber(
+      currentEpisode?.number,
+      episodeTitle || currentEpisode?.title,
+    );
+    if (!episodeNumber || (!animeId && !animeTitle)) return;
+
+    let cancelled = false;
+    const loadSkipTimes = async () => {
+      try {
+        let malId: number | undefined;
+        let anilistId: number | undefined;
+        if (animeId) {
+          const res = await DataService.tracker
+            .getByManga(animeId)
+            .catch(() => []);
+          const trackers = (res as any)?.value ?? res ?? [];
+          if (Array.isArray(trackers)) {
+            const malTracker = trackers.find((t: any) => t.provider === "mal");
+            const aniTracker = trackers.find(
+              (t: any) => t.provider === "anilist",
+            );
+            const rawMal = malTracker
+              ? Number(malTracker.remoteId ?? malTracker.remote_id)
+              : 0;
+            const rawAni = aniTracker
+              ? Number(aniTracker.remoteId ?? aniTracker.remote_id)
+              : 0;
+            if (Number.isFinite(rawMal) && rawMal > 0) malId = rawMal;
+            if (Number.isFinite(rawAni) && rawAni > 0) anilistId = rawAni;
+          }
+        }
+
+        const result = await skipTimesService.getSkipTimes({
+          malId,
+          anilistId,
+          title: animeTitle,
+          episodeNumber,
+          episodeLength: durationBucket,
+        });
+        if (!cancelled && result) {
+          setSkipTimes(result);
+        }
+      } catch {
+        // Silent failure: fallback UI remains active
+      }
+    };
+
+    loadSkipTimes();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    animeId,
+    animeTitle,
+    currentEpisode?.number,
+    currentEpisode?.title,
+    episodeTitle,
+    durationBucket,
+  ]);
+
+  const skipUIState = useMemo(
+    () =>
+      evaluateSkipUIState({
+        skipTimes,
+        currentTime,
+        duration,
+        hasNextEpisode: Boolean(nextEpisode),
+        outroDismissed,
+      }),
+    [skipTimes, currentTime, duration, nextEpisode, outroDismissed],
+  );
+
+  const handleSkipIntro = useCallback(() => {
+    if (!skipTimes?.op) return;
+    playerSeekRef.current?.(skipTimes.op.endTime);
+    setCurrentTime(skipTimes.op.endTime);
+  }, [skipTimes]);
 
   // 2. Fetch saved watching progress to resume playback
   useEffect(() => {
@@ -417,10 +558,16 @@ export default function PlayerScreen() {
 
   // 4. Debounced progress schedule
   const handleProgress = useCallback(
-    (currentTime: number, duration: number) => {
-      if (currentTime <= 0) return;
-      const isRead = duration > 0 ? currentTime / duration >= 0.85 : false;
-      lastProgressRef.current = { isRead, lastPage: Math.floor(currentTime) };
+    (ct: number, dur: number) => {
+      if (Number.isFinite(ct) && ct >= 0) {
+        setCurrentTime(ct);
+      }
+      if (Number.isFinite(dur) && dur > 0) {
+        setDuration(dur);
+      }
+      if (ct <= 0) return;
+      const isRead = dur > 0 ? ct / dur >= 0.85 : false;
+      lastProgressRef.current = { isRead, lastPage: Math.floor(ct) };
 
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
@@ -639,6 +786,7 @@ export default function PlayerScreen() {
                   refererUrl={episodeUrl}
                   onProgress={handleProgress}
                   onEnd={handleEpisodeEnd}
+                  onRegisterSeek={registerPlayerSeek}
                 />
               ) : (
                 <DirectVideoPlayer
@@ -648,6 +796,7 @@ export default function PlayerScreen() {
                   initialTime={initialTime}
                   onProgress={handleProgress}
                   onEnd={handleEpisodeEnd}
+                  onRegisterSeek={registerPlayerSeek}
                 />
               )}
             </View>
@@ -715,6 +864,56 @@ export default function PlayerScreen() {
           </View>
         </View>
       )}
+
+      {/* Netflix-style Floating Skip Intro & Next Episode Pills */}
+      {status === "ready" &&
+        (skipUIState.isInIntro ||
+          (skipUIState.showNextEpisode &&
+            autoNextCountdown === null &&
+            Boolean(nextEpisode))) && (
+          <View
+            className={`absolute right-4 z-40 items-end gap-2 ${
+              showControls ? "bottom-20" : "bottom-6"
+            }`}
+          >
+            {skipUIState.isInIntro && (
+              <TouchableOpacity
+                onPress={handleSkipIntro}
+                activeOpacity={0.85}
+                className="flex-row items-center bg-zinc-900/95 border border-white/25 px-4 py-2.5 rounded-full shadow-2xl"
+              >
+                <SkipForward size={15} color="#ffffff" fill="#ffffff" />
+                <Typography className="text-white text-xs font-bold ml-2">
+                  Skip Intro
+                </Typography>
+              </TouchableOpacity>
+            )}
+
+            {skipUIState.showNextEpisode &&
+              autoNextCountdown === null &&
+              nextEpisode && (
+                <View className="flex-row items-center bg-zinc-900/95 border border-primary/50 rounded-full p-1 shadow-2xl">
+                  <TouchableOpacity
+                    onPress={() => navigateToEpisode(nextEpisode)}
+                    activeOpacity={0.85}
+                    className="flex-row items-center bg-primary px-3.5 py-2 rounded-full"
+                  >
+                    <Play size={13} color="#ffffff" fill="#ffffff" />
+                    <Typography className="text-white text-xs font-bold ml-1.5">
+                      Next Episode • Ep {nextEpisode.number}
+                    </Typography>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setOutroDismissed(true)}
+                    className="p-2"
+                    accessibilityLabel="Dismiss Next Episode prompt"
+                  >
+                    <X size={14} color="#a1a1aa" />
+                  </TouchableOpacity>
+                </View>
+              )}
+          </View>
+        )}
 
       {/* Auto-Next Episode Floating Banner */}
       {autoNextCountdown !== null && nextEpisode && (
