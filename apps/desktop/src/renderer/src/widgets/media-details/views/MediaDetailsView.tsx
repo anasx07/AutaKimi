@@ -316,7 +316,7 @@ export function MediaDetailsView({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 flex flex-col h-full bg-background overflow-y-auto anime-details-page"
+      className="flex-1 flex flex-col h-full bg-background overflow-y-auto overflow-x-hidden anime-details-page"
     >
       <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/60 backdrop-blur-md border-b border-border/50 gap-4">
         <div className="flex items-center gap-3 min-w-0">

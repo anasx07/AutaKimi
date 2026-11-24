@@ -1,6 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Play, BookOpen, CheckCircle, ShieldCheck, ShieldAlert, ExternalLink } from 'lucide-react'
 import { Badge, Card, Tooltip } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
+import {
+  buildAmbientGradientStyle,
+  sampleElementAmbientPalette,
+  type AmbientColorPalette
+} from '@renderer/shared/lib/ambientColors'
 import { DataService } from '@renderer/shared/api'
 import { NormalizedManga } from '@common/utils/mangaNormalizer'
 import { ExtensionMetadata } from '@renderer/shared/model'
@@ -25,17 +31,29 @@ export const HeroSection = ({
   const iconColor = mediaType === 'manga' ? 'text-green-500' : 'text-primary'
   const Icon = mediaType === 'manga' ? BookOpen : Play
   const StatusIcon = mediaType === 'manga' ? CheckCircle : Play
+  const [ambientPalette, setAmbientPalette] = useState<AmbientColorPalette | null>(null)
+
+  useEffect(() => {
+    setAmbientPalette(null)
+  }, [manga.coverUrl])
 
   return (
     <div className="relative w-full overflow-hidden flex-shrink-0 pt-4 px-6 pb-6 border-b border-border/10">
       {manga.coverUrl && (
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <img
             src={manga.coverUrl}
             alt=""
-            className="w-full h-full object-cover blur-3xl opacity-35 saturate-150 scale-125"
+            className="w-full h-full object-cover blur-3xl opacity-45 saturate-150 scale-125"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+          {ambientPalette && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 opacity-60 blur-2xl saturate-150 transition-opacity duration-700"
+              style={{ background: buildAmbientGradientStyle(ambientPalette) }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-transparent"></div>
         </div>
       )}
 
@@ -47,7 +65,15 @@ export const HeroSection = ({
           )}
         >
           {manga.coverUrl ? (
-            <img src={manga.coverUrl} alt={manga.title} className="w-full h-full object-cover" />
+            <img
+              src={manga.coverUrl}
+              alt={manga.title}
+              onLoad={(e) => {
+                const { palette } = sampleElementAmbientPalette(e.currentTarget)
+                if (palette) setAmbientPalette(palette)
+              }}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div
               className={cn(
@@ -61,13 +87,18 @@ export const HeroSection = ({
         </Card>
 
         <div className="flex-1 flex flex-col justify-end pb-1 space-y-1.5 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground line-clamp-2 leading-snug" dir="auto">
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground line-clamp-2 leading-snug"
+            dir="auto"
+          >
             {manga.title}
           </h1>
 
           <div className="space-y-1">
             {manga.author && (
-              <p className="text-sm font-medium text-muted-foreground truncate" dir="auto">{manga.author}</p>
+              <p className="text-sm font-medium text-muted-foreground truncate" dir="auto">
+                {manga.author}
+              </p>
             )}
 
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
