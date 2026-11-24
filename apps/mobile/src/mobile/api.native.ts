@@ -625,7 +625,8 @@ export const MobileApi: ElectronApi = {
         nsfw: !!s.nsfw,
         repoUrl: "remote",
         status: s.status,
-        isFullySupported: s.isFullySupported !== undefined ? s.isFullySupported : undefined,
+        isFullySupported:
+          s.isFullySupported !== undefined ? s.isFullySupported : undefined,
       }));
       return { ok: true, value };
     },
@@ -666,6 +667,12 @@ export const MobileApi: ElectronApi = {
       ok: true,
       value: { processed: 0, succeeded: 0, failed: 0 },
     }),
+    getSkipTimes: async (args: any) => {
+      const { skipTimesService } =
+        await import("@common/services/skipTimes.service");
+      const result = await skipTimesService.getSkipTimes(args);
+      return { ok: true, value: result };
+    },
   },
 
   setStreamHeaders: async (_args: {

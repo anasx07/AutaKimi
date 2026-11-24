@@ -13,12 +13,15 @@ export interface EpisodeSkipTimes {
   malId?: number;
 }
 
-export interface SkipTimesQuery {
+export interface SkipTimesRequest {
   malId?: number;
   anilistId?: number;
   title?: string;
   episodeNumber: number;
   episodeLength?: number;
+}
+
+export interface SkipTimesQuery extends SkipTimesRequest {
   resolveAniListMedia?: (
     anilistId: number,
   ) => Promise<{ idMal?: number } | null | undefined>;
@@ -38,17 +41,100 @@ interface AniSkipApiResponse {
   results?: AniSkipRawResult[];
 }
 
+const ARABIC_ORDINALS: Record<string, number> = {
+  الاول: 1,
+  الأول: 1,
+  الثاني: 2,
+  الثانى: 2,
+  التاني: 2,
+  الثالث: 3,
+  التالت: 3,
+  الرابع: 4,
+  الخامس: 5,
+  السادس: 6,
+  السابع: 7,
+  الثامن: 8,
+  التاسع: 9,
+  العاشر: 10,
+};
+
+function extractSeasonNumber(rawTitle: string): number | null {
+  const numMatch = rawTitle.match(
+    /(?:الموسم|الجزء|season|part|cour)\s*(\d+)|\bS(\d{1,2})\b/i,
+  );
+  if (numMatch) {
+    const val = parseInt(numMatch[1] || numMatch[2], 10);
+    if (Number.isFinite(val) && val > 0) return val;
+  }
+
+  for (const [word, num] of Object.entries(ARABIC_ORDINALS)) {
+    const ordinalRegex = new RegExp(`(?:الموسم|الجزء)\\s+${word}`, "i");
+    if (ordinalRegex.test(rawTitle)) return num;
+  }
+
+  return null;
+}
+
 /**
- * Cleans common scraper release tags from anime titles for accurate AniList matching.
+ * Cleans common scraper release tags & Arabic wrapper prefixes/suffixes for AniList matching.
  */
 export function normalizeAnimeSearchTitle(title: string): string {
-  return title
+  let cleaned = title
     .replace(
-      /\s*[([](?:sub|dub|subbed|dubbed|uncensored|censored|tv|bd|hd|ova|ona|special|raw|arabic|english|multi)[^\])]*[\])]/gi,
+      /\s*[([](?:sub|dub|subbed|dubbed|uncensored|censored|tv|bd|hd|fhd|4k|ova|ona|special|raw|arabic|english|multi|مترجم|مترجمة|مدبلج|مدبلجة|اون\s*لاين|أون\s*لاين|كامل|كاملة)[^\])]*[\])]/gi,
       "",
     )
+    .replace(
+      /(?:الموسم|الجزء)\s+(?:\d+|الأول|الاول|الثاني|الثانى|التاني|الثالث|التالت|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/gi,
+      "",
+    )
+    .replace(/(?:الحلقة|حلقة)\s*\d+/gi, "")
+    .replace(
+      /(?:^|\s)(?:انمي|أنمي|مشاهدة|تحميل|اون\s*لاين|أون\s*لاين|اونلاين|مترجم|مترجمة|مدبلج|مدبلجة|كامل|كاملة|جميع\s*الحلقات|فيلم|مسلسل)(?=\s|$)/gi,
+      " ",
+    );
+
+  // If Latin characters are present (e.g. "انمي Black Clover ..."), strip leftover Arabic script
+  if (/[A-Za-z]/.test(cleaned)) {
+    cleaned = cleaned.replace(/[\u0600-\u06FF]+/g, " ");
+  }
+
+  return cleaned
+    .replace(/^[\s\-:|–—]+|[\s\-:|–—]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Generates ordered search title candidates (e.g. "Black Clover Season 2", "Black Clover")
+ * so season splits on scraper sites still resolve AniSkip data cleanly.
+ */
+export function buildAnimeTitleCandidates(rawTitle: string): string[] {
+  const candidates: string[] = [];
+  const seasonNum = extractSeasonNumber(rawTitle);
+  const baseTitle = normalizeAnimeSearchTitle(rawTitle);
+
+  if (!baseTitle) return candidates;
+
+  const alreadyHasSeason =
+    /\b(?:season\s*\d+|\d+(?:st|nd|rd|th)\s+season)\b/i.test(baseTitle);
+  if (seasonNum && seasonNum > 1 && !alreadyHasSeason) {
+    candidates.push(`${baseTitle} Season ${seasonNum}`);
+  }
+
+  candidates.push(baseTitle);
+
+  const strippedTrailingSeason = baseTitle
+    .replace(
+      /\s+(?:season\s*\d+|\d+(?:st|nd|rd|th)\s+season|part\s*\d+|s\d+)$/i,
+      "",
+    )
+    .trim();
+  if (strippedTrailingSeason && strippedTrailingSeason !== baseTitle) {
+    candidates.push(strippedTrailingSeason);
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
 }
 
 /**
@@ -70,7 +156,9 @@ export function parseEpisodeNumber(
     if (Number.isFinite(parsed) && parsed > 0) return parsed;
   }
   if (title) {
-    const match = title.match(/(?:episode|ep\.?|e)?\s*(\d+(?:\.\d+)?)/i);
+    const match = title.match(
+      /(?:episode|ep\.?|e|الحلقة|حلقة)?\s*(\d+(?:\.\d+)?)/i,
+    );
     if (match) {
       const parsed = parseFloat(match[1]);
       if (Number.isFinite(parsed) && parsed > 0) return parsed;
@@ -208,13 +296,26 @@ export class SkipTimesService {
     const idMal = json?.data?.Media?.idMal;
     const resolved = typeof idMal === "number" && idMal > 0 ? idMal : null;
     this.malIdByAnilistCache.set(anilistId, resolved);
+    console.log(
+      `[SkipTimes] AniList ID ${anilistId} -> idMal=${resolved ?? "none"}`,
+    );
     return resolved;
   }
 
   async resolveMalIdByTitle(title: string): Promise<number | null> {
-    const cleaned = normalizeAnimeSearchTitle(title);
-    if (!cleaned) return null;
-    const cacheKey = cleaned.toLowerCase();
+    const candidates = buildAnimeTitleCandidates(title);
+    for (const candidate of candidates) {
+      const resolved = await this.lookupMalIdSingleTitle(candidate);
+      if (resolved) return resolved;
+    }
+    return null;
+  }
+
+  private async lookupMalIdSingleTitle(
+    cleanedTitle: string,
+  ): Promise<number | null> {
+    if (!cleanedTitle) return null;
+    const cacheKey = cleanedTitle.toLowerCase();
     if (this.malIdByTitleCache.has(cacheKey)) {
       return this.malIdByTitleCache.get(cacheKey) ?? null;
     }
@@ -235,14 +336,22 @@ export class SkipTimesService {
       }
     `;
     const json = await this.fetchJsonWithTimeout<{
-      data?: { Page?: { media?: Array<{ idMal?: number | null }> } };
+      data?: {
+        Page?: {
+          media?: Array<{
+            id?: number;
+            idMal?: number | null;
+            title?: { romaji?: string };
+          }>;
+        };
+      };
     }>(ANILIST_GRAPHQL_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ query, variables: { search: cleaned } }),
+      body: JSON.stringify({ query, variables: { search: cleanedTitle } }),
     });
 
     const candidates = json?.data?.Page?.media || [];
@@ -251,6 +360,9 @@ export class SkipTimesService {
     );
     const resolved = match?.idMal ?? null;
     this.malIdByTitleCache.set(cacheKey, resolved);
+    console.log(
+      `[SkipTimes] AniList title search "${cleanedTitle}" -> idMal=${resolved ?? "none"}${match?.title?.romaji ? ` (${match.title.romaji})` : ""}`,
+    );
     return resolved;
   }
 
@@ -288,11 +400,97 @@ export class SkipTimesService {
     return pickFrom(primaryType) || pickFrom(fallbackType);
   }
 
+  private async fetchAniSkipForMalId(
+    malId: number,
+    epParam: number,
+    lengthParam: number,
+  ): Promise<EpisodeSkipTimes | null> {
+    const cacheKey = `${malId}:${epParam}:${lengthParam}`;
+    if (this.skipTimesCache.has(cacheKey)) {
+      return this.skipTimesCache.get(cacheKey) ?? null;
+    }
+
+    const existingPromise = this.inFlightRequests.get(cacheKey);
+    if (existingPromise) return existingPromise;
+
+    const requestPromise = (async (): Promise<EpisodeSkipTimes | null> => {
+      try {
+        const url = `${ANISKIP_API_BASE}/${malId}/${epParam}?types=op&types=ed&types=mixed-op&types=mixed-ed&episodeLength=${lengthParam}`;
+        const data = await this.fetchJsonWithTimeout<AniSkipApiResponse>(url);
+        if (
+          !data?.found ||
+          !Array.isArray(data.results) ||
+          data.results.length === 0
+        ) {
+          console.log(
+            `[SkipTimes] AniSkip miss (no timestamps) for malId=${malId} ep=${epParam}`,
+          );
+          this.skipTimesCache.set(cacheKey, null);
+          return null;
+        }
+
+        const op = this.pickBestInterval(
+          data.results,
+          "op",
+          "mixed-op",
+          lengthParam,
+        );
+        const ed = this.pickBestInterval(
+          data.results,
+          "ed",
+          "mixed-ed",
+          lengthParam,
+        );
+
+        if (!op && !ed) {
+          console.log(
+            `[SkipTimes] AniSkip empty usable intervals for malId=${malId} ep=${epParam}`,
+          );
+          this.skipTimesCache.set(cacheKey, null);
+          return null;
+        }
+
+        const result: EpisodeSkipTimes = {
+          ...(op ? { op } : {}),
+          ...(ed ? { ed } : {}),
+          malId,
+        };
+        console.log(
+          `[SkipTimes] AniSkip HIT for malId=${malId} ep=${epParam}:` +
+            ` OP=${op ? `${op.startTime.toFixed(1)}s-${op.endTime.toFixed(1)}s` : "none"},` +
+            ` ED=${ed ? `${ed.startTime.toFixed(1)}s-${ed.endTime.toFixed(1)}s` : "none"}`,
+        );
+        this.skipTimesCache.set(cacheKey, result);
+        return result;
+      } catch {
+        return null;
+      } finally {
+        this.inFlightRequests.delete(cacheKey);
+      }
+    })();
+
+    this.inFlightRequests.set(cacheKey, requestPromise);
+    return requestPromise;
+  }
+
   async getSkipTimes(query: SkipTimesQuery): Promise<EpisodeSkipTimes | null> {
     if (!Number.isFinite(query.episodeNumber) || query.episodeNumber <= 0) {
       return null;
     }
 
+    const epParam = Math.floor(query.episodeNumber);
+    const lengthParam =
+      query.episodeLength &&
+      Number.isFinite(query.episodeLength) &&
+      query.episodeLength > 0
+        ? Math.floor(query.episodeLength)
+        : 0;
+
+    console.log(
+      `[SkipTimes] Resolving skip times: title="${query.title || ""}" ep=${epParam} malId=${query.malId || "none"} anilistId=${query.anilistId || "none"} len=${lengthParam}`,
+    );
+
+    // 1. Explicit MAL ID or linked AniList ID
     let resolvedMalId =
       typeof query.malId === "number" && query.malId > 0
         ? Math.floor(query.malId)
@@ -319,75 +517,36 @@ export class SkipTimesService {
       }
     }
 
-    if (!resolvedMalId && query.title) {
-      resolvedMalId = await this.resolveMalIdByTitle(query.title);
+    if (resolvedMalId) {
+      const hit = await this.fetchAniSkipForMalId(
+        resolvedMalId,
+        epParam,
+        lengthParam,
+      );
+      if (hit) return hit;
     }
 
-    if (!resolvedMalId) return null;
-
-    const epParam = Math.floor(query.episodeNumber);
-    const lengthParam =
-      query.episodeLength &&
-      Number.isFinite(query.episodeLength) &&
-      query.episodeLength > 0
-        ? Math.floor(query.episodeLength)
-        : 0;
-    const cacheKey = `${resolvedMalId}:${epParam}:${lengthParam}`;
-
-    if (this.skipTimesCache.has(cacheKey)) {
-      return this.skipTimesCache.get(cacheKey) ?? null;
-    }
-
-    const existingPromise = this.inFlightRequests.get(cacheKey);
-    if (existingPromise) return existingPromise;
-
-    const requestPromise = (async (): Promise<EpisodeSkipTimes | null> => {
-      try {
-        const url = `${ANISKIP_API_BASE}/${resolvedMalId}/${epParam}?types=op&types=ed&types=mixed-op&types=mixed-ed&episodeLength=${lengthParam}`;
-        const data = await this.fetchJsonWithTimeout<AniSkipApiResponse>(url);
-        if (
-          !data?.found ||
-          !Array.isArray(data.results) ||
-          data.results.length === 0
-        ) {
-          this.skipTimesCache.set(cacheKey, null);
-          return null;
-        }
-
-        const op = this.pickBestInterval(
-          data.results,
-          "op",
-          "mixed-op",
+    // 2. Title candidates fallback (tries season-specific first, then base anime title)
+    if (query.title) {
+      const titleCandidates = buildAnimeTitleCandidates(query.title);
+      console.log(
+        `[SkipTimes] Title candidates: ${JSON.stringify(titleCandidates)}`,
+      );
+      const triedMalIds = new Set<number>(resolvedMalId ? [resolvedMalId] : []);
+      for (const candidate of titleCandidates) {
+        const malId = await this.lookupMalIdSingleTitle(candidate);
+        if (!malId || triedMalIds.has(malId)) continue;
+        triedMalIds.add(malId);
+        const hit = await this.fetchAniSkipForMalId(
+          malId,
+          epParam,
           lengthParam,
         );
-        const ed = this.pickBestInterval(
-          data.results,
-          "ed",
-          "mixed-ed",
-          lengthParam,
-        );
-
-        if (!op && !ed) {
-          this.skipTimesCache.set(cacheKey, null);
-          return null;
-        }
-
-        const result: EpisodeSkipTimes = {
-          ...(op ? { op } : {}),
-          ...(ed ? { ed } : {}),
-          malId: resolvedMalId!,
-        };
-        this.skipTimesCache.set(cacheKey, result);
-        return result;
-      } catch {
-        return null;
-      } finally {
-        this.inFlightRequests.delete(cacheKey);
+        if (hit) return hit;
       }
-    })();
+    }
 
-    this.inFlightRequests.set(cacheKey, requestPromise);
-    return requestPromise;
+    return null;
   }
 }
 

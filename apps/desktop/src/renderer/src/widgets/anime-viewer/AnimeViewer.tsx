@@ -12,7 +12,6 @@ import {
   SkipForward
 } from 'lucide-react'
 import {
-  skipTimesService,
   parseEpisodeNumber,
   evaluateSkipUIState,
   type EpisodeSkipTimes
@@ -327,13 +326,12 @@ export default function AnimeViewer() {
           if (Number.isFinite(rawAni) && rawAni > 0) anilistId = rawAni
         }
 
-        const result = await skipTimesService.getSkipTimes({
+        const result = await DataService.tracker.getSkipTimes({
           malId,
           anilistId,
           title: selectedManga.title,
           episodeNumber,
-          episodeLength: durationBucket,
-          resolveAniListMedia: (id) => DataService.tracker.getMediaAniList(id)
+          episodeLength: durationBucket
         })
         if (!cancelled && result) {
           setSkipTimes(result)

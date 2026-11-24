@@ -37,7 +37,6 @@ import {
   SkipForward,
 } from "lucide-react-native";
 import {
-  skipTimesService,
   parseEpisodeNumber,
   evaluateSkipUIState,
   type EpisodeSkipTimes,
@@ -453,7 +452,7 @@ export default function PlayerScreen() {
           }
         }
 
-        const result = await skipTimesService.getSkipTimes({
+        const result = await DataService.tracker.getSkipTimes({
           malId,
           anilistId,
           title: animeTitle,
