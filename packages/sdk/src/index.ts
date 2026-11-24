@@ -9,6 +9,7 @@ export * from "./services/source.service";
 export * from "./services/repository.service";
 export * from "./services/keiyoushi.service";
 export * from "./services/skipTimes.service";
+export * from "./services/episodePrefetch.service";
 export * from "./services/extensionRegistryOrchestrator";
 export {
   normalizeManga,
