@@ -17,6 +17,18 @@ import {
   type EpisodeSkipTimes
 } from '@common/services/skipTimes.service'
 import {
+  detectVideoStreamType,
+  extractRawStreamUrls,
+  normalizeStreamServers,
+  selectPreferredServerIndex,
+  makeEpisodePrefetchKey,
+  shouldPrefetchNextEpisode,
+  sharedEpisodeStreamCache,
+  prefetchNextEpisodeSkipTimes,
+  type EpisodeStreamCacheEntry,
+  type ServerProbeResult
+} from '@common/services/episodePrefetch.service'
+import {
   useLibraryStore,
   useExtensionStore,
   useProgressStore,
@@ -36,76 +48,86 @@ import { useHlsPlayer } from './hooks/useHlsPlayer'
 
 export type { ServerItem, QualityLevel }
 
-function getVideoType(server: any): 'hls' | 'mp4' | 'embed' {
-  if (!server) return 'embed'
-  if (typeof server === 'object' && server.type) {
-    const t = String(server.type).toLowerCase()
-    if (t === 'hls' || t === 'm3u8') return 'hls'
-    if (t === 'mp4' || t === 'webm') return 'mp4'
-    if (t === 'embed') return 'embed'
-  }
-  const url = typeof server === 'object' ? server.url || '' : String(server || '')
-  const cleanUrl = url.split('?')[0].toLowerCase()
-  const lowerUrl = url.toLowerCase()
-  if (
-    cleanUrl.endsWith('.m3u8') ||
-    lowerUrl.includes('.m3u8') ||
-    lowerUrl.includes('hls_proxy') ||
-    lowerUrl.includes('mode=m3u8')
-  ) {
-    return 'hls'
-  }
-  if (
-    cleanUrl.endsWith('.mp4') ||
-    cleanUrl.endsWith('.webm') ||
-    lowerUrl.includes('.mp4') ||
-    lowerUrl.includes('stream_proxy')
-  ) {
-    return 'mp4'
-  }
-  return 'embed'
+function mapEntryToServerItems(entry: EpisodeStreamCacheEntry): ServerItem[] {
+  return entry.servers.map((srv, idx) => {
+    const probe = entry.probeResults?.find((p) => p.index === idx)
+    return {
+      name: srv.name,
+      url: srv.url,
+      type: srv.type,
+      headers: srv.headers,
+      status: probe ? probe.status : 'checking',
+      pingMs: probe?.pingMs,
+      error: probe?.error
+    }
+  })
 }
 
-const AD_DOMAINS = [
-  'a-ads.com',
-  'doubleclick.net',
-  'googlesyndication.com',
-  'googleadservices.com',
-  'popads.net',
-  'propellerads.com',
-  'adsterra.com',
-  'exoclick.com',
-  'juicyads.com',
-  'trafficjunky.com',
-  'adnxs.com',
-  'adform.net',
-  'wingsmob.com',
-  'sleeklyyallaer.com',
-  'luckypick.top',
-  'bc.game',
-  '1xbet',
-  'melbet',
-  'betway',
-  'bet365'
-]
+function resolveEffectiveServerIndex(items: ServerItem[], preferredIndex: number): number {
+  const candidate = items[preferredIndex]
+  if (candidate && candidate.status === 'dead') {
+    const aliveDirectIdx = items.findIndex(
+      (srv) => srv.status === 'alive' && (srv.type === 'hls' || srv.type === 'mp4')
+    )
+    if (aliveDirectIdx !== -1) return aliveDirectIdx
+    const aliveIdx = items.findIndex((srv) => srv.status === 'alive')
+    if (aliveIdx !== -1) return aliveIdx
+  }
+  return preferredIndex
+}
 
-function isAdUrl(url?: string): boolean {
-  if (!url || typeof url !== 'string') return false
-  const lower = url.toLowerCase().trim()
-  if (!lower.startsWith('http://') && !lower.startsWith('https://') && !lower.startsWith('//')) {
-    return false
+async function fetchAndNormalizeEpisode(
+  pkg: string,
+  episodeUrl: string
+): Promise<EpisodeStreamCacheEntry> {
+  const source = await ExtensionResolver.resolve(pkg)
+  if (!source) throw new Error('Could not resolve extension source.')
+
+  const res: any = await source.fetchPages(episodeUrl)
+  const rawUrls = extractRawStreamUrls(res)
+  if (!rawUrls || rawUrls.length === 0) {
+    throw new Error('No streaming servers found for this episode.')
   }
-  for (const domain of AD_DOMAINS) {
-    if (lower.includes(domain)) return true
+
+  const normalized = normalizeStreamServers(rawUrls)
+  if (normalized.length === 0) {
+    throw new Error(
+      'No playable streaming servers found for this episode (ad-only feeds filtered).'
+    )
   }
-  if (
-    (lower.includes('/ad/') || lower.includes('/ads/') || lower.includes('/banner/')) &&
-    !lower.includes('.mp4') &&
-    !lower.includes('.m3u8')
-  ) {
-    return true
+
+  return {
+    servers: normalized,
+    debug: res?.debug || null,
+    fetchedAt: Date.now()
   }
-  return false
+}
+
+async function probeEpisodeServers(
+  cacheKey: string,
+  entry: EpisodeStreamCacheEntry
+): Promise<ServerProbeResult[]> {
+  const results = await Promise.all(
+    entry.servers.map(async (srv, i): Promise<ServerProbeResult> => {
+      try {
+        const probeRes = await DataService.probeStream(srv.url, srv.headers, 2500)
+        return {
+          index: i,
+          status: probeRes.alive ? 'alive' : 'dead',
+          pingMs: probeRes.pingMs,
+          error: probeRes.error
+        }
+      } catch {
+        return {
+          index: i,
+          status: 'dead',
+          error: 'Probe error'
+        }
+      }
+    })
+  )
+  sharedEpisodeStreamCache.updateProbeResults(cacheKey, results)
+  return results
 }
 
 export default function AnimeViewer() {
@@ -233,6 +255,7 @@ export default function AnimeViewer() {
 
   const controlsTimeoutRef = useRef<any | null>(null)
   const loadGenerationRef = useRef(0)
+  const prefetchedTransitionsRef = useRef<Set<string>>(new Set())
 
   // Cinema Mode: Auto-hide controls
   useEffect(() => {
@@ -353,7 +376,7 @@ export default function AnimeViewer() {
 
   const s = servers[activeServerIdx]
   const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
-  const videoType = useMemo(() => getVideoType(s), [s])
+  const videoType = useMemo(() => detectVideoStreamType(s), [s])
 
   const failoverToNextServer = useCallback(
     (reason?: string) => {
@@ -486,105 +509,74 @@ export default function AnimeViewer() {
     }
   }, [servers, activeServerIdx])
 
-  const loadServers = useCallback(async () => {
-    if (!activeChapter || !activeExtension) return
-    const currentGen = ++loadGenerationRef.current
+  const recordWatchSession = useCallback(
+    (chapter: NonNullable<typeof activeChapter>) => {
+      if (!selectedManga) return
 
-    clearWatchdog()
-    setLoading(true)
-    setError(null)
-    setIsSwitchingServer(false)
-
-    try {
-      console.log(`[AnimeViewer] Resolving source for: ${activeExtension}`)
-      const source = await ExtensionResolver.resolve(activeExtension)
-      if (!source) throw new Error('Could not resolve extension source.')
-
-      console.log(`[AnimeViewer] Fetching servers from: ${source.name} (v${source.version})`)
-      const res: any = await source.fetchPages(activeChapter.url)
-
-      if (currentGen !== loadGenerationRef.current) return
-
-      const urls = res?.urls || (Array.isArray(res) ? res : [])
-      const debug = res?.debug || null
-      setDebugInfo(debug)
-
-      if (urls && urls.length > 0) {
-        // Filter out obvious advertisement and banner URLs
-        const validUrls = urls.filter((srv: any) => {
-          const u = typeof srv === 'object' ? srv?.url : String(srv || '')
-          return !isAdUrl(u)
-        })
-
-        if (validUrls.length === 0) {
-          setError('No playable streaming servers found for this episode (ad-only feeds filtered).')
-          return
+      if (
+        activeSessionRef.current &&
+        (activeSessionRef.current.mangaId !== selectedManga.id ||
+          activeSessionRef.current.chapterId !== chapter.id)
+      ) {
+        const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
+        if (elapsed > 0) {
+          updateHistoryDuration({
+            mangaId: activeSessionRef.current.mangaId,
+            chapterId: activeSessionRef.current.chapterId,
+            durationSeconds: elapsed
+          })
         }
+      }
 
-        // Normalize candidate server items
-        const initialServers: ServerItem[] = validUrls.map((srv: any, idx: number) => {
-          if (typeof srv === 'object') {
-            return {
-              name: srv.name || `Server ${idx + 1}`,
-              url: srv.url,
-              type: srv.type || getVideoType(srv),
-              headers: srv.headers,
-              status: 'checking'
-            }
-          }
-          return {
-            name: `Server ${idx + 1}`,
-            url: String(srv),
-            type: getVideoType(srv),
-            status: 'checking'
-          }
-        })
+      activeSessionRef.current = {
+        mangaId: selectedManga.id,
+        chapterId: chapter.id,
+        startTime: Date.now()
+      }
 
-        setServers(initialServers)
+      const existingProgress =
+        useProgressStore.getState().pageProgress[selectedManga.id]?.[chapter.id] || undefined
 
-        // Find initial optimistic target index: ALWAYS prioritize direct native streams
-        const hasDirectServers = initialServers.some(
-          (srv) => srv.type === 'hls' || srv.type === 'mp4'
-        )
-        const lastServer = localStorage.getItem('autakimi-anime-preferred-server')
-        let targetIdx = -1
-        if (lastServer) {
-          targetIdx = initialServers.findIndex((srv) => srv.name === lastServer)
-        }
-        if (targetIdx === -1 || (hasDirectServers && initialServers[targetIdx]?.type === 'embed')) {
-          const directIdx = initialServers.findIndex(
-            (srv) => srv.type === 'hls' || srv.type === 'mp4'
-          )
-          targetIdx = directIdx !== -1 ? directIdx : 0
-        }
-        setActiveServerIdx(targetIdx)
+      markChapterRead(
+        selectedManga.id,
+        chapter.id,
+        true,
+        existingProgress,
+        Number(chapter.number) || undefined
+      )
+      addHistoryEntry({
+        mangaId: selectedManga.id,
+        mangaTitle: selectedManga.title,
+        chapterId: chapter.id,
+        chapterTitle: chapter.title || undefined,
+        startedAt: new Date().toISOString(),
+        durationSeconds: 0,
+        pkg: activeExtension || undefined,
+        type: 'anime'
+      })
+    },
+    [selectedManga, activeExtension, markChapterRead, addHistoryEntry, updateHistoryDuration]
+  )
 
-        // Concurrently probe all servers in the background with strict timeout
-        const probePromises = initialServers.map(async (srv, i) => {
-          try {
-            const probeRes = await DataService.probeStream(srv.url, srv.headers, 2500)
-            return {
-              i,
-              status: (probeRes.alive ? 'alive' : 'dead') as 'alive' | 'dead',
-              pingMs: probeRes.pingMs,
-              error: probeRes.error
-            }
-          } catch {
-            return {
-              i,
-              status: 'dead' as const,
-              error: 'Probe error'
-            }
-          }
-        })
+  const applyEntryServers = useCallback(
+    (entry: EpisodeStreamCacheEntry, cacheKey: string, currentGen: number) => {
+      const initialServers = mapEntryToServerItems(entry)
+      const preferredName = localStorage.getItem('autakimi-anime-preferred-server')
+      const targetIdx = selectPreferredServerIndex(entry.servers, preferredName)
+      const effectiveIdx = resolveEffectiveServerIndex(initialServers, targetIdx)
 
-        Promise.all(probePromises).then((results) => {
+      setDebugInfo(entry.debug || null)
+      setServers(initialServers)
+      setActiveServerIdx(effectiveIdx)
+
+      if (!entry.probeResults) {
+        probeEpisodeServers(cacheKey, entry).then((results) => {
           if (currentGen !== loadGenerationRef.current) return
           let nextAliveIdx = -1
 
           setServers((prevServers) => {
             const updated = prevServers.map((srv, i) => {
-              const r = results.find((res) => res.i === i)
+              const r = results.find((res) => res.index === i)
               if (!r) return srv
               return {
                 ...srv,
@@ -593,79 +585,53 @@ export default function AnimeViewer() {
                 error: r.error
               }
             })
-
-            const current = updated[targetIdx]
-            if (current && current.status === 'dead') {
-              const aliveDirectIdx = updated.findIndex(
-                (srv) => srv.status === 'alive' && (srv.type === 'hls' || srv.type === 'mp4')
-              )
-              if (aliveDirectIdx !== -1) {
-                nextAliveIdx = aliveDirectIdx
-              } else {
-                nextAliveIdx = updated.findIndex((srv) => srv.status === 'alive')
-              }
-            }
-
+            nextAliveIdx = resolveEffectiveServerIndex(updated, effectiveIdx)
             return updated
           })
 
-          if (nextAliveIdx !== -1 && nextAliveIdx !== targetIdx) {
+          if (nextAliveIdx !== -1 && nextAliveIdx !== effectiveIdx) {
             console.warn(
               `[AnimeViewer] Initial server probed DEAD, fast-switching to index ${nextAliveIdx}...`
             )
             setActiveServerIdx(nextAliveIdx)
           }
         })
-
-        // Trigger history immediately when servers are ready
-        if (selectedManga && activeChapter) {
-          if (
-            activeSessionRef.current &&
-            (activeSessionRef.current.mangaId !== selectedManga.id ||
-              activeSessionRef.current.chapterId !== activeChapter.id)
-          ) {
-            const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
-            if (elapsed > 0) {
-              updateHistoryDuration({
-                mangaId: activeSessionRef.current.mangaId,
-                chapterId: activeSessionRef.current.chapterId,
-                durationSeconds: elapsed
-              })
-            }
-          }
-
-          activeSessionRef.current = {
-            mangaId: selectedManga.id,
-            chapterId: activeChapter.id,
-            startTime: Date.now()
-          }
-
-          const existingProgress =
-            useProgressStore.getState().pageProgress[selectedManga.id]?.[activeChapter.id] ||
-            undefined
-
-          markChapterRead(
-            selectedManga.id,
-            activeChapter.id,
-            true,
-            existingProgress,
-            Number(activeChapter.number) || undefined
-          )
-          addHistoryEntry({
-            mangaId: selectedManga.id,
-            mangaTitle: selectedManga.title,
-            chapterId: activeChapter.id,
-            chapterTitle: activeChapter.title || undefined,
-            startedAt: new Date().toISOString(),
-            durationSeconds: 0,
-            pkg: activeExtension || undefined,
-            type: 'anime'
-          })
-        }
-      } else {
-        setError('No streaming servers found for this episode.')
       }
+    },
+    []
+  )
+
+  const loadServers = useCallback(async () => {
+    if (!activeChapter || !activeExtension) return
+    const currentGen = ++loadGenerationRef.current
+    const cacheKey = makeEpisodePrefetchKey(activeExtension, activeChapter.url)
+
+    clearWatchdog()
+    setError(null)
+    setIsSwitchingServer(false)
+
+    // Zero-wait instant handoff when next episode was already prefetched at >=80%
+    const cachedEntry = sharedEpisodeStreamCache.getCached(cacheKey)
+    if (cachedEntry && cachedEntry.servers.length > 0) {
+      applyEntryServers(cachedEntry, cacheKey, currentGen)
+      setLoading(false)
+      recordWatchSession(activeChapter)
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const entry = await sharedEpisodeStreamCache.getOrLoad(cacheKey, () =>
+        fetchAndNormalizeEpisode(activeExtension, activeChapter.url)
+      )
+
+      if (currentGen !== loadGenerationRef.current) return
+
+      applyEntryServers(entry, cacheKey, currentGen)
+      recordWatchSession(activeChapter)
     } catch (err: any) {
+      if (currentGen !== loadGenerationRef.current) return
       console.error('[AnimeViewer] Failed to load servers:', err)
       setError(err?.message || 'Failed to load streaming servers.')
     } finally {
@@ -673,15 +639,7 @@ export default function AnimeViewer() {
         setLoading(false)
       }
     }
-  }, [
-    activeChapter,
-    activeExtension,
-    clearWatchdog,
-    selectedManga,
-    markChapterRead,
-    addHistoryEntry,
-    updateHistoryDuration
-  ])
+  }, [activeChapter, activeExtension, clearWatchdog, applyEntryServers, recordWatchSession])
 
   useEffect(() => {
     loadServers()
@@ -769,17 +727,64 @@ export default function AnimeViewer() {
     }
   }, [videoRef])
 
+  const prefetchNextEpisodeInBackground = useCallback(
+    (episodeDurationSec: number) => {
+      if (!activeExtension || !nextEpisode?.url) return
+      const nextKey = makeEpisodePrefetchKey(activeExtension, nextEpisode.url)
+
+      sharedEpisodeStreamCache
+        .prefetchInBackground(nextKey, () =>
+          fetchAndNormalizeEpisode(activeExtension, nextEpisode.url)
+        )
+        .then((entry) => {
+          if (entry && entry.servers.length > 0 && !entry.probeResults) {
+            probeEpisodeServers(nextKey, entry).catch(() => {})
+          }
+        })
+        .catch(() => {})
+
+      prefetchNextEpisodeSkipTimes({
+        animeId: selectedManga?.id,
+        animeTitle: selectedManga?.title,
+        nextEpisode,
+        episodeLength: episodeDurationSec > 60 ? Math.floor(episodeDurationSec) : 0,
+        getTrackers: (id) => DataService.tracker.getByManga(id),
+        getSkipTimes: (req) => DataService.tracker.getSkipTimes(req)
+      }).catch(() => {})
+    },
+    [activeExtension, nextEpisode, selectedManga?.id, selectedManga?.title]
+  )
+
   const handleTimeUpdate = () => {
     clearWatchdog()
     const video = videoRef.current
     if (!video) return
     setCurrentTime(video.currentTime)
 
+    const dur = video.duration || duration || 0
+
     // Calculate buffered percentage
     if (video.buffered.length > 0) {
       const bufferedEnd = video.buffered.end(video.buffered.length - 1)
-      const dur = video.duration || 1
-      setBufferedPercent(Math.min(100, (bufferedEnd / dur) * 100))
+      setBufferedPercent(Math.min(100, (bufferedEnd / (dur || 1)) * 100))
+    }
+
+    // Background pre-fetch next episode stream URLs + AniSkip timestamps once playback hits 80%
+    if (activeExtension && activeChapter && nextEpisode?.url) {
+      const transitionKey = `${activeExtension}::${activeChapter.id}->${nextEpisode.id}`
+      if (
+        shouldPrefetchNextEpisode({
+          currentTime: video.currentTime,
+          duration: dur,
+          pkg: activeExtension,
+          nextEpisodeUrl: nextEpisode.url,
+          prefetchedKeys: prefetchedTransitionsRef.current,
+          transitionKey
+        })
+      ) {
+        prefetchedTransitionsRef.current.add(transitionKey)
+        prefetchNextEpisodeInBackground(dur)
+      }
     }
 
     // Throttle database progress save every 4 seconds

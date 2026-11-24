@@ -43,96 +43,55 @@ import {
   type EpisodeSkipTimes,
 } from "@common/services/skipTimes.service";
 import {
+  extractRawStreamUrls,
+  isAdStreamUrl,
+  normalizeStreamServers,
+  selectPreferredServerIndex,
+  makeEpisodePrefetchKey,
+  shouldPrefetchNextEpisode,
+  sharedEpisodeStreamCache,
+  prefetchNextEpisodeSkipTimes,
+  type EpisodeStreamCacheEntry,
+  type NormalizedStreamServer,
+} from "@common/services/episodePrefetch.service";
+import {
   getVideoHeaders,
   DEFAULT_MOBILE_USER_AGENT,
 } from "../../../src/mobile/cf-cookies";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-export interface ServerOption {
-  name: string;
-  url: string;
-  type: "hls" | "mp4" | "embed";
-  headers?: Record<string, string>;
-}
+export type ServerOption = NormalizedStreamServer;
 
-function getVideoType(server: any): "hls" | "mp4" | "embed" {
-  if (!server) return "embed";
-  if (typeof server === "object" && server.type) {
-    const t = String(server.type).toLowerCase();
-    if (t === "hls" || t === "m3u8") return "hls";
-    if (t === "mp4" || t === "webm") return "mp4";
-    if (t === "embed") return "embed";
-  }
-  const url =
-    typeof server === "object" ? server.url || "" : String(server || "");
-  const cleanUrl = url.split("?")[0].toLowerCase();
-  const lowerUrl = url.toLowerCase();
-  if (
-    cleanUrl.endsWith(".m3u8") ||
-    lowerUrl.includes(".m3u8") ||
-    lowerUrl.includes("hls_proxy") ||
-    lowerUrl.includes("mode=m3u8")
-  ) {
-    return "hls";
-  }
-  if (
-    cleanUrl.endsWith(".mp4") ||
-    cleanUrl.endsWith(".webm") ||
-    lowerUrl.includes(".mp4") ||
-    lowerUrl.includes("stream_proxy")
-  ) {
-    return "mp4";
-  }
-  return "embed";
-}
+async function fetchAndNormalizeMobileEpisode(
+  pkg: string,
+  targetEpisodeUrl: string,
+): Promise<EpisodeStreamCacheEntry> {
+  const allExts = await DataService.db.getExtensions();
+  const extList = (allExts as any)?.value || allExts || [];
+  const ext = extList.find((e: any) => e.pkg === pkg);
+  if (!ext?.code) throw new Error("Extension not found");
 
-const AD_DOMAINS = [
-  "a-ads.com",
-  "doubleclick.net",
-  "googlesyndication.com",
-  "googleadservices.com",
-  "popads.net",
-  "propellerads.com",
-  "adsterra.com",
-  "exoclick.com",
-  "juicyads.com",
-  "trafficjunky.com",
-  "adnxs.com",
-  "adform.net",
-  "wingsmob.com",
-  "sleeklyyallaer.com",
-  "luckypick.top",
-  "bc.game",
-  "1xbet",
-  "melbet",
-  "betway",
-  "bet365",
-];
+  const result = await DataService.executeExtension({
+    pkg,
+    code: ext.code,
+    contextArgs: { type: "fetchPages", chapterUrl: targetEpisodeUrl },
+  });
 
-function isAdUrl(url?: string): boolean {
-  if (!url || typeof url !== "string") return false;
-  const lower = url.toLowerCase().trim();
-  if (
-    !lower.startsWith("http://") &&
-    !lower.startsWith("https://") &&
-    !lower.startsWith("//")
-  ) {
-    return false;
+  const rawUrls = extractRawStreamUrls(result);
+  if (!rawUrls || rawUrls.length === 0) {
+    throw new Error("No stream URLs returned from extension");
   }
-  for (const domain of AD_DOMAINS) {
-    if (lower.includes(domain)) return true;
+
+  const parsedServers = normalizeStreamServers(rawUrls);
+  if (parsedServers.length === 0) {
+    throw new Error("No playable video streams found (ad-only feeds filtered)");
   }
-  if (
-    (lower.includes("/ad/") ||
-      lower.includes("/ads/") ||
-      lower.includes("/banner/")) &&
-    !lower.includes(".mp4") &&
-    !lower.includes(".m3u8")
-  ) {
-    return true;
-  }
-  return false;
+
+  return {
+    servers: parsedServers,
+    fetchedAt: Date.now(),
+  };
 }
 
 const INJECTED_POPUP_BLOCKER = `
@@ -331,7 +290,7 @@ function EmbedVideoPlayer({
     ) {
       return false;
     }
-    if (isAdUrl(reqUrl)) {
+    if (isAdStreamUrl(reqUrl)) {
       return false;
     }
     return true;
@@ -427,6 +386,7 @@ export default function PlayerScreen() {
   }, []);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefetchedTransitionsRef = useRef<Set<string>>(new Set());
   const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(
     null,
   );
@@ -607,7 +567,7 @@ export default function PlayerScreen() {
     };
   }, [flushProgress]);
 
-  // 4. Debounced progress schedule
+  // 4. Debounced progress schedule + 80% background next-episode prefetch
   const handleProgress = useCallback(
     (ct: number, dur: number) => {
       if (Number.isFinite(ct) && ct >= 0) {
@@ -617,6 +577,38 @@ export default function PlayerScreen() {
         setDuration(dur);
       }
       if (ct <= 0) return;
+
+      if (pkg && episodeId && nextEpisode?.url) {
+        const transitionKey = `${pkg}::${episodeId}->${nextEpisode.id}`;
+        if (
+          shouldPrefetchNextEpisode({
+            currentTime: ct,
+            duration: dur,
+            pkg,
+            nextEpisodeUrl: nextEpisode.url,
+            prefetchedKeys: prefetchedTransitionsRef.current,
+            transitionKey,
+          })
+        ) {
+          prefetchedTransitionsRef.current.add(transitionKey);
+          const nextKey = makeEpisodePrefetchKey(pkg, nextEpisode.url);
+          sharedEpisodeStreamCache
+            .prefetchInBackground(nextKey, () =>
+              fetchAndNormalizeMobileEpisode(pkg, nextEpisode.url),
+            )
+            .catch(() => {});
+
+          prefetchNextEpisodeSkipTimes({
+            animeId,
+            animeTitle,
+            nextEpisode,
+            episodeLength: dur > 60 ? Math.floor(dur) : 0,
+            getTrackers: (id) => DataService.tracker.getByManga(id),
+            getSkipTimes: (req) => DataService.tracker.getSkipTimes(req),
+          }).catch(() => {});
+        }
+      }
+
       const isRead = dur > 0 ? ct / dur >= 0.85 : false;
       lastProgressRef.current = { isRead, lastPage: Math.floor(ct) };
 
@@ -628,10 +620,10 @@ export default function PlayerScreen() {
         flushProgress();
       }, 3000);
     },
-    [flushProgress],
+    [animeId, animeTitle, episodeId, flushProgress, nextEpisode, pkg],
   );
 
-  // 5. Fetch stream from extension
+  // 5. Fetch stream from extension (consuming 80% background prefetch cache immediately when available)
   const fetchStream = useCallback(async () => {
     if (!pkg || !episodeUrl) {
       setStatus("error");
@@ -639,59 +631,24 @@ export default function PlayerScreen() {
       return;
     }
 
+    const cacheKey = makeEpisodePrefetchKey(pkg, episodeUrl);
+    const cachedEntry = sharedEpisodeStreamCache.getCached(cacheKey);
+    if (cachedEntry && cachedEntry.servers.length > 0) {
+      setErrorMsg("");
+      setServers(cachedEntry.servers);
+      setActiveServerIdx(selectPreferredServerIndex(cachedEntry.servers));
+      setStatus("ready");
+      return;
+    }
+
     setStatus("loading");
     setErrorMsg("");
     try {
-      const allExts = await DataService.db.getExtensions();
-      const extList = (allExts as any)?.value || allExts || [];
-      const ext = extList.find((e: any) => e.pkg === pkg);
-      if (!ext?.code) throw new Error("Extension not found");
-
-      const result = await DataService.executeExtension({
-        pkg,
-        code: ext.code,
-        contextArgs: { type: "fetchPages", chapterUrl: episodeUrl },
-      });
-
-      const rawUrls: any[] =
-        result?.pages ||
-        result?.urls ||
-        result?.data ||
-        (Array.isArray(result) ? result : []);
-      if (!rawUrls || rawUrls.length === 0)
-        throw new Error("No stream URLs returned from extension");
-
-      const parsedServers: ServerOption[] = rawUrls
-        .map((s: any, idx: number) => {
-          if (typeof s === "object" && s !== null) {
-            return {
-              name: s.name || `Server ${idx + 1}`,
-              url: s.url || "",
-              type: s.type || getVideoType(s),
-              headers: s.headers,
-            };
-          }
-          return {
-            name: `Server ${idx + 1}`,
-            url: String(s),
-            type: getVideoType(s),
-          };
-        })
-        .filter((s: ServerOption) => !!s.url && !isAdUrl(s.url));
-
-      if (parsedServers.length === 0)
-        throw new Error(
-          "No playable video streams found (ad-only feeds filtered)",
-        );
-
-      setServers(parsedServers);
-
-      // Prioritize direct native streams (hls / mp4) over embed
-      const directIdx = parsedServers.findIndex(
-        (s) => s.type === "hls" || s.type === "mp4",
+      const entry = await sharedEpisodeStreamCache.getOrLoad(cacheKey, () =>
+        fetchAndNormalizeMobileEpisode(pkg, episodeUrl),
       );
-      const targetIdx = directIdx !== -1 ? directIdx : 0;
-      setActiveServerIdx(targetIdx);
+      setServers(entry.servers);
+      setActiveServerIdx(selectPreferredServerIndex(entry.servers));
       setStatus("ready");
     } catch (e: any) {
       setStatus("error");
