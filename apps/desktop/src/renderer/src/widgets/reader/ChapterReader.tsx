@@ -117,45 +117,6 @@ export default function ChapterReader() {
   const isHorizontalContinuous =
     readingMode === 'continuous-ltr' || readingMode === 'continuous-rtl'
 
-  // --- Extracted Hooks ---
-  const { isKbdPaused, isKbdReversing, isKbdBoosted, isKbdSlowed } = useKeyboardControls(
-    autoScrollEnabled,
-    setAutoScrollEnabled,
-    autoScrollShortcuts
-  )
-
-  const { isDragging, dragMoved, ...dragHandlers } = useDragToScroll(
-    scrollRef,
-    dragToScroll,
-    isHorizontalContinuous
-  )
-
-  useAutoScroll(
-    scrollRef,
-    autoScrollEnabled,
-    autoScrollSpeed,
-    isInfiniteScroll,
-    isDragging,
-    isKbdPaused,
-    isKbdReversing,
-    isKbdBoosted,
-    isKbdSlowed,
-    isHorizontalContinuous,
-    readingMode === 'continuous-rtl'
-  )
-
-  const { zoomLevel } = useZoom(scrollRef)
-
-  // --- Helpers ---
-  const extensionName = useMemo(() => {
-    const ext = installedExtensions.find((e) => e.pkg === resolvedPkg)
-    return ext?.name || resolvedPkg || 'Source'
-  }, [resolvedPkg, installedExtensions])
-
-  const openInBrowser = useCallback(() => {
-    if (activeChapter?.url) DataService.openExternal(activeChapter.url)
-  }, [activeChapter?.url])
-
   const savePageProgress = useCallback(
     (chapterId: string, page: number, chapterNumber?: number | string) => {
       if (!selectedManga) return
@@ -180,8 +141,74 @@ export default function ChapterReader() {
         )
       }, 400)
     },
-    [selectedManga?.id, readingProgress, markChapterRead, loadedChapters, chapters, activeChapter]
+    [selectedManga, readingProgress, markChapterRead, loadedChapters, chapters, activeChapter]
   )
+
+  const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
+
+  const pagedNext = useCallback(() => {
+    if (!activeChapter) return
+    setCurrentPage((prev) => {
+      const step = isDoublePage ? (prev === 1 ? 1 : 2) : 1
+      const next = Math.min(totalPages, prev + step)
+      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
+      return next
+    })
+  }, [activeChapter, isDoublePage, totalPages, savePageProgress])
+
+  const pagedPrev = useCallback(() => {
+    if (!activeChapter) return
+    setCurrentPage((prev) => {
+      const step = isDoublePage ? (prev <= 2 ? 1 : 2) : 1
+      const next = Math.max(1, prev - step)
+      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
+      return next
+    })
+  }, [activeChapter, isDoublePage, savePageProgress])
+
+  // --- Extracted Hooks ---
+  const { isKbdPaused, isKbdReversing, isKbdBoosted, isKbdSlowed } = useKeyboardControls(
+    autoScrollEnabled,
+    setAutoScrollEnabled,
+    autoScrollShortcuts,
+    {
+      readingMode,
+      onNextPage: pagedNext,
+      onPrevPage: pagedPrev
+    }
+  )
+
+  const { isDragging, dragMoved, ...dragHandlers } = useDragToScroll(
+    scrollRef,
+    dragToScroll,
+    isHorizontalContinuous
+  )
+
+  useAutoScroll(
+    scrollRef,
+    autoScrollEnabled,
+    autoScrollSpeed,
+    isInfiniteScroll,
+    isDragging,
+    isKbdPaused,
+    isKbdReversing,
+    isKbdBoosted,
+    isKbdSlowed,
+    isHorizontalContinuous,
+    readingMode === 'continuous-rtl'
+  )
+
+  const { zoomLevel, resetZoom } = useZoom(scrollRef)
+
+  // --- Helpers ---
+  const extensionName = useMemo(() => {
+    const ext = installedExtensions.find((e) => e.pkg === resolvedPkg)
+    return ext?.name || resolvedPkg || 'Source'
+  }, [resolvedPkg, installedExtensions])
+
+  const openInBrowser = useCallback(() => {
+    if (activeChapter?.url) DataService.openExternal(activeChapter.url)
+  }, [activeChapter?.url])
 
   const handleVisible = useCallback(
     (chapter: Chapter) => {
@@ -372,28 +399,6 @@ export default function ChapterReader() {
     [isInfiniteScroll, findNextChapter]
   )
 
-  const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
-
-  const pagedNext = () => {
-    if (!activeChapter) return
-    setCurrentPage((prev) => {
-      const step = isDoublePage ? (prev === 1 ? 1 : 2) : 1
-      const next = Math.min(totalPages, prev + step)
-      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
-      return next
-    })
-  }
-
-  const pagedPrev = () => {
-    if (!activeChapter) return
-    setCurrentPage((prev) => {
-      const step = isDoublePage ? (prev <= 2 ? 1 : 2) : 1
-      const next = Math.max(1, prev - step)
-      if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
-      return next
-    })
-  }
-
   if (!activeChapter || !selectedManga || !resolvedPkg) return null
 
   const readerBg =
@@ -427,6 +432,8 @@ export default function ChapterReader() {
         onReadingModeChange={setReadingMode}
         readerTheme={readerTheme}
         cropBorders={cropBorders}
+        zoomLevel={zoomLevel}
+        onResetZoom={resetZoom}
         onToggleCropBorders={() => setCropBorders(!cropBorders)}
         onClose={() => setActiveChapter(null)}
         onOpenInBrowser={openInBrowser}
