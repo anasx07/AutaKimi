@@ -45,6 +45,7 @@ import { ServerSelector, ServerItem } from './components/ServerSelector'
 import { EpisodeDrawer } from './components/EpisodeDrawer'
 import { VideoControls, QualityLevel } from './components/VideoControls'
 import { useHlsPlayer } from './hooks/useHlsPlayer'
+import { useMediaSession } from './hooks/useMediaSession'
 
 export type { ServerItem, QualityLevel }
 
@@ -852,6 +853,56 @@ export default function AnimeViewer() {
     },
     [videoRef]
   )
+
+  useMediaSession({
+    enabled: Boolean(activeChapter && selectedManga && !error),
+    animeTitle: selectedManga?.title,
+    coverUrl: selectedManga?.coverUrl,
+    episodeNumber: activeChapter?.number,
+    episodeTitle: activeChapter?.title,
+    isPlaying,
+    currentTime,
+    duration,
+    playbackRate: isHold2x ? 2 : playbackRate,
+    hasNextEpisode: Boolean(nextEpisode),
+    hasPrevEpisode: Boolean(prevEpisode),
+    onPlay: () => {
+      if (videoType !== 'embed' && videoRef.current) {
+        videoRef.current.play().catch(() => {})
+      } else {
+        try {
+          document.querySelector('iframe')?.contentWindow?.postMessage({ type: 'togglePlay' }, '*')
+        } catch {}
+      }
+    },
+    onPause: () => {
+      if (videoType !== 'embed' && videoRef.current) {
+        videoRef.current.pause()
+      } else {
+        try {
+          document.querySelector('iframe')?.contentWindow?.postMessage({ type: 'togglePlay' }, '*')
+        } catch {}
+      }
+    },
+    onNextEpisode: () => {
+      if (nextEpisode) setActiveChapter(nextEpisode)
+    },
+    onPrevEpisode: () => {
+      if (prevEpisode) setActiveChapter(prevEpisode)
+    },
+    onSeekTo: seekTo,
+    onSeekBy: (offset) => {
+      if (videoType !== 'embed' && videoRef.current) {
+        seekBy(offset)
+      } else {
+        try {
+          document
+            .querySelector('iframe')
+            ?.contentWindow?.postMessage({ type: 'seek', offset }, '*')
+        } catch {}
+      }
+    }
+  })
 
   const skipUIState = useMemo(
     () =>
