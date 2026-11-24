@@ -13,6 +13,7 @@ import {
   Minimize,
   PictureInPicture
 } from 'lucide-react'
+import type { EpisodeSkipTimes } from '@common/services/skipTimes.service'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 
@@ -52,6 +53,9 @@ export interface VideoControlsProps {
   onQualityChange: (levelIndex: number) => void
   onPrevEpisode?: () => void
   onNextEpisode?: () => void
+  skipTimes?: EpisodeSkipTimes | null
+  isInIntro?: boolean
+  onSkipIntro?: () => void
 }
 
 function formatTime(seconds: number): string {
@@ -94,7 +98,10 @@ export const VideoControls = memo(function VideoControls({
   onTogglePiP,
   onQualityChange,
   onPrevEpisode,
-  onNextEpisode
+  onNextEpisode,
+  skipTimes,
+  isInIntro = false,
+  onSkipIntro
 }: VideoControlsProps) {
   const progressBarRef = useRef<HTMLDivElement | null>(null)
   const [hoverTime, setHoverTime] = useState<number | null>(null)
@@ -142,6 +149,25 @@ export const VideoControls = memo(function VideoControls({
             className="absolute top-0 bottom-0 left-0 bg-white/35 rounded-full transition-all"
             style={{ width: `${bufferedPercent}%` }}
           />
+          {/* AniSkip OP / ED timeline markers */}
+          {duration > 0 && skipTimes?.op && skipTimes.op.startTime < duration && (
+            <div
+              className="absolute top-0 bottom-0 bg-amber-400/65 pointer-events-none z-10"
+              style={{
+                left: `${(skipTimes.op.startTime / duration) * 100}%`,
+                width: `${((Math.min(skipTimes.op.endTime, duration) - skipTimes.op.startTime) / duration) * 100}%`
+              }}
+            />
+          )}
+          {duration > 0 && skipTimes?.ed && skipTimes.ed.startTime < duration && (
+            <div
+              className="absolute top-0 bottom-0 bg-emerald-400/65 pointer-events-none z-10"
+              style={{
+                left: `${(skipTimes.ed.startTime / duration) * 100}%`,
+                width: `${((Math.min(skipTimes.ed.endTime, duration) - skipTimes.ed.startTime) / duration) * 100}%`
+              }}
+            />
+          )}
           {/* Played progress */}
           <div
             className="absolute top-0 bottom-0 left-0 bg-primary rounded-full transition-all"
@@ -158,10 +184,19 @@ export const VideoControls = memo(function VideoControls({
         {/* Hover time tooltip */}
         {hoverTime !== null && (
           <div
-            className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-neutral-900/90 backdrop-blur border border-white/20 text-[10px] font-mono text-white pointer-events-none"
+            className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-neutral-900/90 backdrop-blur border border-white/20 text-[10px] font-mono text-white pointer-events-none whitespace-nowrap"
             style={{ left: `${hoverX}px` }}
           >
             {formatTime(hoverTime)}
+            {skipTimes?.op &&
+            hoverTime >= skipTimes.op.startTime &&
+            hoverTime <= skipTimes.op.endTime
+              ? ' • Intro'
+              : skipTimes?.ed &&
+                  hoverTime >= skipTimes.ed.startTime &&
+                  hoverTime <= skipTimes.ed.endTime
+                ? ' • Outro'
+                : ''}
           </div>
         )}
       </div>
@@ -219,16 +254,21 @@ export const VideoControls = memo(function VideoControls({
             <RotateCw className="h-4 w-4" />
           </Button>
 
-          {/* Skip Intro / Opening +85s */}
+          {/* Skip Intro / Opening (+85s fallback or exact AniSkip OP) */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onSeekBy(85)}
-            className="h-8 px-2 text-xs font-bold text-white/80 hover:text-primary hover:bg-primary/10 rounded-lg flex items-center gap-1 border border-white/10 hover:border-primary/40 transition-colors"
-            title="Skip Opening +85s (S)"
+            onClick={() => (isInIntro && onSkipIntro ? onSkipIntro() : onSeekBy(85))}
+            className={cn(
+              'h-8 px-2 text-xs font-bold rounded-lg flex items-center gap-1 border transition-colors',
+              isInIntro
+                ? 'text-primary bg-primary/15 border-primary/50 hover:bg-primary/25'
+                : 'text-white/80 hover:text-primary hover:bg-primary/10 border-white/10 hover:border-primary/40'
+            )}
+            title={isInIntro ? 'Skip Intro (S)' : 'Skip Opening +85s (S)'}
           >
             <FastForward className="h-3.5 w-3.5" />
-            <span>+85s</span>
+            <span>{isInIntro ? 'Skip OP' : '+85s'}</span>
           </Button>
 
           {/* Next Episode */}

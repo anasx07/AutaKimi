@@ -8,8 +8,15 @@ import {
   Play,
   Menu,
   Zap,
-  X
+  X,
+  SkipForward
 } from 'lucide-react'
+import {
+  skipTimesService,
+  parseEpisodeNumber,
+  evaluateSkipUIState,
+  type EpisodeSkipTimes
+} from '@common/services/skipTimes.service'
 import {
   useLibraryStore,
   useExtensionStore,
@@ -215,6 +222,10 @@ export default function AnimeViewer() {
   const [isSwitchingServer, setIsSwitchingServer] = useState(false)
   const [switchingNotice, setSwitchingNotice] = useState<string | null>(null)
   const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null)
+  const [skipTimes, setSkipTimes] = useState<EpisodeSkipTimes | null>(null)
+  const [outroDismissed, setOutroDismissed] = useState(false)
+  const [outroCountdown, setOutroCountdown] = useState<number | null>(null)
+  const outroTriggeredRef = useRef(false)
   const { autoNextAnime, setAutoNextAnime, autoSwitchServer } = useSettingsStore()
 
   const controlsTimeoutRef = useRef<any | null>(null)
@@ -281,6 +292,62 @@ export default function AnimeViewer() {
     }, 1000)
     return () => clearTimeout(timer)
   }, [autoNextCountdown, nextEpisode, setActiveChapter])
+
+  // Reset Skip Intro / Outro state when episode changes
+  useEffect(() => {
+    setSkipTimes(null)
+    setOutroDismissed(false)
+    setOutroCountdown(null)
+    outroTriggeredRef.current = false
+  }, [activeChapter?.id])
+
+  // Resolve AniSkip OP / ED timestamps via MAL ID (tracker -> AniList search)
+  const durationBucket = duration > 60 ? Math.floor(duration) : 0
+  useEffect(() => {
+    if (!selectedManga || !activeChapter) return
+    const episodeNumber = parseEpisodeNumber(activeChapter.number, activeChapter.title)
+    if (!episodeNumber) return
+
+    let cancelled = false
+    const loadSkipTimes = async () => {
+      try {
+        let malId: number | undefined
+        let anilistId: number | undefined
+        const trackers = await DataService.tracker.getByManga(selectedManga.id).catch(() => [])
+        if (Array.isArray(trackers)) {
+          const malTracker = trackers.find((t: any) => t.provider === 'mal')
+          const aniTracker = trackers.find((t: any) => t.provider === 'anilist')
+          const rawMal = malTracker
+            ? Number(malTracker.remoteId ?? (malTracker as any).remote_id)
+            : 0
+          const rawAni = aniTracker
+            ? Number(aniTracker.remoteId ?? (aniTracker as any).remote_id)
+            : 0
+          if (Number.isFinite(rawMal) && rawMal > 0) malId = rawMal
+          if (Number.isFinite(rawAni) && rawAni > 0) anilistId = rawAni
+        }
+
+        const result = await skipTimesService.getSkipTimes({
+          malId,
+          anilistId,
+          title: selectedManga.title,
+          episodeNumber,
+          episodeLength: durationBucket,
+          resolveAniListMedia: (id) => DataService.tracker.getMediaAniList(id)
+        })
+        if (!cancelled && result) {
+          setSkipTimes(result)
+        }
+      } catch {
+        // Silent failure: fallback UI remains active
+      }
+    }
+
+    loadSkipTimes()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedManga, activeChapter, durationBucket])
 
   const s = servers[activeServerIdx]
   const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
@@ -779,6 +846,70 @@ export default function AnimeViewer() {
     [videoRef]
   )
 
+  const skipUIState = useMemo(
+    () =>
+      evaluateSkipUIState({
+        skipTimes,
+        currentTime,
+        duration,
+        hasNextEpisode: Boolean(nextEpisode),
+        outroDismissed
+      }),
+    [skipTimes, currentTime, duration, nextEpisode, outroDismissed]
+  )
+
+  const handleSkipIntro = useCallback(() => {
+    if (videoType !== 'embed' && videoRef.current) {
+      if (
+        skipTimes?.op &&
+        currentTime >= skipTimes.op.startTime &&
+        currentTime < skipTimes.op.endTime
+      ) {
+        seekTo(skipTimes.op.endTime)
+      } else {
+        seekBy(85)
+      }
+    } else {
+      try {
+        const iframe = document.querySelector('iframe')
+        iframe?.contentWindow?.postMessage({ type: 'seek', offset: 85 }, '*')
+      } catch {}
+    }
+  }, [videoType, videoRef, skipTimes, currentTime, seekTo, seekBy])
+
+  // Start optional 10s outro countdown when entering AniSkip ED segment with autoNextAnime enabled
+  useEffect(() => {
+    if (
+      skipUIState.isExactOutro &&
+      autoNextAnime &&
+      autoNextCountdown === null &&
+      !outroTriggeredRef.current
+    ) {
+      outroTriggeredRef.current = true
+      setOutroCountdown(10)
+    } else if (!skipUIState.isExactOutro || !autoNextAnime) {
+      if (outroCountdown !== null) {
+        setOutroCountdown(null)
+      }
+      if (!skipUIState.isExactOutro) {
+        outroTriggeredRef.current = false
+      }
+    }
+  }, [skipUIState.isExactOutro, autoNextAnime, autoNextCountdown, outroCountdown])
+
+  useEffect(() => {
+    if (outroCountdown === null) return
+    if (outroCountdown <= 0) {
+      setOutroCountdown(null)
+      if (nextEpisode) setActiveChapter(nextEpisode)
+      return
+    }
+    const timer = setTimeout(() => {
+      setOutroCountdown((prev) => (prev !== null ? prev - 1 : null))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [outroCountdown, nextEpisode, setActiveChapter])
+
   const adjustVolume = useCallback(
     (delta: number) => {
       const video = videoRef.current
@@ -1010,14 +1141,7 @@ export default function AnimeViewer() {
           break
         case 's':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            seekBy(85)
-          } else {
-            try {
-              const iframe = document.querySelector('iframe')
-              iframe?.contentWindow?.postMessage({ type: 'seek', offset: 85 }, '*')
-            } catch {}
-          }
+          handleSkipIntro()
           break
         case 'i':
           e.preventDefault()
@@ -1090,6 +1214,7 @@ export default function AnimeViewer() {
     videoType,
     togglePlay,
     seekBy,
+    handleSkipIntro,
     togglePiP,
     adjustVolume,
     toggleFullscreen,
@@ -1522,7 +1647,70 @@ export default function AnimeViewer() {
           onQualityChange={handleQualityChange}
           onPrevEpisode={() => prevEpisode && setActiveChapter(prevEpisode)}
           onNextEpisode={() => nextEpisode && setActiveChapter(nextEpisode)}
+          skipTimes={skipTimes}
+          isInIntro={skipUIState.isInIntro}
+          onSkipIntro={handleSkipIntro}
         />
+      )}
+
+      {/* Netflix-style Floating Skip Intro / Next Episode Buttons */}
+      {videoType !== 'embed' && !loading && !error && activeServerUrl && !isEpisodesOpen && (
+        <div
+          className={cn(
+            'fixed right-8 z-50 flex flex-col items-end gap-2.5 transition-all duration-300',
+            showControls ? 'bottom-24' : 'bottom-8'
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {skipUIState.isInIntro && (
+            <button
+              type="button"
+              onClick={handleSkipIntro}
+              className="group/skip flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-neutral-900/90 hover:bg-white text-white hover:text-black border border-white/25 hover:border-white backdrop-blur-xl shadow-2xl shadow-black/70 font-bold text-sm transition-all duration-200 cursor-pointer animate-in fade-in slide-in-from-bottom-2"
+            >
+              <SkipForward className="h-4 w-4 fill-current" />
+              <span>Skip Intro</span>
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/15 group-hover/skip:bg-black/15 text-white/80 group-hover/skip:text-black/80">
+                S
+              </span>
+            </button>
+          )}
+
+          {skipUIState.showNextEpisode && autoNextCountdown === null && nextEpisode && (
+            <div className="flex items-center gap-1.5 rounded-xl bg-neutral-900/95 border border-primary/40 backdrop-blur-xl p-1.5 shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-bottom-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setOutroCountdown(null)
+                  setActiveChapter(nextEpisode)
+                }}
+                className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-colors cursor-pointer"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                <div className="flex flex-col items-start leading-tight">
+                  <span>
+                    Next Episode →{outroCountdown !== null ? ` (${outroCountdown}s)` : ''}
+                  </span>
+                  <span className="text-[10px] font-medium opacity-85 truncate max-w-[180px]">
+                    Ep {nextEpisode.number}
+                    {nextEpisode.title ? ` • ${nextEpisode.title}` : ''}
+                  </span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOutroDismissed(true)
+                  setOutroCountdown(null)
+                }}
+                className="px-2.5 py-2 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Cancel / Dismiss"
+              >
+                {outroCountdown !== null ? 'Cancel' : <X className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Animated Auto-Next Countdown HUD Card */}
