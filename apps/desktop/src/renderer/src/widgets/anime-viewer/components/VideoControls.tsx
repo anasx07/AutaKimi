@@ -6,7 +6,6 @@ import {
   ChevronRight,
   RotateCcw,
   RotateCw,
-  FastForward,
   Volume2,
   VolumeX,
   Maximize,
@@ -54,8 +53,6 @@ export interface VideoControlsProps {
   onPrevEpisode?: () => void
   onNextEpisode?: () => void
   skipTimes?: EpisodeSkipTimes | null
-  isInIntro?: boolean
-  onSkipIntro?: () => void
 }
 
 function formatTime(seconds: number): string {
@@ -99,9 +96,7 @@ export const VideoControls = memo(function VideoControls({
   onQualityChange,
   onPrevEpisode,
   onNextEpisode,
-  skipTimes,
-  isInIntro = false,
-  onSkipIntro
+  skipTimes
 }: VideoControlsProps) {
   const progressBarRef = useRef<HTMLDivElement | null>(null)
   const [hoverTime, setHoverTime] = useState<number | null>(null)
@@ -252,23 +247,6 @@ export const VideoControls = memo(function VideoControls({
             title="Forward 10s (ArrowRight)"
           >
             <RotateCw className="h-4 w-4" />
-          </Button>
-
-          {/* Skip Intro / Opening (+85s fallback or exact AniSkip OP) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => (isInIntro && onSkipIntro ? onSkipIntro() : onSeekBy(85))}
-            className={cn(
-              'h-8 px-2 text-xs font-bold rounded-lg flex items-center gap-1 border transition-colors',
-              isInIntro
-                ? 'text-primary bg-primary/15 border-primary/50 hover:bg-primary/25'
-                : 'text-white/80 hover:text-primary hover:bg-primary/10 border-white/10 hover:border-primary/40'
-            )}
-            title={isInIntro ? 'Skip Intro (S)' : 'Skip Opening +85s (S)'}
-          >
-            <FastForward className="h-3.5 w-3.5" />
-            <span>{isInIntro ? 'Skip OP' : '+85s'}</span>
           </Button>
 
           {/* Next Episode */}

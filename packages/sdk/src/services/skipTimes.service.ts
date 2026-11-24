@@ -296,9 +296,6 @@ export class SkipTimesService {
     const idMal = json?.data?.Media?.idMal;
     const resolved = typeof idMal === "number" && idMal > 0 ? idMal : null;
     this.malIdByAnilistCache.set(anilistId, resolved);
-    console.log(
-      `[SkipTimes] AniList ID ${anilistId} -> idMal=${resolved ?? "none"}`,
-    );
     return resolved;
   }
 
@@ -360,9 +357,6 @@ export class SkipTimesService {
     );
     const resolved = match?.idMal ?? null;
     this.malIdByTitleCache.set(cacheKey, resolved);
-    console.log(
-      `[SkipTimes] AniList title search "${cleanedTitle}" -> idMal=${resolved ?? "none"}${match?.title?.romaji ? ` (${match.title.romaji})` : ""}`,
-    );
     return resolved;
   }
 
@@ -422,9 +416,6 @@ export class SkipTimesService {
           !Array.isArray(data.results) ||
           data.results.length === 0
         ) {
-          console.log(
-            `[SkipTimes] AniSkip miss (no timestamps) for malId=${malId} ep=${epParam}`,
-          );
           this.skipTimesCache.set(cacheKey, null);
           return null;
         }
@@ -443,9 +434,6 @@ export class SkipTimesService {
         );
 
         if (!op && !ed) {
-          console.log(
-            `[SkipTimes] AniSkip empty usable intervals for malId=${malId} ep=${epParam}`,
-          );
           this.skipTimesCache.set(cacheKey, null);
           return null;
         }
@@ -455,11 +443,6 @@ export class SkipTimesService {
           ...(ed ? { ed } : {}),
           malId,
         };
-        console.log(
-          `[SkipTimes] AniSkip HIT for malId=${malId} ep=${epParam}:` +
-            ` OP=${op ? `${op.startTime.toFixed(1)}s-${op.endTime.toFixed(1)}s` : "none"},` +
-            ` ED=${ed ? `${ed.startTime.toFixed(1)}s-${ed.endTime.toFixed(1)}s` : "none"}`,
-        );
         this.skipTimesCache.set(cacheKey, result);
         return result;
       } catch {
@@ -485,10 +468,6 @@ export class SkipTimesService {
       query.episodeLength > 0
         ? Math.floor(query.episodeLength)
         : 0;
-
-    console.log(
-      `[SkipTimes] Resolving skip times: title="${query.title || ""}" ep=${epParam} malId=${query.malId || "none"} anilistId=${query.anilistId || "none"} len=${lengthParam}`,
-    );
 
     // 1. Explicit MAL ID or linked AniList ID
     let resolvedMalId =
@@ -529,9 +508,6 @@ export class SkipTimesService {
     // 2. Title candidates fallback (tries season-specific first, then base anime title)
     if (query.title) {
       const titleCandidates = buildAnimeTitleCandidates(query.title);
-      console.log(
-        `[SkipTimes] Title candidates: ${JSON.stringify(titleCandidates)}`,
-      );
       const triedMalIds = new Set<number>(resolvedMalId ? [resolvedMalId] : []);
       for (const candidate of titleCandidates) {
         const malId = await this.lookupMalIdSingleTitle(candidate);
