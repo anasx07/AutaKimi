@@ -37,6 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - name: Install Dependencies
         shell: bash
@@ -74,6 +75,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -85,6 +87,22 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: false
+
+      - name: Cache ccache (Android Native C++)
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-android-arm64-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-android-arm64-${{ hashFiles('package-lock.json') }}-
+            ccache-android-arm64-
+
+      - name: Install ccache
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ccache
+          ccache -M 1G
+          ccache -z
 
       - name: Install Dependencies
         run: npm ci
@@ -106,10 +124,20 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
+          CCACHE_COMPRESS: 'true'
+          CCACHE_MAXSIZE: 1G
         run: |
           cd apps/mobile/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Pandroid.enableUniversalApk=false \
+            -PuseCcache=true \
+            -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError" \
+            -x lintVitalAnalyzeRelease \
+            -x lintVitalRelease
+          ccache -s
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4

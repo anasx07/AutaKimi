@@ -20,5 +20,25 @@ allprojects {
   }
 }
 
+if (findProperty('useCcache') == 'true') {
+  subprojects { subproject ->
+    def configureCcache = {
+      def androidExt = subproject.extensions.findByName("android")
+      if (androidExt != null) {
+        androidExt.defaultConfig.externalNativeBuild.cmake.arguments(
+          "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+          "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+        )
+      }
+    }
+    subproject.plugins.withId("com.android.library") {
+      configureCcache()
+    }
+    subproject.plugins.withId("com.android.application") {
+      configureCcache()
+    }
+  }
+}
+
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"

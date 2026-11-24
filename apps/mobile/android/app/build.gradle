@@ -153,12 +153,17 @@ android {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
 
+    def enabledArchitectures = (findProperty('reactNativeArchitectures') ?: 'armeabi-v7a,arm64-v8a,x86,x86_64')
+        .split(',')
+        .collect { it.trim() }
+        .findAll { !it.isEmpty() }
+
     splits {
         abi {
             reset()
             enable enableSeparateBuildPerCPUArchitecture
             universalApk enableUniversalApk
-            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            include(*enabledArchitectures)
         }
     }
 
