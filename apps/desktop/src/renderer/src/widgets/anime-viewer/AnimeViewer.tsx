@@ -857,23 +857,16 @@ export default function AnimeViewer() {
   )
 
   const handleSkipIntro = useCallback(() => {
-    if (videoType !== 'embed' && videoRef.current) {
-      if (
-        skipTimes?.op &&
-        currentTime >= skipTimes.op.startTime &&
-        currentTime < skipTimes.op.endTime
-      ) {
-        seekTo(skipTimes.op.endTime)
-      } else {
-        seekBy(85)
-      }
-    } else {
-      try {
-        const iframe = document.querySelector('iframe')
-        iframe?.contentWindow?.postMessage({ type: 'seek', offset: 85 }, '*')
-      } catch {}
+    if (
+      videoType !== 'embed' &&
+      videoRef.current &&
+      skipTimes?.op &&
+      currentTime >= skipTimes.op.startTime &&
+      currentTime < skipTimes.op.endTime
+    ) {
+      seekTo(skipTimes.op.endTime)
     }
-  }, [videoType, videoRef, skipTimes, currentTime, seekTo, seekBy])
+  }, [videoType, videoRef, skipTimes, currentTime, seekTo])
 
   // Start optional 10s outro countdown when entering AniSkip ED segment with autoNextAnime enabled
   useEffect(() => {
@@ -1646,8 +1639,6 @@ export default function AnimeViewer() {
           onPrevEpisode={() => prevEpisode && setActiveChapter(prevEpisode)}
           onNextEpisode={() => nextEpisode && setActiveChapter(nextEpisode)}
           skipTimes={skipTimes}
-          isInIntro={skipUIState.isInIntro}
-          onSkipIntro={handleSkipIntro}
         />
       )}
 
