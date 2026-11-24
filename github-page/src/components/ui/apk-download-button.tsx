@@ -5,9 +5,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Smartphone,
   ChevronDown,
-  Layers,
-  Cpu,
-  MonitorSmartphone,
   ExternalLink,
   Check,
 } from "lucide-react";
@@ -29,46 +26,13 @@ const APK_OPTIONS: ApkOption[] = [
     id: "arm64",
     title: "ARM64-v8a",
     subtitle:
-      "Fast & lightweight (95%+ modern phones: Samsung, Xiaomi, Pixel, Oppo)",
+      "Fast & lightweight (All modern 64-bit Android phones: Samsung, Xiaomi, Pixel, Oppo)",
     size: "51 MB",
     tag: "Recommended",
     tagColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
     icon: <Smartphone className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />,
     url: "https://github.com/anasx07/AutaKimi/releases/latest/download/app-arm64-v8a-release.apk",
     isRecommended: true,
-  },
-  {
-    id: "universal",
-    title: "Universal APK",
-    subtitle:
-      "Includes all CPU architectures (Compatible with all Android devices)",
-    size: "136 MB",
-    tag: "All Devices",
-    tagColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    icon: <Layers className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />,
-    url: "https://github.com/anasx07/AutaKimi/releases/latest/download/app-universal-release.apk",
-  },
-  {
-    id: "armv7",
-    title: "ARMv7-a",
-    subtitle: "Older Android phones & 32-bit legacy devices",
-    size: "42 MB",
-    tag: "32-bit",
-    tagColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-    icon: <Cpu className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />,
-    url: "https://github.com/anasx07/AutaKimi/releases/latest/download/app-armeabi-v7a-release.apk",
-  },
-  {
-    id: "x86_64",
-    title: "x86_64",
-    subtitle: "Android emulators (BlueStacks, LDPlayer) & Chromebooks",
-    size: "54 MB",
-    tag: "Emulator",
-    tagColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-    icon: (
-      <MonitorSmartphone className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-    ),
-    url: "https://github.com/anasx07/AutaKimi/releases/latest/download/app-x86_64-release.apk",
   },
 ];
 
@@ -162,8 +126,8 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
           onClick={() => setIsOpen((prev) => !prev)}
           aria-haspopup="true"
           aria-expanded={isOpen}
-          aria-label="Choose Android build variant"
-          title="Choose Android CPU architecture (Universal, ARMv7, x86_64)"
+          aria-label="Android APK download options"
+          title="Android APK download options"
           className="relative z-20 flex items-center justify-center px-4 text-white/80 hover:text-white hover:bg-white/10 active:bg-white/15 transition-colors outline-none cursor-pointer"
         >
           <ChevronDown
@@ -187,10 +151,10 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
             {/* Menu Header */}
             <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-                Select Android Architecture
+                Android Build
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
-                v2.1.0
+                64-bit ARM
               </span>
             </div>
 

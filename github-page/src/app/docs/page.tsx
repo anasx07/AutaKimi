@@ -80,11 +80,8 @@ export default function DocsPage() {
                   <code className="bg-black/30 px-1.5 py-0.5 rounded text-white font-mono">
                     app-arm64-v8a-release.apk
                   </code>{" "}
-                  (recommended 51&nbsp;MB for modern phones) or{" "}
-                  <code className="bg-black/30 px-1.5 py-0.5 rounded text-white font-mono">
-                    app-universal-release.apk
-                  </code>{" "}
-                  from the Releases Page.
+                  (recommended 51&nbsp;MB for modern 64-bit Android phones) from
+                  the Releases Page.
                 </li>
                 <li>
                   Open the APK on your device and tap Install (grant unknown
