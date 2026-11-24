@@ -51,7 +51,7 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   }, [activeChapterId])
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-card/85 backdrop-blur-md shadow-lg flex flex-col overflow-hidden h-[360px] xl:h-[min(58vh,560px)]">
+    <div className="rounded-2xl border border-border/80 bg-card/85 backdrop-blur-md shadow-lg flex flex-col overflow-hidden h-[360px] xl:h-full min-h-0">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 bg-card/90">
         <div className="flex items-center gap-2 min-w-0">

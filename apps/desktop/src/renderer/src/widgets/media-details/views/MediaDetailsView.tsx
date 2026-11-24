@@ -401,19 +401,19 @@ export function MediaDetailsView({
       </div>
 
       {isInlineWatchActive && activeChapter && (
-        <div className="w-full max-w-[1600px] mx-auto px-6 pt-5 pb-2">
+        <div className="w-full px-6 pt-5 pb-3">
           <div
             className={cn(
-              'grid gap-5 items-start',
+              'grid gap-5',
               isTheaterMode
-                ? 'grid-cols-1 max-w-6xl mx-auto'
-                : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px]'
+                ? 'grid-cols-1 max-w-6xl mx-auto items-start'
+                : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] items-stretch'
             )}
           >
             <div className="min-w-0">
               <Suspense
                 fallback={
-                  <div className="w-full aspect-video rounded-2xl bg-black flex items-center justify-center border border-white/10">
+                  <div className="w-full aspect-video max-h-[76vh] rounded-2xl bg-black flex items-center justify-center border border-white/10">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
                   </div>
                 }
@@ -426,14 +426,18 @@ export function MediaDetailsView({
               </Suspense>
             </div>
             {!isTheaterMode && (
-              <InlineEpisodesPanel
-                episodes={items}
-                activeChapterId={activeChapter.id}
-                readChapterIds={readIds}
-                pageProgress={pageProgress[mergedMedia.id] || {}}
-                extLang={extLang}
-                onSelectEpisode={(ep) => setActiveChapter(ep)}
-              />
+              <div className="relative min-h-[360px] xl:min-h-0">
+                <div className="h-full xl:absolute xl:inset-0 flex flex-col">
+                  <InlineEpisodesPanel
+                    episodes={items}
+                    activeChapterId={activeChapter.id}
+                    readChapterIds={readIds}
+                    pageProgress={pageProgress[mergedMedia.id] || {}}
+                    extLang={extLang}
+                    onSelectEpisode={(ep) => setActiveChapter(ep)}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
