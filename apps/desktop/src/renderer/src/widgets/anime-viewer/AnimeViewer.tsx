@@ -1428,7 +1428,7 @@ export default function AnimeViewer({
         className={cn(
           'bg-black flex flex-col overflow-hidden text-white select-none',
           showBoxedInline
-            ? 'relative w-full aspect-video rounded-2xl border border-white/10 shadow-2xl'
+            ? 'relative w-full aspect-video max-h-[76vh] rounded-2xl border border-white/10 shadow-2xl'
             : 'fixed inset-0 z-[100] animate-in fade-in duration-500',
           !showControls && !showBoxedInline && 'cursor-none',
           mobile &&
