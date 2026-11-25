@@ -10,6 +10,7 @@ import {
   extractBasePkg,
   getRepoMeta,
   normalizeRepoKey,
+  resolveExtensionBadge,
 } from "../packages/sdk/src/services/repoIdentity";
 import { SourceService } from "../packages/sdk/src/services/source.service";
 import { networkClient } from "../packages/sdk/src/services/network";
@@ -285,5 +286,44 @@ describe("SourceService multi-repo key isolation", () => {
       "Repo A:1.0.0",
       "Repo B:2.5.0",
     ]);
+  });
+});
+
+describe("resolveExtensionBadge", () => {
+  it("resolves extension display name and repo color from installed extensions including scoped pkgs", () => {
+    const installed = [
+      {
+        pkg: "ma.autakimi.extension.ar.witanime",
+        name: "WitAnime",
+        repoUrl:
+          "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json",
+      },
+      {
+        pkg: "ar.teamx::abcdef",
+        name: "Team-X",
+        repoColor: "#a855f7",
+      },
+    ];
+
+    expect(
+      resolveExtensionBadge("ma.autakimi.extension.ar.witanime", installed),
+    ).toEqual({
+      name: "WitAnime",
+      color: "#10b981",
+    });
+    expect(resolveExtensionBadge("ar.teamx::abcdef", installed)).toEqual({
+      name: "Team-X",
+      color: "#a855f7",
+    });
+  });
+
+  it("derives a readable fallback name when the extension is uninstalled", () => {
+    expect(
+      resolveExtensionBadge("ma.autakimi.extension.ar.anime-lek", []),
+    ).toEqual({
+      name: "Anime Lek",
+      color: undefined,
+    });
+    expect(resolveExtensionBadge("", [])).toBeNull();
   });
 });

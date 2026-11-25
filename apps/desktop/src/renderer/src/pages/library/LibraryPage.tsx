@@ -13,11 +13,17 @@ import {
   MediaListItem,
   MobilePage
 } from '@renderer/shared/ui'
-import { useLibraryStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
+import {
+  useLibraryStore,
+  useSettingsStore,
+  useUIStore,
+  useExtensionStore
+} from '@renderer/shared/model'
 import { useState } from 'react'
 import { useInfiniteScroll } from '@renderer/shared/lib'
 import { useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
+import { resolveExtensionBadge } from '@common/services/repoIdentity'
 
 import { useInfiniteLibraryItems, mediaKeys } from '@renderer/entities/media/api/useMediaQueries'
 
@@ -26,6 +32,7 @@ export default function LibraryPage() {
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
   const queryClient = useQueryClient()
   const { setSelectedManga } = useLibraryStore()
+  const { installedExtensions } = useExtensionStore()
   const { viewMode } = useUIStore()
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useInfiniteLibraryItems(activeTab)
@@ -108,6 +115,10 @@ export default function LibraryPage() {
               <MediaGrid>
                 {allManga.map((manga, idx) => {
                   const norm = normalizeManga(manga)
+                  const src = resolveExtensionBadge(
+                    (manga as { pkg?: string }).pkg || (norm as { pkg?: string }).pkg,
+                    installedExtensions
+                  )
                   return (
                     <MediaGridItem
                       key={norm.id}
@@ -115,6 +126,8 @@ export default function LibraryPage() {
                       coverUrl={norm.coverUrl}
                       mediaType={activeTab}
                       status={norm.status}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
                       index={idx}
                       onClick={() =>
                         setSelectedManga({
@@ -130,6 +143,10 @@ export default function LibraryPage() {
               <MediaList>
                 {allManga.map((manga, idx) => {
                   const norm = normalizeManga(manga)
+                  const src = resolveExtensionBadge(
+                    (manga as { pkg?: string }).pkg || (norm as { pkg?: string }).pkg,
+                    installedExtensions
+                  )
                   return (
                     <MediaListItem
                       key={norm.id}
@@ -137,6 +154,8 @@ export default function LibraryPage() {
                       coverUrl={norm.coverUrl}
                       mediaType={activeTab}
                       status={norm.status}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
                       index={idx}
                       onClick={() =>
                         setSelectedManga({

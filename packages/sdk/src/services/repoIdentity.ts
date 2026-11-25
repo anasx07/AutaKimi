@@ -177,3 +177,69 @@ export function buildCatalogKey(pkg: string, repoUrl?: string | null): string {
   const repoKey = normalizeRepoKey(repoUrl) || "default";
   return `${repoKey}::${extractBasePkg(pkg)}`;
 }
+
+export interface ExtensionBadgeInfo {
+  name: string;
+  color?: string;
+}
+
+function formatFallbackPkgName(pkg: string): string {
+  const clean = extractBasePkg(pkg)
+    .replace(/^ma\.autakimi\.extension\./i, "")
+    .replace(/^eu\.kanade\.tachiyomi\.extension\./i, "")
+    .replace(
+      /^(all|ar|bg|ca|cs|de|en|es|fr|hi|id|it|ja|ko|nl|pl|pt|pt-br|ru|th|tr|uk|vi|zh)\./i,
+      "",
+    );
+
+  const lastSeg = clean.split(".").filter(Boolean).pop() || clean;
+  const words = lastSeg.split(/[-_]+/).filter(Boolean);
+  if (words.length === 0) return pkg;
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+/**
+ * Resolves a human-friendly extension display name and optional repo accent color from `pkg`.
+ * Matches against installed extensions first (preserving scoped `pkg::hash` or base `pkg`),
+ * falling back to a readable name derived from `pkg` when uninstalled.
+ */
+export function resolveExtensionBadge(
+  pkg?: string | null,
+  installedExtensions?: Array<{
+    pkg?: string;
+    name?: string;
+    repoUrl?: string;
+    repoName?: string;
+    repoColor?: string;
+  }>,
+): ExtensionBadgeInfo | null {
+  const raw = (pkg || "").trim();
+  if (!raw) return null;
+
+  const base = extractBasePkg(raw);
+  const list = Array.isArray(installedExtensions) ? installedExtensions : [];
+  const match =
+    list.find((e) => e?.pkg === raw) ||
+    list.find((e) => e?.pkg && extractBasePkg(e.pkg) === base);
+
+  if (match) {
+    const hasRealRepo =
+      !!match.repoUrl &&
+      match.repoUrl !== "remote" &&
+      match.repoUrl !== "local";
+    const color =
+      match.repoColor ||
+      (hasRealRepo
+        ? getRepoMeta(match.repoUrl, match.repoName).repoColor
+        : undefined);
+    return {
+      name: match.name?.trim() || formatFallbackPkgName(raw),
+      color,
+    };
+  }
+
+  return {
+    name: formatFallbackPkgName(raw),
+    color: undefined,
+  };
+}

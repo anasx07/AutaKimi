@@ -30,6 +30,8 @@ interface MediaGridItemProps {
   onClick: () => void
   badge?: ReactNode
   footerBadge?: ReactNode
+  sourceName?: string | null
+  sourceColor?: string | null
   className?: string
   index?: number
 }
@@ -43,6 +45,8 @@ export function MediaGridItem({
   onClick,
   badge,
   footerBadge,
+  sourceName,
+  sourceColor,
   className,
   index = 0
 }: MediaGridItemProps) {
@@ -83,6 +87,19 @@ export function MediaGridItem({
               dir="auto"
             >
               {title}
+            </span>
+          </div>
+        )}
+
+        {/* Top-left Extension Source Pill */}
+        {sourceName && (
+          <div className="pointer-events-none absolute top-2 left-2 right-2 z-20 flex items-center">
+            <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-black/70 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/95 backdrop-blur-md border border-white/10 shadow-sm">
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ backgroundColor: sourceColor || 'hsl(var(--primary))' }}
+              />
+              <span className="truncate">{sourceName}</span>
             </span>
           </div>
         )}

@@ -21,6 +21,8 @@ interface MediaListItemProps {
   onClick: () => void
   badge?: ReactNode
   footerBadge?: ReactNode
+  sourceName?: string | null
+  sourceColor?: string | null
   className?: string
   index?: number
 }
@@ -34,6 +36,8 @@ export function MediaListItem({
   onClick,
   badge,
   footerBadge,
+  sourceName,
+  sourceColor,
   className,
   index = 0
 }: MediaListItemProps) {
@@ -66,10 +70,25 @@ export function MediaListItem({
 
       <CardContent className="flex-1 p-4 flex items-center justify-between min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
-          <h3 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors" dir="auto">
+          <h3
+            className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors"
+            dir="auto"
+          >
             {title}
           </h3>
           <div className="flex items-center gap-2">
+            {sourceName && (
+              <Badge
+                variant="secondary"
+                className="px-1.5 py-0 text-[10px] font-bold tracking-wide inline-flex items-center gap-1 bg-secondary/40 border border-border/50"
+              >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: sourceColor || 'hsl(var(--primary))' }}
+                />
+                <span className="truncate max-w-[120px]">{sourceName}</span>
+              </Badge>
+            )}
             {status && (
               <Badge
                 variant="secondary"
@@ -80,7 +99,10 @@ export function MediaListItem({
               </Badge>
             )}
             {description && (
-              <p className="text-xs text-muted-foreground line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity" dir="auto">
+              <p
+                className="text-xs text-muted-foreground line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity"
+                dir="auto"
+              >
                 {description}
               </p>
             )}
