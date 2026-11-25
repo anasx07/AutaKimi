@@ -81,11 +81,11 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
   return (
     <div ref={containerRef} className={`relative inline-flex ${className}`}>
       {/* Split Button Main Shell */}
-      <div className="relative inline-flex h-14 w-full sm:w-auto items-stretch overflow-hidden rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md group shadow-xl shadow-amber-500/10 hover:shadow-white/10 hover:border-white/30 transition-all outline-none">
+      <div className="relative inline-flex h-11 w-full sm:w-auto items-stretch overflow-hidden rounded-xl bg-zinc-900/90 border border-white/[0.12] group hover:border-white/25 transition-colors outline-none">
         {/* Background Video Preview on hover */}
         {mediaUrl && (
           <video
-            className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
+            className="absolute inset-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
             src={mediaUrl}
             muted
             loop
@@ -95,7 +95,7 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
         )}
 
         {/* Dark overlay for readability */}
-        <div className="absolute inset-0 bg-black/50 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+        <div className="absolute inset-0 bg-black/60 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* Left Side: Primary Download (ARM64 51MB) */}
         <a
@@ -103,22 +103,17 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           title={`Download Android APK (${primaryBuild.size} - Recommended for modern phones)`}
-          className="relative z-20 flex-1 flex items-center justify-center gap-2.5 px-6 py-2 text-white font-bold text-[15px] hover:bg-white/5 active:bg-white/10 transition-colors whitespace-nowrap outline-none"
+          className="relative z-20 flex-1 flex items-center justify-center gap-2 px-4 text-zinc-100 font-semibold text-sm hover:bg-white/[0.04] transition-colors whitespace-nowrap outline-none"
         >
-          <Smartphone className="w-5 h-5 text-emerald-400 drop-shadow-md" />
-          <span
-            className="tracking-wide"
-            style={{ textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}
-          >
-            Download Android APK
-          </span>
-          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 drop-shadow-sm">
+          <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Android APK</span>
+          <span className="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
             51 MB
           </span>
         </a>
 
         {/* Divider */}
-        <div className="relative z-20 w-[1px] bg-white/15 my-3 pointer-events-none" />
+        <div className="relative z-20 w-[1px] bg-white/[0.1] my-2 pointer-events-none" />
 
         {/* Right Side: Dropdown Trigger */}
         <button
@@ -128,11 +123,11 @@ export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
           aria-expanded={isOpen}
           aria-label="Android APK download options"
           title="Android APK download options"
-          className="relative z-20 flex items-center justify-center px-4 text-white/80 hover:text-white hover:bg-white/10 active:bg-white/15 transition-colors outline-none cursor-pointer"
+          className="relative z-20 flex items-center justify-center px-3 text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors outline-none cursor-pointer"
         >
           <ChevronDown
-            className={`w-4 h-4 transition-transform duration-300 drop-shadow-md ${
-              isOpen ? "rotate-180 text-orange-400" : ""
+            className={`w-4 h-4 transition-transform duration-200 ${
+              isOpen ? "rotate-180 text-white" : ""
             }`}
           />
         </button>

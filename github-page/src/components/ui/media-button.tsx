@@ -1,33 +1,47 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { motion } from 'motion/react';
+import React from "react";
+import { motion } from "motion/react";
 
 type MediaButtonProps = {
   label: string;
-  mediaUrl: string; // .mp4, .webm, or .gif
+  mediaUrl: string;
   href?: string;
   icon?: React.ReactNode;
+  variant?: "primary" | "secondary";
   className?: string;
 };
 
-export const MediaButton = ({ label, mediaUrl, href, icon, className = '' }: MediaButtonProps) => {
+export const MediaButton = ({
+  label,
+  mediaUrl,
+  href,
+  icon,
+  variant = "primary",
+  className = "",
+}: MediaButtonProps) => {
   const isVideo = /\.(mp4|webm)$/i.test(mediaUrl);
-
   const Component = href ? motion.a : motion.button;
-  const props = href ? { href, target: "_blank", rel: "noopener noreferrer" } : {};
+  const props = href
+    ? { href, target: "_blank", rel: "noopener noreferrer" }
+    : {};
+
+  const baseStyles =
+    variant === "primary"
+      ? "bg-white text-zinc-950 border-white hover:text-white"
+      : "bg-zinc-900/80 text-zinc-100 border-white/[0.12] hover:border-white/25";
 
   return (
     <Component
-      {...props as any}
-      className={`relative inline-flex h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl px-8 text-white font-bold text-[15px] bg-black/40 border border-white/10 backdrop-blur-md group shadow-xl hover:shadow-white/10 hover:border-white/30 hover:scale-105 transition-all outline-none whitespace-nowrap ${className}`}
+      {...(props as any)}
+      className={`relative inline-flex h-11 items-center justify-center gap-2.5 overflow-hidden rounded-xl px-5 font-semibold text-sm border group transition-colors outline-none whitespace-nowrap ${baseStyles} ${className}`}
       whileHover="hover"
       initial="rest"
       animate="rest"
     >
       {isVideo ? (
         <motion.video
-          className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"
+          className="absolute inset-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           src={mediaUrl}
           muted
           loop
@@ -36,21 +50,17 @@ export const MediaButton = ({ label, mediaUrl, href, icon, className = '' }: Med
         />
       ) : (
         <motion.img
-          className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"
+          className="absolute inset-0 w-full h-full object-cover z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           src={mediaUrl}
-          alt="Background"
+          alt="Preview"
         />
       )}
 
-      {/* Dark Overlay to insure text readability over bright anime clips */}
-      <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+      <div className="absolute inset-0 bg-black/60 z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      {/* Button Content */}
-      <div className="relative z-20 flex items-center gap-3 drop-shadow-md">
+      <div className="relative z-20 flex items-center gap-2">
         {icon}
-        <span className="tracking-wide" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-          {label}
-        </span>
+        <span>{label}</span>
       </div>
     </Component>
   );

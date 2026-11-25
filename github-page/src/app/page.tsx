@@ -2,39 +2,192 @@
 
 import {
   Download,
-  BookOpen,
-  Puzzle,
-  History,
-  Search,
-  Zap,
   ChevronDown,
-  Globe,
-  MonitorSmartphone,
-  MessageSquare,
-  Sparkles,
-  Terminal,
-  Shield,
   ArrowRight,
-  Activity,
-  Smartphone,
+  ArrowUpRight,
+  Play,
+  BookOpen,
+  Wifi,
+  Puzzle,
   CheckCircle2,
-  Archive,
+  BarChart3,
+  Expand,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { MediaButton } from "@/components/ui/media-button";
 import { ApkDownloadButton } from "@/components/ui/apk-download-button";
-import { GlowCard } from "@/components/ui/spotlight-card";
-import {
-  ImageLightbox,
-  ZoomBadge,
-  LightboxImage,
-} from "@/components/ui/image-lightbox";
+import { ImageLightbox, LightboxImage } from "@/components/ui/image-lightbox";
+
+const HERO_TABS = [
+  {
+    id: "player",
+    label: "Anime Player",
+    src: "/AutaKimi/assets/screenshots/anime-player-sidebar.png",
+    caption: "Hardware-accelerated player · Skip Intro · Ambient Glow",
+  },
+  {
+    id: "pip",
+    label: "Floating PiP",
+    src: "/AutaKimi/assets/screenshots/anime-mini-pip.png",
+    caption: "Always-on-top Mini Player & system Picture-in-Picture",
+  },
+  {
+    id: "reader",
+    label: "Manga Reader",
+    src: "/AutaKimi/assets/screenshots/manga-reader-vertical.png",
+    caption: "Continuous vertical webtoon scroll & Night Eye-Care tint",
+  },
+  {
+    id: "history",
+    label: "History & Badges",
+    src: "/AutaKimi/assets/screenshots/history-anime.png",
+    caption: "Cross-source playback history with extension badges",
+  },
+  {
+    id: "browse",
+    label: "Manga Catalog",
+    src: "/AutaKimi/assets/screenshots/manga-browse.webp",
+    caption: "Unified discovery across community repositories",
+  },
+];
+
+const SHOWCASES = [
+  {
+    step: "01",
+    badge: "Anime Streaming",
+    title: "Built-in Player, Skip Intro & Multi-Server",
+    description:
+      "Stream directly inside AutaKimi with automatic Skip Intro controls, edge ambient lighting, Auto-Next episode transitions, and instant mirror switching—no browser popups.",
+    image: "/AutaKimi/assets/screenshots/anime-player-sidebar.png",
+  },
+  {
+    step: "02",
+    badge: "Multitasking",
+    title: "Dockable Mini Player & Desktop Floating PiP",
+    description:
+      "Keep watching while browsing your library or detach playback into an always-on-top floating window that stays visible over any desktop app.",
+    image: "/AutaKimi/assets/screenshots/anime-floating-pip.png",
+  },
+  {
+    step: "03",
+    badge: "Manga & Webtoon",
+    title: "Continuous Vertical Scroll & Eye-Care Mode",
+    description:
+      "Switch smoothly between continuous webtoon scrolling, RTL/LTR paged modes, drag-to-scroll, quick chapter jumping, and warm Night Eye-Care tinting.",
+    image: "/AutaKimi/assets/screenshots/manga-reader-vertical.png",
+  },
+  {
+    step: "04",
+    badge: "Source Clarity",
+    title: "Per-Extension Badges Across History & Library",
+    description:
+      "Follow the same series from multiple sources without confusion. Every card in History, Library, and Downloads clearly displays its source badge and repo color.",
+    image: "/AutaKimi/assets/screenshots/history-anime.png",
+  },
+  {
+    step: "05",
+    badge: "Arabic & English",
+    title: "Native RTL Interface & Rich Series Details",
+    description:
+      "First-class Arabic (العربية) RTL layout alongside English—with synopses, unread chapter filters, Smart Downloads, and offline .cbz archive caching.",
+    image: "/AutaKimi/assets/screenshots/manga-details-rtl.png",
+  },
+  {
+    step: "06",
+    badge: "Personalization",
+    title: "Character & Monochrome Studio Themes",
+    description:
+      "Tailor every workspace from distraction-free dark studio presets to character-inspired palettes with instant theme switching.",
+    image: "/AutaKimi/assets/screenshots/themes-showcase.png",
+  },
+];
+
+const LIGHTBOX_GALLERY: LightboxImage[] = [
+  ...SHOWCASES.map((s) => ({
+    src: s.image,
+    alt: s.title,
+    title: s.title,
+    badge: s.badge,
+    description: s.description,
+  })),
+  {
+    src: "/AutaKimi/assets/screenshots/anime-mini-pip.png",
+    alt: "Library with Mini Player",
+    title: "Docked Mini Player Inside Library",
+    badge: "Mini Player",
+    description:
+      "Browse your saved anime and manga while keeping playback docked in the corner.",
+  },
+  {
+    src: "/AutaKimi/assets/screenshots/anime-player-fullscreen.png",
+    alt: "Fullscreen Anime Player",
+    title: "Clean Fullscreen Playback Overlay",
+    badge: "Theater Mode",
+    description:
+      "Auto-Next, quick server selector, and crisp 1080p quality toggle.",
+  },
+  {
+    src: "/AutaKimi/assets/screenshots/manga-reader-chapters.png",
+    alt: "Manga Reader Chapter Switcher",
+    title: "Instant Chapter Dropdown Switcher",
+    badge: "Manga Reader",
+    description:
+      "Jump directly between chapters without leaving your reading session.",
+  },
+  {
+    src: "/AutaKimi/assets/screenshots/anime-details-episode-list.png",
+    alt: "Anime Episode Tracking",
+    title: "Episode Tracking & AniList Sync",
+    badge: "AniList Sync",
+    description: "Automatic last-watched indicators and 2-way AniList updates.",
+  },
+  {
+    src: "/AutaKimi/assets/screenshots/library-anime.png",
+    alt: "Anime Library",
+    title: "Saved Library With Source Badges",
+    badge: "Library",
+    description: "Clean anime and manga shelves with extension attribution.",
+  },
+  {
+    src: "/AutaKimi/assets/screenshots/history-manga.png",
+    alt: "Manga History",
+    title: "Manga Reading History",
+    badge: "History",
+    description: "Pick up right where you left off across every source.",
+  },
+];
+
+const FAQS = [
+  {
+    q: "Is AutaKimi free and open source?",
+    a: "Yes. AutaKimi is 100% free and licensed under GPL-3.0 with zero ads, zero telemetry, and no hosted media.",
+  },
+  {
+    q: "How is it different from Tachiyomi, Mihon, or Aniyomi?",
+    a: "AutaKimi brings the extension-based library & reader workflow natively to Windows PC alongside Android—without needing an Android emulator—with local Wi-Fi sync between devices.",
+  },
+  {
+    q: "How do extensions and multi-repo isolation work?",
+    a: "AutaKimi is an empty shell. Add AutaKimi or Keiyoushi-compatible repositories inside Settings/Browse. Each repository keeps its own color, version state, and isolated source entries.",
+  },
+  {
+    q: "Can I sync progress between Windows and Android without a cloud account?",
+    a: "Yes. Pair over your local Wi-Fi network to sync library items, reading history, and chapters directly between PC and Android, or export portable .json.gz backups anytime.",
+  },
+  {
+    q: "Does it support AniList and offline CBZ reading?",
+    a: "Yes. Two-way AniList tracking automatically updates progress and queues updates offline in SQLite. You can also download chapters as .cbz archives or open local files.",
+  },
+];
 
 export default function Home() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [version, setVersion] = useState("2.3.0");
+  const [heroTab, setHeroTab] = useState(0);
+  const [activeShowcase, setActiveShowcase] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -49,490 +202,427 @@ export default function Home() {
           setVersion(data.tag_name.replace(/^v/, ""));
         }
       })
-      .catch((err) => {
-        console.warn(
-          "Latest release version fetch skipped/failed (using fallback version):",
-          err.message || err,
-        );
-      });
+      .catch(() => {});
   }, []);
 
-  const features = [
-    {
-      icon: <MonitorSmartphone className="w-6 h-6 text-orange-400" />,
-      title: "Cross-Platform & LAN Sync",
-      description:
-        "Enjoy total parity across Windows and Android. Synchronize your reading history, library, and bookmarks over local Wi-Fi without cloud reliance.",
-    },
-    {
-      icon: <CheckCircle2 className="w-6 h-6 text-blue-400" />,
-      title: "AniList Smart Tracking",
-      description:
-        "Automatic 2-way progress sync with AniList. Auto-completes titles upon finishing the final chapter, with an offline SQLite retry queue.",
-    },
-    {
-      icon: <Archive className="w-6 h-6 text-emerald-400" />,
-      title: "Offline CBZ & Stream Downloads",
-      description:
-        "Bulk download full chapters as standard .cbz comic book archives or cache video streams for high-speed offline reading anywhere.",
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-yellow-400" />,
-      title: "Native Anime Streamer",
-      description:
-        "Watch anime series with built-in hardware acceleration, custom speed controls, multi-quality streams, and embedded popup blocking.",
-    },
-    {
-      icon: <Puzzle className="w-6 h-6 text-pink-400" />,
-      title: "Modular Scraper Engine",
-      description:
-        "Expand your content catalog with sandboxed JS extensions running with identical behavior on desktop and mobile.",
-    },
-    {
-      icon: <Globe className="w-6 h-6 text-indigo-400" />,
-      title: "Global Localization",
-      description:
-        "Full native support for Arabic (العربية) and English, ensuring an absolute native experience for global readers.",
-    },
-    {
-      icon: <Search className="w-6 h-6 text-cyan-400" />,
-      title: "Smart Cross-Source Search",
-      description:
-        "Find any manga title or anime episode across all your connected community indexers instantly with advanced filters.",
-    },
-    {
-      icon: <Terminal className="w-6 h-6 text-emerald-400" />,
-      title: "Privacy First & GZ Backups",
-      description:
-        "Zero telemetry or tracking. Export and import full .json.gz backups between desktop and mobile for complete data ownership.",
-    },
-    {
-      icon: <BookOpen className="w-6 h-6 text-purple-400" />,
-      title: "Personal Library & Reader",
-      description:
-        "Responsive library with custom categories, reading history, and continuous webtoon scroll with smart chapter transitions.",
-    },
-  ];
+  const openLightboxForSrc = (src: string) => {
+    const idx = LIGHTBOX_GALLERY.findIndex((img) => img.src === src);
+    setActiveImageIndex(idx >= 0 ? idx : 0);
+    setLightboxOpen(true);
+  };
 
-  const showcases = [
-    {
-      badge: "Manga Hub",
-      title: "Unified Manga & Webtoon Discovery",
-      description:
-        "Browse thousands of manga, manhwa, and manhua series across community repositories with multi-language catalogs, repository badges, and high-resolution covers.",
-      image: "/AutaKimi/assets/screenshots/manga-browse.webp",
-      shield: "Multi-Repo Fast Indexing",
-    },
-    {
-      badge: "Native Anime Player",
-      title: "Watch Anime With Skip Intro & Ambient Glow",
-      description:
-        "Stream anime natively with embedded hardware acceleration, Skip Intro buttons, ambient lighting, episode sidebar, Auto-Next, and fast multi-server switching with zero popups.",
-      image: "/AutaKimi/assets/screenshots/anime-player-sidebar.png",
-      shield: "Zero Ad Popups & Multi-Server",
-      reverse: true,
-    },
-    {
-      badge: "Floating PiP & Mini Player",
-      title: "Keep Watching Anywhere With Always-On-Top PiP",
-      description:
-        "Detach any episode into a dockable Mini Player while browsing your library or float it seamlessly across your desktop windows while multitasking.",
-      image: "/AutaKimi/assets/screenshots/anime-mini-pip.png",
-      shield: "Mini Player & System PiP",
-    },
-    {
-      badge: "Webtoon & Manga Reader",
-      title: "Continuous Vertical Scroll & Night Eye-Care",
-      description:
-        "Enjoy silky-smooth continuous vertical webtoon scrolling, drag-scroll gestures, instant chapter dropdown switching, and a custom Night Eye-Care tint filter.",
-      image: "/AutaKimi/assets/screenshots/manga-reader-vertical.png",
-      shield: "Continuous Scroll & Eye-Care",
-      reverse: true,
-    },
-    {
-      badge: "Multi-Source History",
-      title: "Organized History & Extension Badges",
-      description:
-        "Track every episode and chapter across multiple extensions in one clean view. Instantly tell which source each title belongs to with dedicated extension badges.",
-      image: "/AutaKimi/assets/screenshots/history-anime.png",
-      shield: "Per-Source History & Library",
-    },
-    {
-      badge: "Localization & Chapters",
-      title: "Rich Media Details & Full Arabic Support",
-      description:
-        "Experience complete native Right-to-Left (RTL) Arabic interface support alongside English. View full synopses, track reading state, and queue offline chapter downloads.",
-      image: "/AutaKimi/assets/screenshots/manga-details-rtl.png",
-      shield: "Arabic (العربية) & English Native",
-      reverse: true,
-    },
-    {
-      badge: "Smart Progress",
-      title: "Episode Tracking & AniList Integration",
-      description:
-        "Never lose your place. Mark episodes as watched, auto-scrobble progress to AniList, and pick up right where you left off across Windows PC and Android.",
-      image: "/AutaKimi/assets/screenshots/anime-details-episode-list.png",
-      shield: "AniList Two-Way Scrobbler",
-    },
-    {
-      badge: "Aesthetics",
-      title: "Premium Themes & Aesthetics",
-      description:
-        "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic deep dark modes to character-inspired vibrant aesthetics.",
-      image: "/AutaKimi/assets/screenshots/themes-showcase.png",
-      shield: "Dynamic Theme Engine",
-      reverse: true,
-    },
-  ];
-
-  const lightboxGallery: LightboxImage[] = [
-    ...showcases.map((s) => ({
-      src: s.image,
-      alt: s.title,
-      title: s.title,
-      badge: s.badge,
-      description: s.description,
-    })),
-    {
-      src: "/AutaKimi/assets/screenshots/anime-floating-pip.png",
-      alt: "System-wide Floating PiP",
-      title: "System-wide Floating PiP Over Desktop",
-      badge: "Floating PiP",
-      description:
-        "Pop the video player out over other windows and keep watching effortlessly while working or browsing.",
-    },
-    {
-      src: "/AutaKimi/assets/screenshots/anime-player-fullscreen.png",
-      alt: "Fullscreen Anime Player Overlay",
-      title: "Clean Fullscreen Playback Controls",
-      badge: "Theater Mode",
-      description:
-        "Minimal fullscreen overlay with Auto-Next toggle, quick server switcher, quality selector, and zero distractions.",
-    },
-    {
-      src: "/AutaKimi/assets/screenshots/manga-reader-chapters.png",
-      alt: "Quick Chapter Dropdown in Reader",
-      title: "Instant Chapter Switcher in Reader",
-      badge: "Manga Reader",
-      description:
-        "Jump directly between chapters without leaving your current reading flow.",
-    },
-    {
-      src: "/AutaKimi/assets/screenshots/library-anime.png",
-      alt: "Anime Library with Source Badges",
-      title: "Saved Anime & Manga Library",
-      badge: "Personal Library",
-      description:
-        "Separate Anime and Manga tabs displaying source badges on every cover.",
-    },
-    {
-      src: "/AutaKimi/assets/screenshots/history-manga.png",
-      alt: "Manga Reading History",
-      title: "Manga Reading History Grid",
-      badge: "Manga History",
-      description:
-        "Pick up the exact chapter you left off from with per-extension attribution.",
-    },
-  ];
-
-  const faqs = [
-    {
-      q: "Is AutaKimi free to use?",
-      a: "Yes, AutaKimi is 100% free, open-source under GPL-3.0, and contains zero tracking, advertisements, telemetry, or data collection.",
-    },
-    {
-      q: "Is AutaKimi an alternative to Tachiyomi, Mihon, and Aniyomi for PC?",
-      a: "Yes! AutaKimi is designed as a native desktop and mobile media reader, serving as a powerful PC and Android alternative to Android-only readers like Tachiyomi, Mihon, and Aniyomi without requiring any Android emulator.",
-    },
-    {
-      q: "Which platforms does AutaKimi support?",
-      a: "AutaKimi runs natively on Windows 10/11 (64-bit) as an installer/portable app, and on Android (5.0+) as a standalone APK. Both apps share identical features, extensions, and reader engines.",
-    },
-    {
-      q: "How does sync work between PC and Android?",
-      a: "AutaKimi uses local Wi-Fi LAN sync and portable .json.gz backups. Your desktop app acts as a local sync host that your phone discovers automatically on the same Wi-Fi, syncing reading progress and library changes with zero cloud intermediaries.",
-    },
-    {
-      q: "Can I track my anime and manga with AniList?",
-      a: "Yes. AutaKimi integrates natively with AniList for real-time progress updates. It automatically marks titles as COMPLETED when you finish the final chapter or episode, and queues updates in SQLite if you're offline to sync when you reconnect.",
-    },
-    {
-      q: "Does it support offline reading and downloads?",
-      a: "Yes! You can bulk download manga chapters directly as standard .cbz archives, cache anime episodes for offline playback, and export/import full .json.gz library backups.",
-    },
-    {
-      q: "How do I install extensions?",
-      a: "Extensions are sandboxed community JavaScript plugins that can be installed instantly via the extension catalog inside the application with a single click. You can also explore and contribute to the community catalog at the Autakimi-Ecosystem/autakimi-extensions repository.",
-    },
-  ];
+  const currentHero = HERO_TABS[heroTab];
+  const currentShowcase = SHOWCASES[activeShowcase];
 
   return (
-    <div className="relative flex flex-col items-center w-full">
-      {/* Background decoration */}
-      <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-orange-500/5 via-amber-500/5 to-transparent pointer-events-none z-0" />
+    <div className="w-full flex flex-col items-center">
+      {/* HERO */}
+      <section className="w-full max-w-6xl px-5 pt-14 pb-20 md:pt-20 md:pb-28">
+        <div className="max-w-3xl mx-auto text-center space-y-6">
+          <Link
+            href="/changelog"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-white/20 transition-colors text-xs text-zinc-300"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span className="font-mono">v{version}</span>
+            <span className="text-zinc-500">·</span>
+            <span>Windows &amp; Android · GPL-3.0</span>
+            <ArrowRight className="w-3 h-3 text-zinc-500" />
+          </Link>
 
-      {/* SPLIT HERO SECTION */}
-      <header className="w-full max-w-6xl px-6 pt-10 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-        {/* Left column: Text details */}
-        <div className="lg:col-span-7 space-y-8 text-left max-w-2xl mx-auto lg:mx-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="premium-pill bg-orange-500/10 border-orange-500/20 text-orange-300 flex items-center gap-1.5 py-1 px-3.5">
-              <Sparkles className="w-3 h-3 text-orange-400" />
-              <span>Version {version}</span>
-            </span>
-            <span className="text-xs font-mono text-zinc-500 flex items-center gap-1">
-              <Activity className="w-3.5 h-3.5 text-green-400" />
-              <span>Windows & Android Ready</span>
-            </span>
-            <span className="text-xs font-mono text-orange-300/90 bg-orange-500/10 border border-orange-500/20 rounded-full px-2.5 py-0.5">
-              Tachiyomi & Aniyomi Inspired
-            </span>
-          </div>
+          <h1 className="text-4xl sm:text-6xl md:text-[64px] font-bold tracking-[-0.03em] leading-[1.06] text-white font-[family-name:var(--font-outfit)]">
+            Read manga. Watch anime.{" "}
+            <span className="text-zinc-400">Keep everything local.</span>
+          </h1>
 
-          <div className="space-y-4">
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05] text-white">
-              The Next Gen Media{" "}
-              <span className="text-gradient font-black">Framework</span>
-            </h1>
-            <p className="text-lg md:text-xl text-zinc-400 leading-relaxed font-sans font-medium">
-              AutaKimi is a professional, privacy-first media reader for Windows
-              and Android. Enjoy local Wi-Fi sync, AniList tracking, offline CBZ
-              downloads, and sandboxed community extensions.
-            </p>
-          </div>
+          <p className="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+            A native desktop and mobile media viewer for Windows and Android.
+            Sandboxed multi-repo extensions, always-on-top PiP playback, LAN
+            Wi-Fi sync, offline CBZ downloads, and AniList tracking—with zero ads
+            or telemetry.
+          </p>
 
-          {/* Quick Stats Mock */}
-          <div className="grid grid-cols-3 gap-6 py-4 border-y border-white/5 max-w-md">
-            <div>
-              <p className="text-2xl font-black text-white">100%</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-                Privacy First
-              </p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-white">0ms</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-                Lag Response
-              </p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-white">2+</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-                Languages
-              </p>
-            </div>
-          </div>
-
-          {/* Action Callouts */}
-          <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <MediaButton
               label="Download for Windows"
               href="https://github.com/anasx07/AutaKimi/releases/latest/download/AutaKimi.exe"
-              icon={<Download className="w-5 h-5 text-white" />}
+              icon={<Download className="w-4 h-4" />}
               mediaUrl="/AutaKimi/assets/videos/installer-preview.mp4"
-              className="w-full sm:w-auto shadow-lg shadow-orange-500/10"
+              variant="primary"
+              className="w-full sm:w-auto"
             />
             <ApkDownloadButton
               mediaUrl="/AutaKimi/assets/videos/installer-preview.mp4"
               className="w-full sm:w-auto"
             />
-            <MediaButton
-              label="Join Discord"
-              href="https://discord.gg/qRbpCusgan"
-              icon={<MessageSquare className="w-5 h-5 text-white" />}
-              mediaUrl="/AutaKimi/assets/videos/discord-preview.mp4"
-              className="w-full sm:w-auto"
-            />
+            <Link
+              href="/docs"
+              className="inline-flex items-center gap-1.5 h-11 px-4 rounded-xl text-sm font-medium text-zinc-300 hover:text-white border border-white/[0.08] hover:border-white/20 transition-colors"
+            >
+              <span>Setup Guide</span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500" />
+            </Link>
           </div>
         </div>
 
-        {/* Right column: Interactive App Window Preview */}
-        <div className="lg:col-span-5 relative flex justify-center items-center z-10 w-full">
-          <div className="absolute w-80 h-80 rounded-full bg-orange-500/15 blur-[90px] -z-10 animate-pulse" />
-          <div className="absolute w-60 h-60 rounded-full bg-amber-500/10 blur-[60px] -z-10" />
-
-          <div className="relative glass-card rounded-[24px] p-2.5 sm:p-3 border border-white/10 hover:border-white/20 transition-all duration-700 shadow-2xl w-full group overflow-hidden">
-            {/* Window title bar */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 mb-2.5">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
-              </div>
-              <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5">
-                <MonitorSmartphone className="w-3.5 h-3.5 text-orange-400" />
-                AutaKimi v{version}
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-                Live Desktop
-              </span>
+        {/* INTERACTIVE HERO STAGE */}
+        <div className="mt-14 max-w-5xl mx-auto">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 px-1">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar p-1 rounded-xl bg-zinc-900/80 border border-white/[0.07]">
+              {HERO_TABS.map((tab, i) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setHeroTab(i)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                    heroTab === i
+                      ? "bg-white text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+            <span className="hidden sm:inline text-xs font-mono text-zinc-500">
+              {currentHero.caption}
+            </span>
+          </div>
 
-            {/* Window preview screenshot */}
-            <div
-              className="relative rounded-[16px] overflow-hidden border border-white/5 shadow-inner cursor-zoom-in group/heroimg"
-              onClick={() => {
-                setActiveImageIndex(0);
-                setLightboxOpen(true);
-              }}
-              title="Click to view full screen"
-            >
+          <button
+            type="button"
+            onClick={() => openLightboxForSrc(currentHero.src)}
+            className="group relative block w-full rounded-2xl overflow-hidden border border-white/[0.1] bg-zinc-950 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)] hover:border-white/20 transition-all cursor-zoom-in text-left"
+            title="Click to inspect full resolution"
+          >
+            <div className="relative aspect-[16/9] w-full bg-zinc-950">
               <Image
-                src="/AutaKimi/assets/screenshots/manga-browse.webp"
-                alt="AutaKimi Desktop Reader Interface"
-                width={1280}
-                height={700}
-                className="w-full group-hover/heroimg:scale-[1.03] transition-transform duration-700 z-0"
+                src={currentHero.src}
+                alt={currentHero.label}
+                fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.01]"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-[11px] text-zinc-300">
-                <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-                  Manga & Webtoon Hub
-                </span>
-                <span className="bg-orange-500/20 backdrop-blur-md text-orange-300 px-2.5 py-1 rounded-full border border-orange-500/30">
-                  0% Tracking
-                </span>
+            </div>
+            <div className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/75 border border-white/10 text-[11px] font-medium text-zinc-200 backdrop-blur-md opacity-80 group-hover:opacity-100 transition-opacity">
+              <Expand className="w-3 h-3" />
+              <span>Expand</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* BENTO CAPABILITIES */}
+      <section
+        id="features"
+        className="w-full max-w-6xl px-5 py-20 border-t border-white/[0.06]"
+      >
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div className="space-y-2 max-w-xl">
+            <span className="section-kicker">Architecture</span>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white font-[family-name:var(--font-outfit)]">
+              Built for fast reading and clean playback
+            </h2>
+          </div>
+          <p className="text-sm text-zinc-400 max-w-md">
+            Identical TypeScript SDK engine across Electron Desktop and React
+            Native Android—backed by local SQLite storage.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          {/* Card 1: Anime + PiP (Wide) */}
+          <div className="md:col-span-4 rounded-2xl studio-surface p-6 flex flex-col justify-between gap-6 overflow-hidden hover:border-white/[0.15] transition-colors">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 text-xs font-mono text-rose-400">
+                <Play className="w-3.5 h-3.5" />
+                <span>STREAMING &amp; PIP</span>
               </div>
-              <ZoomBadge />
+              <h3 className="text-xl font-semibold text-white">
+                Hardware-accelerated player with Floating PiP
+              </h3>
+              <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                Built-in Skip Intro, edge ambient glow, Auto-Next, multi-server
+                fallback, and a detachable PiP window that floats above any
+                application.
+              </p>
+            </div>
+            <div
+              onClick={() =>
+                openLightboxForSrc(
+                  "/AutaKimi/assets/screenshots/anime-floating-pip.png",
+                )
+              }
+              className="relative aspect-[16/8.5] rounded-xl overflow-hidden border border-white/[0.08] cursor-zoom-in group"
+            >
+              <Image
+                src="/AutaKimi/assets/screenshots/anime-floating-pip.png"
+                alt="System-wide Floating PiP"
+                fill
+                sizes="(max-width: 768px) 100vw, 680px"
+                className="object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
+              />
+            </div>
+          </div>
+
+          {/* Card 2: LAN Sync */}
+          <div className="md:col-span-2 rounded-2xl studio-surface p-6 flex flex-col justify-between gap-6 hover:border-white/[0.15] transition-colors">
+            <div className="space-y-3">
+              <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-200">
+                <Wifi className="w-4 h-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                Local Wi-Fi Sync &amp; Backups
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Pair Android with Desktop over your home Wi-Fi to merge library,
+                history, and progress—or export portable{" "}
+                <code className="text-zinc-200 font-mono text-xs">.json.gz</code>{" "}
+                archives anytime.
+              </p>
+            </div>
+            <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs font-mono text-zinc-500">
+              <span>Zero cloud servers</span>
+              <span className="text-emerald-400">LAN Auto-Discovery</span>
+            </div>
+          </div>
+
+          {/* Card 3: Multi-Repo Extensions */}
+          <div className="md:col-span-2 rounded-2xl studio-surface p-6 flex flex-col justify-between gap-6 hover:border-white/[0.15] transition-colors">
+            <div className="space-y-3">
+              <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-200">
+                <Puzzle className="w-4 h-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                Isolated Multi-Repo Catalogs
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Add AutaKimi or Keiyoushi repositories side by side. Each source
+                keeps its own repository badge color, update stream, and
+                sandboxed runtime.
+              </p>
+            </div>
+            <a
+              href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs font-medium text-zinc-300 hover:text-white transition-colors"
+            >
+              <span>Browse extensions repo</span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500" />
+            </a>
+          </div>
+
+          {/* Card 4: Webtoon & CBZ Reader (Wide) */}
+          <div className="md:col-span-4 rounded-2xl studio-surface p-6 flex flex-col justify-between gap-6 overflow-hidden hover:border-white/[0.15] transition-colors">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 text-xs font-mono text-rose-400">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>READER ENGINE</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white">
+                Vertical Webtoon Scroll, Night Eye-Care &amp; Smart Downloads
+              </h3>
+              <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                Seamless continuous chapters, Night Eye-Care warm dimming tint,
+                automatic next-chapter prefetching, and native{" "}
+                <code className="text-zinc-200 font-mono text-xs">.cbz</code>{" "}
+                archive downloads.
+              </p>
+            </div>
+            <div
+              onClick={() =>
+                openLightboxForSrc(
+                  "/AutaKimi/assets/screenshots/manga-reader-chapters.png",
+                )
+              }
+              className="relative aspect-[16/8.5] rounded-xl overflow-hidden border border-white/[0.08] cursor-zoom-in group"
+            >
+              <Image
+                src="/AutaKimi/assets/screenshots/manga-reader-chapters.png"
+                alt="Manga Reader Controls"
+                fill
+                sizes="(max-width: 768px) 100vw, 680px"
+                className="object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
+              />
+            </div>
+          </div>
+
+          {/* Card 5: AniList */}
+          <div className="md:col-span-3 rounded-2xl studio-surface p-6 flex items-start gap-4 hover:border-white/[0.15] transition-colors">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0 mt-0.5">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-semibold text-white">
+                AniList Two-Way Tracking &amp; Offline Queue
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Updates progress automatically as you watch or read, marks
+                completed series on the final chapter, and safely queues offline
+                syncs in SQLite.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 6: Stats + Discord */}
+          <div className="md:col-span-3 rounded-2xl studio-surface p-6 flex items-start gap-4 hover:border-white/[0.15] transition-colors">
+            <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-zinc-200 shrink-0 mt-0.5">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-semibold text-white">
+                Local Wrapped Stats &amp; Discord Presence
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Review weekly reading streaks, watch time, and top genres 100%
+                locally—plus optional Discord Rich Presence for your profile.
+              </p>
             </div>
           </div>
         </div>
-      </header>
-
-      {/* DETAILED FEATURES SECTION */}
-      <section
-        id="features"
-        className="py-24 px-6 max-w-6xl w-full relative z-10"
-      >
-        <div className="text-center mb-16 space-y-4">
-          <span className="premium-pill">Features</span>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-            Tailored for content enthusiasts
-          </h2>
-          <p className="text-zinc-400 max-w-md mx-auto text-sm">
-            Every feature crafted with precision to deliver a seamless reader
-            performance.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <GlowCard
-              key={i}
-              customSize
-              glowColor="orange"
-              className="p-8 group transition-all duration-500 hover:-translate-y-1.5 cursor-default hover:border-orange-500/30"
-            >
-              <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-6 text-white group-hover:bg-orange-500/10 group-hover:border-orange-500/20 transition-all duration-500">
-                {f.icon}
-              </div>
-              <h3 className="text-lg font-bold mb-3 text-white z-10 relative group-hover:text-orange-300 transition-colors">
-                {f.title}
-              </h3>
-              <p className="text-zinc-400 leading-relaxed text-xs z-10 relative">
-                {f.description}
-              </p>
-            </GlowCard>
-          ))}
-        </div>
       </section>
 
-      {/* CORE SHOWCASE MODULES */}
+      {/* INTERACTIVE PRODUCT TOUR */}
       <section
         id="showcase"
-        className="py-24 w-full bg-gradient-to-b from-transparent via-white/[0.01] to-transparent relative z-10"
+        className="w-full max-w-6xl px-5 py-20 border-t border-white/[0.06]"
       >
-        <div className="max-w-6xl mx-auto px-6 space-y-36">
-          {showcases.map((s, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center"
-            >
-              <div
-                className={`space-y-6 lg:col-span-5 ${s.reverse ? "lg:order-2" : "lg:order-1"}`}
-              >
-                <span className="premium-pill">{s.badge}</span>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                  {s.title}
-                </h2>
-                <p className="text-zinc-400 text-sm leading-relaxed max-w-lg">
-                  {s.description}
-                </p>
-                <div className="flex gap-4">
-                  <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-orange-400" />
-                    {s.shield || "Secure Local Storage"}
-                  </span>
-                </div>
-              </div>
-              <div
-                className={`relative rounded-[28px] overflow-hidden border border-white/10 shadow-2xl transition-all duration-700 hover:border-orange-500/40 hover:shadow-[0_0_50px_rgba(249,115,22,0.15)] group cursor-zoom-in lg:col-span-7 ${s.reverse ? "lg:order-1" : "lg:order-2"}`}
-                onClick={() => {
-                  setActiveImageIndex(i);
-                  setLightboxOpen(true);
-                }}
-                title="Click to view full screen"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none" />
-                <Image
-                  src={s.image}
-                  alt={s.title}
-                  width={1920}
-                  height={1080}
-                  className="w-full group-hover:scale-[1.03] transition-transform duration-700 z-0"
-                />
-                <ZoomBadge />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section id="faq" className="py-24 px-6 max-w-3xl w-full relative z-10">
-        <div className="text-center mb-16 space-y-4">
-          <span className="premium-pill">FAQ</span>
-          <h2 className="text-4xl font-extrabold tracking-tight text-white">
-            Common Questions
+        <div className="space-y-2 mb-10">
+          <span className="section-kicker">Product Tour</span>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white font-[family-name:var(--font-outfit)]">
+            Every view, crafted for daily use
           </h2>
-          <p className="text-zinc-400 text-sm">
-            Need help? Read through our quick FAQ list.
-          </p>
         </div>
 
-        <div className="space-y-4">
-          {faqs.map((f, i) => (
-            <div
-              key={i}
-              className="glass-card rounded-[20px] overflow-hidden border border-white/5 hover:border-white/10 transition-colors"
-            >
-              <button
-                className="w-full p-6 flex justify-between items-center text-left font-bold text-sm md:text-base hover:bg-white/[0.02] transition-colors text-white"
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              >
-                <span className="pr-4">{f.q}</span>
-                <ChevronDown
-                  className={`w-4 h-4 text-zinc-500 transition-transform duration-500 ${openFaq === i ? "rotate-180 text-orange-400" : ""}`}
-                />
-              </button>
-              <div
-                className={`grid transition-all duration-500 ease-in-out ${openFaq === i ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
-              >
-                <div className="overflow-hidden">
-                  <div className="px-6 pb-6 text-zinc-400 leading-relaxed text-xs md:text-sm pt-1 border-t border-white/5 bg-white/[0.01]">
-                    {f.a}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left selector list */}
+          <div className="lg:col-span-5 space-y-2">
+            {SHOWCASES.map((item, idx) => {
+              const isActive = activeShowcase === idx;
+              return (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => setActiveShowcase(idx)}
+                  className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-zinc-900/90 border-white/[0.16]"
+                      : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/[0.06]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <span
+                      className={`text-[11px] font-mono ${isActive ? "text-rose-400" : "text-zinc-500"}`}
+                    >
+                      {item.step}
+                    </span>
+                    <span className="text-sm font-semibold text-white">
+                      {item.title}
+                    </span>
                   </div>
-                </div>
+                  {isActive && (
+                    <p className="text-xs text-zinc-400 leading-relaxed pl-6">
+                      {item.description}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right active preview */}
+          <div className="lg:col-span-7 space-y-3">
+            <button
+              type="button"
+              onClick={() => openLightboxForSrc(currentShowcase.image)}
+              className="group relative block w-full rounded-2xl overflow-hidden border border-white/[0.1] bg-zinc-950 hover:border-white/25 transition-all cursor-zoom-in text-left"
+              title="Click to enlarge in gallery"
+            >
+              <div className="relative aspect-[16/9] w-full">
+                <Image
+                  src={currentShowcase.image}
+                  alt={currentShowcase.title}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 680px"
+                  className="object-cover object-top group-hover:scale-[1.015] transition-transform duration-500"
+                />
               </div>
+              <div className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/75 border border-white/10 text-[11px] font-medium text-zinc-200 backdrop-blur-md">
+                <Expand className="w-3 h-3" />
+                <span>Open Gallery ({LIGHTBOX_GALLERY.length})</span>
+              </div>
+            </button>
+
+            {/* Quick thumbnail strip */}
+            <div className="grid grid-cols-6 gap-2">
+              {SHOWCASES.map((item, idx) => (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => setActiveShowcase(idx)}
+                  className={`relative aspect-video rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                    activeShowcase === idx
+                      ? "border-rose-500 ring-1 ring-rose-500/40"
+                      : "border-white/[0.08] opacity-55 hover:opacity-100"
+                  }`}
+                  title={item.title}
+                >
+                  <Image
+                    src={item.image}
+                    alt={item.badge}
+                    fill
+                    sizes="120px"
+                    className="object-cover object-top"
+                  />
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      {/* Fullscreen Screenshot Lightbox */}
+      {/* FAQ */}
+      <section id="faq" className="w-full max-w-3xl px-5 py-20">
+        <div className="mb-10 space-y-2">
+          <span className="section-kicker">FAQ</span>
+          <h2 className="text-3xl font-bold tracking-tight text-white font-[family-name:var(--font-outfit)]">
+            Frequently asked questions
+          </h2>
+        </div>
+
+        <div className="divide-y divide-white/[0.06] border-y border-white/[0.06]">
+          {FAQS.map((f, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div key={i}>
+                <button
+                  type="button"
+                  className="w-full py-5 flex items-center justify-between gap-4 text-left text-sm sm:text-base font-medium text-zinc-100 hover:text-white transition-colors cursor-pointer"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                >
+                  <span>{f.q}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-zinc-500 shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-white" : ""
+                    }`}
+                  />
+                </button>
+                {isOpen && (
+                  <p className="pb-5 text-sm text-zinc-400 leading-relaxed pr-8">
+                    {f.a}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* LIGHTBOX */}
       <ImageLightbox
-        images={lightboxGallery}
+        images={LIGHTBOX_GALLERY}
         currentIndex={activeImageIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
