@@ -42,7 +42,10 @@ export type ReaderTimePersona =
   | "Evening Binger"
   | "Getting Started";
 
+export type WrappedMediaFilter = "all" | "anime" | "manga";
+
 export interface WrappedStatsSummary {
+  mediaFilter: WrappedMediaFilter;
   hasData: boolean;
   weeklyTotalSeconds: number;
   weeklyAnimeSeconds: number;
@@ -247,6 +250,7 @@ function resolveTimePersona(
 export interface ComputeWrappedStatsInput {
   historyEntries: readonly any[];
   genresByMangaId?: Readonly<Record<string, unknown>>;
+  mediaFilter?: WrappedMediaFilter;
   now?: Date;
 }
 
@@ -259,11 +263,14 @@ export function computeWrappedStats(
 ): WrappedStatsSummary {
   const now = input.now ?? new Date();
   const genresMap = input.genresByMangaId ?? {};
+  const mediaFilter: WrappedMediaFilter = input.mediaFilter ?? "all";
 
   const items: NormalizedHistoryItem[] = [];
   for (const raw of input.historyEntries) {
     const normalized = normalizeHistoryRecord(raw);
-    if (normalized) items.push(normalized);
+    if (!normalized) continue;
+    if (mediaFilter !== "all" && normalized.mediaType !== mediaFilter) continue;
+    items.push(normalized);
   }
 
   // Prepare last 7 calendar days ending today [now - 6 days .. now]
@@ -393,6 +400,7 @@ export function computeWrappedStats(
     .slice(0, 5);
 
   return {
+    mediaFilter,
     hasData: items.length > 0,
     weeklyTotalSeconds,
     weeklyAnimeSeconds,
