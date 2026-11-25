@@ -28,6 +28,8 @@ import { useKeyboardControls } from './hooks/useKeyboardControls'
 import { useAutoScroll } from './hooks/useAutoScroll'
 import { useDragToScroll } from './hooks/useDragToScroll'
 import { useZoom } from './hooks/useZoom'
+import { computeEyeCareOverlay, EYE_CARE_PRESETS } from '@common/utils/eyeCare'
+import { EyeCareTintPreset } from '@common/types'
 import { getNextDoublePage, getPrevDoublePage, PageDimensions } from './lib/doublePageSpread'
 
 export default function ChapterReader() {
@@ -49,7 +51,15 @@ export default function ChapterReader() {
     setReadingMode,
     readerTheme,
     cropBorders,
-    setCropBorders
+    setCropBorders,
+    eyeCareEnabled,
+    eyeCareTint,
+    eyeCareWarmth,
+    eyeCareDimming,
+    setEyeCareEnabled,
+    setEyeCareWarmth,
+    setEyeCareDimming,
+    applyEyeCarePreset
   } = useReaderStore()
 
   // --- State & Refs ---
@@ -334,6 +344,48 @@ export default function ChapterReader() {
     if (activeChapter?.url) DataService.openExternal(activeChapter.url)
   }, [activeChapter?.url])
 
+  const eyeCareOverlay = useMemo(
+    () =>
+      computeEyeCareOverlay(
+        {
+          enabled: eyeCareEnabled,
+          tint: eyeCareTint,
+          warmth: eyeCareWarmth,
+          dimming: eyeCareDimming
+        },
+        'multiply'
+      ),
+    [eyeCareEnabled, eyeCareTint, eyeCareWarmth, eyeCareDimming]
+  )
+
+  const handleToggleEyeCare = useCallback(() => {
+    void setEyeCareEnabled(!eyeCareEnabled)
+  }, [eyeCareEnabled, setEyeCareEnabled])
+
+  const handleChangeEyeCareWarmth = useCallback(
+    (warmth: number) => {
+      if (!eyeCareEnabled) void setEyeCareEnabled(true)
+      void setEyeCareWarmth(warmth)
+    },
+    [eyeCareEnabled, setEyeCareEnabled, setEyeCareWarmth]
+  )
+
+  const handleChangeEyeCareDimming = useCallback(
+    (dimming: number) => {
+      if (!eyeCareEnabled) void setEyeCareEnabled(true)
+      void setEyeCareDimming(dimming)
+    },
+    [eyeCareEnabled, setEyeCareEnabled, setEyeCareDimming]
+  )
+
+  const handleApplyEyeCarePreset = useCallback(
+    (preset: EyeCareTintPreset) => {
+      if (!preset || !(preset in EYE_CARE_PRESETS)) return
+      void applyEyeCarePreset(preset)
+    },
+    [applyEyeCarePreset]
+  )
+
   const handleVisible = useCallback(
     (chapter: Chapter) => {
       if (lastSyncId.current === chapter.id) return
@@ -564,6 +616,14 @@ export default function ChapterReader() {
           cropBorders={cropBorders}
           zoomLevel={zoomLevel}
           isZenMode={isZenMode}
+          eyeCareEnabled={eyeCareEnabled}
+          eyeCareTint={eyeCareTint}
+          eyeCareWarmth={eyeCareWarmth}
+          eyeCareDimming={eyeCareDimming}
+          onToggleEyeCare={handleToggleEyeCare}
+          onApplyEyeCarePreset={handleApplyEyeCarePreset}
+          onChangeEyeCareWarmth={handleChangeEyeCareWarmth}
+          onChangeEyeCareDimming={handleChangeEyeCareDimming}
           chapters={sortedChapters}
           activeChapterId={activeChapter.id}
           hasPrevChapter={prevChapter !== null}
@@ -591,91 +651,118 @@ export default function ChapterReader() {
         </div>
       )}
 
-      <div
-        ref={(el) => {
-          // @ts-ignore - assigned to both ref and state
-          scrollRef.current = el
-          setScrollEl(el)
-        }}
-        tabIndex={0}
-        onDoubleClick={(e) => {
-          const target = e.target as HTMLElement | null
-          if (
-            target?.closest('button') ||
-            target?.closest('input') ||
-            target?.closest('select') ||
-            target?.closest('a')
-          ) {
-            return
-          }
-          toggleZenMode()
-        }}
-        {...dragHandlers}
-        className={cn(
-          'flex-1 relative outline-none overscroll-contain no-scrollbar',
-          isVertical ? 'overflow-y-auto' : 'overflow-hidden',
-
-          isHorizontalContinuous && 'overflow-x-auto overflow-y-hidden flex flex-row',
-          dragToScroll && (isDragging ? 'cursor-grabbing' : 'cursor-grab'),
-          dragToScroll && 'select-none'
-        )}
-      >
+      <div className="flex-1 relative flex flex-col min-h-0 overflow-hidden">
         <div
+          ref={(el) => {
+            // @ts-ignore - assigned to both ref and state
+            scrollRef.current = el
+            setScrollEl(el)
+          }}
+          tabIndex={0}
+          onDoubleClick={(e) => {
+            const target = e.target as HTMLElement | null
+            if (
+              target?.closest('button') ||
+              target?.closest('input') ||
+              target?.closest('select') ||
+              target?.closest('a')
+            ) {
+              return
+            }
+            toggleZenMode()
+          }}
+          {...dragHandlers}
           className={cn(
-            'flex',
-            isHorizontalContinuous
-              ? readingMode === 'continuous-rtl'
-                ? 'flex-row-reverse w-max h-full'
-                : 'flex-row w-max h-full'
-              : 'flex-col w-full'
+            'flex-1 relative outline-none overscroll-contain no-scrollbar',
+            isVertical ? 'overflow-y-auto' : 'overflow-hidden',
+
+            isHorizontalContinuous && 'overflow-x-auto overflow-y-hidden flex flex-row',
+            dragToScroll && (isDragging ? 'cursor-grabbing' : 'cursor-grab'),
+            dragToScroll && 'select-none'
           )}
         >
-          {loadedChapters.map((chapter) => (
-            <ChapterSection
-              key={chapter.id}
-              chapter={chapter}
-              mangaId={selectedManga.id}
-              pkg={resolvedPkg}
-              readingMode={readingMode}
-              readerTheme={readerTheme}
-              cropBorders={cropBorders}
-              onHalfway={handleHalfway}
-              onVisible={handleVisible}
-              onLoaded={handleLoaded}
-              onPageVisible={handlePageVisible}
-              currentPage={currentPage}
-              onNextPage={pagedNext}
-              onPrevPage={pagedPrev}
-              isDragging={isDragging}
-              dragMoved={dragMoved.current}
-              scrollRoot={scrollEl}
-              zoomLevel={zoomLevel}
-              pageDimensions={pageDimensionsByChapter[chapter.id]}
-              onPageDimensions={handlePageDimensions}
-            />
-          ))}
+          <div
+            className={cn(
+              'flex',
+              isHorizontalContinuous
+                ? readingMode === 'continuous-rtl'
+                  ? 'flex-row-reverse w-max h-full'
+                  : 'flex-row w-max h-full'
+                : 'flex-col w-full'
+            )}
+          >
+            {loadedChapters.map((chapter) => (
+              <ChapterSection
+                key={chapter.id}
+                chapter={chapter}
+                mangaId={selectedManga.id}
+                pkg={resolvedPkg}
+                readingMode={readingMode}
+                readerTheme={readerTheme}
+                cropBorders={cropBorders}
+                onHalfway={handleHalfway}
+                onVisible={handleVisible}
+                onLoaded={handleLoaded}
+                onPageVisible={handlePageVisible}
+                currentPage={currentPage}
+                onNextPage={pagedNext}
+                onPrevPage={pagedPrev}
+                isDragging={isDragging}
+                dragMoved={dragMoved.current}
+                scrollRoot={scrollEl}
+                zoomLevel={zoomLevel}
+                pageDimensions={pageDimensionsByChapter[chapter.id]}
+                onPageDimensions={handlePageDimensions}
+              />
+            ))}
 
-          {isInfiniteScroll && (
-            <div className="w-full max-w-lg py-40 px-6 flex flex-col items-center text-center gap-6 mx-auto">
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-neutral-800 to-transparent opacity-20" />
-              <div className="space-y-1">
-                <p className="text-xl font-bold bg-gradient-to-r from-neutral-100 to-neutral-400 bg-clip-text text-transparent">
-                  End of Stream
-                </p>
-                <p className="text-xs text-neutral-500 font-medium tracking-wide">
-                  Return or browse more chapters.
-                </p>
+            {isInfiniteScroll && (
+              <div className="w-full max-w-lg py-40 px-6 flex flex-col items-center text-center gap-6 mx-auto">
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-neutral-800 to-transparent opacity-20" />
+                <div className="space-y-1">
+                  <p className="text-xl font-bold bg-gradient-to-r from-neutral-100 to-neutral-400 bg-clip-text text-transparent">
+                    End of Stream
+                  </p>
+                  <p className="text-xs text-neutral-500 font-medium tracking-wide">
+                    Return or browse more chapters.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setActiveChapter(null)}
+                  variant="outline"
+                  className="rounded-full px-8 border-neutral-800 text-neutral-400 hover:bg-neutral-900 shadow-xl"
+                >
+                  Back to Library
+                </Button>
               </div>
-              <Button
-                onClick={() => setActiveChapter(null)}
-                variant="outline"
-                className="rounded-full px-8 border-neutral-800 text-neutral-400 hover:bg-neutral-900 shadow-xl"
-              >
-                Back to Library
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* Night Eye-Care Filter Overlay (Warm/Sepia tint + custom dimming without changing OS brightness) */}
+        {eyeCareOverlay.active && (
+          <>
+            {eyeCareOverlay.tintBackgroundColor && (
+              <div
+                aria-hidden="true"
+                data-testid="eye-care-tint-overlay"
+                className="absolute inset-0 pointer-events-none z-30 transition-colors duration-200"
+                style={{
+                  backgroundColor: eyeCareOverlay.tintBackgroundColor,
+                  mixBlendMode: 'multiply'
+                }}
+              />
+            )}
+            {eyeCareOverlay.dimBackgroundColor && (
+              <div
+                aria-hidden="true"
+                data-testid="eye-care-dim-overlay"
+                className="absolute inset-0 pointer-events-none z-30 transition-colors duration-200"
+                style={{ backgroundColor: eyeCareOverlay.dimBackgroundColor }}
+              />
+            )}
+          </>
+        )}
       </div>
 
       {totalPages > 0 && (

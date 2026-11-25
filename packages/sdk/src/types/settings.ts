@@ -1,5 +1,5 @@
 import { ThemeType, ColorThemeType, ViewMode } from "./ui";
-import { ReadingMode, ReaderShortcuts } from "./reader";
+import { ReadingMode, ReaderShortcuts, EyeCareTintPreset } from "./reader";
 
 export interface CustomThemeConfig {
   accent: string;
@@ -35,6 +35,10 @@ export interface SettingsSchema {
     readerTheme: "match-app" | "light" | "dark" | "system";
     autoScrollShortcuts: ReaderShortcuts;
     cropBorders?: boolean;
+    eyeCareEnabled: boolean;
+    eyeCareTint: EyeCareTintPreset;
+    eyeCareWarmth: number;
+    eyeCareDimming: number;
   };
   extensions: {
     pinnedExtensions: string[];
@@ -87,6 +91,10 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
       reverse: "ArrowUp",
     },
     cropBorders: false,
+    eyeCareEnabled: false,
+    eyeCareTint: "sepia",
+    eyeCareWarmth: 45,
+    eyeCareDimming: 30,
   },
   extensions: {
     pinnedExtensions: [],
@@ -137,6 +145,10 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   reader_shortcut_slow: "reader.autoScrollShortcuts.slow",
   reader_shortcut_reverse: "reader.autoScrollShortcuts.reverse",
   crop_borders: "reader.cropBorders",
+  eye_care_enabled: "reader.eyeCareEnabled",
+  eye_care_tint: "reader.eyeCareTint",
+  eye_care_warmth: "reader.eyeCareWarmth",
+  eye_care_dimming: "reader.eyeCareDimming",
 
   // Extensions
   pinned_extensions: "extensions.pinnedExtensions",

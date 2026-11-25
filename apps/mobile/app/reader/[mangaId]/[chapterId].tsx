@@ -23,9 +23,102 @@ import {
   ChevronRight,
   RefreshCw,
   ShieldCheck,
+  Moon,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { EyeCareTintPreset } from "@common/types";
+import {
+  clampEyeCareValue,
+  computeEyeCareOverlay,
+  DEFAULT_EYE_CARE_CONFIG,
+  EYE_CARE_PRESETS,
+  isEyeCareTintPreset,
+  MAX_EYE_CARE_DIMMING,
+  MAX_EYE_CARE_WARMTH,
+} from "@common/utils/eyeCare";
 import { getImageHeaders } from "../../../src/mobile/cf-cookies";
+
+const EyeCareSlider = ({
+  label,
+  value,
+  max,
+  disabled = false,
+  displayText,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  disabled?: boolean;
+  displayText: string;
+  onChange: (nextValue: number) => void;
+}) => {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthRef = useRef(0);
+  const startXRef = useRef(0);
+  const maxRef = useRef(max);
+  const disabledRef = useRef(disabled);
+  const onChangeRef = useRef(onChange);
+
+  trackWidthRef.current = trackWidth;
+  maxRef.current = max;
+  disabledRef.current = disabled;
+  onChangeRef.current = onChange;
+
+  const updateFromX = useCallback((x: number) => {
+    const width = trackWidthRef.current;
+    if (width <= 0 || disabledRef.current) return;
+    const clampedX = Math.max(0, Math.min(x, width));
+    const ratio = clampedX / width;
+    onChangeRef.current(Math.round(ratio * maxRef.current));
+  }, []);
+
+  const sliderResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => !disabledRef.current,
+      onMoveShouldSetPanResponder: () => !disabledRef.current,
+      onPanResponderGrant: (evt) => {
+        startXRef.current = evt.nativeEvent.locationX;
+        updateFromX(startXRef.current);
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        updateFromX(startXRef.current + gestureState.dx);
+      },
+    }),
+  ).current;
+
+  const fillPercent =
+    max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+
+  return (
+    <View style={{ opacity: disabled ? 0.4 : 1 }}>
+      <View className="flex-row items-center justify-between mb-1">
+        <Typography className="text-zinc-300 text-xs font-semibold">
+          {label}
+        </Typography>
+        <Typography className="text-amber-400 text-xs font-mono font-bold">
+          {displayText}
+        </Typography>
+      </View>
+      <View
+        className="h-7 justify-center"
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+        {...sliderResponder.panHandlers}
+      >
+        <View className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+          <View
+            style={{ width: `${fillPercent}%`, backgroundColor: "#f59e0b" }}
+            className="h-full rounded-full"
+          />
+        </View>
+        <View
+          style={{ left: `${fillPercent}%` }}
+          className="absolute w-4 h-4 -ml-2 rounded-full bg-amber-400 border border-amber-100 shadow-sm top-1.5"
+        />
+      </View>
+    </View>
+  );
+};
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -395,28 +488,170 @@ export default function ReaderScreen() {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
   const [isBypassingChapterCf, setIsBypassingChapterCf] = useState(false);
+  const [showEyeCarePanel, setShowEyeCarePanel] = useState(false);
+  const [eyeCareEnabled, setEyeCareEnabled] = useState(
+    DEFAULT_EYE_CARE_CONFIG.enabled,
+  );
+  const [eyeCareTint, setEyeCareTint] = useState<EyeCareTintPreset>(
+    DEFAULT_EYE_CARE_CONFIG.tint,
+  );
+  const [eyeCareWarmth, setEyeCareWarmth] = useState(
+    DEFAULT_EYE_CARE_CONFIG.warmth,
+  );
+  const [eyeCareDimming, setEyeCareDimming] = useState(
+    DEFAULT_EYE_CARE_CONFIG.dimming,
+  );
 
   const listRef = useRef<FlatList>(null);
   const startLocationXRef = useRef(0);
+  const eyeCarePersistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
-  // Load reading mode preference from SQLite settings
+  // Load reading mode and Night Eye-Care preferences from SQLite settings
   useEffect(() => {
-    async function loadMode() {
+    async function loadPreferences() {
       try {
-        const saved = await DataService.db.getSetting("reader_reading_mode");
+        const [
+          savedMode,
+          savedEyeEnabled,
+          savedEyeTint,
+          savedEyeWarmth,
+          savedEyeDim,
+        ] = await Promise.all([
+          DataService.db.getSetting("reader_reading_mode"),
+          DataService.db.getSetting("eye_care_enabled"),
+          DataService.db.getSetting("eye_care_tint"),
+          DataService.db.getSetting("eye_care_warmth"),
+          DataService.db.getSetting("eye_care_dimming"),
+        ]);
         if (
-          saved === "webtoon" ||
-          saved === "paged-rtl" ||
-          saved === "paged-ltr"
+          savedMode === "webtoon" ||
+          savedMode === "paged-rtl" ||
+          savedMode === "paged-ltr"
         ) {
-          setReadingMode(saved);
+          setReadingMode(savedMode);
+        }
+        if (savedEyeEnabled !== null && savedEyeEnabled !== undefined) {
+          setEyeCareEnabled(savedEyeEnabled === "true");
+        }
+        if (isEyeCareTintPreset(savedEyeTint)) {
+          setEyeCareTint(savedEyeTint);
+        }
+        if (savedEyeWarmth !== null && savedEyeWarmth !== undefined) {
+          const parsedWarmth = Number(savedEyeWarmth);
+          if (!Number.isNaN(parsedWarmth)) {
+            setEyeCareWarmth(
+              clampEyeCareValue(parsedWarmth, 0, MAX_EYE_CARE_WARMTH),
+            );
+          }
+        }
+        if (savedEyeDim !== null && savedEyeDim !== undefined) {
+          const parsedDim = Number(savedEyeDim);
+          if (!Number.isNaN(parsedDim)) {
+            setEyeCareDimming(
+              clampEyeCareValue(parsedDim, 0, MAX_EYE_CARE_DIMMING),
+            );
+          }
         }
       } catch (err) {
-        console.warn("[ReaderScreen] Failed to load reading mode:", err);
+        console.warn("[ReaderScreen] Failed to load preferences:", err);
       }
     }
-    loadMode();
+    loadPreferences();
+    return () => {
+      if (eyeCarePersistTimerRef.current) {
+        clearTimeout(eyeCarePersistTimerRef.current);
+      }
+    };
   }, []);
+
+  const schedulePersistEyeCareSlider = useCallback(
+    (key: "eye_care_warmth" | "eye_care_dimming", val: number) => {
+      if (eyeCarePersistTimerRef.current) {
+        clearTimeout(eyeCarePersistTimerRef.current);
+      }
+      eyeCarePersistTimerRef.current = setTimeout(() => {
+        DataService.db.setSetting(key, String(val)).catch(console.error);
+      }, 140);
+    },
+    [],
+  );
+
+  const toggleEyeCareEnabled = useCallback(() => {
+    setEyeCareEnabled((prev) => {
+      const next = !prev;
+      DataService.db
+        .setSetting("eye_care_enabled", next ? "true" : "false")
+        .catch(console.error);
+      return next;
+    });
+  }, []);
+
+  const applyEyeCarePreset = useCallback((preset: EyeCareTintPreset) => {
+    const meta = EYE_CARE_PRESETS[preset];
+    setEyeCareEnabled(true);
+    setEyeCareTint(preset);
+    setEyeCareWarmth(meta.defaultWarmth);
+    setEyeCareDimming(meta.defaultDimming);
+    Promise.all([
+      DataService.db.setSetting("eye_care_enabled", "true"),
+      DataService.db.setSetting("eye_care_tint", preset),
+      DataService.db.setSetting("eye_care_warmth", String(meta.defaultWarmth)),
+      DataService.db.setSetting(
+        "eye_care_dimming",
+        String(meta.defaultDimming),
+      ),
+    ]).catch(console.error);
+  }, []);
+
+  const updateEyeCareWarmth = useCallback(
+    (nextWarmth: number) => {
+      const clamped = clampEyeCareValue(nextWarmth, 0, MAX_EYE_CARE_WARMTH);
+      setEyeCareEnabled((prev) => {
+        if (!prev) {
+          DataService.db
+            .setSetting("eye_care_enabled", "true")
+            .catch(console.error);
+        }
+        return true;
+      });
+      setEyeCareWarmth(clamped);
+      schedulePersistEyeCareSlider("eye_care_warmth", clamped);
+    },
+    [schedulePersistEyeCareSlider],
+  );
+
+  const updateEyeCareDimming = useCallback(
+    (nextDimming: number) => {
+      const clamped = clampEyeCareValue(nextDimming, 0, MAX_EYE_CARE_DIMMING);
+      setEyeCareEnabled((prev) => {
+        if (!prev) {
+          DataService.db
+            .setSetting("eye_care_enabled", "true")
+            .catch(console.error);
+        }
+        return true;
+      });
+      setEyeCareDimming(clamped);
+      schedulePersistEyeCareSlider("eye_care_dimming", clamped);
+    },
+    [schedulePersistEyeCareSlider],
+  );
+
+  const eyeCareOverlay = useMemo(
+    () =>
+      computeEyeCareOverlay(
+        {
+          enabled: eyeCareEnabled,
+          tint: eyeCareTint,
+          warmth: eyeCareWarmth,
+          dimming: eyeCareDimming,
+        },
+        "alpha",
+      ),
+    [eyeCareEnabled, eyeCareTint, eyeCareWarmth, eyeCareDimming],
+  );
 
   const changeReadingMode = useCallback((mode: MobileReadingMode) => {
     setReadingMode(mode);
@@ -599,7 +834,12 @@ export default function ReaderScreen() {
     },
   ).current;
 
-  const toggleUI = () => setShowUI((prev) => !prev);
+  const toggleUI = () =>
+    setShowUI((prev) => {
+      const next = !prev;
+      if (!next) setShowEyeCarePanel(false);
+      return next;
+    });
 
   // Navigation & Page Seeking
   const seekToPage = useCallback(
@@ -791,6 +1031,24 @@ export default function ReaderScreen() {
               </Typography>
             </View>
 
+            {/* Night Eye-Care Button */}
+            <TouchableOpacity
+              onPress={() => setShowEyeCarePanel((prev) => !prev)}
+              activeOpacity={0.7}
+              className={`mr-2 p-2 rounded-full border ${
+                eyeCareEnabled || showEyeCarePanel
+                  ? "bg-amber-500/20 border-amber-500/50"
+                  : "bg-zinc-800 border-zinc-700"
+              }`}
+            >
+              <Moon
+                size={16}
+                color={
+                  eyeCareEnabled || showEyeCarePanel ? "#fbbf24" : "#e4e4e7"
+                }
+              />
+            </TouchableOpacity>
+
             {/* Quick Mode Toggle Pill */}
             <TouchableOpacity
               onPress={() => {
@@ -814,6 +1072,94 @@ export default function ReaderScreen() {
               </Typography>
             </TouchableOpacity>
           </View>
+
+          {showEyeCarePanel && (
+            <View className="mx-4 mt-2 p-3.5 rounded-2xl bg-zinc-900/95 border border-zinc-700/80 gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
+                  <Moon size={15} color="#fbbf24" />
+                  <Typography className="text-white text-xs font-bold">
+                    Night Eye-Care (Kindle)
+                  </Typography>
+                </View>
+                <TouchableOpacity
+                  onPress={toggleEyeCareEnabled}
+                  activeOpacity={0.75}
+                  className={`px-3 py-1 rounded-full border ${
+                    eyeCareEnabled
+                      ? "bg-amber-500/20 border-amber-500/50"
+                      : "bg-zinc-800 border-zinc-700"
+                  }`}
+                >
+                  <Typography
+                    className={`text-[11px] font-bold ${
+                      eyeCareEnabled ? "text-amber-400" : "text-zinc-400"
+                    }`}
+                  >
+                    {eyeCareEnabled ? "ON" : "OFF"}
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+
+              <View className="flex-row gap-2">
+                {(Object.keys(EYE_CARE_PRESETS) as EyeCareTintPreset[]).map(
+                  (key) => {
+                    const preset = EYE_CARE_PRESETS[key];
+                    const isSelected = eyeCareEnabled && eyeCareTint === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => applyEyeCarePreset(key)}
+                        activeOpacity={0.75}
+                        className={`flex-1 items-center py-2 px-1 rounded-xl border ${
+                          isSelected
+                            ? "bg-amber-500/20 border-amber-500/50"
+                            : "bg-zinc-800/80 border-zinc-700/70"
+                        }`}
+                      >
+                        <View
+                          style={{ backgroundColor: preset.swatchHex }}
+                          className="w-3.5 h-3.5 rounded-full border border-white/25 mb-1"
+                        />
+                        <Typography
+                          className={`text-[10px] font-bold ${
+                            isSelected ? "text-amber-400" : "text-zinc-300"
+                          }`}
+                          numberOfLines={1}
+                        >
+                          {preset.label}
+                        </Typography>
+                      </TouchableOpacity>
+                    );
+                  },
+                )}
+              </View>
+
+              <EyeCareSlider
+                label="Warm / Sepia Tint"
+                value={eyeCareTint === "dim" ? 0 : eyeCareWarmth}
+                max={MAX_EYE_CARE_WARMTH}
+                disabled={eyeCareTint === "dim"}
+                displayText={
+                  eyeCareTint === "dim" ? "Off" : `${eyeCareWarmth}%`
+                }
+                onChange={updateEyeCareWarmth}
+              />
+
+              <EyeCareSlider
+                label="Reader Dimming"
+                value={eyeCareDimming}
+                max={MAX_EYE_CARE_DIMMING}
+                displayText={`${eyeCareDimming}%`}
+                onChange={updateEyeCareDimming}
+              />
+
+              <Typography className="text-zinc-500 text-[10px]">
+                Tints and dims reader pages only without changing Android
+                brightness.
+              </Typography>
+            </View>
+          )}
         </View>
       )}
 
@@ -938,6 +1284,38 @@ export default function ReaderScreen() {
                   : undefined
               }
             />
+
+            {/* Night Eye-Care Filter Overlay (Warm/Sepia tint + dimming, non-interactive) */}
+            {eyeCareOverlay.active && (
+              <>
+                {eyeCareOverlay.tintBackgroundColor && (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      backgroundColor: eyeCareOverlay.tintBackgroundColor,
+                    }}
+                  />
+                )}
+                {eyeCareOverlay.dimBackgroundColor && (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      backgroundColor: eyeCareOverlay.dimBackgroundColor,
+                    }}
+                  />
+                )}
+              </>
+            )}
           </View>
         </TouchableWithoutFeedback>
       )}
