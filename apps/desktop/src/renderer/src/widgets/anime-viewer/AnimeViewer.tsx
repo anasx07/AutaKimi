@@ -13,8 +13,10 @@ import {
   Maximize,
   RectangleHorizontal,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  PictureInPicture2
 } from 'lucide-react'
+import type { Chapter } from '@common/types'
 import {
   parseEpisodeNumber,
   evaluateSkipUIState,
@@ -48,9 +50,17 @@ import { isMobile } from '@renderer/shared/platform'
 import { ServerSelector, ServerItem } from './components/ServerSelector'
 import { EpisodeDrawer } from './components/EpisodeDrawer'
 import { VideoControls, QualityLevel } from './components/VideoControls'
+import { MiniPipControls } from './components/MiniPipControls'
 import { useHlsPlayer } from './hooks/useHlsPlayer'
 import { useMediaSession } from './hooks/useMediaSession'
 import { useAmbientGlow } from './hooks/useAmbientGlow'
+import {
+  usePipPlayerStore,
+  recordLivePlaybackSeconds,
+  peekLivePlaybackSeconds,
+  clearLivePlaybackSeconds,
+  type PipSession
+} from '@renderer/app/components/pipPlayerStore'
 
 export type { ServerItem, QualityLevel }
 
@@ -137,16 +147,27 @@ async function probeEpisodeServers(
 }
 
 export interface AnimeViewerProps {
-  variant?: 'overlay' | 'inline'
+  variant?: 'overlay' | 'inline' | 'mini'
   isTheaterMode?: boolean
   onToggleTheaterMode?: () => void
+  miniSession?: PipSession | null
+  onExpandMini?: () => void
+  onCloseMini?: () => void
+  onUpdateMiniChapter?: (chapter: Chapter) => void
+  onEnterMiniPip?: () => void
 }
 
 export default function AnimeViewer({
   variant = 'overlay',
   isTheaterMode = false,
-  onToggleTheaterMode
+  onToggleTheaterMode,
+  miniSession = null,
+  onExpandMini,
+  onCloseMini,
+  onUpdateMiniChapter,
+  onEnterMiniPip
 }: AnimeViewerProps) {
+  const isMini = variant === 'mini'
   const isInline = variant === 'inline'
   const mobile = isMobile()
   const platform = DataService.platform
@@ -154,6 +175,46 @@ export default function AnimeViewer({
   const { activeExtension } = useExtensionStore()
   const { markChapterRead, loadProgress, pageProgress } = useProgressStore()
   const { addHistoryEntry, updateHistoryDuration } = useHistoryStore()
+  const setLivePlayback = usePipPlayerStore((s) => s.setLivePlayback)
+  const setLivePlaying = usePipPlayerStore((s) => s.setLivePlaying)
+
+  const effectiveManga = isMini ? (miniSession?.manga ?? null) : selectedManga
+  const effectiveChapter = isMini ? (miniSession?.chapter ?? null) : activeChapter
+  const effectivePkg = isMini ? (miniSession?.pkg ?? '') : activeExtension || ''
+
+  const setEffectiveEpisode = useCallback(
+    (episode: Chapter | null) => {
+      if (isMini) {
+        if (episode) {
+          onUpdateMiniChapter?.(episode)
+        } else {
+          onCloseMini?.()
+        }
+        return
+      }
+      setActiveChapter(episode)
+    },
+    [isMini, onUpdateMiniChapter, onCloseMini, setActiveChapter]
+  )
+
+  const closeAndStopPlayer = useCallback(() => {
+    if (effectiveManga?.id && effectiveChapter?.id) {
+      clearLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
+    }
+    if (isMini) {
+      onCloseMini?.()
+      return
+    }
+    setLivePlayback(null)
+    setActiveChapter(null)
+  }, [
+    effectiveManga?.id,
+    effectiveChapter?.id,
+    isMini,
+    onCloseMini,
+    setLivePlayback,
+    setActiveChapter
+  ])
   const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(
     null
   )
@@ -238,15 +299,35 @@ export default function AnimeViewer({
 
   // Load reading/watching progress on manga load
   useEffect(() => {
-    if (selectedManga?.id) {
-      loadProgress(selectedManga.id)
+    if (effectiveManga?.id) {
+      loadProgress(effectiveManga.id)
     }
-  }, [selectedManga?.id, loadProgress])
+  }, [effectiveManga?.id, loadProgress])
 
   const savedProgressSeconds = useMemo(() => {
-    if (!selectedManga?.id || !activeChapter?.id) return 0
-    return pageProgress[selectedManga.id]?.[activeChapter.id] || 0
-  }, [selectedManga?.id, activeChapter?.id, pageProgress])
+    if (!effectiveManga?.id || !effectiveChapter?.id) return 0
+    return pageProgress[effectiveManga.id]?.[effectiveChapter.id] || 0
+  }, [effectiveManga?.id, effectiveChapter?.id, pageProgress])
+
+  const exactHandoffSeconds = useMemo(() => {
+    if (!effectiveManga?.id || !effectiveChapter?.id) return 0
+    return peekLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
+  }, [effectiveManga?.id, effectiveChapter?.id])
+
+  // Sync active playback snapshot for Auto Bottom-Right PiP when leaving the Watch Page
+  useEffect(() => {
+    if (isMini) return
+    if (effectiveManga && effectiveChapter && effectivePkg) {
+      setLivePlayback({
+        manga: effectiveManga,
+        chapter: effectiveChapter,
+        pkg: effectivePkg,
+        isPlaying: false
+      })
+    } else {
+      setLivePlayback(null)
+    }
+  }, [isMini, effectiveManga, effectiveChapter, effectivePkg, setLivePlayback])
 
   // Finalize watching duration on unmount
   useEffect(() => {
@@ -266,9 +347,9 @@ export default function AnimeViewer({
 
   const { data: episodes = [] } = useMediaItems(
     'anime',
-    selectedManga?.id || '',
-    activeExtension || '',
-    selectedManga?.url
+    effectiveManga?.id || '',
+    effectivePkg,
+    effectiveManga?.url
   )
 
   const [servers, setServers] = useState<ServerItem[]>([])
@@ -320,7 +401,7 @@ export default function AnimeViewer({
     return [...episodes].sort((a, b) => (a.number || 0) - (b.number || 0))
   }, [episodes])
 
-  const currentIndex = sortedEpisodes.findIndex((e) => e.id === activeChapter?.id)
+  const currentIndex = sortedEpisodes.findIndex((e) => e.id === effectiveChapter?.id)
   const nextEpisode =
     currentIndex !== -1 && currentIndex + 1 < sortedEpisodes.length
       ? sortedEpisodes[currentIndex + 1]
@@ -345,14 +426,14 @@ export default function AnimeViewer({
     if (autoNextCountdown === null) return
     if (autoNextCountdown <= 0) {
       setAutoNextCountdown(null)
-      if (nextEpisode) setActiveChapter(nextEpisode)
+      if (nextEpisode) setEffectiveEpisode(nextEpisode)
       return
     }
     const timer = setTimeout(() => {
       setAutoNextCountdown((prev) => (prev !== null ? prev - 1 : null))
     }, 1000)
     return () => clearTimeout(timer)
-  }, [autoNextCountdown, nextEpisode, setActiveChapter])
+  }, [autoNextCountdown, nextEpisode, setEffectiveEpisode])
 
   // Reset Skip Intro / Outro state when episode changes
   useEffect(() => {
@@ -360,13 +441,13 @@ export default function AnimeViewer({
     setOutroDismissed(false)
     setOutroCountdown(null)
     outroTriggeredRef.current = false
-  }, [activeChapter?.id])
+  }, [effectiveChapter?.id])
 
   // Resolve AniSkip OP / ED timestamps via MAL ID (tracker -> AniList search)
   const durationBucket = duration > 60 ? Math.floor(duration) : 0
   useEffect(() => {
-    if (!selectedManga || !activeChapter) return
-    const episodeNumber = parseEpisodeNumber(activeChapter.number, activeChapter.title)
+    if (!effectiveManga || !effectiveChapter) return
+    const episodeNumber = parseEpisodeNumber(effectiveChapter.number, effectiveChapter.title)
     if (!episodeNumber) return
 
     let cancelled = false
@@ -374,7 +455,7 @@ export default function AnimeViewer({
       try {
         let malId: number | undefined
         let anilistId: number | undefined
-        const trackers = await DataService.tracker.getByManga(selectedManga.id).catch(() => [])
+        const trackers = await DataService.tracker.getByManga(effectiveManga.id).catch(() => [])
         if (Array.isArray(trackers)) {
           const malTracker = trackers.find((t: any) => t.provider === 'mal')
           const aniTracker = trackers.find((t: any) => t.provider === 'anilist')
@@ -391,7 +472,7 @@ export default function AnimeViewer({
         const result = await DataService.tracker.getSkipTimes({
           malId,
           anilistId,
-          title: selectedManga.title,
+          title: effectiveManga.title,
           episodeNumber,
           episodeLength: durationBucket
         })
@@ -407,7 +488,7 @@ export default function AnimeViewer({
     return () => {
       cancelled = true
     }
-  }, [selectedManga, activeChapter, durationBucket])
+  }, [effectiveManga, effectiveChapter, durationBucket])
 
   const s = servers[activeServerIdx]
   const activeServerUrl = typeof s === 'object' ? (s as any)?.url : s
@@ -518,10 +599,23 @@ export default function AnimeViewer({
     isMutedRef,
     playbackRateRef,
     savedProgressSeconds,
+    exactHandoffSeconds,
     failoverToNextServer,
     setDuration,
     setResumeNotice
   })
+
+  // Persist exact currentTime when unmounting or switching episodes for seamless Inline <-> PiP handoff
+  useEffect(() => {
+    const curVideo = videoRef.current
+    const curMangaId = effectiveManga?.id
+    const curChapterId = effectiveChapter?.id
+    return () => {
+      if (curMangaId && curChapterId && curVideo && curVideo.currentTime > 0) {
+        recordLivePlaybackSeconds(curMangaId, curChapterId, curVideo.currentTime)
+      }
+    }
+  }, [videoRef, effectiveManga?.id, effectiveChapter?.id])
 
   const handleManualSwitch = useCallback(() => {
     if (servers.length <= 1) return
@@ -545,12 +639,12 @@ export default function AnimeViewer({
   }, [servers, activeServerIdx])
 
   const recordWatchSession = useCallback(
-    (chapter: NonNullable<typeof activeChapter>) => {
-      if (!selectedManga) return
+    (chapter: Chapter) => {
+      if (!effectiveManga) return
 
       if (
         activeSessionRef.current &&
-        (activeSessionRef.current.mangaId !== selectedManga.id ||
+        (activeSessionRef.current.mangaId !== effectiveManga.id ||
           activeSessionRef.current.chapterId !== chapter.id)
       ) {
         const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
@@ -564,33 +658,33 @@ export default function AnimeViewer({
       }
 
       activeSessionRef.current = {
-        mangaId: selectedManga.id,
+        mangaId: effectiveManga.id,
         chapterId: chapter.id,
         startTime: Date.now()
       }
 
       const existingProgress =
-        useProgressStore.getState().pageProgress[selectedManga.id]?.[chapter.id] || undefined
+        useProgressStore.getState().pageProgress[effectiveManga.id]?.[chapter.id] || undefined
 
       markChapterRead(
-        selectedManga.id,
+        effectiveManga.id,
         chapter.id,
         true,
         existingProgress,
         Number(chapter.number) || undefined
       )
       addHistoryEntry({
-        mangaId: selectedManga.id,
-        mangaTitle: selectedManga.title,
+        mangaId: effectiveManga.id,
+        mangaTitle: effectiveManga.title,
         chapterId: chapter.id,
         chapterTitle: chapter.title || undefined,
         startedAt: new Date().toISOString(),
         durationSeconds: 0,
-        pkg: activeExtension || undefined,
+        pkg: effectivePkg || undefined,
         type: 'anime'
       })
     },
-    [selectedManga, activeExtension, markChapterRead, addHistoryEntry, updateHistoryDuration]
+    [effectiveManga, effectivePkg, markChapterRead, addHistoryEntry, updateHistoryDuration]
   )
 
   const applyEntryServers = useCallback(
@@ -637,9 +731,9 @@ export default function AnimeViewer({
   )
 
   const loadServers = useCallback(async () => {
-    if (!activeChapter || !activeExtension) return
+    if (!effectiveChapter || !effectivePkg) return
     const currentGen = ++loadGenerationRef.current
-    const cacheKey = makeEpisodePrefetchKey(activeExtension, activeChapter.url)
+    const cacheKey = makeEpisodePrefetchKey(effectivePkg, effectiveChapter.url)
 
     clearWatchdog()
     setError(null)
@@ -650,7 +744,7 @@ export default function AnimeViewer({
     if (cachedEntry && cachedEntry.servers.length > 0) {
       applyEntryServers(cachedEntry, cacheKey, currentGen)
       setLoading(false)
-      recordWatchSession(activeChapter)
+      recordWatchSession(effectiveChapter)
       return
     }
 
@@ -658,13 +752,13 @@ export default function AnimeViewer({
 
     try {
       const entry = await sharedEpisodeStreamCache.getOrLoad(cacheKey, () =>
-        fetchAndNormalizeEpisode(activeExtension, activeChapter.url)
+        fetchAndNormalizeEpisode(effectivePkg, effectiveChapter.url)
       )
 
       if (currentGen !== loadGenerationRef.current) return
 
       applyEntryServers(entry, cacheKey, currentGen)
-      recordWatchSession(activeChapter)
+      recordWatchSession(effectiveChapter)
     } catch (err: any) {
       if (currentGen !== loadGenerationRef.current) return
       console.error('[AnimeViewer] Failed to load servers:', err)
@@ -674,11 +768,11 @@ export default function AnimeViewer({
         setLoading(false)
       }
     }
-  }, [activeChapter, activeExtension, clearWatchdog, applyEntryServers, recordWatchSession])
+  }, [effectiveChapter, effectivePkg, clearWatchdog, applyEntryServers, recordWatchSession])
 
   useEffect(() => {
     loadServers()
-  }, [activeChapter?.id, activeExtension, loadServers])
+  }, [effectiveChapter?.id, effectivePkg, loadServers])
 
   // Automatically append autoplay parameters and ensure unmuted parameters for embed URLs
   const activeEmbedUrl = useMemo(() => {
@@ -724,7 +818,7 @@ export default function AnimeViewer({
     setCurrentQualityLabel('')
     setMp4QualityLabel('')
   }, [
-    activeChapter?.id,
+    effectiveChapter?.id,
     activeServerIdx,
     hasResumedRef,
     setQualityLevels,
@@ -764,12 +858,12 @@ export default function AnimeViewer({
 
   const prefetchNextEpisodeInBackground = useCallback(
     (episodeDurationSec: number) => {
-      if (!activeExtension || !nextEpisode?.url) return
-      const nextKey = makeEpisodePrefetchKey(activeExtension, nextEpisode.url)
+      if (!effectivePkg || !nextEpisode?.url) return
+      const nextKey = makeEpisodePrefetchKey(effectivePkg, nextEpisode.url)
 
       sharedEpisodeStreamCache
         .prefetchInBackground(nextKey, () =>
-          fetchAndNormalizeEpisode(activeExtension, nextEpisode.url)
+          fetchAndNormalizeEpisode(effectivePkg, nextEpisode.url)
         )
         .then((entry) => {
           if (entry && entry.servers.length > 0 && !entry.probeResults) {
@@ -779,15 +873,15 @@ export default function AnimeViewer({
         .catch(() => {})
 
       prefetchNextEpisodeSkipTimes({
-        animeId: selectedManga?.id,
-        animeTitle: selectedManga?.title,
+        animeId: effectiveManga?.id,
+        animeTitle: effectiveManga?.title,
         nextEpisode,
         episodeLength: episodeDurationSec > 60 ? Math.floor(episodeDurationSec) : 0,
         getTrackers: (id) => DataService.tracker.getByManga(id),
         getSkipTimes: (req) => DataService.tracker.getSkipTimes(req)
       }).catch(() => {})
     },
-    [activeExtension, nextEpisode, selectedManga?.id, selectedManga?.title]
+    [effectivePkg, nextEpisode, effectiveManga?.id, effectiveManga?.title]
   )
 
   const handleTimeUpdate = () => {
@@ -795,6 +889,10 @@ export default function AnimeViewer({
     const video = videoRef.current
     if (!video) return
     setCurrentTime(video.currentTime)
+
+    if (effectiveManga?.id && effectiveChapter?.id && Number.isFinite(video.currentTime)) {
+      recordLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id, video.currentTime)
+    }
 
     const dur = video.duration || duration || 0
 
@@ -805,13 +903,13 @@ export default function AnimeViewer({
     }
 
     // Background pre-fetch next episode stream URLs + AniSkip timestamps once playback hits 80%
-    if (activeExtension && activeChapter && nextEpisode?.url) {
-      const transitionKey = `${activeExtension}::${activeChapter.id}->${nextEpisode.id}`
+    if (effectivePkg && effectiveChapter && nextEpisode?.url) {
+      const transitionKey = `${effectivePkg}::${effectiveChapter.id}->${nextEpisode.id}`
       if (
         shouldPrefetchNextEpisode({
           currentTime: video.currentTime,
           duration: dur,
-          pkg: activeExtension,
+          pkg: effectivePkg,
           nextEpisodeUrl: nextEpisode.url,
           prefetchedKeys: prefetchedTransitionsRef.current,
           transitionKey
@@ -825,25 +923,29 @@ export default function AnimeViewer({
     // Throttle database progress save every 4 seconds
     const currentSec = Math.floor(video.currentTime)
     if (
-      selectedManga &&
-      activeChapter &&
+      effectiveManga &&
+      effectiveChapter &&
       currentSec > 0 &&
       Math.abs(currentSec - lastProgressSaveRef.current) >= 4
     ) {
       lastProgressSaveRef.current = currentSec
-      markChapterRead(selectedManga.id, activeChapter.id, true, currentSec)
+      markChapterRead(effectiveManga.id, effectiveChapter.id, true, currentSec)
     }
   }
 
   const handleVideoEnded = () => {
     setIsPlaying(false)
-    if (selectedManga && activeChapter && duration > 0) {
+    if (!isMini) {
+      setLivePlaying(Boolean(autoNextAnime && nextEpisode))
+    }
+    if (effectiveManga && effectiveChapter && duration > 0) {
+      clearLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
       markChapterRead(
-        selectedManga.id,
-        activeChapter.id,
+        effectiveManga.id,
+        effectiveChapter.id,
         true,
         Math.floor(duration),
-        Number(activeChapter.number) || undefined
+        Number(effectiveChapter.number) || undefined
       )
     }
     if (autoNextAnime && nextEpisode) {
@@ -889,11 +991,11 @@ export default function AnimeViewer({
   )
 
   useMediaSession({
-    enabled: Boolean(activeChapter && selectedManga && !error),
-    animeTitle: selectedManga?.title,
-    coverUrl: selectedManga?.coverUrl,
-    episodeNumber: activeChapter?.number,
-    episodeTitle: activeChapter?.title,
+    enabled: Boolean(effectiveChapter && effectiveManga && !error),
+    animeTitle: effectiveManga?.title,
+    coverUrl: effectiveManga?.coverUrl,
+    episodeNumber: effectiveChapter?.number,
+    episodeTitle: effectiveChapter?.title,
     isPlaying,
     currentTime,
     duration,
@@ -919,10 +1021,10 @@ export default function AnimeViewer({
       }
     },
     onNextEpisode: () => {
-      if (nextEpisode) setActiveChapter(nextEpisode)
+      if (nextEpisode) setEffectiveEpisode(nextEpisode)
     },
     onPrevEpisode: () => {
-      if (prevEpisode) setActiveChapter(prevEpisode)
+      if (prevEpisode) setEffectiveEpisode(prevEpisode)
     },
     onSeekTo: seekTo,
     onSeekBy: (offset) => {
@@ -994,14 +1096,14 @@ export default function AnimeViewer({
     if (outroCountdown === null) return
     if (outroCountdown <= 0) {
       setOutroCountdown(null)
-      if (nextEpisode) setActiveChapter(nextEpisode)
+      if (nextEpisode) setEffectiveEpisode(nextEpisode)
       return
     }
     const timer = setTimeout(() => {
       setOutroCountdown((prev) => (prev !== null ? prev - 1 : null))
     }, 1000)
     return () => clearTimeout(timer)
-  }, [outroCountdown, nextEpisode, setActiveChapter])
+  }, [outroCountdown, nextEpisode, setEffectiveEpisode])
 
   const adjustVolume = useCallback(
     (delta: number) => {
@@ -1228,8 +1330,9 @@ export default function AnimeViewer({
     }
   }, [videoRef])
 
-  // Keyboard Shortcuts
+  // Keyboard Shortcuts (disabled in Mini PiP so users can search/type freely in main pages)
   useEffect(() => {
+    if (isMini) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
@@ -1337,10 +1440,10 @@ export default function AnimeViewer({
           }
           break
         case 'n':
-          if (nextEpisode) setActiveChapter(nextEpisode)
+          if (nextEpisode) setEffectiveEpisode(nextEpisode)
           break
         case 'p':
-          if (prevEpisode) setActiveChapter(prevEpisode)
+          if (prevEpisode) setEffectiveEpisode(prevEpisode)
           break
         case 'm':
           e.preventDefault()
@@ -1367,7 +1470,7 @@ export default function AnimeViewer({
           } else if (isInline && isTheaterMode && onToggleTheaterMode) {
             onToggleTheaterMode()
           } else {
-            setActiveChapter(null)
+            closeAndStopPlayer()
           }
           break
         case 'r':
@@ -1424,15 +1527,160 @@ export default function AnimeViewer({
     nextEpisode,
     prevEpisode,
     isEpisodesOpen,
-    setActiveChapter,
+    setEffectiveEpisode,
+    closeAndStopPlayer,
     reloadPlayer,
     videoRef,
+    isMini,
     isInline,
     isTheaterMode,
     onToggleTheaterMode
   ])
 
-  if (!activeChapter || !selectedManga) return null
+  if (!effectiveChapter || !effectiveManga) return null
+
+  const mediaSurface = activeServerUrl ? (
+    videoType === 'embed' ? (
+      <iframe
+        key={activeEmbedUrl}
+        src={activeEmbedUrl}
+        className="w-full h-full border-none shadow-2xl bg-black"
+        allowFullScreen
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        title="Video Player"
+        onLoad={() => {
+          clearWatchdog()
+        }}
+        onError={() => {
+          failoverToNextServer(`Server ${activeServerIdx + 1} failed to respond.`)
+        }}
+      />
+    ) : (
+      <div
+        className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden"
+        onClick={togglePlay}
+        onDoubleClick={isMini ? () => onExpandMini?.() : toggleFullscreen}
+      >
+        <video
+          ref={videoRef}
+          className="w-full h-full object-contain cursor-pointer"
+          playsInline
+          autoPlay
+          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={handleTimeUpdate}
+          onCanPlay={() => {
+            clearWatchdog()
+            if (videoRef.current && videoRef.current.paused) {
+              videoRef.current.play().catch(() => {})
+            }
+          }}
+          onPlay={() => {
+            clearWatchdog()
+            setIsPlaying(true)
+            if (!isMini) setLivePlaying(true)
+          }}
+          onPause={() => {
+            setIsPlaying(false)
+            if (!isMini) setLivePlaying(false)
+          }}
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => {
+            clearWatchdog()
+            setIsBuffering(false)
+          }}
+          onEnded={handleVideoEnded}
+          onError={handleVideoError}
+        >
+          {typeof s === 'object' &&
+            Array.isArray((s as any).subtitles) &&
+            (s as any).subtitles.map((sub: any, idx: number) => (
+              <track
+                key={sub.url || idx}
+                kind="subtitles"
+                src={sub.url}
+                srcLang={sub.lang || 'en'}
+                label={sub.label || sub.lang || `Track ${idx + 1}`}
+                default={sub.default || idx === 0}
+              />
+            ))}
+        </video>
+
+        {isBuffering && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <div className="p-4 rounded-full bg-black/60 backdrop-blur-md">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  ) : null
+
+  if (isMini) {
+    return (
+      <div className="fixed bottom-5 right-5 z-[95] w-[360px] sm:w-[400px] aspect-video bg-black rounded-2xl border border-white/15 shadow-2xl shadow-black/80 overflow-hidden text-white select-none group/pip animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="relative w-full h-full flex items-center justify-center bg-black">
+          {loading ? (
+            <div className="flex flex-col items-center gap-2 text-white/60">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Loading...</span>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-2 p-4 text-center z-40">
+              <p className="text-xs font-semibold text-white/80 line-clamp-2">{error}</p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={loadServers} className="h-7 text-[11px]">
+                  Retry
+                </Button>
+                {onExpandMini && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onExpandMini}
+                    className="h-7 text-[11px] border-white/20 text-white hover:bg-white/10"
+                  >
+                    Expand
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            mediaSurface
+          )}
+        </div>
+
+        <MiniPipControls
+          title={effectiveManga.title}
+          episodeNumber={effectiveChapter.number}
+          isPlaying={isPlaying}
+          isMuted={isMuted}
+          currentTime={currentTime}
+          duration={duration}
+          playbackRate={playbackRate}
+          videoType={videoType}
+          hasPrevEpisode={Boolean(prevEpisode)}
+          hasNextEpisode={Boolean(nextEpisode)}
+          showSkipIntro={skipUIState.isInIntro}
+          showNextEpisodePill={Boolean(
+            (skipUIState.showNextEpisode || autoNextCountdown !== null) && nextEpisode
+          )}
+          nextEpisodeNumber={nextEpisode?.number}
+          outroCountdown={outroCountdown ?? autoNextCountdown}
+          skipTimes={skipTimes}
+          onTogglePlay={togglePlay}
+          onSeekTo={seekTo}
+          onToggleMute={toggleMute}
+          onChangeSpeed={changeSpeed}
+          onPrevEpisode={() => prevEpisode && setEffectiveEpisode(prevEpisode)}
+          onNextEpisode={() => nextEpisode && setEffectiveEpisode(nextEpisode)}
+          onSkipIntro={handleSkipIntro}
+          onPopOutOsPip={togglePiP}
+          onExpand={() => onExpandMini?.()}
+          onClose={closeAndStopPlayer}
+        />
+      </div>
+    )
+  }
 
   const showBoxedInline = isInline && !isFullscreen
   const handleSelectServer = (idx: number) => {
@@ -1470,9 +1718,9 @@ export default function AnimeViewer({
                 hasVideoFrame && activeBuffer === 'B' ? 'opacity-100' : 'opacity-0'
               )}
             />
-            {!hasVideoFrame && selectedManga.coverUrl && (
+            {!hasVideoFrame && effectiveManga.coverUrl && (
               <img
-                src={selectedManga.coverUrl}
+                src={effectiveManga.coverUrl}
                 alt=""
                 className="w-full h-full object-cover rounded-3xl scale-105 opacity-75"
               />
@@ -1507,13 +1755,24 @@ export default function AnimeViewer({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0">
-                  EP {activeChapter.number}
+                  EP {effectiveChapter.number}
                 </span>
                 <span className="text-xs font-bold text-white/90 truncate">
-                  {activeChapter.title || selectedManga.title}
+                  {effectiveChapter.title || effectiveManga.title}
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {onEnterMiniPip && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onEnterMiniPip}
+                    className="h-8 w-8 rounded-full text-white/75 hover:text-white hover:bg-white/10"
+                    title="Minimize to In-App PiP"
+                  >
+                    <PictureInPicture2 className="h-4 w-4" />
+                  </Button>
+                )}
                 {onToggleTheaterMode && (
                   <Button
                     variant="ghost"
@@ -1542,7 +1801,7 @@ export default function AnimeViewer({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setActiveChapter(null)}
+                  onClick={closeAndStopPlayer}
                   className="h-8 w-8 rounded-full text-white/75 hover:text-white hover:bg-white/10"
                   title="Close Player"
                 >
@@ -1573,7 +1832,7 @@ export default function AnimeViewer({
                       toggleFullscreen()
                     }
                     if (!isInline) {
-                      setActiveChapter(null)
+                      closeAndStopPlayer()
                     }
                   }}
                   className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10 rounded-full"
@@ -1586,14 +1845,14 @@ export default function AnimeViewer({
               {/* Centered Title Section */}
               <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center min-w-0 text-center pointer-events-none">
                 <h1 className="text-base font-black tracking-tighter text-white truncate max-w-[200px] sm:max-w-md uppercase italic drop-shadow-md">
-                  {selectedManga.title}
+                  {effectiveManga.title}
                 </h1>
                 <div className="flex items-center gap-2 text-[10px] text-white/40 font-bold uppercase tracking-widest drop-shadow-sm">
                   <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded text-[9px]">
-                    EP {activeChapter.number}
+                    EP {effectiveChapter.number}
                   </span>
                   <span className="truncate max-w-[150px] opacity-60 italic">
-                    {activeChapter.title || 'Watching Now'}
+                    {effectiveChapter.title || 'Watching Now'}
                   </span>
                 </div>
               </div>
@@ -1668,7 +1927,7 @@ export default function AnimeViewer({
                     showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
                     !prevEpisode && 'hidden'
                   )}
-                  onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+                  onClick={() => prevEpisode && setEffectiveEpisode(prevEpisode)}
                 >
                   <ChevronLeft className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
                 </div>
@@ -1679,7 +1938,7 @@ export default function AnimeViewer({
                     showControls ? 'opacity-100' : 'opacity-0 pointer-events-none',
                     !nextEpisode && 'hidden'
                   )}
-                  onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+                  onClick={() => nextEpisode && setEffectiveEpisode(nextEpisode)}
                 >
                   <ChevronRight className="h-10 w-10 text-white/30 hover:text-white/70 transition-colors" />
                 </div>
@@ -1735,7 +1994,7 @@ export default function AnimeViewer({
                     <RefreshCw className="h-4 w-4" /> Retry All Servers
                   </Button>
                   <Button
-                    onClick={() => DataService.openInternalBrowser(activeChapter.url)}
+                    onClick={() => DataService.openInternalBrowser(effectiveChapter.url)}
                     variant="outline"
                     className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 gap-2 font-bold"
                   >
@@ -1793,79 +2052,9 @@ export default function AnimeViewer({
                   </div>
                 )}
               </div>
-            ) : activeServerUrl ? (
-              videoType === 'embed' ? (
-                <iframe
-                  key={activeEmbedUrl}
-                  src={activeEmbedUrl}
-                  className="w-full h-full border-none shadow-2xl bg-black"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  title="Video Player"
-                  onLoad={() => {
-                    clearWatchdog()
-                  }}
-                  onError={() => {
-                    failoverToNextServer(`Server ${activeServerIdx + 1} failed to respond.`)
-                  }}
-                />
-              ) : (
-                <div
-                  className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden"
-                  onClick={togglePlay}
-                  onDoubleClick={toggleFullscreen}
-                >
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-contain cursor-pointer"
-                    playsInline
-                    autoPlay
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onTimeUpdate={handleTimeUpdate}
-                    onCanPlay={() => {
-                      clearWatchdog()
-                      if (videoRef.current && videoRef.current.paused) {
-                        videoRef.current.play().catch(() => {})
-                      }
-                    }}
-                    onPlay={() => {
-                      clearWatchdog()
-                      setIsPlaying(true)
-                    }}
-                    onPause={() => setIsPlaying(false)}
-                    onWaiting={() => setIsBuffering(true)}
-                    onPlaying={() => {
-                      clearWatchdog()
-                      setIsBuffering(false)
-                    }}
-                    onEnded={handleVideoEnded}
-                    onError={handleVideoError}
-                  >
-                    {typeof s === 'object' &&
-                      Array.isArray((s as any).subtitles) &&
-                      (s as any).subtitles.map((sub: any, idx: number) => (
-                        <track
-                          key={sub.url || idx}
-                          kind="subtitles"
-                          src={sub.url}
-                          srcLang={sub.lang || 'en'}
-                          label={sub.label || sub.lang || `Track ${idx + 1}`}
-                          default={sub.default || idx === 0}
-                        />
-                      ))}
-                  </video>
-
-                  {/* Buffering Indicator */}
-                  {isBuffering && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      <div className="p-4 rounded-full bg-black/60 backdrop-blur-md">
-                        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            ) : null}
+            ) : (
+              mediaSurface
+            )}
           </div>
 
           {/* Hold-to-2x Speed Pill */}
@@ -1889,8 +2078,8 @@ export default function AnimeViewer({
               isOpen={isEpisodesOpen}
               onClose={() => setIsEpisodesOpen(false)}
               episodes={sortedEpisodes}
-              activeChapterId={activeChapter.id}
-              onSelectEpisode={(ep) => setActiveChapter(ep)}
+              activeChapterId={effectiveChapter.id}
+              onSelectEpisode={(ep) => setEffectiveEpisode(ep)}
             />
           )}
 
@@ -1906,7 +2095,7 @@ export default function AnimeViewer({
                 variant="ghost"
                 size="icon"
                 disabled={!prevEpisode}
-                onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+                onClick={() => prevEpisode && setEffectiveEpisode(prevEpisode)}
                 className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -1919,7 +2108,7 @@ export default function AnimeViewer({
                   Playing Now
                 </span>
                 <span className="text-xs font-bold text-primary tracking-tight">
-                  EPISODE {activeChapter.number}
+                  EPISODE {effectiveChapter.number}
                 </span>
               </div>
 
@@ -1929,7 +2118,7 @@ export default function AnimeViewer({
                 variant="ghost"
                 size="icon"
                 disabled={!nextEpisode}
-                onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+                onClick={() => nextEpisode && setEffectiveEpisode(nextEpisode)}
                 className="h-12 w-12 rounded-full text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-20 transition-colors"
               >
                 <ChevronRight className="h-6 w-6" />
@@ -1966,8 +2155,8 @@ export default function AnimeViewer({
               onToggleFullscreen={toggleFullscreen}
               onTogglePiP={togglePiP}
               onQualityChange={handleQualityChange}
-              onPrevEpisode={() => prevEpisode && setActiveChapter(prevEpisode)}
-              onNextEpisode={() => nextEpisode && setActiveChapter(nextEpisode)}
+              onPrevEpisode={() => prevEpisode && setEffectiveEpisode(prevEpisode)}
+              onNextEpisode={() => nextEpisode && setEffectiveEpisode(nextEpisode)}
               skipTimes={skipTimes}
             />
           )}
@@ -2001,7 +2190,7 @@ export default function AnimeViewer({
                     type="button"
                     onClick={() => {
                       setOutroCountdown(null)
-                      setActiveChapter(nextEpisode)
+                      setEffectiveEpisode(nextEpisode)
                     }}
                     className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-colors cursor-pointer"
                   >
@@ -2055,7 +2244,7 @@ export default function AnimeViewer({
                 <Button
                   onClick={() => {
                     setAutoNextCountdown(null)
-                    setActiveChapter(nextEpisode)
+                    setEffectiveEpisode(nextEpisode)
                   }}
                   className="flex-1 bg-primary text-primary-foreground font-bold text-xs h-9 rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/90"
                 >
@@ -2083,20 +2272,20 @@ export default function AnimeViewer({
                 variant="ghost"
                 size="icon"
                 disabled={!prevEpisode}
-                onClick={() => prevEpisode && setActiveChapter(prevEpisode)}
+                onClick={() => prevEpisode && setEffectiveEpisode(prevEpisode)}
                 className="h-7 w-7 rounded-md"
                 title="Previous Episode (P)"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="px-2 text-xs font-bold text-foreground whitespace-nowrap">
-                EP {activeChapter.number}
+                EP {effectiveChapter.number}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
                 disabled={!nextEpisode}
-                onClick={() => nextEpisode && setActiveChapter(nextEpisode)}
+                onClick={() => nextEpisode && setEffectiveEpisode(nextEpisode)}
                 className="h-7 w-7 rounded-md"
                 title="Next Episode (N)"
               >
@@ -2132,7 +2321,7 @@ export default function AnimeViewer({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => DataService.openInternalBrowser(activeChapter.url)}
+              onClick={() => DataService.openInternalBrowser(effectiveChapter.url)}
               className="h-8 w-8 rounded-full text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
               title="Resolve Cloudflare in Browser"
             >
@@ -2164,6 +2353,19 @@ export default function AnimeViewer({
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Ambient</span>
             </Button>
+
+            {onEnterMiniPip && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onEnterMiniPip}
+                className="h-8 px-2.5 rounded-full text-xs font-semibold gap-1.5 border border-border/70 text-muted-foreground hover:text-foreground"
+                title="Minimize to Bottom-Right Mini Player"
+              >
+                <PictureInPicture2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Mini PiP</span>
+              </Button>
+            )}
 
             {onToggleTheaterMode && (
               <Button
@@ -2197,7 +2399,7 @@ export default function AnimeViewer({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setActiveChapter(null)}
+              onClick={closeAndStopPlayer}
               className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               title="Close Player"
             >
