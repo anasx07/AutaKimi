@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Github, ArrowUpRight } from "lucide-react";
+import GitHubButton from "@/components/ui/github-button";
 
 const NAV_LINKS = [
   { href: "/#features", label: "Features" },
@@ -108,15 +109,9 @@ export function Navbar() {
             </svg>
           </a>
 
-          <a
-            href="https://github.com/anasx07/AutaKimi"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold transition-colors"
-          >
-            <Github className="w-3.5 h-3.5" />
-            <span>GitHub</span>
-          </a>
+          <div className="hidden sm:inline-flex">
+            <GitHubButton />
+          </div>
 
           <button
             type="button"

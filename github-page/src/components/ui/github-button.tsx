@@ -1,64 +1,54 @@
-'use client';
-import React, { useState } from 'react';
-import { Github } from 'lucide-react';
-import { Liquid } from '@/components/ui/button-1';
-const COLORS = {
-  color1: '#FFFFFF',
-  color2: '#1E10C5',
-  color3: '#9089E2',
-  color4: '#FCFCFE',
-  color5: '#F9F9FD',
-  color6: '#B2B8E7',
-  color7: '#0E2DCB',
-  color8: '#0017E9',
-  color9: '#4743EF',
-  color10: '#7D7BF4',
-  color11: '#0B06FC',
-  color12: '#C5C1EA',
-  color13: '#1403DE',
-  color14: '#B6BAF6',
-  color15: '#C1BEEB',
-  color16: '#290ECB',
-  color17: '#3F4CC0',
+"use client";
+
+import React, { useState } from "react";
+import { Github } from "lucide-react";
+import { Liquid, Colors } from "@/components/ui/button-1";
+
+const STUDIO_COLORS: Colors = {
+  color1: "#FFFFFF",
+  color2: "#18181B",
+  color3: "#FB7185",
+  color4: "#FAFAFA",
+  color5: "#F4F4F5",
+  color6: "#E4E4E7",
+  color7: "#9F1239",
+  color8: "#E11D48",
+  color9: "#BE123C",
+  color10: "#F43F5E",
+  color11: "#881337",
+  color12: "#D4D4D8",
+  color13: "#4C0519",
+  color14: "#FECDD3",
+  color15: "#E4E4E7",
+  color16: "#27272A",
+  color17: "#3F3F46",
 };
-const GitHubButton = () => {
+
+const GitHubButton = ({ className = "" }: { className?: string }) => {
   const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="flex justify-center items-center">
-      <a
-        href="https://github.com/anasx07/AutaKimi"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="GitHub Repository"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className="relative inline-block w-32 h-10 group bg-black border-white/20 border rounded-xl overflow-visible transition-transform hover:-translate-y-0.5">
-        <div className="absolute w-[112.81%] h-[128.57%] top-[8.57%] left-1/2 -translate-x-1/2 filter blur-[10px] opacity-50 group-hover:opacity-80 transition-opacity duration-500">
-          <span className="absolute inset-0 rounded-xl bg-[#d9d9d9] filter blur-[6.5px]"></span>
-          <div className="relative w-full h-full overflow-hidden rounded-xl">
-            <Liquid isHovered={isHovered} colors={COLORS} />
-          </div>
-        </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[92.23%] h-[112.85%] rounded-xl bg-[#010128] filter blur-[7.3px]"></div>
-        <div className="relative w-full h-full overflow-hidden rounded-xl">
-          <span className="absolute inset-0 rounded-xl bg-[#d9d9d9]"></span>
-          <span className="absolute inset-0 rounded-xl bg-black"></span>
-          <Liquid isHovered={isHovered} colors={COLORS} />
-          {[1, 2, 3, 4, 5].map((i) => (
-            <span
-              key={i}
-              className={`absolute inset-0 rounded-xl border-solid border-[1px] border-gradient-to-b from-transparent to-white/50 mix-blend-overlay filter ${i <= 2 ? 'blur-[3px]' : i === 3 ? 'blur-[5px]' : 'blur-[4px]'}`}></span>
-          ))}
-          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[70.8%] h-[42.85%] rounded-xl filter blur-[15px] bg-[#006]"></span>
-        </div>
-        <span className="absolute inset-0 rounded-xl bg-transparent w-full h-full flex items-center justify-center">
-          <span className="flex items-center justify-center gap-2 rounded-xl group-hover:text-white text-white/90 text-sm font-semibold tracking-wide whitespace-nowrap">
-            <Github className="group-hover:fill-white fill-transparent w-4 h-4 flex-shrink-0" />
-            <span>GitHub</span>
-          </span>
-        </span>
-      </a>
-    </div>
+    <a
+      href="https://github.com/anasx07/AutaKimi"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="GitHub Repository"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`relative inline-flex items-center justify-center h-8 px-3.5 rounded-lg border border-white/[0.14] hover:border-white/30 bg-zinc-950 overflow-hidden transition-all duration-200 group ${className}`}
+    >
+      <div className="absolute inset-0 opacity-85 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <span className="absolute inset-0 bg-zinc-950" />
+        <Liquid isHovered={isHovered} colors={STUDIO_COLORS} />
+        <span className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors" />
+      </div>
+
+      <span className="relative z-10 inline-flex items-center gap-1.5 text-white text-xs font-semibold tracking-tight whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+        <Github className="w-3.5 h-3.5 shrink-0" />
+        <span>GitHub</span>
+      </span>
+    </a>
   );
 };
+
 export default GitHubButton;
