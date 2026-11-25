@@ -28,6 +28,7 @@ import { useKeyboardControls } from './hooks/useKeyboardControls'
 import { useAutoScroll } from './hooks/useAutoScroll'
 import { useDragToScroll } from './hooks/useDragToScroll'
 import { useZoom } from './hooks/useZoom'
+import { getNextDoublePage, getPrevDoublePage, PageDimensions } from './lib/doublePageSpread'
 
 export default function ChapterReader() {
   const mobile = isMobile()
@@ -56,6 +57,9 @@ export default function ChapterReader() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [chapterPageCounts, setChapterPageCounts] = useState<Record<string, number>>({})
+  const [pageDimensionsByChapter, setPageDimensionsByChapter] = useState<
+    Record<string, Record<number, PageDimensions>>
+  >({})
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
   const [scrubberHover, setScrubberHover] = useState<{ x: number; page: number } | null>(null)
@@ -234,26 +238,54 @@ export default function ChapterReader() {
   )
 
   const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
+  const activePageDimensions = activeChapter ? pageDimensionsByChapter[activeChapter.id] : undefined
+
+  const handlePageDimensions = useCallback(
+    (chapterId: string, pageNumber: number, dimensions: PageDimensions) => {
+      if (dimensions.width <= 0 || dimensions.height <= 0) return
+      setPageDimensionsByChapter((prev) => {
+        const existingChapter = prev[chapterId]
+        const existingPage = existingChapter?.[pageNumber]
+        if (
+          existingPage &&
+          existingPage.width === dimensions.width &&
+          existingPage.height === dimensions.height
+        ) {
+          return prev
+        }
+        return {
+          ...prev,
+          [chapterId]: {
+            ...existingChapter,
+            [pageNumber]: dimensions
+          }
+        }
+      })
+    },
+    []
+  )
 
   const pagedNext = useCallback(() => {
     if (!activeChapter) return
     setCurrentPage((prev) => {
-      const step = isDoublePage ? (prev === 1 ? 1 : 2) : 1
-      const next = Math.min(totalPages, prev + step)
+      const next = isDoublePage
+        ? getNextDoublePage(totalPages, prev, activePageDimensions)
+        : Math.min(totalPages, prev + 1)
       if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
       return next
     })
-  }, [activeChapter, isDoublePage, totalPages, savePageProgress])
+  }, [activeChapter, isDoublePage, totalPages, activePageDimensions, savePageProgress])
 
   const pagedPrev = useCallback(() => {
     if (!activeChapter) return
     setCurrentPage((prev) => {
-      const step = isDoublePage ? (prev <= 2 ? 1 : 2) : 1
-      const next = Math.max(1, prev - step)
+      const next = isDoublePage
+        ? getPrevDoublePage(totalPages, prev, activePageDimensions)
+        : Math.max(1, prev - 1)
       if (next !== prev) savePageProgress(activeChapter.id, next, activeChapter.number)
       return next
     })
-  }, [activeChapter, isDoublePage, savePageProgress])
+  }, [activeChapter, isDoublePage, totalPages, activePageDimensions, savePageProgress])
 
   // --- Extracted Hooks ---
   const { isKbdPaused, isKbdReversing, isKbdBoosted, isKbdSlowed } = useKeyboardControls(
@@ -618,6 +650,8 @@ export default function ChapterReader() {
               dragMoved={dragMoved.current}
               scrollRoot={scrollEl}
               zoomLevel={zoomLevel}
+              pageDimensions={pageDimensionsByChapter[chapter.id]}
+              onPageDimensions={handlePageDimensions}
             />
           ))}
 
@@ -684,6 +718,9 @@ export default function ChapterReader() {
               }
             } else {
               setCurrentPage(targetPage)
+              if (activeChapter) {
+                savePageProgress(activeChapter.id, targetPage, activeChapter.number)
+              }
             }
           }}
           title="Seek Page"

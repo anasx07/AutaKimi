@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
+import type { PageDimensions } from '../lib/doublePageSpread'
 
 interface PreloadItem {
   url: string
   priority: number
+  index: number
 }
 
 const CONCURRENCY_LIMIT = 4
@@ -21,18 +23,35 @@ const CONCURRENCY_LIMIT = 4
  */
 export function useImagePreloader(
   pages: string[] = [],
-  currentPage: number = 1
+  currentPage: number = 1,
+  onImageDimensions?: (pageNumber: number, dimensions: PageDimensions) => void
 ) {
   const loadedUrlsRef = useRef<Set<string>>(new Set())
+  const dimensionsByUrlRef = useRef<Map<string, PageDimensions>>(new Map())
   const activeCountRef = useRef(0)
   const queueRef = useRef<PreloadItem[]>([])
   const isCancelledRef = useRef(false)
+  const onImageDimensionsRef = useRef(onImageDimensions)
+  onImageDimensionsRef.current = onImageDimensions
 
   // Clear loaded set if chapter pages change completely
   const pagesKey = pages.slice(0, 3).join('|')
   useEffect(() => {
     loadedUrlsRef.current = new Set()
+    dimensionsByUrlRef.current = new Map()
   }, [pagesKey])
+
+  // Flush already-cached dimensions when a dimension listener becomes active (e.g. toggling Double-Page mode)
+  const hasDimensionsListener = Boolean(onImageDimensions)
+  useEffect(() => {
+    if (!hasDimensionsListener || !pages || pages.length === 0) return
+    pages.forEach((url, index) => {
+      const dims = dimensionsByUrlRef.current.get(url)
+      if (dims) {
+        onImageDimensionsRef.current?.(index + 1, dims)
+      }
+    })
+  }, [hasDimensionsListener, pages])
 
   useEffect(() => {
     if (!pages || pages.length === 0) return
@@ -77,7 +96,7 @@ export function useImagePreloader(
     for (const item of prioritizedIndices) {
       const url = pages[item.index]
       if (url && !loadedUrlsRef.current.has(url)) {
-        newQueue.push({ url, priority: item.priority })
+        newQueue.push({ url, priority: item.priority, index: item.index })
       }
     }
 
@@ -94,7 +113,7 @@ export function useImagePreloader(
         activeCountRef.current++
         const img = new Image()
         img.referrerPolicy = 'no-referrer'
-        
+
         // Use browser fetchPriority if available
         if ('fetchPriority' in img) {
           ;(img as any).fetchPriority = next.priority <= 2 ? 'high' : 'low'
@@ -106,7 +125,17 @@ export function useImagePreloader(
           processQueue()
         }
 
-        img.onload = handleComplete
+        img.onload = () => {
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            const dims: PageDimensions = {
+              width: img.naturalWidth,
+              height: img.naturalHeight
+            }
+            dimensionsByUrlRef.current.set(next.url, dims)
+            onImageDimensionsRef.current?.(next.index + 1, dims)
+          }
+          handleComplete()
+        }
         img.onerror = handleComplete
         img.src = next.url
       }
