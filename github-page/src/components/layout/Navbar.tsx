@@ -9,7 +9,7 @@ import GitHubButton from "@/components/ui/github-button";
 
 const NAV_LINKS = [
   { href: "/#features", label: "Features" },
-  { href: "/#showcase", label: "Preview" },
+  { href: "/docs#screenshots-gallery", label: "Screenshots" },
   { href: "/docs", label: "Docs" },
   { href: "/changelog", label: "Changelog" },
 ];
