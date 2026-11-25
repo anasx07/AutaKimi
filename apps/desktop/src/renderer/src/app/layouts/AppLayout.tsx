@@ -22,6 +22,9 @@ export function AppLayout(): React.JSX.Element {
   const { selectedManga, setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
   const location = useLocation()
   const mobile = isMobile()
+  const isWatchingInlineAnime = Boolean(
+    activeChapter && selectedManga?.mediaType === 'anime' && !mobile
+  )
 
   // Dismiss details and reader on route change
   useEffect(() => {
@@ -40,10 +43,10 @@ export function AppLayout(): React.JSX.Element {
         <DownloadQueueProcessor />
         {!mobile && <TitleBar />}
         <div className="flex flex-1 overflow-hidden relative">
-          {!mobile && <Sidebar />}
+          {!mobile && <Sidebar autoCollapsed={isWatchingInlineAnime} />}
           <main
             className={cn(
-              'flex-1 relative bg-background overflow-hidden',
+              'flex-1 relative z-10 bg-background overflow-hidden',
               mobile && 'pb-[64px]' // Fixed height of MobileBottomNav
             )}
           >
