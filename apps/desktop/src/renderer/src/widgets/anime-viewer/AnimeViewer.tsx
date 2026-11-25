@@ -703,6 +703,8 @@ export default function AnimeViewer({
       addHistoryEntry({
         mangaId: effectiveManga.id,
         mangaTitle: effectiveManga.title,
+        mangaCover: effectiveManga.coverUrl || undefined,
+        mangaUrl: effectiveManga.url || undefined,
         chapterId: chapter.id,
         chapterTitle: chapter.title || undefined,
         startedAt: new Date().toISOString(),

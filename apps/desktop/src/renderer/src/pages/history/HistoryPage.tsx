@@ -100,12 +100,15 @@ export default function HistoryPage(): React.JSX.Element {
           totalDuration: entry.durationSeconds || 0
         }
       } else {
-        acc[mangaId].totalDuration += (entry.durationSeconds || 0)
+        acc[mangaId].totalDuration += entry.durationSeconds || 0
+        if (!acc[mangaId].mangaCover && entry.mangaCover) {
+          acc[mangaId].mangaCover = entry.mangaCover
+        }
         if (new Date(entry.startedAt) > new Date(acc[mangaId].startedAt)) {
           acc[mangaId].chapterTitle = entry.chapterTitle
           acc[mangaId].chapterId = entry.chapterId
           acc[mangaId].startedAt = entry.startedAt
-          acc[mangaId].mangaUrl = entry.mangaUrl
+          acc[mangaId].mangaUrl = entry.mangaUrl || acc[mangaId].mangaUrl
         }
       }
       return acc

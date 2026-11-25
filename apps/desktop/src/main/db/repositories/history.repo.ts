@@ -15,6 +15,40 @@ export interface HistoryEntryInput {
   type?: 'manga' | 'anime'
 }
 
+export function mergeHistoryRowFallback(row: {
+  id: number
+  mangaId: string
+  mangaTitle: string | null
+  mangaCover: string | null
+  mangaUrl: string | null
+  chapterId: string
+  chapterTitle: string | null
+  startedAt: string
+  durationSeconds: number | null
+  pkg: string | null
+  mediaType: 'manga' | 'anime' | null
+  cacheCoverUrl?: string | null
+  cacheTitle?: string | null
+  cacheUrl?: string | null
+  libraryCoverUrl?: string | null
+  libraryTitle?: string | null
+}) {
+  return {
+    id: row.id,
+    mangaId: row.mangaId,
+    mangaTitle: row.mangaTitle || row.cacheTitle || row.libraryTitle || null,
+    mangaCover: row.mangaCover || row.cacheCoverUrl || row.libraryCoverUrl || null,
+    mangaUrl: row.mangaUrl || row.cacheUrl || null,
+    chapterId: row.chapterId,
+    chapterTitle: row.chapterTitle,
+    startedAt: row.startedAt,
+    durationSeconds: row.durationSeconds,
+    pkg: row.pkg,
+    mediaType: row.mediaType,
+    type: row.mediaType || 'manga'
+  }
+}
+
 export class HistoryRepository {
   constructor(private db: BetterSQLite3Database<typeof schema>) {}
 
@@ -44,7 +78,10 @@ export class HistoryRepository {
   async updateDuration(mangaId: string, chapterId: string, durationSeconds: number) {
     try {
       const latest = this.db
-        .select({ id: schema.readingHistory.id, currentDuration: schema.readingHistory.durationSeconds })
+        .select({
+          id: schema.readingHistory.id,
+          currentDuration: schema.readingHistory.durationSeconds
+        })
         .from(schema.readingHistory)
         .where(
           and(
@@ -73,7 +110,29 @@ export class HistoryRepository {
 
   async getHistory(limit = 50, offset = 0, type?: 'manga' | 'anime') {
     try {
-      let query = this.db.select().from(schema.readingHistory).$dynamic()
+      let query = this.db
+        .select({
+          id: schema.readingHistory.id,
+          mangaId: schema.readingHistory.mangaId,
+          mangaTitle: schema.readingHistory.mangaTitle,
+          mangaCover: schema.readingHistory.mangaCover,
+          mangaUrl: schema.readingHistory.mangaUrl,
+          chapterId: schema.readingHistory.chapterId,
+          chapterTitle: schema.readingHistory.chapterTitle,
+          startedAt: schema.readingHistory.startedAt,
+          durationSeconds: schema.readingHistory.durationSeconds,
+          pkg: schema.readingHistory.pkg,
+          mediaType: schema.readingHistory.mediaType,
+          cacheCoverUrl: schema.mangaCache.coverUrl,
+          cacheTitle: schema.mangaCache.title,
+          cacheUrl: schema.mangaCache.url,
+          libraryCoverUrl: schema.library.coverUrl,
+          libraryTitle: schema.library.title
+        })
+        .from(schema.readingHistory)
+        .leftJoin(schema.mangaCache, eq(schema.readingHistory.mangaId, schema.mangaCache.id))
+        .leftJoin(schema.library, eq(schema.readingHistory.mangaId, schema.library.id))
+        .$dynamic()
 
       if (type) {
         query = query.where(eq(schema.readingHistory.mediaType, type))
@@ -85,7 +144,7 @@ export class HistoryRepository {
         .offset(offset)
         .all()
 
-      return rows
+      return rows.map(mergeHistoryRowFallback)
     } catch (err) {
       // Fallback: try without type filter
       try {
