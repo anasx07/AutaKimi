@@ -61,6 +61,24 @@ export function shouldAutoEnterPip(params: {
   return livePlayback.isPlaying
 }
 
+/**
+ * Pure decision helper: determines if leaving/minimizing AutaKimi should auto-trigger OS
+ * Picture-in-Picture when the user enabled `autoOsPipOnBlur` in settings.
+ */
+export function shouldTriggerAutoOsPipOnBlur(params: {
+  enabled: boolean
+  isPlaying: boolean
+  isEmbed: boolean
+  hasReadyVideo: boolean
+  isAlreadyInOsPip: boolean
+  isCfBypassing: boolean
+}): boolean {
+  if (!params.enabled) return false
+  if (!params.isPlaying || params.isEmbed || !params.hasReadyVideo) return false
+  if (params.isAlreadyInOsPip || params.isCfBypassing) return false
+  return true
+}
+
 interface PipPlayerState {
   pipSession: PipSession | null
   livePlayback: LivePlaybackSnapshot | null

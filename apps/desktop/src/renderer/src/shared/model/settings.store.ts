@@ -26,6 +26,7 @@ type SettingsState = SettingsSchema['app'] &
     setDownloadConcurrency: (val: number) => Promise<void>
     setAutoNextAnime: (val: boolean) => Promise<void>
     setAutoSwitchServer: (val: boolean) => Promise<void>
+    setAutoOsPipOnBlur: (val: boolean) => Promise<void>
     setDevMode: (val: boolean) => Promise<void>
 
     // UI Actions (App category)
@@ -109,6 +110,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   lockMediaTabs: false,
   autoNextAnime: true,
   autoSwitchServer: true,
+  autoOsPipOnBlur: false,
   devMode: false,
 
   // Network
@@ -178,6 +180,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ autoSwitchServer: val })
     } catch (e) {
       console.error('Failed to save autoSwitchServer:', e)
+    }
+  },
+
+  setAutoOsPipOnBlur: async (val) => {
+    try {
+      await DataService.db.setSetting('autoOsPipOnBlur', val ? 'true' : 'false')
+      set({ autoOsPipOnBlur: val })
+    } catch (e) {
+      console.error('Failed to save autoOsPipOnBlur:', e)
     }
   },
 
