@@ -34,7 +34,7 @@ import {
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [version, setVersion] = useState("2.1.1");
+  const [version, setVersion] = useState("2.3.0");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -119,43 +119,119 @@ export default function Home() {
       badge: "Manga Hub",
       title: "Unified Manga & Webtoon Discovery",
       description:
-        "Browse thousands of manga, manhwa, and manhua series across community sources with instant filters, multi-language catalogs, and high-resolution covers. Enjoy continuous vertical webtoon scrolling and right-to-left reading modes.",
+        "Browse thousands of manga, manhwa, and manhua series across community repositories with multi-language catalogs, repository badges, and high-resolution covers.",
       image: "/AutaKimi/assets/screenshots/manga-browse.webp",
-      shield: "Cross-Source Fast Indexing",
+      shield: "Multi-Repo Fast Indexing",
     },
     {
-      badge: "Native Streaming",
-      title: "Watch Anime Without Ads or Popups",
+      badge: "Native Anime Player",
+      title: "Watch Anime With Skip Intro & Ambient Glow",
       description:
-        "Stream your favorite anime series with built-in hardware acceleration, multi-server stream extraction, and zero external intrusive advertisements or redirects.",
-      image: "/AutaKimi/assets/screenshots/anime-browse.webp",
-      shield: "Zero Ad Popups & Tracking",
+        "Stream anime natively with embedded hardware acceleration, Skip Intro buttons, ambient lighting, episode sidebar, Auto-Next, and fast multi-server switching with zero popups.",
+      image: "/AutaKimi/assets/screenshots/anime-player-sidebar.png",
+      shield: "Zero Ad Popups & Multi-Server",
       reverse: true,
+    },
+    {
+      badge: "Floating PiP & Mini Player",
+      title: "Keep Watching Anywhere With Always-On-Top PiP",
+      description:
+        "Detach any episode into a dockable Mini Player while browsing your library or float it seamlessly across your desktop windows while multitasking.",
+      image: "/AutaKimi/assets/screenshots/anime-mini-pip.png",
+      shield: "Mini Player & System PiP",
+    },
+    {
+      badge: "Webtoon & Manga Reader",
+      title: "Continuous Vertical Scroll & Night Eye-Care",
+      description:
+        "Enjoy silky-smooth continuous vertical webtoon scrolling, drag-scroll gestures, instant chapter dropdown switching, and a custom Night Eye-Care tint filter.",
+      image: "/AutaKimi/assets/screenshots/manga-reader-vertical.png",
+      shield: "Continuous Scroll & Eye-Care",
+      reverse: true,
+    },
+    {
+      badge: "Multi-Source History",
+      title: "Organized History & Extension Badges",
+      description:
+        "Track every episode and chapter across multiple extensions in one clean view. Instantly tell which source each title belongs to with dedicated extension badges.",
+      image: "/AutaKimi/assets/screenshots/history-anime.png",
+      shield: "Per-Source History & Library",
     },
     {
       badge: "Localization & Chapters",
       title: "Rich Media Details & Full Arabic Support",
       description:
         "Experience complete native Right-to-Left (RTL) Arabic interface support alongside English. View full synopses, track reading state, and queue offline chapter downloads.",
-      image: "/AutaKimi/assets/screenshots/manga-details.webp",
+      image: "/AutaKimi/assets/screenshots/manga-details-rtl.png",
       shield: "Arabic (العربية) & English Native",
+      reverse: true,
     },
     {
       badge: "Smart Progress",
       title: "Episode Tracking & AniList Integration",
       description:
         "Never lose your place. Mark episodes as watched, auto-scrobble progress to AniList, and pick up right where you left off across Windows PC and Android.",
-      image: "/AutaKimi/assets/screenshots/anime-details.webp",
+      image: "/AutaKimi/assets/screenshots/anime-details-episode-list.png",
       shield: "AniList Two-Way Scrobbler",
-      reverse: true,
     },
     {
       badge: "Aesthetics",
       title: "Premium Themes & Aesthetics",
       description:
-        "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic deep dark modes to character-inspired vibrant aesthetics. Experience smooth transitions on every screen change.",
+        "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic deep dark modes to character-inspired vibrant aesthetics.",
       image: "/AutaKimi/assets/screenshots/themes-showcase.png",
       shield: "Dynamic Theme Engine",
+      reverse: true,
+    },
+  ];
+
+  const lightboxGallery: LightboxImage[] = [
+    ...showcases.map((s) => ({
+      src: s.image,
+      alt: s.title,
+      title: s.title,
+      badge: s.badge,
+      description: s.description,
+    })),
+    {
+      src: "/AutaKimi/assets/screenshots/anime-floating-pip.png",
+      alt: "System-wide Floating PiP",
+      title: "System-wide Floating PiP Over Desktop",
+      badge: "Floating PiP",
+      description:
+        "Pop the video player out over other windows and keep watching effortlessly while working or browsing.",
+    },
+    {
+      src: "/AutaKimi/assets/screenshots/anime-player-fullscreen.png",
+      alt: "Fullscreen Anime Player Overlay",
+      title: "Clean Fullscreen Playback Controls",
+      badge: "Theater Mode",
+      description:
+        "Minimal fullscreen overlay with Auto-Next toggle, quick server switcher, quality selector, and zero distractions.",
+    },
+    {
+      src: "/AutaKimi/assets/screenshots/manga-reader-chapters.png",
+      alt: "Quick Chapter Dropdown in Reader",
+      title: "Instant Chapter Switcher in Reader",
+      badge: "Manga Reader",
+      description:
+        "Jump directly between chapters without leaving your current reading flow.",
+    },
+    {
+      src: "/AutaKimi/assets/screenshots/library-anime.png",
+      alt: "Anime Library with Source Badges",
+      title: "Saved Anime & Manga Library",
+      badge: "Personal Library",
+      description:
+        "Separate Anime and Manga tabs displaying source badges on every cover.",
+    },
+    {
+      src: "/AutaKimi/assets/screenshots/history-manga.png",
+      alt: "Manga Reading History",
+      title: "Manga Reading History Grid",
+      badge: "Manga History",
+      description:
+        "Pick up the exact chapter you left off from with per-extension attribution.",
     },
   ];
 
@@ -456,13 +532,7 @@ export default function Home() {
 
       {/* Fullscreen Screenshot Lightbox */}
       <ImageLightbox
-        images={showcases.map((s) => ({
-          src: s.image,
-          alt: s.title,
-          title: s.title,
-          badge: s.badge,
-          description: s.description,
-        }))}
+        images={lightboxGallery}
         currentIndex={activeImageIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
