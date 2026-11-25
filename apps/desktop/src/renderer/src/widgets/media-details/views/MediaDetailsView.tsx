@@ -1,5 +1,7 @@
 import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { ArrowLeft, Share2, Download, ShieldAlert } from 'lucide-react'
+import { usePipPlayerStore } from '@renderer/app/components/pipPlayerStore'
 import {
   useUIStore,
   useLibraryStore,
@@ -59,6 +61,7 @@ export function MediaDetailsView({
   const itemsNoun = isAnime ? 'Episodes' : 'Chapters'
 
   const mobile = isMobile()
+  const location = useLocation()
   const { setActiveTab, addToast } = useUIStore()
   const { setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
@@ -73,6 +76,12 @@ export function MediaDetailsView({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const isInlineWatchActive = isAnime && Boolean(activeChapter) && !mobile
+
+  useEffect(() => {
+    if (isInlineWatchActive && usePipPlayerStore.getState().pipSession) {
+      usePipPlayerStore.getState().clearPip()
+    }
+  }, [isInlineWatchActive, activeChapter?.id])
 
   useEffect(() => {
     if (isInlineWatchActive && scrollContainerRef.current) {
@@ -324,6 +333,15 @@ export function MediaDetailsView({
             variant="ghost"
             size="icon"
             onClick={() => {
+              const live = usePipPlayerStore.getState().livePlayback
+              if (isInlineWatchActive && activeChapter && live?.isPlaying) {
+                usePipPlayerStore.getState().enterPip({
+                  manga: normalized,
+                  chapter: activeChapter,
+                  pkg: normalized.pkg || activeExtension || '',
+                  returnPath: location.pathname
+                })
+              }
               setActiveChapter(null)
               setSelectedManga(null)
             }}
@@ -422,6 +440,16 @@ export function MediaDetailsView({
                   variant="inline"
                   isTheaterMode={isTheaterMode}
                   onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+                  onEnterMiniPip={() => {
+                    if (!activeChapter) return
+                    usePipPlayerStore.getState().enterPip({
+                      manga: normalized,
+                      chapter: activeChapter,
+                      pkg: normalized.pkg || activeExtension || '',
+                      returnPath: location.pathname
+                    })
+                    setActiveChapter(null)
+                  }}
                 />
               </Suspense>
             </div>

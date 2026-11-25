@@ -31,6 +31,15 @@ export class TabNavigationMemory {
     this.suspendedOverlays.set(pathname, state)
   }
 
+  updateSuspendedChapter(pathname: string, chapter: Chapter | null): void {
+    const existing = this.suspendedOverlays.get(pathname)
+    if (!existing) return
+    this.suspendedOverlays.set(pathname, {
+      ...existing,
+      activeChapter: chapter
+    })
+  }
+
   consumeOverlay(pathname: string): SuspendedOverlayState | null {
     const entry = this.suspendedOverlays.get(pathname) || null
     if (entry) {

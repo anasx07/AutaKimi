@@ -1,8 +1,9 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Sidebar } from '../components/Sidebar'
 import { MobileBottomNav } from '../components/MobileBottomNav'
 import { sharedTabNavigationMemory } from '../components/navigationMemory'
+import { shouldAutoEnterPip, usePipPlayerStore } from '../components/pipPlayerStore'
 import { TitleBar } from '@renderer/widgets/title-bar'
 import { DownloadQueueProcessor } from '@renderer/widgets/download-queue'
 import Toast from '@renderer/shared/ui/Toast'
@@ -21,14 +22,20 @@ const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewe
 export function AppLayout(): React.JSX.Element {
   useAppUpdater()
   const { selectedManga, setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
+  const pipSession = usePipPlayerStore((s) => s.pipSession)
+  const enterPip = usePipPlayerStore((s) => s.enterPip)
+  const clearPip = usePipPlayerStore((s) => s.clearPip)
+  const updatePipChapter = usePipPlayerStore((s) => s.updatePipChapter)
+  const setLivePlayback = usePipPlayerStore((s) => s.setLivePlayback)
   const location = useLocation()
+  const navigate = useNavigate()
   const mobile = isMobile()
   const prevPathRef = useRef(location.pathname)
   const isWatchingInlineAnime = Boolean(
     activeChapter && selectedManga?.mediaType === 'anime' && !mobile
   )
 
-  // Preserve open details/player per route when switching tabs (e.g. Browse -> History -> Browse)
+  // Preserve open details/player per route and auto-dock active video to Bottom-Right PiP when leaving
   useEffect(() => {
     const prevPath = prevPathRef.current
     sharedTabNavigationMemory.recordPath(location.pathname)
@@ -37,13 +44,46 @@ export function AppLayout(): React.JSX.Element {
 
     const { selectedManga: currentManga, activeChapter: currentChapter } =
       useLibraryStore.getState()
+    const pipState = usePipPlayerStore.getState()
+
+    // Check if leaving prevPath while an inline/overlay anime video was actively playing
+    let autoPipActivated = false
+    if (
+      shouldAutoEnterPip({
+        livePlayback: pipState.livePlayback,
+        hasExistingPip: Boolean(pipState.pipSession),
+        isMobileView: mobile
+      }) &&
+      pipState.livePlayback
+    ) {
+      enterPip({
+        manga: pipState.livePlayback.manga,
+        chapter: pipState.livePlayback.chapter,
+        pkg: pipState.livePlayback.pkg,
+        returnPath: prevPath
+      })
+      autoPipActivated = true
+    } else {
+      setLivePlayback(null)
+    }
+
     if (currentManga) {
       sharedTabNavigationMemory.suspendOverlay(prevPath, {
         selectedManga: currentManga,
-        activeChapter: currentChapter
+        activeChapter: autoPipActivated ? null : currentChapter
       })
     } else {
       sharedTabNavigationMemory.clearOverlay(prevPath)
+    }
+
+    // Returning to the PiP session's origin route automatically expands PiP back to Inline Watch
+    const activePip = usePipPlayerStore.getState().pipSession
+    if (activePip && activePip.returnPath === location.pathname && !mobile) {
+      clearPip()
+      sharedTabNavigationMemory.clearOverlay(location.pathname)
+      setSelectedManga(activePip.manga)
+      setActiveChapter(activePip.chapter)
+      return
     }
 
     const restored = sharedTabNavigationMemory.consumeOverlay(location.pathname)
@@ -54,7 +94,15 @@ export function AppLayout(): React.JSX.Element {
       setSelectedManga(null)
       setActiveChapter(null)
     }
-  }, [location.pathname, setSelectedManga, setActiveChapter])
+  }, [
+    location.pathname,
+    mobile,
+    enterPip,
+    clearPip,
+    setLivePlayback,
+    setSelectedManga,
+    setActiveChapter
+  ])
 
   return (
     <StoreInitializer>
@@ -112,6 +160,42 @@ export function AppLayout(): React.JSX.Element {
               }
             >
               {selectedManga?.mediaType === 'anime' ? <AnimeViewer /> : <ChapterReader />}
+            </Suspense>
+          </ErrorBoundary>
+        )}
+
+        {/* In-App Floating Bottom-Right PiP Mini-Player with Full Custom Controls */}
+        {!mobile && pipSession && !(selectedManga?.mediaType === 'anime' && activeChapter) && (
+          <ErrorBoundary label="Mini Player">
+            <Suspense fallback={null}>
+              <AnimeViewer
+                variant="mini"
+                miniSession={pipSession}
+                onUpdateMiniChapter={(chapter) => updatePipChapter(chapter)}
+                onExpandMini={() => {
+                  const target = usePipPlayerStore.getState().pipSession
+                  if (!target) return
+                  clearPip()
+                  sharedTabNavigationMemory.suspendOverlay(target.returnPath, {
+                    selectedManga: target.manga,
+                    activeChapter: target.chapter
+                  })
+                  if (location.pathname !== target.returnPath) {
+                    navigate(target.returnPath)
+                  } else {
+                    sharedTabNavigationMemory.clearOverlay(target.returnPath)
+                    setSelectedManga(target.manga)
+                    setActiveChapter(target.chapter)
+                  }
+                }}
+                onCloseMini={() => {
+                  const target = usePipPlayerStore.getState().pipSession
+                  clearPip()
+                  if (target) {
+                    sharedTabNavigationMemory.updateSuspendedChapter(target.returnPath, null)
+                  }
+                }}
+              />
             </Suspense>
           </ErrorBoundary>
         )}

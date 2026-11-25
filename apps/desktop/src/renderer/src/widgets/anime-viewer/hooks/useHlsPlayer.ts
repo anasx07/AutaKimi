@@ -24,6 +24,7 @@ export interface UseHlsPlayerOptions {
   isMutedRef: React.MutableRefObject<boolean>
   playbackRateRef: React.MutableRefObject<number>
   savedProgressSeconds: number
+  exactHandoffSeconds?: number
   failoverToNextServer: (reason: string) => void
   setDuration: (dur: number) => void
   setResumeNotice: (notice: string | null) => void
@@ -38,6 +39,7 @@ export function useHlsPlayer({
   isMutedRef,
   playbackRateRef,
   savedProgressSeconds,
+  exactHandoffSeconds = 0,
   failoverToNextServer,
   setDuration,
   setResumeNotice
@@ -300,9 +302,15 @@ export function useHlsPlayer({
       setMp4QualityLabel(`${video.videoHeight}p`)
     }
 
-    // Auto-resume from saved progress if user was at least 10s into the video
-    // and not within the last 15 seconds
-    if (!hasResumedRef.current && savedProgressSeconds > 10 && savedProgressSeconds < dur - 15) {
+    // Seamless exact handoff between Inline Watch <-> Bottom-Right PiP takes precedence
+    if (!hasResumedRef.current && exactHandoffSeconds > 0 && exactHandoffSeconds < dur - 1) {
+      video.currentTime = exactHandoffSeconds
+      hasResumedRef.current = true
+    } else if (
+      !hasResumedRef.current &&
+      savedProgressSeconds > 10 &&
+      savedProgressSeconds < dur - 15
+    ) {
       video.currentTime = savedProgressSeconds
       hasResumedRef.current = true
       setResumeNotice(`Resumed from ${formatTime(savedProgressSeconds)}`)
@@ -318,6 +326,7 @@ export function useHlsPlayer({
     volumeRef,
     playbackRateRef,
     savedProgressSeconds,
+    exactHandoffSeconds,
     setDuration,
     setResumeNotice
   ])
