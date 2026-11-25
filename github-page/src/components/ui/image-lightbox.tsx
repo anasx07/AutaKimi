@@ -81,11 +81,11 @@ export function ImageLightbox({
       >
         <div className="flex items-center gap-3 overflow-hidden">
           {current.badge && (
-            <span className="premium-pill bg-orange-500/15 border-orange-500/30 text-orange-300 text-xs px-2.5 py-0.5 shrink-0">
+            <span className="px-2.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-mono uppercase tracking-wider font-semibold shrink-0">
               {current.badge}
             </span>
           )}
-          <span className="text-white font-bold text-sm sm:text-base truncate">
+          <span className="text-white font-semibold text-sm sm:text-base truncate">
             {current.title || current.alt}
           </span>
           <span className="text-xs font-mono text-zinc-500 shrink-0 hidden sm:inline">
@@ -172,8 +172,8 @@ export function ImageLightbox({
 export function ZoomBadge() {
   return (
     <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none z-20">
-      <span className="px-4 py-2 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white text-xs font-bold flex items-center gap-2 shadow-2xl scale-95 group-hover:scale-100 transition-transform duration-300">
-        <ZoomIn className="w-4 h-4 text-orange-400" /> Click to Expand
+      <span className="px-3.5 py-1.5 rounded-lg bg-black/80 backdrop-blur-md border border-white/15 text-white text-xs font-medium flex items-center gap-1.5 shadow-2xl scale-95 group-hover:scale-100 transition-transform duration-300">
+        <ZoomIn className="w-3.5 h-3.5 text-rose-400" /> Click to Expand
       </span>
     </div>
   );
