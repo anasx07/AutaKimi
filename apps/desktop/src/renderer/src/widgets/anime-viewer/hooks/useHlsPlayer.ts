@@ -25,6 +25,7 @@ export interface UseHlsPlayerOptions {
   playbackRateRef: React.MutableRefObject<number>
   savedProgressSeconds: number
   exactHandoffSeconds?: number
+  startPaused?: boolean
   failoverToNextServer: (reason: string) => void
   setDuration: (dur: number) => void
   setResumeNotice: (notice: string | null) => void
@@ -40,6 +41,7 @@ export function useHlsPlayer({
   playbackRateRef,
   savedProgressSeconds,
   exactHandoffSeconds = 0,
+  startPaused = false,
   failoverToNextServer,
   setDuration,
   setResumeNotice
@@ -48,6 +50,11 @@ export function useHlsPlayer({
   const hlsRef = useRef<Hls | null>(null)
   const watchdogRef = useRef<NodeJS.Timeout | null>(null)
   const hasResumedRef = useRef(false)
+  const startPausedRef = useRef(startPaused)
+
+  useEffect(() => {
+    startPausedRef.current = startPaused
+  }, [startPaused])
 
   const [qualityLevels, setQualityLevels] = useState<QualityLevel[]>([])
   const [selectedQuality, setSelectedQuality] = useState<number>(-1) // -1 = Auto
@@ -192,11 +199,13 @@ export function useHlsPlayer({
               video.muted = isMutedRef.current
               video.volume = volumeRef.current > 0 ? volumeRef.current : 1
               video.playbackRate = playbackRateRef.current
-              const playPromise = video.play()
-              if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                  video.play().catch(() => {})
-                })
+              if (!startPausedRef.current) {
+                const playPromise = video.play()
+                if (playPromise !== undefined) {
+                  playPromise.catch(() => {
+                    video.play().catch(() => {})
+                  })
+                }
               }
             }
           })
@@ -240,7 +249,9 @@ export function useHlsPlayer({
           })
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = activeServerUrl
-          video.play().catch(() => {})
+          if (!startPausedRef.current) {
+            video.play().catch(() => {})
+          }
         } else {
           failoverToNextServer('HLS playback is not supported on this browser.')
         }
@@ -250,11 +261,13 @@ export function useHlsPlayer({
         video.volume = volumeRef.current > 0 ? volumeRef.current : 1
         video.playbackRate = playbackRateRef.current
         video.load()
-        const playPromise = video.play()
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            video.play().catch(() => {})
-          })
+        if (!startPausedRef.current) {
+          const playPromise = video.play()
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              video.play().catch(() => {})
+            })
+          }
         }
       }
     }
@@ -317,7 +330,7 @@ export function useHlsPlayer({
       setTimeout(() => setResumeNotice(null), 3500)
     }
 
-    if (video.paused) {
+    if (!startPausedRef.current && video.paused) {
       video.play().catch(() => {})
     }
   }, [

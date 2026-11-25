@@ -60,6 +60,9 @@ import {
   recordLivePlaybackSeconds,
   peekLivePlaybackSeconds,
   clearLivePlaybackSeconds,
+  markChapterStartPaused,
+  peekChapterStartPaused,
+  clearChapterStartPaused,
   shouldTriggerAutoOsPipOnBlur,
   type PipSession
 } from '@renderer/app/components/pipPlayerStore'
@@ -198,25 +201,6 @@ export default function AnimeViewer({
     },
     [isMini, onUpdateMiniChapter, onCloseMini, setActiveChapter]
   )
-
-  const closeAndStopPlayer = useCallback(() => {
-    if (effectiveManga?.id && effectiveChapter?.id) {
-      clearLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
-    }
-    if (isMini) {
-      onCloseMini?.()
-      return
-    }
-    setLivePlayback(null)
-    setActiveChapter(null)
-  }, [
-    effectiveManga?.id,
-    effectiveChapter?.id,
-    isMini,
-    onCloseMini,
-    setLivePlayback,
-    setActiveChapter
-  ])
   const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(
     null
   )
@@ -315,6 +299,11 @@ export default function AnimeViewer({
     if (!effectiveManga?.id || !effectiveChapter?.id) return 0
     return peekLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
   }, [effectiveManga?.id, effectiveChapter?.id])
+
+  const startPaused = useMemo(() => {
+    if (isMini || !effectiveManga?.id || !effectiveChapter?.id) return false
+    return peekChapterStartPaused(effectiveManga.id, effectiveChapter.id)
+  }, [isMini, effectiveManga?.id, effectiveChapter?.id])
 
   // Sync active playback snapshot for Auto Bottom-Right PiP when leaving the Watch Page
   useEffect(() => {
@@ -602,10 +591,39 @@ export default function AnimeViewer({
     playbackRateRef,
     savedProgressSeconds,
     exactHandoffSeconds,
+    startPaused,
     failoverToNextServer,
     setDuration,
     setResumeNotice
   })
+
+  const closeAndStopPlayer = useCallback(() => {
+    if (isMini) {
+      if (effectiveManga?.id && effectiveChapter?.id) {
+        const pos = videoRef.current?.currentTime ?? currentTime
+        recordLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id, pos)
+        markChapterStartPaused(effectiveManga.id, effectiveChapter.id)
+      }
+      videoRef.current?.pause()
+      onCloseMini?.()
+      return
+    }
+    if (effectiveManga?.id && effectiveChapter?.id) {
+      clearLivePlaybackSeconds(effectiveManga.id, effectiveChapter.id)
+      clearChapterStartPaused(effectiveManga.id, effectiveChapter.id)
+    }
+    setLivePlayback(null)
+    setActiveChapter(null)
+  }, [
+    isMini,
+    effectiveManga?.id,
+    effectiveChapter?.id,
+    videoRef,
+    currentTime,
+    onCloseMini,
+    setLivePlayback,
+    setActiveChapter
+  ])
 
   // Persist exact currentTime when unmounting or switching episodes for seamless Inline <-> PiP handoff
   useEffect(() => {
@@ -1632,18 +1650,21 @@ export default function AnimeViewer({
           ref={videoRef}
           className="w-full h-full object-contain cursor-pointer"
           playsInline
-          autoPlay
+          autoPlay={!startPaused}
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={handleTimeUpdate}
           onCanPlay={() => {
             clearWatchdog()
-            if (videoRef.current && videoRef.current.paused) {
+            if (!startPaused && videoRef.current && videoRef.current.paused) {
               videoRef.current.play().catch(() => {})
             }
           }}
           onPlay={() => {
             clearWatchdog()
             setIsPlaying(true)
+            if (effectiveManga?.id && effectiveChapter?.id) {
+              clearChapterStartPaused(effectiveManga.id, effectiveChapter.id)
+            }
             if (!isMini) setLivePlaying(true)
           }}
           onPause={() => {

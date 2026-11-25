@@ -3,6 +3,9 @@ import {
   recordLivePlaybackSeconds,
   peekLivePlaybackSeconds,
   consumeLivePlaybackSeconds,
+  markChapterStartPaused,
+  peekChapterStartPaused,
+  clearChapterStartPaused,
   shouldAutoEnterPip,
   shouldTriggerAutoOsPipOnBlur,
 } from "../apps/desktop/src/renderer/src/app/components/pipPlayerStore";
@@ -14,6 +17,14 @@ describe("pipPlayerStore helpers", () => {
 
     expect(consumeLivePlaybackSeconds("anime-42", "ep-3")).toBeCloseTo(147.65);
     expect(peekLivePlaybackSeconds("anime-42", "ep-3")).toBe(0);
+  });
+
+  it("tracks startPaused flag cleanly when Mini-PiP closes while preserving Browse episode", () => {
+    expect(peekChapterStartPaused("anime-42", "ep-4")).toBe(false);
+    markChapterStartPaused("anime-42", "ep-4");
+    expect(peekChapterStartPaused("anime-42", "ep-4")).toBe(true);
+    clearChapterStartPaused("anime-42", "ep-4");
+    expect(peekChapterStartPaused("anime-42", "ep-4")).toBe(false);
   });
 
   it("activates Auto-PiP only when an anime video is actively playing on desktop", () => {
