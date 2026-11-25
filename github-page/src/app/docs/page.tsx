@@ -141,14 +141,14 @@ export default function DocsPage() {
           </div>
           <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
             <a
-              href="/AutaKimi/assets/manga-browse.png"
+              href="/AutaKimi/assets/screenshots/manga-browse.png"
               target="_blank"
               rel="noopener noreferrer"
               title="Click to view full resolution"
               className="block"
             >
               <Image
-                src="/AutaKimi/assets/manga-browse.webp"
+                src="/AutaKimi/assets/screenshots/manga-browse.webp"
                 alt="AutaKimi Extension Catalog and Feed"
                 width={1280}
                 height={700}
@@ -234,14 +234,14 @@ export default function DocsPage() {
           </ul>
           <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
             <a
-              href="/AutaKimi/assets/manga-details.png"
+              href="/AutaKimi/assets/screenshots/manga-details.png"
               target="_blank"
               rel="noopener noreferrer"
               title="Click to view full resolution"
               className="block"
             >
               <Image
-                src="/AutaKimi/assets/manga-details.webp"
+                src="/AutaKimi/assets/screenshots/manga-details.webp"
                 alt="AutaKimi Media Details and Progress Tracking"
                 width={1280}
                 height={700}
