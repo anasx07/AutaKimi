@@ -26,6 +26,7 @@ import {
   Check,
   Menu,
   Upload,
+  BarChart3,
 } from "lucide-react-native";
 
 type SettingsMap = Record<string, string>;
@@ -458,6 +459,26 @@ export default function SettingsTab() {
             </Typography>
           </View>
           <Card className="overflow-hidden">
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={() => router.push("/stats" as any)}
+            >
+              <View className="flex-row items-center">
+                <BarChart3 size={18} color="#e11d48" />
+                <View className="ml-3">
+                  <Typography className="font-medium">
+                    Local Wrapped &amp; Stats
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Weekly hours, streak, top genres — 100% private
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View className="border-t border-border/50" />
+
             <TouchableOpacity
               className="flex-row items-center justify-between px-4 py-4"
               onPress={handleExportBackup}
