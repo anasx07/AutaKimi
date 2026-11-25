@@ -10,6 +10,7 @@ import { PluginService } from './plugin.service'
 import { SyncService } from './sync.service'
 import { TrackerService } from './tracker.service'
 import { BackupService } from './backup.service'
+import { DiscordService } from './discord.service'
 
 /**
  * @deprecated Use domain-specific services (DatabaseService, WindowService, etc.) directly.
@@ -55,7 +56,8 @@ export const DataService = {
   plugins: PluginService,
   sync: SyncService,
   tracker: TrackerService,
-  backup: BackupService
+  backup: BackupService,
+  discord: DiscordService
 }
 
 export {

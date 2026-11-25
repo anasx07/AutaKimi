@@ -54,6 +54,7 @@ import { pluginManager } from './services/plugin.manager'
 import { broadcastService } from './services/broadcast.service'
 import { streamProxyService } from './services/stream-proxy.service'
 import { trackingService } from './services/tracking.service'
+import { discordRpcService } from './services/discord-rpc.service'
 
 cacheManager.setMangaRepo(mangaCacheRepo)
 ServiceRegistry.register(cacheManager)
@@ -66,6 +67,7 @@ ServiceRegistry.register(extensionOrchestrator)
 ServiceRegistry.register(pluginManager)
 ServiceRegistry.register(streamProxyService)
 ServiceRegistry.register(trackingService)
+ServiceRegistry.register(discordRpcService)
 import { registerDatabaseHandlers } from './ipc/database'
 import { registerExtensionHandlers } from './ipc/extensions'
 import { registerNetworkHandlers } from './ipc/network'
@@ -75,6 +77,7 @@ import { registerSyncHandlers } from './ipc/sync'
 import { registerSourceHandlers } from './ipc/sources'
 import { registerTrackerHandlers } from './ipc/trackers'
 import { registerBackupHandlers } from './ipc/backup'
+import { registerDiscordHandlers } from './ipc/discord'
 import { registerHandler, wrapIpc } from './ipc/utils'
 import { IpcChannel } from './types/ipc'
 
@@ -353,6 +356,7 @@ app.whenReady().then(async () => {
   registerSourceHandlers()
   registerTrackerHandlers()
   registerBackupHandlers()
+  registerDiscordHandlers()
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))

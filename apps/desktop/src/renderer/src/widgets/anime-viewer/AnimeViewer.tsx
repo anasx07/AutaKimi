@@ -182,6 +182,13 @@ export default function AnimeViewer({
   const { addHistoryEntry, updateHistoryDuration } = useHistoryStore()
   const setLivePlayback = usePipPlayerStore((s) => s.setLivePlayback)
   const setLivePlaying = usePipPlayerStore((s) => s.setLivePlaying)
+  const discordRpcEnabled = useSettingsStore((s) => s.discordRpcEnabled)
+  const lastDiscordSyncRef = useRef<{
+    key: string
+    time: number
+    syncedAt: number
+    isPlaying: boolean
+  } | null>(null)
 
   const effectiveManga = isMini ? (miniSession?.manga ?? null) : selectedManga
   const effectiveChapter = isMini ? (miniSession?.chapter ?? null) : activeChapter
@@ -1124,6 +1131,52 @@ export default function AnimeViewer({
       }
     }
   })
+
+  useEffect(() => {
+    if (!discordRpcEnabled || !effectiveChapter || !effectiveManga || error) {
+      return
+    }
+
+    const key = `${effectiveManga.id}:${effectiveChapter.id}`
+    const now = Date.now()
+    const prev = lastDiscordSyncRef.current
+    const elapsedSinceSync = prev ? (now - prev.syncedAt) / 1000 : 0
+    const expectedTime = prev ? (prev.isPlaying ? prev.time + elapsedSinceSync : prev.time) : 0
+    const jumped = !prev || prev.key !== key || Math.abs(currentTime - expectedTime) > 4
+    const playStateChanged = !prev || prev.isPlaying !== isPlaying
+    const durationDiscovered = Boolean(prev && prev.time === 0 && currentTime > 0 && duration > 0)
+
+    if (!jumped && !playStateChanged && !durationDiscovered) {
+      return
+    }
+
+    lastDiscordSyncRef.current = {
+      key,
+      time: currentTime,
+      syncedAt: now,
+      isPlaying
+    }
+
+    void DataService.discord
+      .setActivity({
+        kind: 'anime',
+        title: effectiveManga.title,
+        chapterOrEpisode: effectiveChapter.number,
+        chapterTitle: effectiveChapter.title,
+        coverUrl: effectiveManga.coverUrl,
+        currentTimeSeconds: currentTime,
+        durationSeconds: duration,
+        isPaused: !isPlaying
+      })
+      .catch(() => {})
+  }, [discordRpcEnabled, effectiveManga, effectiveChapter, error, isPlaying, currentTime, duration])
+
+  useEffect(() => {
+    return () => {
+      lastDiscordSyncRef.current = null
+      void DataService.discord.clear().catch(() => {})
+    }
+  }, [])
 
   const { canvasARef, canvasBRef, activeBuffer, hasVideoFrame } = useAmbientGlow({
     enabled: Boolean(isInline && !isFullscreen && ambientEnabled && !loading && !error),

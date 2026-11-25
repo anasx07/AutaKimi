@@ -12,6 +12,7 @@ import { registerHandler, wrapIpc } from './utils'
 import { cacheManager, CacheGroup } from '../services/cache.service'
 import { downloadManager } from '../services/download.service'
 import { trackingService } from '../services/tracking.service'
+import { discordRpcService } from '../services/discord-rpc.service'
 
 const repos = {
   extension: extensionRepo,
@@ -25,7 +26,12 @@ const repos = {
 
 function dbHandler(repo: keyof typeof repos, method: string) {
   return wrapIpc((_, ...args: any[]) => {
-    if (method === 'getByPkg' || method === 'get' || method === 'deleteByManga' || method === 'getByManga') {
+    if (
+      method === 'getByPkg' ||
+      method === 'get' ||
+      method === 'deleteByManga' ||
+      method === 'getByManga'
+    ) {
       if (typeof args[0] !== 'string') throw new Error('Invalid arguments: expected a string')
     }
     if (method === 'toggle') {
@@ -53,7 +59,10 @@ function dbHandler(repo: keyof typeof repos, method: string) {
 }
 
 export function registerDatabaseHandlers() {
-  registerHandler(IpcChannel.INIT, wrapIpc(async () => {}))
+  registerHandler(
+    IpcChannel.INIT,
+    wrapIpc(async () => {})
+  )
 
   registerHandler(IpcChannel.DB_GET_EXTENSIONS, dbHandler('extension', 'getAll'))
 
@@ -131,13 +140,19 @@ export function registerDatabaseHandlers() {
     IpcChannel.DB_SET_SETTING,
     wrapIpc(async (_, key, value) => {
       if (typeof key !== 'string') throw new Error('Invalid key')
-      if (value !== null && value !== undefined && typeof value !== 'string') throw new Error('Invalid value')
+      if (value !== null && value !== undefined && typeof value !== 'string')
+        throw new Error('Invalid value')
       await settingsRepo.set(key, value)
       if (key === 'download_concurrency' && value !== null && value !== undefined) {
         const parsed = Number(value)
         if (!isNaN(parsed) && parsed > 0) {
           downloadManager.setConcurrency(parsed)
         }
+      }
+      if (key === 'discord_rpc_enabled') {
+        await discordRpcService.configure({ enabled: value === 'true' })
+      } else if (key === 'discord_rpc_client_id') {
+        await discordRpcService.configure({ clientId: value ?? '' })
       }
       return { success: true }
     })
@@ -148,7 +163,8 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_UPDATE_PROGRESS,
     wrapIpc(async (_, data: any) => {
-      if (!data || typeof data !== 'object') throw new Error('Invalid arguments: expected an object')
+      if (!data || typeof data !== 'object')
+        throw new Error('Invalid arguments: expected an object')
       const res = await progressRepo.updateProgress(data)
       if (data.isRead) {
         trackingService
@@ -164,7 +180,8 @@ export function registerDatabaseHandlers() {
   registerHandler(
     IpcChannel.DB_UPDATE_PROGRESS_BATCH,
     wrapIpc(async (_, data: any) => {
-      if (!data || typeof data !== 'object') throw new Error('Invalid arguments: expected an object')
+      if (!data || typeof data !== 'object')
+        throw new Error('Invalid arguments: expected an object')
       const res = await progressRepo.updateProgressBatch(data)
       if (data.isRead && Array.isArray(data.chapterIds) && data.chapterIds.length > 0) {
         const lastChapterId = data.chapterIds[data.chapterIds.length - 1]
@@ -189,7 +206,11 @@ export function registerDatabaseHandlers() {
     wrapIpc(async (_, args: { mangaId: string; chapterId: string; durationSeconds: number }) => {
       if (!args || typeof args !== 'object') throw new Error('Invalid arguments')
       const { mangaId, chapterId, durationSeconds } = args
-      if (typeof mangaId !== 'string' || typeof chapterId !== 'string' || typeof durationSeconds !== 'number') {
+      if (
+        typeof mangaId !== 'string' ||
+        typeof chapterId !== 'string' ||
+        typeof durationSeconds !== 'number'
+      ) {
         throw new Error('Invalid arguments for updateDuration')
       }
       await historyRepo.updateDuration(mangaId, chapterId, durationSeconds)
@@ -199,26 +220,24 @@ export function registerDatabaseHandlers() {
 
   registerHandler(
     IpcChannel.DB_GET_HISTORY,
-    wrapIpc(
-      async (_, args?: { limit?: number; offset?: number; type?: string } | number) => {
-        if (args !== undefined && typeof args !== 'number' && typeof args !== 'object') {
-          throw new Error('Invalid arguments')
-        }
-        let limit = 50,
-          offset = 0,
-          type: 'manga' | 'anime' | undefined = undefined
-        if (typeof args === 'number') limit = args
-        else if (args && typeof args === 'object') {
-          limit = args.limit ?? 50
-          offset = args.offset ?? 0
-          type = args.type as any
-          if (typeof limit !== 'number') throw new Error('Invalid limit')
-          if (typeof offset !== 'number') throw new Error('Invalid offset')
-          if (type !== undefined && typeof type !== 'string') throw new Error('Invalid type')
-        }
-        return historyRepo.getHistory(limit, offset, type)
+    wrapIpc(async (_, args?: { limit?: number; offset?: number; type?: string } | number) => {
+      if (args !== undefined && typeof args !== 'number' && typeof args !== 'object') {
+        throw new Error('Invalid arguments')
       }
-    )
+      let limit = 50,
+        offset = 0,
+        type: 'manga' | 'anime' | undefined = undefined
+      if (typeof args === 'number') limit = args
+      else if (args && typeof args === 'object') {
+        limit = args.limit ?? 50
+        offset = args.offset ?? 0
+        type = args.type as any
+        if (typeof limit !== 'number') throw new Error('Invalid limit')
+        if (typeof offset !== 'number') throw new Error('Invalid offset')
+        if (type !== undefined && typeof type !== 'string') throw new Error('Invalid type')
+      }
+      return historyRepo.getHistory(limit, offset, type)
+    })
   )
 
   registerHandler(IpcChannel.DB_DELETE_HISTORY_ENTRY, dbHandler('history', 'deleteEntry'))
