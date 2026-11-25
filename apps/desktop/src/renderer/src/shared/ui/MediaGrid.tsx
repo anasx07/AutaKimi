@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { Card, CardContent } from './'
 import { cn } from '@renderer/shared/lib/utils'
 import { BookOpen, Play } from 'lucide-react'
@@ -49,6 +49,10 @@ export function MediaGridItem({
   const Icon = mediaType === 'anime' ? Play : BookOpen
   const [imgError, setImgError] = useState(false)
 
+  useEffect(() => {
+    setImgError(false)
+  }, [coverUrl])
+
   return (
     <Card
       onClick={onClick}
@@ -74,7 +78,10 @@ export function MediaGridItem({
             <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 transition-transform duration-500">
               <Icon className="h-6 w-6 text-primary/70" />
             </div>
-            <span className="text-[11px] font-bold line-clamp-2 text-foreground/75 leading-tight px-1 uppercase tracking-tight" dir="auto">
+            <span
+              className="text-[11px] font-bold line-clamp-2 text-foreground/75 leading-tight px-1 uppercase tracking-tight"
+              dir="auto"
+            >
               {title}
             </span>
           </div>
@@ -86,7 +93,10 @@ export function MediaGridItem({
         {/* Elegant metadata reveal (Glass Frost) */}
         {description && (
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4 border-t border-white/10 translate-y-4 group-hover:translate-y-0">
-            <p className="text-[10px] text-white/90 line-clamp-4 leading-relaxed font-medium drop-shadow-md" dir="auto">
+            <p
+              className="text-[10px] text-white/90 line-clamp-4 leading-relaxed font-medium drop-shadow-md"
+              dir="auto"
+            >
               {description}
             </p>
           </div>
@@ -99,7 +109,10 @@ export function MediaGridItem({
       </div>
 
       <CardContent className="p-3.5 bg-card/40 backdrop-blur-md relative z-10">
-        <h3 className="font-bold text-[13px] line-clamp-1 group-hover:text-primary transition-colors leading-snug" dir="auto">
+        <h3
+          className="font-bold text-[13px] line-clamp-1 group-hover:text-primary transition-colors leading-snug"
+          dir="auto"
+        >
           {title}
         </h3>
         <div className="flex items-center justify-between mt-1.5 min-h-[1.2rem]">
@@ -113,7 +126,7 @@ export function MediaGridItem({
               ))}
           </div>
           <div className="transform scale-90 origin-right transition-transform group-hover:scale-100">
-             {footerBadge}
+            {footerBadge}
           </div>
         </div>
       </CardContent>

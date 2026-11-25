@@ -1,45 +1,54 @@
-import * as SQLite from 'expo-sqlite'
-import Constants from 'expo-constants'
-import { Manga, IpcResult, HistoryEntry, Chapter, DownloadEntry, BackupData } from '@common/types'
-import { Extension } from '@common/types'
+import * as SQLite from "expo-sqlite";
+import Constants from "expo-constants";
+import {
+  Manga,
+  IpcResult,
+  HistoryEntry,
+  Chapter,
+  DownloadEntry,
+  BackupData,
+} from "@common/types";
+import { Extension } from "@common/types";
 
-type SuccessResult = IpcResult<{ success?: boolean; error?: string }>
+type SuccessResult = IpcResult<{ success?: boolean; error?: string }>;
 
-let db: SQLite.SQLiteDatabase | null = null
-let initPromise: Promise<IpcResult<void>> | null = null
-const DB_NAME = 'autakimi_db'
+let db: SQLite.SQLiteDatabase | null = null;
+let initPromise: Promise<IpcResult<void>> | null = null;
+const DB_NAME = "autakimi_db";
 
 export const MobileDB = {
   init(): Promise<IpcResult<void>> {
     if (initPromise) {
-      return initPromise
+      return initPromise;
     }
 
     initPromise = (async () => {
       try {
         if (!db) {
-          db = await SQLite.openDatabaseAsync(DB_NAME)
-          await this.migrate(db)
+          db = await SQLite.openDatabaseAsync(DB_NAME);
+          await this.migrate(db);
         }
-        return { ok: true, value: undefined }
+        return { ok: true, value: undefined };
       } catch (err: any) {
-        console.error('[MobileDB Native] Initialization failed:', err)
-        initPromise = null
-        return { ok: false, error: err.message || String(err) }
+        console.error("[MobileDB Native] Initialization failed:", err);
+        initPromise = null;
+        return { ok: false, error: err.message || String(err) };
       }
-    })()
+    })();
 
-    return initPromise
+    return initPromise;
   },
 
   async ensureReady(): Promise<void> {
-    await this.init()
+    await this.init();
   },
 
   async migrate(connection: SQLite.SQLiteDatabase): Promise<void> {
     // Get current version
-    const res = await connection.getFirstAsync<{ user_version: number }>('PRAGMA user_version;')
-    let currentVersion = res?.user_version || 0
+    const res = await connection.getFirstAsync<{ user_version: number }>(
+      "PRAGMA user_version;",
+    );
+    let currentVersion = res?.user_version || 0;
 
     // V1: Initial Core Schema
     if (currentVersion < 1) {
@@ -125,7 +134,7 @@ export const MobileDB = {
           chapter_title TEXT,
           PRIMARY KEY (manga_id, chapter_id)
         );
-      `)
+      `);
 
       // Indices
       await connection.execAsync(`
@@ -135,10 +144,10 @@ export const MobileDB = {
         CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id);
         CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
         CREATE INDEX IF NOT EXISTS idx_downloads_type ON downloads(type);
-      `)
+      `);
 
-      currentVersion = 21
-      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
+      currentVersion = 21;
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`);
     }
 
     if (currentVersion < 21) {
@@ -159,25 +168,26 @@ export const MobileDB = {
         );
         CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
         CREATE INDEX IF NOT EXISTS idx_downloads_type ON downloads(type);
-      `)
+      `);
 
       // Migrate legacy downloads from settings if any exist
       try {
-        const legacySettings = await connection.getAllAsync<{ key: string; value: string }>(
-          "SELECT key, value FROM settings WHERE key LIKE 'dl_meta_%';"
-        )
+        const legacySettings = await connection.getAllAsync<{
+          key: string;
+          value: string;
+        }>("SELECT key, value FROM settings WHERE key LIKE 'dl_meta_%';");
         for (const item of legacySettings || []) {
           try {
-            const raw = item.key.slice('dl_meta_'.length)
+            const raw = item.key.slice("dl_meta_".length);
             const statusRow = await connection.getFirstAsync<{ value: string }>(
-              'SELECT value FROM settings WHERE key = ?;',
-              [`dl_status_${raw}`]
-            )
-            const meta = JSON.parse(item.value || '{}')
-            const lastColon = raw.lastIndexOf(':')
+              "SELECT value FROM settings WHERE key = ?;",
+              [`dl_status_${raw}`],
+            );
+            const meta = JSON.parse(item.value || "{}");
+            const lastColon = raw.lastIndexOf(":");
             if (lastColon > 0) {
-              const mangaId = raw.slice(0, lastColon)
-              const chapterId = raw.slice(lastColon + 1)
+              const mangaId = raw.slice(0, lastColon);
+              const chapterId = raw.slice(lastColon + 1);
               await connection.runAsync(
                 `INSERT OR IGNORE INTO downloads 
                   (manga_id, chapter_id, total_pages, cached_pages, status, page_urls, updated_at, type, manga_title, chapter_title)
@@ -187,23 +197,26 @@ export const MobileDB = {
                   chapterId,
                   meta.totalPages || 0,
                   meta.totalPages || 0,
-                  statusRow?.value || 'completed',
+                  statusRow?.value || "completed",
                   meta.pageUrls ? JSON.stringify(meta.pageUrls) : null,
                   meta.downloadedAt || new Date().toISOString(),
-                  meta.type || 'manga',
+                  meta.type || "manga",
                   meta.mangaTitle || null,
-                  meta.chapterTitle || null
-                ]
-              )
+                  meta.chapterTitle || null,
+                ],
+              );
             }
           } catch {}
         }
       } catch (e) {
-        console.warn('[MobileDB] Legacy downloads migration skipped/failed:', e)
+        console.warn(
+          "[MobileDB] Legacy downloads migration skipped/failed:",
+          e,
+        );
       }
 
-      currentVersion = 21
-      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
+      currentVersion = 21;
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`);
     }
 
     if (currentVersion < 22) {
@@ -219,22 +232,22 @@ export const MobileDB = {
           PRIMARY KEY (manga_id, provider)
         );
         CREATE INDEX IF NOT EXISTS idx_trackers_manga ON trackers (manga_id);
-      `)
-      currentVersion = 22
-      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`)
+      `);
+      currentVersion = 22;
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`);
     }
   },
 
   async getExtensions(): Promise<IpcResult<any[]>> {
-    await this.ensureReady()
-    const res = await db!.getAllAsync<any>('SELECT * FROM extensions;')
-    return { ok: true, value: res }
+    await this.ensureReady();
+    const res = await db!.getAllAsync<any>("SELECT * FROM extensions;");
+    return { ok: true, value: res };
   },
 
   async addExtension(data: any): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     await db!.runAsync(
-      'INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
+      "INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
       [
         data.pkg ?? null,
         new Date().toISOString(),
@@ -243,49 +256,52 @@ export const MobileDB = {
         data.baseUrl ?? null,
         data.lang ?? null,
         data.icon ?? null,
-        data.version ?? null
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        data.version ?? null,
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
   async removeExtension(pkg: string): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
-    await db!.runAsync('DELETE FROM extensions WHERE pkg = ?;', [pkg])
-    return { ok: true, value: true }
+    await this.ensureReady();
+    await db!.runAsync("DELETE FROM extensions WHERE pkg = ?;", [pkg]);
+    return { ok: true, value: true };
   },
 
   async getExtension(pkg: string): Promise<IpcResult<any>> {
-    await this.ensureReady()
-    const res = await db!.getFirstAsync<any>('SELECT * FROM extensions WHERE pkg = ?;', [pkg])
-    return { ok: true, value: res || null }
+    await this.ensureReady();
+    const res = await db!.getFirstAsync<any>(
+      "SELECT * FROM extensions WHERE pkg = ?;",
+      [pkg],
+    );
+    return { ok: true, value: res || null };
   },
 
   async getLibrary(args?: {
-    type?: string
-    limit?: number
-    offset?: number
+    type?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<IpcResult<Manga[]>> {
-    await this.ensureReady()
-    let sql = 'SELECT * FROM library'
-    const params: any[] = []
+    await this.ensureReady();
+    let sql = "SELECT * FROM library";
+    const params: any[] = [];
     if (args?.type) {
-      sql += ' WHERE type = ?'
-      params.push(args.type)
+      sql += " WHERE type = ?";
+      params.push(args.type);
     }
     if (args?.limit) {
-      sql += ' LIMIT ?'
-      params.push(args.limit)
+      sql += " LIMIT ?";
+      params.push(args.limit);
     }
     if (args?.offset) {
-      sql += ' OFFSET ?'
-      params.push(args.offset)
+      sql += " OFFSET ?";
+      params.push(args.offset);
     }
-    const res = await db!.getAllAsync<any>(sql, params)
+    const res = await db!.getAllAsync<any>(sql, params);
     const mapped = (res || []).map((row) => {
-      let meta: any = {}
+      let meta: any = {};
       try {
-        meta = JSON.parse(row.metadata || '{}')
+        meta = JSON.parse(row.metadata || "{}");
       } catch {}
       return {
         ...meta,
@@ -293,240 +309,291 @@ export const MobileDB = {
         title: row.title,
         coverUrl: row.cover_url || meta.coverUrl,
         status: row.status,
-        mediaType: row.type || meta.mediaType || 'manga',
-        type: row.type || meta.mediaType || 'manga'
-      }
-    })
-    return { ok: true, value: mapped }
+        mediaType: row.type || meta.mediaType || "manga",
+        type: row.type || meta.mediaType || "manga",
+      };
+    });
+    return { ok: true, value: mapped };
   },
 
   async toggleLibrary(manga: Manga): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
-    const res = await db!.getFirstAsync<any>('SELECT id FROM library WHERE id = ?;', [manga.id])
+    await this.ensureReady();
+    const res = await db!.getFirstAsync<any>(
+      "SELECT id FROM library WHERE id = ?;",
+      [manga.id],
+    );
     if (res) {
-      await db!.runAsync('DELETE FROM library WHERE id = ?;', [manga.id])
-      return { ok: true, value: false }
+      await db!.runAsync("DELETE FROM library WHERE id = ?;", [manga.id]);
+      return { ok: true, value: false };
     } else {
       await db!.runAsync(
-        'INSERT INTO library (id, title, cover_url, status, metadata, type) VALUES (?, ?, ?, ?, ?, ?);',
+        "INSERT INTO library (id, title, cover_url, status, metadata, type) VALUES (?, ?, ?, ?, ?, ?);",
         [
           manga.id ?? null,
           manga.title ?? null,
           manga.coverUrl ?? null,
           manga.status ?? null,
           JSON.stringify(manga),
-          manga.mediaType || 'manga'
-        ]
-      )
-      return { ok: true, value: true }
+          manga.mediaType || "manga",
+        ],
+      );
+      return { ok: true, value: true };
     }
   },
 
   async getSettings(): Promise<IpcResult<Record<string, string>>> {
-    await this.ensureReady()
-    const res = await db!.getAllAsync<{ key: string; value: string }>('SELECT * FROM settings;')
-    const settings: Record<string, string> = {}
-    res.forEach((s) => (settings[s.key] = s.value))
-    return { ok: true, value: settings }
+    await this.ensureReady();
+    const res = await db!.getAllAsync<{ key: string; value: string }>(
+      "SELECT * FROM settings;",
+    );
+    const settings: Record<string, string> = {};
+    res.forEach((s) => (settings[s.key] = s.value));
+    return { ok: true, value: settings };
   },
 
   async getSetting(key: string): Promise<IpcResult<string | null>> {
-    await this.ensureReady()
+    await this.ensureReady();
     const res = await db!.getFirstAsync<{ value: string }>(
-      'SELECT value FROM settings WHERE key = ?;',
-      [key]
-    )
-    return { ok: true, value: res?.value || null }
+      "SELECT value FROM settings WHERE key = ?;",
+      [key],
+    );
+    return { ok: true, value: res?.value || null };
   },
 
   async setSetting(key: string, value: string): Promise<SuccessResult> {
-    await this.ensureReady()
-    await db!.runAsync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?);', [key, value])
-    return { ok: true, value: { success: true } }
+    await this.ensureReady();
+    await db!.runAsync(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?);",
+      [key, value],
+    );
+    return { ok: true, value: { success: true } };
   },
 
-  async getHistory(args?: { type?: string; limit?: number }): Promise<IpcResult<HistoryEntry[]>> {
-    await this.ensureReady()
-    let sql = 'SELECT * FROM reading_history'
-    const params: any[] = []
+  async getHistory(args?: {
+    type?: string;
+    limit?: number;
+  }): Promise<IpcResult<HistoryEntry[]>> {
+    await this.ensureReady();
+    let sql = `
+      SELECT
+        h.id,
+        h.manga_id,
+        COALESCE(NULLIF(h.manga_title, ''), NULLIF(c.title, ''), NULLIF(l.title, '')) AS manga_title,
+        COALESCE(NULLIF(h.manga_cover, ''), NULLIF(c.cover_url, ''), NULLIF(l.cover_url, '')) AS manga_cover,
+        COALESCE(NULLIF(h.manga_url, ''), NULLIF(c.url, '')) AS manga_url,
+        h.chapter_id,
+        h.chapter_title,
+        h.started_at,
+        h.duration_seconds,
+        h.pkg,
+        h.type
+      FROM reading_history h
+      LEFT JOIN manga_cache c ON h.manga_id = c.id
+      LEFT JOIN library l ON h.manga_id = l.id
+    `;
+    const params: any[] = [];
     if (args?.type) {
-      sql += ' WHERE type = ?'
-      params.push(args.type)
+      sql += " WHERE h.type = ?";
+      params.push(args.type);
     }
-    sql += ' ORDER BY started_at DESC'
+    sql += " ORDER BY h.started_at DESC";
     if (args?.limit) {
-      sql += ' LIMIT ?'
-      params.push(args.limit)
+      sql += " LIMIT ?";
+      params.push(args.limit);
     }
-    const res = await db!.getAllAsync<any>(sql, params)
-    return { ok: true, value: res }
+    const res = await db!.getAllAsync<any>(sql, params);
+    return { ok: true, value: res };
   },
 
   async addHistory(data: HistoryEntry): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     await db!.runAsync(
-      'INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+      "INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
       [
         data.mangaId ?? null,
         data.mangaTitle ?? null,
         data.mangaCover ?? null,
         data.mangaUrl ?? null,
-        data.chapterId || '',
+        data.chapterId || "",
         data.chapterTitle ?? null,
         data.startedAt ?? null,
         data.durationSeconds || 0,
         data.pkg ?? null,
-        data.type || 'manga'
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        data.type || "manga",
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
   async updateHistoryDuration(args: {
-    mangaId: string
-    chapterId: string
-    durationSeconds: number
+    mangaId: string;
+    chapterId: string;
+    durationSeconds: number;
   }): Promise<SuccessResult> {
-    await this.ensureReady()
-    const latest = await db!.getFirstAsync<{ id: number; duration_seconds: number }>(
-      'SELECT id, duration_seconds FROM reading_history WHERE manga_id = ? AND chapter_id = ? ORDER BY started_at DESC LIMIT 1;',
-      [args.mangaId, args.chapterId]
-    )
+    await this.ensureReady();
+    const latest = await db!.getFirstAsync<{
+      id: number;
+      duration_seconds: number;
+    }>(
+      "SELECT id, duration_seconds FROM reading_history WHERE manga_id = ? AND chapter_id = ? ORDER BY started_at DESC LIMIT 1;",
+      [args.mangaId, args.chapterId],
+    );
     if (latest) {
-      const newDuration = Math.max(latest.duration_seconds || 0, args.durationSeconds)
-      await db!.runAsync('UPDATE reading_history SET duration_seconds = ? WHERE id = ?;', [
-        newDuration,
-        latest.id
-      ])
+      const newDuration = Math.max(
+        latest.duration_seconds || 0,
+        args.durationSeconds,
+      );
+      await db!.runAsync(
+        "UPDATE reading_history SET duration_seconds = ? WHERE id = ?;",
+        [newDuration, latest.id],
+      );
     }
-    return { ok: true, value: { success: true } }
+    return { ok: true, value: { success: true } };
   },
 
   async updateProgress(data: any): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     await db!.runAsync(
-      'INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);',
+      "INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES (?, ?, ?, ?, ?);",
       [
         data.mangaId,
         data.chapterId,
         data.isRead ? 1 : 0,
         data.lastPage || 0,
-        new Date().toISOString()
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        new Date().toISOString(),
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
   async updateProgressBatch(data: {
-    mangaId: string
-    chapterIds: string[]
-    isRead: boolean
-    lastPage?: number
+    mangaId: string;
+    chapterIds: string[];
+    isRead: boolean;
+    lastPage?: number;
   }): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     if (!data.chapterIds || data.chapterIds.length === 0) {
-      return { ok: true, value: { success: true } }
+      return { ok: true, value: { success: true } };
     }
-    const now = new Date().toISOString()
-    const isRead = data.isRead ? 1 : 0
-    const lastPage = data.lastPage || 0
+    const now = new Date().toISOString();
+    const isRead = data.isRead ? 1 : 0;
+    const lastPage = data.lastPage || 0;
 
     await db!.withTransactionAsync(async () => {
-      const CHUNK_SIZE = 50
+      const CHUNK_SIZE = 50;
       for (let i = 0; i < data.chapterIds.length; i += CHUNK_SIZE) {
-        const chunk = data.chapterIds.slice(i, i + CHUNK_SIZE)
-        const placeholders = chunk.map(() => '(?, ?, ?, ?, ?)').join(', ')
-        const params: any[] = []
+        const chunk = data.chapterIds.slice(i, i + CHUNK_SIZE);
+        const placeholders = chunk.map(() => "(?, ?, ?, ?, ?)").join(", ");
+        const params: any[] = [];
         for (const chapterId of chunk) {
-          params.push(data.mangaId, chapterId, isRead, lastPage, now)
+          params.push(data.mangaId, chapterId, isRead, lastPage, now);
         }
         await db!.runAsync(
           `INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at) VALUES ${placeholders};`,
-          params
-        )
+          params,
+        );
       }
-    })
-    return { ok: true, value: { success: true } }
+    });
+    return { ok: true, value: { success: true } };
   },
 
   async getChapters(mangaId: string): Promise<IpcResult<any[]>> {
-    await this.ensureReady()
-    const res = await db!.getAllAsync<any>('SELECT * FROM chapters WHERE manga_id = ?;', [mangaId])
-    return { ok: true, value: res }
+    await this.ensureReady();
+    const res = await db!.getAllAsync<any>(
+      "SELECT * FROM chapters WHERE manga_id = ?;",
+      [mangaId],
+    );
+    return { ok: true, value: res };
   },
 
-  async saveChapters(args: { mangaId: string; chapters: any[] }): Promise<SuccessResult> {
-    await this.ensureReady()
+  async saveChapters(args: {
+    mangaId: string;
+    chapters: any[];
+  }): Promise<SuccessResult> {
+    await this.ensureReady();
     await db!.withTransactionAsync(async () => {
-      await db!.runAsync('DELETE FROM chapters WHERE manga_id = ?;', [args.mangaId])
+      await db!.runAsync("DELETE FROM chapters WHERE manga_id = ?;", [
+        args.mangaId,
+      ]);
       for (const ch of args.chapters) {
         await db!.runAsync(
-          'INSERT INTO chapters (manga_id, id, number, title, date, scanlator, url) VALUES (?, ?, ?, ?, ?, ?, ?);',
-          [args.mangaId, ch.id, ch.number, ch.title, ch.date, ch.scanlator, ch.url]
-        )
+          "INSERT INTO chapters (manga_id, id, number, title, date, scanlator, url) VALUES (?, ?, ?, ?, ?, ?, ?);",
+          [
+            args.mangaId,
+            ch.id,
+            ch.number,
+            ch.title,
+            ch.date,
+            ch.scanlator,
+            ch.url,
+          ],
+        );
       }
-    })
-    return { ok: true, value: { success: true } }
+    });
+    return { ok: true, value: { success: true } };
   },
 
   async deleteHistoryEntry(id: number): Promise<SuccessResult> {
-    await this.ensureReady()
-    await db!.runAsync('DELETE FROM reading_history WHERE id = ?;', [id])
-    return { ok: true, value: { success: true } }
+    await this.ensureReady();
+    await db!.runAsync("DELETE FROM reading_history WHERE id = ?;", [id]);
+    return { ok: true, value: { success: true } };
   },
 
   async deleteHistoryByManga(mangaId: string): Promise<SuccessResult> {
-    await this.ensureReady()
-    await db!.runAsync('DELETE FROM reading_history WHERE manga_id = ?;', [mangaId])
-    return { ok: true, value: { success: true } }
+    await this.ensureReady();
+    await db!.runAsync("DELETE FROM reading_history WHERE manga_id = ?;", [
+      mangaId,
+    ]);
+    return { ok: true, value: { success: true } };
   },
 
   async clearHistory(type?: string): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     if (type) {
-      await db!.runAsync('DELETE FROM reading_history WHERE type = ?;', [type])
+      await db!.runAsync("DELETE FROM reading_history WHERE type = ?;", [type]);
     } else {
-      await db!.runAsync('DELETE FROM reading_history;')
+      await db!.runAsync("DELETE FROM reading_history;");
     }
-    return { ok: true, value: { success: true } }
+    return { ok: true, value: { success: true } };
   },
 
   async clearLibrary(type?: string): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     if (type) {
-      await db!.runAsync('DELETE FROM library WHERE type = ?;', [type])
+      await db!.runAsync("DELETE FROM library WHERE type = ?;", [type]);
     } else {
-      await db!.runAsync('DELETE FROM library;')
+      await db!.runAsync("DELETE FROM library;");
     }
-    return { ok: true, value: { success: true } }
+    return { ok: true, value: { success: true } };
   },
 
   async getProgress(mangaId: string): Promise<IpcResult<any[]>> {
-    await this.ensureReady()
+    await this.ensureReady();
     const res = await db!.getAllAsync<any>(
-      'SELECT * FROM reading_progress WHERE manga_id = ?;',
-      [mangaId]
-    )
-    return { ok: true, value: res }
+      "SELECT * FROM reading_progress WHERE manga_id = ?;",
+      [mangaId],
+    );
+    return { ok: true, value: res };
   },
 
   async getAllProgress(): Promise<IpcResult<any[]>> {
-    await this.ensureReady()
-    const res = await db!.getAllAsync<any>('SELECT * FROM reading_progress;')
-    return { ok: true, value: res }
+    await this.ensureReady();
+    const res = await db!.getAllAsync<any>("SELECT * FROM reading_progress;");
+    return { ok: true, value: res };
   },
 
   async getMangaCache(mangaId: string): Promise<IpcResult<any>> {
-    await this.ensureReady()
+    await this.ensureReady();
     const res = await db!.getFirstAsync<any>(
-      'SELECT * FROM manga_cache WHERE id = ?;',
-      [mangaId]
-    )
-    return { ok: true, value: res || null }
+      "SELECT * FROM manga_cache WHERE id = ?;",
+      [mangaId],
+    );
+    return { ok: true, value: res || null };
   },
 
   async saveMangaCache(manga: any): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     await db!.runAsync(
       `INSERT OR REPLACE INTO manga_cache
        (id, title, cover_url, description, author, artist, status, genres, url, updated_at, type, expires_at)
@@ -542,27 +609,27 @@ export const MobileDB = {
         manga.genres ? JSON.stringify(manga.genres) : null,
         manga.url || null,
         new Date().toISOString(),
-        manga.mediaType || manga.type || 'manga',
-        null
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        manga.mediaType || manga.type || "manga",
+        null,
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
   async upsertDownload(data: {
-    mangaId: string
-    chapterId: string
-    totalPages?: number | null
-    cachedPages?: number | null
-    status?: string | null
-    pageUrls?: string | null
-    errorMessage?: string | null
-    updatedAt?: string | null
-    type?: string | null
-    mangaTitle?: string | null
-    chapterTitle?: string | null
+    mangaId: string;
+    chapterId: string;
+    totalPages?: number | null;
+    cachedPages?: number | null;
+    status?: string | null;
+    pageUrls?: string | null;
+    errorMessage?: string | null;
+    updatedAt?: string | null;
+    type?: string | null;
+    mangaTitle?: string | null;
+    chapterTitle?: string | null;
   }): Promise<SuccessResult> {
-    await this.ensureReady()
+    await this.ensureReady();
     await db!.runAsync(
       `INSERT INTO downloads (
         manga_id, chapter_id, total_pages, cached_pages, status, 
@@ -587,86 +654,107 @@ export const MobileDB = {
         data.pageUrls ?? null,
         data.errorMessage ?? null,
         data.updatedAt ?? new Date().toISOString(),
-        data.type ?? 'manga',
+        data.type ?? "manga",
         data.mangaTitle ?? null,
-        data.chapterTitle ?? null
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        data.chapterTitle ?? null,
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
-  async getDownload(mangaId: string, chapterId: string): Promise<IpcResult<DownloadEntry | undefined>> {
-    await this.ensureReady()
+  async getDownload(
+    mangaId: string,
+    chapterId: string,
+  ): Promise<IpcResult<DownloadEntry | undefined>> {
+    await this.ensureReady();
     const row = await db!.getFirstAsync<any>(
-      'SELECT * FROM downloads WHERE manga_id = ? AND chapter_id = ?;',
-      [mangaId, chapterId]
-    )
-    if (!row) return { ok: true, value: undefined }
-    return { ok: true, value: this.mapDownloadRow(row) }
+      "SELECT * FROM downloads WHERE manga_id = ? AND chapter_id = ?;",
+      [mangaId, chapterId],
+    );
+    if (!row) return { ok: true, value: undefined };
+    return { ok: true, value: this.mapDownloadRow(row) };
   },
 
-  async getDownloadsByManga(mangaId: string): Promise<IpcResult<DownloadEntry[]>> {
-    await this.ensureReady()
+  async getDownloadsByManga(
+    mangaId: string,
+  ): Promise<IpcResult<DownloadEntry[]>> {
+    await this.ensureReady();
     const rows = await db!.getAllAsync<any>(
-      'SELECT * FROM downloads WHERE manga_id = ? ORDER BY chapter_id ASC;',
-      [mangaId]
-    )
-    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) }
+      "SELECT * FROM downloads WHERE manga_id = ? ORDER BY chapter_id ASC;",
+      [mangaId],
+    );
+    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) };
   },
 
   async getAllDownloads(type?: string): Promise<IpcResult<DownloadEntry[]>> {
-    await this.ensureReady()
-    let sql = 'SELECT * FROM downloads'
-    const params: any[] = []
-    if (type && type !== 'all') {
-      sql += ' WHERE type = ?'
-      params.push(type)
+    await this.ensureReady();
+    let sql = "SELECT * FROM downloads";
+    const params: any[] = [];
+    if (type && type !== "all") {
+      sql += " WHERE type = ?";
+      params.push(type);
     }
-    sql += ' ORDER BY updated_at DESC;'
-    const rows = await db!.getAllAsync<any>(sql, params)
-    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) }
+    sql += " ORDER BY updated_at DESC;";
+    const rows = await db!.getAllAsync<any>(sql, params);
+    return { ok: true, value: (rows || []).map((r) => this.mapDownloadRow(r)) };
   },
 
-  async deleteDownload(mangaId: string, chapterId: string): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
-    await db!.runAsync('DELETE FROM downloads WHERE manga_id = ? AND chapter_id = ?;', [mangaId, chapterId])
-    return { ok: true, value: true }
+  async deleteDownload(
+    mangaId: string,
+    chapterId: string,
+  ): Promise<IpcResult<boolean>> {
+    await this.ensureReady();
+    await db!.runAsync(
+      "DELETE FROM downloads WHERE manga_id = ? AND chapter_id = ?;",
+      [mangaId, chapterId],
+    );
+    return { ok: true, value: true };
   },
 
   async clearDownloads(type?: string): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
-    if (type && type !== 'all') {
-      await db!.runAsync('DELETE FROM downloads WHERE type = ?;', [type])
+    await this.ensureReady();
+    if (type && type !== "all") {
+      await db!.runAsync("DELETE FROM downloads WHERE type = ?;", [type]);
     } else {
-      await db!.runAsync('DELETE FROM downloads;')
+      await db!.runAsync("DELETE FROM downloads;");
     }
-    return { ok: true, value: true }
+    return { ok: true, value: true };
   },
 
-  async updateDownloadProgress(mangaId: string, chapterId: string, cachedPages: number, totalPages?: number): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
-    const now = new Date().toISOString()
-    if (typeof totalPages === 'number') {
+  async updateDownloadProgress(
+    mangaId: string,
+    chapterId: string,
+    cachedPages: number,
+    totalPages?: number,
+  ): Promise<IpcResult<boolean>> {
+    await this.ensureReady();
+    const now = new Date().toISOString();
+    if (typeof totalPages === "number") {
       await db!.runAsync(
-        'UPDATE downloads SET cached_pages = ?, total_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
-        [cachedPages, totalPages, now, mangaId, chapterId]
-      )
+        "UPDATE downloads SET cached_pages = ?, total_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;",
+        [cachedPages, totalPages, now, mangaId, chapterId],
+      );
     } else {
       await db!.runAsync(
-        'UPDATE downloads SET cached_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
-        [cachedPages, now, mangaId, chapterId]
-      )
+        "UPDATE downloads SET cached_pages = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;",
+        [cachedPages, now, mangaId, chapterId],
+      );
     }
-    return { ok: true, value: true }
+    return { ok: true, value: true };
   },
 
-  async updateDownloadStatus(mangaId: string, chapterId: string, status: string, error?: string): Promise<IpcResult<boolean>> {
-    await this.ensureReady()
+  async updateDownloadStatus(
+    mangaId: string,
+    chapterId: string,
+    status: string,
+    error?: string,
+  ): Promise<IpcResult<boolean>> {
+    await this.ensureReady();
     await db!.runAsync(
-      'UPDATE downloads SET status = ?, error_message = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;',
-      [status, error || null, new Date().toISOString(), mangaId, chapterId]
-    )
-    return { ok: true, value: true }
+      "UPDATE downloads SET status = ?, error_message = ?, updated_at = ? WHERE manga_id = ? AND chapter_id = ?;",
+      [status, error || null, new Date().toISOString(), mangaId, chapterId],
+    );
+    return { ok: true, value: true };
   },
 
   mapDownloadRow(row: any): DownloadEntry {
@@ -679,21 +767,24 @@ export const MobileDB = {
       pageUrls: row.page_urls ?? null,
       error: row.error_message ?? null,
       updatedAt: row.updated_at ?? null,
-      mediaType: (row.type as 'manga' | 'anime') || 'manga',
+      mediaType: (row.type as "manga" | "anime") || "manga",
       mangaTitle: row.manga_title ?? null,
-      chapterTitle: row.chapter_title ?? null
-    }
+      chapterTitle: row.chapter_title ?? null,
+    };
   },
 
   async getTrackers(mangaId: string): Promise<IpcResult<any[]>> {
-    await this.ensureReady()
-    const res = await db!.getAllAsync<any>('SELECT * FROM trackers WHERE manga_id = ?;', [mangaId])
-    return { ok: true, value: res }
+    await this.ensureReady();
+    const res = await db!.getAllAsync<any>(
+      "SELECT * FROM trackers WHERE manga_id = ?;",
+      [mangaId],
+    );
+    return { ok: true, value: res };
   },
 
   async saveTracker(data: any): Promise<SuccessResult> {
-    await this.ensureReady()
-    const now = data.updatedAt || new Date().toISOString()
+    await this.ensureReady();
+    const now = data.updatedAt || new Date().toISOString();
     await db!.runAsync(
       `INSERT OR REPLACE INTO trackers (manga_id, provider, remote_id, score, status, last_synced_chapter, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?);`,
@@ -702,91 +793,100 @@ export const MobileDB = {
         data.provider,
         data.remoteId,
         data.score !== undefined ? data.score : null,
-        data.status || 'CURRENT',
+        data.status || "CURRENT",
         data.lastSyncedChapter ?? 0,
-        now
-      ]
-    )
-    return { ok: true, value: { success: true } }
+        now,
+      ],
+    );
+    return { ok: true, value: { success: true } };
   },
 
-  async deleteTracker(mangaId: string, provider: string): Promise<SuccessResult> {
-    await this.ensureReady()
-    await db!.runAsync('DELETE FROM trackers WHERE manga_id = ? AND provider = ?;', [mangaId, provider])
-    return { ok: true, value: { success: true } }
+  async deleteTracker(
+    mangaId: string,
+    provider: string,
+  ): Promise<SuccessResult> {
+    await this.ensureReady();
+    await db!.runAsync(
+      "DELETE FROM trackers WHERE manga_id = ? AND provider = ?;",
+      [mangaId, provider],
+    );
+    return { ok: true, value: { success: true } };
   },
 
   async exportBackupData(): Promise<BackupData> {
-    await this.ensureReady()
+    await this.ensureReady();
 
     // 1. Library
     const libraryRows = await db!.getAllAsync<any>(
-      'SELECT id, title, cover_url as coverUrl, status, metadata, type as mediaType FROM library;'
-    )
+      "SELECT id, title, cover_url as coverUrl, status, metadata, type as mediaType FROM library;",
+    );
 
     // 2. Reading Progress
     const progressRows = await db!.getAllAsync<any>(
-      'SELECT manga_id as mangaId, chapter_id as chapterId, is_read as isRead, last_page as lastPage, updated_at as updatedAt FROM reading_progress;'
-    )
+      "SELECT manga_id as mangaId, chapter_id as chapterId, is_read as isRead, last_page as lastPage, updated_at as updatedAt FROM reading_progress;",
+    );
 
     // 3. Reading History
     const historyRows = await db!.getAllAsync<any>(
-      'SELECT manga_id as mangaId, manga_title as mangaTitle, manga_cover as mangaCover, manga_url as mangaUrl, chapter_id as chapterId, chapter_title as chapterTitle, started_at as startedAt, duration_seconds as durationSeconds, pkg, type as mediaType FROM reading_history;'
-    )
+      "SELECT manga_id as mangaId, manga_title as mangaTitle, manga_cover as mangaCover, manga_url as mangaUrl, chapter_id as chapterId, chapter_title as chapterTitle, started_at as startedAt, duration_seconds as durationSeconds, pkg, type as mediaType FROM reading_history;",
+    );
 
     // 4. Source Repositories
-    let sourceRepositories: string[] = []
+    let sourceRepositories: string[] = [];
     const reposRow = await db!.getFirstAsync<any>(
-      "SELECT value FROM settings WHERE key = 'source_repositories';"
-    )
+      "SELECT value FROM settings WHERE key = 'source_repositories';",
+    );
     if (reposRow?.value) {
       try {
-        sourceRepositories = JSON.parse(reposRow.value)
+        sourceRepositories = JSON.parse(reposRow.value);
       } catch {}
     }
 
     // 5. Trackers
-    let trackers: any[] = []
+    let trackers: any[] = [];
     try {
       trackers = await db!.getAllAsync<any>(
-        'SELECT manga_id as mangaId, provider, remote_id as remoteId, score, status, last_synced_chapter as lastSyncedChapter, updated_at as updatedAt FROM trackers;'
-      )
+        "SELECT manga_id as mangaId, provider, remote_id as remoteId, score, status, last_synced_chapter as lastSyncedChapter, updated_at as updatedAt FROM trackers;",
+      );
     } catch {}
 
     return {
       version: 1,
-      appVersion: Constants.expoConfig?.version || '2.1.0',
+      appVersion: Constants.expoConfig?.version || "2.1.0",
       createdAt: new Date().toISOString(),
       library: libraryRows || [],
-      readingProgress: (progressRows || []).map((r) => ({ ...r, isRead: Boolean(r.isRead) })),
+      readingProgress: (progressRows || []).map((r) => ({
+        ...r,
+        isRead: Boolean(r.isRead),
+      })),
       readingHistory: historyRows || [],
       sourceRepositories,
-      trackers
-    }
+      trackers,
+    };
   },
 
   async restoreBackup(backup: BackupData): Promise<{
-    library: number
-    readingProgress: number
-    readingHistory: number
-    sourceRepositories: number
-    trackers: number
+    library: number;
+    readingProgress: number;
+    readingHistory: number;
+    sourceRepositories: number;
+    trackers: number;
   }> {
-    await this.ensureReady()
+    await this.ensureReady();
 
     const restoredCounts = {
       library: 0,
       readingProgress: 0,
       readingHistory: 0,
       sourceRepositories: 0,
-      trackers: 0
-    }
+      trackers: 0,
+    };
 
     await db!.withTransactionAsync(async () => {
       // 1. Library
       if (Array.isArray(backup.library) && backup.library.length > 0) {
         for (const item of backup.library) {
-          if (!item.id) continue
+          if (!item.id) continue;
           await db!.runAsync(
             `INSERT OR REPLACE INTO library (id, title, cover_url, status, metadata, type)
              VALUES (?, ?, ?, ?, ?, ?);`,
@@ -795,18 +895,23 @@ export const MobileDB = {
               item.title ?? null,
               item.coverUrl ?? (item as any).cover_url ?? null,
               item.status ?? null,
-              typeof item.metadata === 'object' ? JSON.stringify(item.metadata) : item.metadata ?? null,
-              item.mediaType || (item as any).type || 'manga'
-            ]
-          )
-          restoredCounts.library++
+              typeof item.metadata === "object"
+                ? JSON.stringify(item.metadata)
+                : (item.metadata ?? null),
+              item.mediaType || (item as any).type || "manga",
+            ],
+          );
+          restoredCounts.library++;
         }
       }
 
       // 2. Reading Progress
-      if (Array.isArray(backup.readingProgress) && backup.readingProgress.length > 0) {
+      if (
+        Array.isArray(backup.readingProgress) &&
+        backup.readingProgress.length > 0
+      ) {
         for (const item of backup.readingProgress) {
-          if (!item.mangaId || !item.chapterId) continue
+          if (!item.mangaId || !item.chapterId) continue;
           await db!.runAsync(
             `INSERT OR REPLACE INTO reading_progress (manga_id, chapter_id, is_read, last_page, updated_at)
              VALUES (?, ?, ?, ?, ?);`,
@@ -815,22 +920,30 @@ export const MobileDB = {
               item.chapterId,
               item.isRead ? 1 : 0,
               item.lastPage ?? (item as any).last_page ?? 0,
-              item.updatedAt ?? (item as any).updated_at ?? new Date().toISOString()
-            ]
-          )
-          restoredCounts.readingProgress++
+              item.updatedAt ??
+                (item as any).updated_at ??
+                new Date().toISOString(),
+            ],
+          );
+          restoredCounts.readingProgress++;
         }
       }
 
       // 3. Reading History
-      if (Array.isArray(backup.readingHistory) && backup.readingHistory.length > 0) {
+      if (
+        Array.isArray(backup.readingHistory) &&
+        backup.readingHistory.length > 0
+      ) {
         for (const item of backup.readingHistory) {
-          if (!item.mangaId || !item.chapterId) continue
-          const startedAt = item.startedAt ?? (item as any).started_at ?? new Date().toISOString()
+          if (!item.mangaId || !item.chapterId) continue;
+          const startedAt =
+            item.startedAt ??
+            (item as any).started_at ??
+            new Date().toISOString();
           const exists = await db!.getFirstAsync<any>(
-            'SELECT 1 FROM reading_history WHERE manga_id = ? AND chapter_id = ? AND started_at = ? LIMIT 1;',
-            [item.mangaId, item.chapterId, startedAt]
-          )
+            "SELECT 1 FROM reading_history WHERE manga_id = ? AND chapter_id = ? AND started_at = ? LIMIT 1;",
+            [item.mangaId, item.chapterId, startedAt],
+          );
           if (!exists) {
             await db!.runAsync(
               `INSERT INTO reading_history (manga_id, manga_title, manga_cover, manga_url, chapter_id, chapter_title, started_at, duration_seconds, pkg, type)
@@ -845,55 +958,60 @@ export const MobileDB = {
                 startedAt,
                 item.durationSeconds ?? (item as any).duration_seconds ?? 0,
                 item.pkg ?? null,
-                item.mediaType || (item as any).type || 'manga'
-              ]
-            )
-            restoredCounts.readingHistory++
+                item.mediaType || (item as any).type || "manga",
+              ],
+            );
+            restoredCounts.readingHistory++;
           }
         }
       }
 
       // 4. Source Repositories
-      if (Array.isArray(backup.sourceRepositories) && backup.sourceRepositories.length > 0) {
+      if (
+        Array.isArray(backup.sourceRepositories) &&
+        backup.sourceRepositories.length > 0
+      ) {
         const reposRow = await db!.getFirstAsync<any>(
-          "SELECT value FROM settings WHERE key = 'source_repositories';"
-        )
-        let currentRepos: string[] = []
+          "SELECT value FROM settings WHERE key = 'source_repositories';",
+        );
+        let currentRepos: string[] = [];
         if (reposRow?.value) {
           try {
-            currentRepos = JSON.parse(reposRow.value)
+            currentRepos = JSON.parse(reposRow.value);
           } catch {}
         }
-        const mergedRepos = Array.from(new Set([...currentRepos, ...backup.sourceRepositories]))
+        const mergedRepos = Array.from(
+          new Set([...currentRepos, ...backup.sourceRepositories]),
+        );
         await db!.runAsync(
           `INSERT OR REPLACE INTO settings (key, value) VALUES ('source_repositories', ?);`,
-          [JSON.stringify(mergedRepos)]
-        )
-        restoredCounts.sourceRepositories = backup.sourceRepositories.length
+          [JSON.stringify(mergedRepos)],
+        );
+        restoredCounts.sourceRepositories = backup.sourceRepositories.length;
       }
 
       // 5. Trackers
       if (Array.isArray(backup.trackers) && backup.trackers.length > 0) {
         for (const item of backup.trackers) {
-          if (!item.mangaId || !item.remoteId) continue
+          if (!item.mangaId || !item.remoteId) continue;
           await db!.runAsync(
             `INSERT OR REPLACE INTO trackers (manga_id, provider, remote_id, score, status, last_synced_chapter, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?);`,
             [
               item.mangaId,
-              item.provider || 'anilist',
+              item.provider || "anilist",
               item.remoteId,
               item.score ?? null,
-              item.status ?? 'CURRENT',
+              item.status ?? "CURRENT",
               item.lastSyncedChapter ?? 0,
-              item.updatedAt ?? new Date().toISOString()
-            ]
-          )
-          restoredCounts.trackers++
+              item.updatedAt ?? new Date().toISOString(),
+            ],
+          );
+          restoredCounts.trackers++;
         }
       }
-    })
+    });
 
-    return restoredCounts
-  }
-}
+    return restoredCounts;
+  },
+};

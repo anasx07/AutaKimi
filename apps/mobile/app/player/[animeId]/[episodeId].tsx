@@ -329,15 +329,25 @@ function EmbedVideoPlayer({
 }
 
 export default function PlayerScreen() {
-  const { animeId, episodeId, pkg, episodeUrl, episodeTitle, animeTitle } =
-    useLocalSearchParams<{
-      animeId: string;
-      episodeId: string;
-      pkg?: string;
-      episodeUrl?: string;
-      episodeTitle?: string;
-      animeTitle?: string;
-    }>();
+  const {
+    animeId,
+    episodeId,
+    pkg,
+    episodeUrl,
+    episodeTitle,
+    animeTitle,
+    animeCover,
+    animeUrl,
+  } = useLocalSearchParams<{
+    animeId: string;
+    episodeId: string;
+    pkg?: string;
+    episodeUrl?: string;
+    episodeTitle?: string;
+    animeTitle?: string;
+    animeCover?: string;
+    animeUrl?: string;
+  }>();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
@@ -670,6 +680,8 @@ export default function PlayerScreen() {
         .addHistory({
           mangaId: animeId,
           mangaTitle: animeTitle,
+          mangaCover: animeCover || undefined,
+          mangaUrl: animeUrl || undefined,
           chapterId: targetEp.id,
           chapterTitle: targetEp.title || `Episode ${targetEp.number}`,
           startedAt: new Date().toISOString(),
@@ -687,10 +699,12 @@ export default function PlayerScreen() {
           episodeUrl: targetEp.url,
           episodeTitle: targetEp.title || `Episode ${targetEp.number}`,
           animeTitle,
+          animeCover: animeCover || "",
+          animeUrl: animeUrl || "",
         },
       });
     },
-    [animeId, animeTitle, pkg, flushProgress],
+    [animeId, animeTitle, animeCover, animeUrl, pkg, flushProgress],
   );
 
   // 7. Auto-next episode countdown when video finishes
