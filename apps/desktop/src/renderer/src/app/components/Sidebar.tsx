@@ -12,8 +12,10 @@ import {
 } from 'lucide-react'
 import { cn } from '@renderer/shared/lib/utils'
 import { DataService } from '@renderer/shared/api'
+import { useLibraryStore } from '@renderer/shared/model'
 import appIcon from '../assets/app-icon/64x64.png'
 import { SIDEBAR_COLLAPSE_STORAGE_KEY, resolveSidebarCollapsedState } from './sidebarState'
+import { resolveBrowseNavTarget, sharedTabNavigationMemory } from './navigationMemory'
 
 interface SidebarProps {
   autoCollapsed?: boolean
@@ -43,6 +45,7 @@ export function Sidebar({
 
   const asideRef = useRef<HTMLElement | null>(null)
   const location = useLocation()
+  const { selectedManga, setSelectedManga, setActiveChapter } = useLibraryStore()
 
   // Clear temporary watch override whenever watch mode turns on/off
   useEffect(() => {
@@ -125,10 +128,25 @@ export function Sidebar({
           const Icon = item.icon
           const isRouteActive =
             location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+          const targetPath =
+            item.id === 'browse'
+              ? resolveBrowseNavTarget(
+                  location.pathname,
+                  sharedTabNavigationMemory.getLastBrowsePath()
+                )
+              : item.path
           return (
             <NavLink
               key={item.id}
-              to={item.path}
+              to={targetPath}
+              onClick={(e) => {
+                if (isRouteActive && selectedManga) {
+                  e.preventDefault()
+                  setSelectedManga(null)
+                  setActiveChapter(null)
+                  sharedTabNavigationMemory.clearOverlay(location.pathname)
+                }
+              }}
               onMouseEnter={(e) => {
                 if (!isSidebarCollapsed || !asideRef.current) return
                 const itemRect = e.currentTarget.getBoundingClientRect()
