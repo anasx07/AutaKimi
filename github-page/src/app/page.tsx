@@ -77,7 +77,8 @@ export default function Home() {
           </Link>
 
           <h1 className="text-4xl sm:text-6xl md:text-[66px] font-bold tracking-[-0.03em] leading-[1.06] text-white font-[family-name:var(--font-outfit)]">
-            Read manga. Watch anime.{" "}
+            Read <span className="text-[#e11d48]">manga</span>. Watch{" "}
+            <span className="text-[#e11d48]">anime</span>.{" "}
             <span className="text-zinc-400">Keep everything local.</span>
           </h1>
 
