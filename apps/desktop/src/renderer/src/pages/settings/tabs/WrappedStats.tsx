@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   BarChart3,
   Clock,
@@ -18,11 +18,25 @@ import {
   formatWrappedDuration,
   formatWrappedHours,
   normalizeHistoryRecord,
-  type WrappedStatsSummary
+  type WrappedMediaFilter
 } from '@common/utils/wrappedStats'
 
+const WRAPPED_TABS: Array<{
+  id: WrappedMediaFilter
+  label: string
+  icon: typeof BarChart3
+}> = [
+  { id: 'all', label: 'All', icon: Sparkles },
+  { id: 'anime', label: 'Anime', icon: Film },
+  { id: 'manga', label: 'Manga', icon: BookOpen }
+]
+
 export function WrappedStats(): React.JSX.Element {
-  const [stats, setStats] = useState<WrappedStatsSummary | null>(null)
+  const [activeTab, setActiveTab] = useState<WrappedMediaFilter>('all')
+  const [rawData, setRawData] = useState<{
+    historyEntries: any[]
+    genresByMangaId: Record<string, string[]>
+  } | null>(null)
   const [loading, setLoading] = useState(true)
 
   const loadStats = useCallback(async () => {
@@ -67,7 +81,7 @@ export function WrappedStats(): React.JSX.Element {
         })
       }
 
-      setStats(computeWrappedStats({ historyEntries, genresByMangaId }))
+      setRawData({ historyEntries, genresByMangaId })
     } finally {
       setLoading(false)
     }
@@ -77,9 +91,28 @@ export function WrappedStats(): React.JSX.Element {
     void loadStats()
   }, [loadStats])
 
+  const stats = useMemo(
+    () =>
+      rawData
+        ? computeWrappedStats({
+            historyEntries: rawData.historyEntries,
+            genresByMangaId: rawData.genresByMangaId,
+            mediaFilter: activeTab
+          })
+        : null,
+    [rawData, activeTab]
+  )
+
   const maxDailySeconds = stats
     ? Math.max(60, ...stats.dailyActivity.map((d) => d.totalSeconds))
     : 60
+
+  const heroTitle =
+    activeTab === 'anime'
+      ? 'Anime Wrapped • This Week'
+      : activeTab === 'manga'
+        ? 'Manga Wrapped • This Week'
+        : "This Week's Wrapped"
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -101,6 +134,30 @@ export function WrappedStats(): React.JSX.Element {
           </div>
         </SectionHeader>
 
+        {/* All / Anime / Manga Filter Tabs */}
+        <div className="flex items-center bg-secondary/50 p-1 rounded-xl w-fit border border-border/40">
+          {WRAPPED_TABS.map((tab) => {
+            const Icon = tab.icon
+            const isSelected = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-xs transition-all duration-200 select-none',
+                  isSelected
+                    ? 'bg-card text-primary font-black shadow-sm border border-border/50'
+                    : 'font-bold text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
         {loading && !stats ? (
           <Card className="p-10 border-border bg-card text-center text-sm text-muted-foreground">
             Calculating your local reading &amp; watching Wrapped stats...
@@ -108,12 +165,27 @@ export function WrappedStats(): React.JSX.Element {
         ) : !stats?.hasData ? (
           <Card className="p-12 border-border bg-card text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
-              <Sparkles className="h-6 w-6" />
+              {activeTab === 'anime' ? (
+                <Film className="h-6 w-6" />
+              ) : activeTab === 'manga' ? (
+                <BookOpen className="h-6 w-6" />
+              ) : (
+                <Sparkles className="h-6 w-6" />
+              )}
             </div>
-            <h3 className="text-lg font-bold">Your Local Wrapped Awaits</h3>
+            <h3 className="text-lg font-bold">
+              {activeTab === 'anime'
+                ? 'No Anime Activity Yet'
+                : activeTab === 'manga'
+                  ? 'No Manga Activity Yet'
+                  : 'Your Local Wrapped Awaits'}
+            </h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              Start reading manga or watching anime to track weekly hours, reading streaks, and your
-              most-watched genres — computed strictly on your device.
+              {activeTab === 'anime'
+                ? 'Watch anime episodes to unlock weekly watch hours, anime streaks, and top anime genres.'
+                : activeTab === 'manga'
+                  ? 'Read manga chapters to unlock weekly reading hours, reading streaks, and top manga genres.'
+                  : 'Start reading manga or watching anime to track weekly hours, reading streaks, and your most-watched genres — computed strictly on your device.'}
             </p>
           </Card>
         ) : (
@@ -123,7 +195,7 @@ export function WrappedStats(): React.JSX.Element {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                    <Sparkles className="h-3.5 w-3.5" /> This Week&apos;s Wrapped
+                    <Sparkles className="h-3.5 w-3.5" /> {heroTitle}
                   </div>
                   <div className="text-4xl sm:text-5xl font-black tracking-tight text-foreground tabular-nums">
                     {formatWrappedHours(stats.weeklyTotalSeconds)}
@@ -149,29 +221,69 @@ export function WrappedStats(): React.JSX.Element {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-400">
-                      <Film className="h-3.5 w-3.5" /> Anime Week
-                    </div>
-                    <div className="text-2xl font-black mt-1 tabular-nums">
-                      {formatWrappedDuration(stats.weeklyAnimeSeconds)}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      Total: {formatWrappedDuration(stats.allTimeAnimeSeconds)}
-                    </div>
-                  </div>
+                  {activeTab === 'all' ? (
+                    <>
+                      <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-400">
+                          <Film className="h-3.5 w-3.5" /> Anime Week
+                        </div>
+                        <div className="text-2xl font-black mt-1 tabular-nums">
+                          {formatWrappedDuration(stats.weeklyAnimeSeconds)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Total: {formatWrappedDuration(stats.allTimeAnimeSeconds)}
+                        </div>
+                      </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 col-span-2 sm:col-span-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
-                      <BookOpen className="h-3.5 w-3.5" /> Manga Week
-                    </div>
-                    <div className="text-2xl font-black mt-1 tabular-nums">
-                      {formatWrappedDuration(stats.weeklyMangaSeconds)}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      Total: {formatWrappedDuration(stats.allTimeMangaSeconds)}
-                    </div>
-                  </div>
+                      <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 col-span-2 sm:col-span-1">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                          <BookOpen className="h-3.5 w-3.5" /> Manga Week
+                        </div>
+                        <div className="text-2xl font-black mt-1 tabular-nums">
+                          {formatWrappedDuration(stats.weeklyMangaSeconds)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Total: {formatWrappedDuration(stats.allTimeMangaSeconds)}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3">
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider',
+                            activeTab === 'anime' ? 'text-sky-400' : 'text-rose-400'
+                          )}
+                        >
+                          <Clock className="h-3.5 w-3.5" /> All-Time
+                        </div>
+                        <div className="text-2xl font-black mt-1 tabular-nums">
+                          {formatWrappedDuration(stats.allTimeTotalSeconds)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {stats.totalActiveDays} active day{stats.totalActiveDays === 1 ? '' : 's'}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur-md px-4 py-3 col-span-2 sm:col-span-1">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                          {activeTab === 'anime' ? (
+                            <Film className="h-3.5 w-3.5" />
+                          ) : (
+                            <BookOpen className="h-3.5 w-3.5" />
+                          )}
+                          <span>{activeTab === 'anime' ? 'Episodes' : 'Chapters'}</span>
+                        </div>
+                        <div className="text-2xl font-black mt-1 tabular-nums">
+                          {stats.allTimeSessions}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {stats.uniqueTitlesCount} {activeTab === 'anime' ? 'anime' : 'manga'}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </Card>
@@ -185,16 +297,24 @@ export function WrappedStats(): React.JSX.Element {
                       <Clock className="h-4 w-4 text-primary" /> Last 7 Days Activity
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Daily time split between anime watching &amp; manga reading
+                      {activeTab === 'anime'
+                        ? 'Daily anime watching time'
+                        : activeTab === 'manga'
+                          ? 'Daily manga reading time'
+                          : 'Daily time split between anime watching & manga reading'}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 text-[10px] font-bold">
-                    <span className="inline-flex items-center gap-1 text-sky-400">
-                      <span className="w-2 h-2 rounded-full bg-sky-500" /> Anime
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-rose-400">
-                      <span className="w-2 h-2 rounded-full bg-rose-500" /> Manga
-                    </span>
+                    {activeTab !== 'manga' && (
+                      <span className="inline-flex items-center gap-1 text-sky-400">
+                        <span className="w-2 h-2 rounded-full bg-sky-500" /> Anime
+                      </span>
+                    )}
+                    {activeTab !== 'anime' && (
+                      <span className="inline-flex items-center gap-1 text-rose-400">
+                        <span className="w-2 h-2 rounded-full bg-rose-500" /> Manga
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -246,7 +366,11 @@ export function WrappedStats(): React.JSX.Element {
                     <Sparkles className="h-4 w-4 text-amber-400" /> Top Genres
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Ranked locally from your watched &amp; read titles
+                    {activeTab === 'anime'
+                      ? 'Top genres across your watched anime'
+                      : activeTab === 'manga'
+                        ? 'Top genres across your read manga'
+                        : 'Ranked locally from your watched & read titles'}
                   </p>
                 </div>
 
@@ -286,7 +410,12 @@ export function WrappedStats(): React.JSX.Element {
             <Card className="p-6 border-border bg-card space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-400" /> Most Watched &amp; Read Titles
+                  <Trophy className="h-4 w-4 text-amber-400" />{' '}
+                  {activeTab === 'anime'
+                    ? 'Most Watched Anime'
+                    : activeTab === 'manga'
+                      ? 'Most Read Manga'
+                      : 'Most Watched & Read Titles'}
                 </h3>
                 <span className="text-xs text-muted-foreground">
                   {stats.uniqueTitlesCount} titles · {stats.totalActiveDays} active day

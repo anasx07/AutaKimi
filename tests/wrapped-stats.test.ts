@@ -173,10 +173,73 @@ describe("Local Wrapped / Stats Dashboard", () => {
 
   it("handles empty history gracefully", () => {
     const stats = computeWrappedStats({ historyEntries: [] });
+    expect(stats.mediaFilter).toBe("all");
     expect(stats.hasData).toBe(false);
     expect(stats.currentStreakDays).toBe(0);
     expect(stats.topGenres).toEqual([]);
     expect(stats.topTitles).toEqual([]);
     expect(stats.persona).toBe("Getting Started");
+  });
+
+  it("filters weekly time, streaks, genres, and titles cleanly by Anime or Manga tab", () => {
+    const now = new Date(2026, 10, 25, 21, 0, 0);
+    const entries = [
+      {
+        mangaId: "solo",
+        mangaTitle: "Solo Leveling",
+        chapterId: "ep-4",
+        startedAt: new Date(2026, 10, 25, 20, 0, 0).toISOString(),
+        durationSeconds: 3600,
+        mediaType: "anime",
+      },
+      {
+        mangaId: "vagabond",
+        mangaTitle: "Vagabond",
+        chapterId: "ch-120",
+        startedAt: new Date(2026, 10, 25, 1, 0, 0).toISOString(),
+        durationSeconds: 1800,
+        mediaType: "manga",
+      },
+      {
+        mangaId: "vagabond",
+        mangaTitle: "Vagabond",
+        chapterId: "ch-119",
+        startedAt: new Date(2026, 10, 24, 1, 0, 0).toISOString(),
+        durationSeconds: 1200,
+        mediaType: "manga",
+      },
+    ];
+    const genresByMangaId = {
+      solo: ["Fantasy"],
+      vagabond: ["Historical", "Seinen"],
+    };
+
+    const animeStats = computeWrappedStats({
+      now,
+      historyEntries: entries,
+      genresByMangaId,
+      mediaFilter: "anime",
+    });
+    expect(animeStats.mediaFilter).toBe("anime");
+    expect(animeStats.weeklyTotalSeconds).toBe(3600);
+    expect(animeStats.currentStreakDays).toBe(1);
+    expect(animeStats.topGenres.map((g) => g.genre)).toEqual(["Fantasy"]);
+    expect(animeStats.topTitles.map((t) => t.mangaId)).toEqual(["solo"]);
+
+    const mangaStats = computeWrappedStats({
+      now,
+      historyEntries: entries,
+      genresByMangaId,
+      mediaFilter: "manga",
+    });
+    expect(mangaStats.mediaFilter).toBe("manga");
+    expect(mangaStats.weeklyTotalSeconds).toBe(3000);
+    expect(mangaStats.currentStreakDays).toBe(2);
+    expect(mangaStats.persona).toBe("Night Owl");
+    expect(mangaStats.topGenres.map((g) => g.genre)).toEqual([
+      "Historical",
+      "Seinen",
+    ]);
+    expect(mangaStats.topTitles.map((t) => t.mangaId)).toEqual(["vagabond"]);
   });
 });

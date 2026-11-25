@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -24,11 +24,21 @@ import {
   formatWrappedDuration,
   formatWrappedHours,
   normalizeHistoryRecord,
-  type WrappedStatsSummary,
+  type WrappedMediaFilter,
 } from "@common/utils/wrappedStats";
 
+const MOBILE_WRAPPED_TABS: Array<{ id: WrappedMediaFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "anime", label: "Anime" },
+  { id: "manga", label: "Manga" },
+];
+
 export default function WrappedStatsScreen() {
-  const [stats, setStats] = useState<WrappedStatsSummary | null>(null);
+  const [activeTab, setActiveTab] = useState<WrappedMediaFilter>("all");
+  const [rawData, setRawData] = useState<{
+    historyEntries: any[];
+    genresByMangaId: Record<string, string[]>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadStats = useCallback(async () => {
@@ -78,7 +88,7 @@ export default function WrappedStatsScreen() {
         });
       }
 
-      setStats(computeWrappedStats({ historyEntries, genresByMangaId }));
+      setRawData({ historyEntries, genresByMangaId });
     } finally {
       setLoading(false);
     }
@@ -87,6 +97,18 @@ export default function WrappedStatsScreen() {
   useEffect(() => {
     void loadStats();
   }, [loadStats]);
+
+  const stats = useMemo(
+    () =>
+      rawData
+        ? computeWrappedStats({
+            historyEntries: rawData.historyEntries,
+            genresByMangaId: rawData.genresByMangaId,
+            mediaFilter: activeTab,
+          })
+        : null,
+    [rawData, activeTab],
+  );
 
   const maxDailySeconds = stats
     ? Math.max(60, ...stats.dailyActivity.map((d) => d.totalSeconds))
@@ -123,6 +145,46 @@ export default function WrappedStatsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Segmented Tabs: All / Anime / Manga */}
+      <View className="px-4 pt-3 pb-1">
+        <View className="flex-row bg-card border border-border rounded-xl p-1 gap-1">
+          {MOBILE_WRAPPED_TABS.map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                activeOpacity={0.75}
+                className={`flex-1 py-2 rounded-lg items-center justify-center flex-row gap-1.5 ${
+                  isSelected ? "bg-primary" : ""
+                }`}
+              >
+                {tab.id === "anime" ? (
+                  <Film size={14} color={isSelected ? "#ffffff" : "#94a3b8"} />
+                ) : tab.id === "manga" ? (
+                  <BookOpen
+                    size={14}
+                    color={isSelected ? "#ffffff" : "#94a3b8"}
+                  />
+                ) : (
+                  <Sparkles
+                    size={14}
+                    color={isSelected ? "#ffffff" : "#94a3b8"}
+                  />
+                )}
+                <Typography
+                  className={`text-xs font-bold ${
+                    isSelected ? "text-white" : "text-muted-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </Typography>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {loading && !stats ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#e11d48" />
@@ -131,24 +193,35 @@ export default function WrappedStatsScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Sparkles size={40} color="#e11d48" />
           <Typography className="text-lg font-bold mt-4 text-center">
-            No Activity Logged Yet
+            {activeTab === "anime"
+              ? "No Anime Activity Yet"
+              : activeTab === "manga"
+                ? "No Manga Activity Yet"
+                : "No Activity Logged Yet"}
           </Typography>
           <Typography className="text-xs text-muted-foreground text-center mt-2">
-            Start watching anime or reading manga to see weekly hours, streaks,
-            and top genres calculated locally on your device.
+            {activeTab === "anime"
+              ? "Watch anime episodes to see your weekly watch hours, streaks, and top anime genres."
+              : activeTab === "manga"
+                ? "Read manga chapters to see your weekly reading hours, streaks, and top manga genres."
+                : "Start watching anime or reading manga to see weekly hours, streaks, and top genres calculated locally on your device."}
           </Typography>
         </View>
       ) : (
         <ScrollView
           className="flex-1 px-4"
-          contentContainerStyle={{ paddingVertical: 16, gap: 16 }}
+          contentContainerStyle={{ paddingVertical: 14, gap: 16 }}
         >
           {/* Hero Summary */}
           <Card className="p-5 bg-primary/10 border-primary/25">
             <View className="flex-row items-center gap-1.5">
               <Sparkles size={14} color="#e11d48" />
               <Typography className="text-[11px] font-bold uppercase tracking-widest text-primary">
-                This Week&apos;s Wrapped
+                {activeTab === "anime"
+                  ? "Anime Wrapped • This Week"
+                  : activeTab === "manga"
+                    ? "Manga Wrapped • This Week"
+                    : "This Week's Wrapped"}
               </Typography>
             </View>
             <Typography className="text-4xl font-black mt-2">
@@ -175,35 +248,65 @@ export default function WrappedStatsScreen() {
                 </Typography>
               </View>
 
-              <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
-                <View className="flex-row items-center gap-1">
-                  <Film size={14} color="#38bdf8" />
-                  <Typography className="text-[10px] font-bold uppercase text-sky-400">
-                    Anime
-                  </Typography>
-                </View>
-                <Typography className="text-xl font-black mt-1">
-                  {formatWrappedDuration(stats.weeklyAnimeSeconds)}
-                </Typography>
-                <Typography className="text-[10px] text-muted-foreground">
-                  All: {formatWrappedDuration(stats.allTimeAnimeSeconds)}
-                </Typography>
-              </View>
+              {activeTab === "all" ? (
+                <>
+                  <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
+                    <View className="flex-row items-center gap-1">
+                      <Film size={14} color="#38bdf8" />
+                      <Typography className="text-[10px] font-bold uppercase text-sky-400">
+                        Anime
+                      </Typography>
+                    </View>
+                    <Typography className="text-xl font-black mt-1">
+                      {formatWrappedDuration(stats.weeklyAnimeSeconds)}
+                    </Typography>
+                    <Typography className="text-[10px] text-muted-foreground">
+                      All: {formatWrappedDuration(stats.allTimeAnimeSeconds)}
+                    </Typography>
+                  </View>
 
-              <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
-                <View className="flex-row items-center gap-1">
-                  <BookOpen size={14} color="#fb7185" />
-                  <Typography className="text-[10px] font-bold uppercase text-rose-400">
-                    Manga
-                  </Typography>
-                </View>
-                <Typography className="text-xl font-black mt-1">
-                  {formatWrappedDuration(stats.weeklyMangaSeconds)}
-                </Typography>
-                <Typography className="text-[10px] text-muted-foreground">
-                  All: {formatWrappedDuration(stats.allTimeMangaSeconds)}
-                </Typography>
-              </View>
+                  <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
+                    <View className="flex-row items-center gap-1">
+                      <BookOpen size={14} color="#fb7185" />
+                      <Typography className="text-[10px] font-bold uppercase text-rose-400">
+                        Manga
+                      </Typography>
+                    </View>
+                    <Typography className="text-xl font-black mt-1">
+                      {formatWrappedDuration(stats.weeklyMangaSeconds)}
+                    </Typography>
+                    <Typography className="text-[10px] text-muted-foreground">
+                      All: {formatWrappedDuration(stats.allTimeMangaSeconds)}
+                    </Typography>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
+                    <Typography className="text-[10px] font-bold uppercase text-muted-foreground">
+                      All-Time
+                    </Typography>
+                    <Typography className="text-xl font-black mt-1">
+                      {formatWrappedDuration(stats.allTimeTotalSeconds)}
+                    </Typography>
+                    <Typography className="text-[10px] text-muted-foreground">
+                      {stats.totalActiveDays}d active
+                    </Typography>
+                  </View>
+
+                  <View className="flex-1 p-3 rounded-xl bg-background/70 border border-border">
+                    <Typography className="text-[10px] font-bold uppercase text-primary">
+                      {activeTab === "anime" ? "Episodes" : "Chapters"}
+                    </Typography>
+                    <Typography className="text-xl font-black mt-1">
+                      {stats.allTimeSessions}
+                    </Typography>
+                    <Typography className="text-[10px] text-muted-foreground">
+                      {stats.uniqueTitlesCount} titles
+                    </Typography>
+                  </View>
+                </>
+              )}
             </View>
           </Card>
 
@@ -213,7 +316,11 @@ export default function WrappedStatsScreen() {
               Last 7 Days
             </Typography>
             <Typography className="text-xs text-muted-foreground mb-4">
-              Daily reading &amp; watching activity
+              {activeTab === "anime"
+                ? "Daily anime watching activity"
+                : activeTab === "manga"
+                  ? "Daily manga reading activity"
+                  : "Daily reading & watching activity"}
             </Typography>
             <View className="flex-row items-end justify-between h-28 px-1">
               {stats.dailyActivity.map((day) => {
@@ -224,6 +331,12 @@ export default function WrappedStatsScreen() {
                         Math.round((day.totalSeconds / maxDailySeconds) * 100),
                       )
                     : 4;
+                const barColor =
+                  activeTab === "anime"
+                    ? "#0ea5e9"
+                    : activeTab === "manga"
+                      ? "#f43f5e"
+                      : "#e11d48";
                 return (
                   <View key={day.dateKey} className="items-center flex-1">
                     <View className="w-5 h-20 rounded-md bg-secondary/50 justify-end overflow-hidden">
@@ -231,7 +344,7 @@ export default function WrappedStatsScreen() {
                         style={{
                           height: `${heightPct}%`,
                           backgroundColor:
-                            day.totalSeconds > 0 ? "#e11d48" : "transparent",
+                            day.totalSeconds > 0 ? barColor : "transparent",
                         }}
                         className="w-full rounded-md"
                       />
@@ -252,7 +365,7 @@ export default function WrappedStatsScreen() {
             </Typography>
             {stats.topGenres.length === 0 ? (
               <Typography className="text-xs text-muted-foreground">
-                No genre tags cached yet for watched/read titles.
+                No genre tags cached yet for this category.
               </Typography>
             ) : (
               <View className="gap-3">
@@ -271,7 +384,8 @@ export default function WrappedStatsScreen() {
                       <View
                         style={{
                           width: `${Math.max(6, item.percentage)}%`,
-                          backgroundColor: "#e11d48",
+                          backgroundColor:
+                            activeTab === "anime" ? "#0ea5e9" : "#e11d48",
                         }}
                         className="h-full rounded-full"
                       />
@@ -288,7 +402,11 @@ export default function WrappedStatsScreen() {
               <View className="flex-row items-center gap-1.5">
                 <Trophy size={15} color="#f59e0b" />
                 <Typography className="text-sm font-bold">
-                  Most Engaged Titles
+                  {activeTab === "anime"
+                    ? "Most Watched Anime"
+                    : activeTab === "manga"
+                      ? "Most Read Manga"
+                      : "Most Engaged Titles"}
                 </Typography>
               </View>
               <Typography className="text-[11px] text-muted-foreground">
