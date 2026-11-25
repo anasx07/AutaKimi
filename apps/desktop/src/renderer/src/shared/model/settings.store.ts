@@ -28,6 +28,8 @@ type SettingsState = SettingsSchema['app'] &
     setAutoNextAnime: (val: boolean) => Promise<void>
     setAutoSwitchServer: (val: boolean) => Promise<void>
     setAutoOsPipOnBlur: (val: boolean) => Promise<void>
+    setDiscordRpcEnabled: (val: boolean) => Promise<void>
+    setDiscordRpcClientId: (val: string) => Promise<void>
     setDevMode: (val: boolean) => Promise<void>
 
     // UI Actions (App category)
@@ -112,6 +114,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   autoNextAnime: true,
   autoSwitchServer: true,
   autoOsPipOnBlur: false,
+  discordRpcEnabled: false,
+  discordRpcClientId: '',
   devMode: false,
 
   // Network
@@ -200,6 +204,28 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ autoOsPipOnBlur: val })
     } catch (e) {
       console.error('Failed to save autoOsPipOnBlur:', e)
+    }
+  },
+
+  setDiscordRpcEnabled: async (val) => {
+    try {
+      await DataService.db.setSetting('discord_rpc_enabled', val ? 'true' : 'false')
+      set({ discordRpcEnabled: val })
+      if (!val) {
+        await DataService.discord.clear().catch(() => {})
+      }
+    } catch (e) {
+      console.error('Failed to save discordRpcEnabled:', e)
+    }
+  },
+
+  setDiscordRpcClientId: async (val) => {
+    try {
+      const trimmed = val.trim()
+      await DataService.db.setSetting('discord_rpc_client_id', trimmed)
+      set({ discordRpcClientId: trimmed })
+    } catch (e) {
+      console.error('Failed to save discordRpcClientId:', e)
     }
   },
 

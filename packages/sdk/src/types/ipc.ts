@@ -8,6 +8,10 @@ import { Chapter } from "./chapter";
 import { HistoryEntry } from "./history";
 import { Tracker, TrackerProvider, AniListUser, AniListMedia } from "./tracker";
 import type {
+  DiscordPresenceMediaInput,
+  DiscordRpcStatus,
+} from "../utils/discordPresence";
+import type {
   EpisodeSkipTimes,
   SkipTimesRequest,
 } from "../services/skipTimes.service";
@@ -134,6 +138,11 @@ export enum IpcChannel {
   // Backup
   BACKUP_EXPORT = "backup:export",
   BACKUP_IMPORT = "backup:import",
+
+  // Discord Rich Presence
+  DISCORD_RPC_SET_ACTIVITY = "discord:set-activity",
+  DISCORD_RPC_CLEAR = "discord:clear",
+  DISCORD_RPC_GET_STATUS = "discord:get-status",
 }
 
 /**
@@ -440,6 +449,13 @@ export type IpcInvokeMap = {
       error?: string;
     }>
   >;
+  [IpcChannel.DISCORD_RPC_SET_ACTIVITY]: (
+    input: DiscordPresenceMediaInput,
+  ) => Promise<IpcResult<DiscordRpcStatus>>;
+  [IpcChannel.DISCORD_RPC_CLEAR]: () => Promise<IpcResult<DiscordRpcStatus>>;
+  [IpcChannel.DISCORD_RPC_GET_STATUS]: () => Promise<
+    IpcResult<DiscordRpcStatus>
+  >;
 };
 
 /**
@@ -588,6 +604,11 @@ export interface ElectronApi {
   backup: {
     export: IpcInvokeMap[IpcChannel.BACKUP_EXPORT];
     import: IpcInvokeMap[IpcChannel.BACKUP_IMPORT];
+  };
+  discord: {
+    setActivity: IpcInvokeMap[IpcChannel.DISCORD_RPC_SET_ACTIVITY];
+    clear: IpcInvokeMap[IpcChannel.DISCORD_RPC_CLEAR];
+    getStatus: IpcInvokeMap[IpcChannel.DISCORD_RPC_GET_STATUS];
   };
   platform: string;
   version: string;

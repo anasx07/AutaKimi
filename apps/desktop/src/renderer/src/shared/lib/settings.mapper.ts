@@ -12,7 +12,9 @@ export class SettingsMapper {
       const rawValue = flatSettings[dbKey]
       if (rawValue === undefined) continue
 
-      this.setByPath(schema, path as string, this.parseValue(rawValue))
+      const defaultVal = this.getByPath(schema, path as string)
+      const parsed = typeof defaultVal === 'string' ? rawValue : this.parseValue(rawValue)
+      this.setByPath(schema, path as string, parsed)
     }
 
     // Special case: domain_overrides (dynamic keys)
@@ -41,6 +43,16 @@ export class SettingsMapper {
     const num = Number(val)
     if (!isNaN(num) && val.trim() !== '') return num
     return val
+  }
+
+  private static getByPath(obj: any, path: string): any {
+    const parts = path.split('.')
+    let current = obj
+    for (const part of parts) {
+      if (current === null || current === undefined || !(part in current)) return undefined
+      current = current[part]
+    }
+    return current
   }
 
   private static setByPath(obj: any, path: string, value: any): void {

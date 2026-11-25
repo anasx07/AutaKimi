@@ -71,7 +71,8 @@ export default function ChapterReader() {
     applyEyeCarePreset
   } = useReaderStore()
 
-  const { smartDownloadsEnabled } = useSettingsStore()
+  const smartDownloadsEnabled = useSettingsStore((s) => s.smartDownloadsEnabled)
+  const discordRpcEnabled = useSettingsStore((s) => s.discordRpcEnabled)
 
   // --- State & Refs ---
   const [loadedChapters, setLoadedChapters] = useState<Chapter[]>([])
@@ -491,6 +492,42 @@ export default function ChapterReader() {
   useEffect(() => {
     return () => {
       smartSyncCleanupRef.current?.()
+    }
+  }, [])
+
+  const activeChapterId = activeChapter?.id
+  const activeChapterNumber = activeChapter?.number
+  const activeChapterTitle = activeChapter?.title
+
+  useEffect(() => {
+    if (!discordRpcEnabled || !selectedManga || !activeChapterId) return
+    const timer = setTimeout(() => {
+      void DataService.discord
+        .setActivity({
+          kind: 'manga',
+          title: selectedManga.title,
+          chapterOrEpisode: activeChapterNumber,
+          chapterTitle: activeChapterTitle,
+          coverUrl: selectedManga.coverUrl,
+          page: currentPage,
+          totalPages
+        })
+        .catch(() => {})
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [
+    discordRpcEnabled,
+    selectedManga,
+    activeChapterId,
+    activeChapterNumber,
+    activeChapterTitle,
+    currentPage,
+    totalPages
+  ])
+
+  useEffect(() => {
+    return () => {
+      void DataService.discord.clear().catch(() => {})
     }
   }, [])
 

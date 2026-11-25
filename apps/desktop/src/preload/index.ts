@@ -129,6 +129,11 @@ const api: ElectronApi = {
     export: () => invoke(IpcChannel.BACKUP_EXPORT),
     import: () => invoke(IpcChannel.BACKUP_IMPORT)
   },
+  discord: {
+    setActivity: (input) => invoke(IpcChannel.DISCORD_RPC_SET_ACTIVITY, input),
+    clear: () => invoke(IpcChannel.DISCORD_RPC_CLEAR),
+    getStatus: () => invoke(IpcChannel.DISCORD_RPC_GET_STATUS)
+  },
   platform: process.platform,
   version: ipcRenderer.sendSync(IpcChannel.GET_VERSION)
 }

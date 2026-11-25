@@ -727,6 +727,42 @@ export const MobileApi: ElectronApi = {
     import: async () => MobileBackup.importBackup(),
   },
 
+  discord: {
+    setActivity: async () => ({
+      ok: true,
+      value: {
+        enabled: false,
+        connected: false,
+        hasClientId: false,
+        clientId: "",
+        lastError: "Discord Rich Presence is only supported on Desktop",
+        activeDetails: null,
+      },
+    }),
+    clear: async () => ({
+      ok: true,
+      value: {
+        enabled: false,
+        connected: false,
+        hasClientId: false,
+        clientId: "",
+        lastError: null,
+        activeDetails: null,
+      },
+    }),
+    getStatus: async () => ({
+      ok: true,
+      value: {
+        enabled: false,
+        connected: false,
+        hasClientId: false,
+        clientId: "",
+        lastError: "Discord Rich Presence is only supported on Desktop",
+        activeDetails: null,
+      },
+    }),
+  },
+
   platform: "android",
   version: Constants.expoConfig?.version || "1.0.0",
 };

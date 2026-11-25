@@ -25,6 +25,8 @@ export interface SettingsSchema {
     autoNextAnime: boolean;
     autoSwitchServer: boolean;
     autoOsPipOnBlur: boolean;
+    discordRpcEnabled: boolean;
+    discordRpcClientId: string;
   };
   reader: {
     defaultChapterSort: "asc" | "desc";
@@ -76,6 +78,8 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
     autoNextAnime: true,
     autoSwitchServer: true,
     autoOsPipOnBlur: false,
+    discordRpcEnabled: false,
+    discordRpcClientId: "",
   },
   reader: {
     defaultChapterSort: "asc",
@@ -133,6 +137,8 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
   autoNextAnime: "app.autoNextAnime",
   autoSwitchServer: "app.autoSwitchServer",
   autoOsPipOnBlur: "app.autoOsPipOnBlur",
+  discord_rpc_enabled: "app.discordRpcEnabled",
+  discord_rpc_client_id: "app.discordRpcClientId",
 
   // Reader
   default_chapter_sort: "reader.defaultChapterSort",
