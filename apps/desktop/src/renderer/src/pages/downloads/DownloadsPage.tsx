@@ -1,8 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useLibraryStore, useDownloadStore, useSettingsStore, useUIStore } from '@renderer/shared/model'
+import {
+  useLibraryStore,
+  useDownloadStore,
+  useSettingsStore,
+  useUIStore,
+  useExtensionStore
+} from '@renderer/shared/model'
 import { Download, Loader2, Play, Trash2 } from 'lucide-react'
 import { DataService } from '@renderer/shared/api'
 import { Manga } from '@common/types'
+import { resolveExtensionBadge } from '@common/services/repoIdentity'
 import {
   MediaTabSwitcher,
   MediaGrid,
@@ -22,6 +29,7 @@ import { cn } from '@renderer/shared/lib/utils'
 export default function DownloadsPage(): React.JSX.Element {
   const { downloadsMediaType: activeTab, setDownloadsMediaType: setActiveTab } = useSettingsStore()
   const { setSelectedManga } = useLibraryStore()
+  const { installedExtensions } = useExtensionStore()
   const { viewMode } = useUIStore()
   const { activeTasks, downloadQueue } = useDownloadStore()
   const [downloads, setDownloads] = useState<Manga[]>([])
@@ -161,12 +169,15 @@ export default function DownloadsPage(): React.JSX.Element {
             {viewMode === 'grid' ? (
               <MediaGrid>
                 {downloads.map((manga, idx) => {
+                  const src = resolveExtensionBadge(manga.pkg, installedExtensions)
                   return (
                     <MediaGridItem
                       key={manga.id}
                       title={manga.title}
                       coverUrl={manga.coverUrl}
                       mediaType={activeTab}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
                       index={idx}
                       onClick={() =>
                         setSelectedManga({
@@ -181,12 +192,15 @@ export default function DownloadsPage(): React.JSX.Element {
             ) : (
               <MediaList>
                 {downloads.map((manga, idx) => {
+                  const src = resolveExtensionBadge(manga.pkg, installedExtensions)
                   return (
                     <MediaListItem
                       key={manga.id}
                       title={manga.title}
                       coverUrl={manga.coverUrl}
                       mediaType={activeTab}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
                       index={idx}
                       onClick={() =>
                         setSelectedManga({

@@ -26,13 +26,14 @@ import {
 } from '@renderer/shared/ui'
 import { useInfiniteScroll } from '@renderer/shared/lib'
 import { useInfiniteHistoryEntries, mediaKeys } from '@renderer/entities/media/api/useMediaQueries'
+import { resolveExtensionBadge } from '@common/services/repoIdentity'
 
 export default function HistoryPage(): React.JSX.Element {
   const queryClient = useQueryClient()
   const { historyMediaType: activeTab, setHistoryMediaType: setActiveTab } = useSettingsStore()
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false)
   const { setSelectedManga } = useLibraryStore()
-  const { setActiveExtension } = useExtensionStore()
+  const { setActiveExtension, installedExtensions } = useExtensionStore()
   const { clearHistory, deleteHistoryByManga } = useHistoryStore()
   const { viewMode } = useUIStore()
 
@@ -177,77 +178,87 @@ export default function HistoryPage(): React.JSX.Element {
           <div className="flex-1 pb-6">
             {viewMode === 'grid' ? (
               <MediaGrid>
-                {sortedGroupedHistory.map((entry, idx) => (
-                  <MediaGridItem
-                    key={entry.mangaId}
-                    title={deriveTitle(entry)}
-                    coverUrl={entry.mangaCover}
-                    mediaType={activeTab}
-                    index={idx}
-                    onClick={() => handleEntryClick(entry)}
-                    badge={
-                      <Badge
-                        variant="secondary"
-                        className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
-                      >
-                        {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
-                        {entry.chapterTitle || entry.chapterId}
-                      </Badge>
-                    }
-                    footerBadge={
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-[10px] text-muted-foreground/80 font-medium">
-                          {formatTimeAgo(entry.startedAt)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
-                          onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
+                {sortedGroupedHistory.map((entry, idx) => {
+                  const src = resolveExtensionBadge(entry.pkg, installedExtensions)
+                  return (
+                    <MediaGridItem
+                      key={entry.mangaId}
+                      title={deriveTitle(entry)}
+                      coverUrl={entry.mangaCover}
+                      mediaType={activeTab}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
+                      index={idx}
+                      onClick={() => handleEntryClick(entry)}
+                      badge={
+                        <Badge
+                          variant="secondary"
+                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
                         >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    }
-                  />
-                ))}
+                          {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
+                          {entry.chapterTitle || entry.chapterId}
+                        </Badge>
+                      }
+                      footerBadge={
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[10px] text-muted-foreground/80 font-medium">
+                            {formatTimeAgo(entry.startedAt)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
+                            onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      }
+                    />
+                  )
+                })}
               </MediaGrid>
             ) : (
               <MediaList>
-                {sortedGroupedHistory.map((entry, idx) => (
-                  <MediaListItem
-                    key={entry.mangaId}
-                    title={deriveTitle(entry)}
-                    coverUrl={entry.mangaCover}
-                    mediaType={activeTab}
-                    index={idx}
-                    onClick={() => handleEntryClick(entry)}
-                    badge={
-                      <Badge
-                        variant="secondary"
-                        className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
-                      >
-                        {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
-                        {entry.chapterTitle || entry.chapterId}
-                      </Badge>
-                    }
-                    footerBadge={
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-[10px] text-muted-foreground/80 font-medium">
-                          {formatTimeAgo(entry.startedAt)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
-                          onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
+                {sortedGroupedHistory.map((entry, idx) => {
+                  const src = resolveExtensionBadge(entry.pkg, installedExtensions)
+                  return (
+                    <MediaListItem
+                      key={entry.mangaId}
+                      title={deriveTitle(entry)}
+                      coverUrl={entry.mangaCover}
+                      mediaType={activeTab}
+                      sourceName={src?.name}
+                      sourceColor={src?.color}
+                      index={idx}
+                      onClick={() => handleEntryClick(entry)}
+                      badge={
+                        <Badge
+                          variant="secondary"
+                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
                         >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    }
-                  />
-                ))}
+                          {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
+                          {entry.chapterTitle || entry.chapterId}
+                        </Badge>
+                      }
+                      footerBadge={
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[10px] text-muted-foreground/80 font-medium">
+                            {formatTimeAgo(entry.startedAt)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all ml-1"
+                            onClick={(e) => handleDeleteEntry(e, entry.mangaId)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      }
+                    />
+                  )
+                })}
               </MediaList>
             )}
             {/* Intersection Observer Anchor */}
