@@ -42,7 +42,7 @@ interface ApkDownloadButtonProps {
 }
 
 export const ApkDownloadButton: React.FC<ApkDownloadButtonProps> = ({
-  mediaUrl = "/AutaKimi/assets/installer-preview.mp4",
+  mediaUrl = "/AutaKimi/assets/videos/installer-preview.mp4",
   className = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);

@@ -120,7 +120,7 @@ export default function Home() {
       title: "Unified Manga & Webtoon Discovery",
       description:
         "Browse thousands of manga, manhwa, and manhua series across community sources with instant filters, multi-language catalogs, and high-resolution covers. Enjoy continuous vertical webtoon scrolling and right-to-left reading modes.",
-      image: "/AutaKimi/assets/manga-browse.webp",
+      image: "/AutaKimi/assets/screenshots/manga-browse.webp",
       shield: "Cross-Source Fast Indexing",
     },
     {
@@ -128,7 +128,7 @@ export default function Home() {
       title: "Watch Anime Without Ads or Popups",
       description:
         "Stream your favorite anime series with built-in hardware acceleration, multi-server stream extraction, and zero external intrusive advertisements or redirects.",
-      image: "/AutaKimi/assets/anime-browse.webp",
+      image: "/AutaKimi/assets/screenshots/anime-browse.webp",
       shield: "Zero Ad Popups & Tracking",
       reverse: true,
     },
@@ -137,7 +137,7 @@ export default function Home() {
       title: "Rich Media Details & Full Arabic Support",
       description:
         "Experience complete native Right-to-Left (RTL) Arabic interface support alongside English. View full synopses, track reading state, and queue offline chapter downloads.",
-      image: "/AutaKimi/assets/manga-details.webp",
+      image: "/AutaKimi/assets/screenshots/manga-details.webp",
       shield: "Arabic (العربية) & English Native",
     },
     {
@@ -145,7 +145,7 @@ export default function Home() {
       title: "Episode Tracking & AniList Integration",
       description:
         "Never lose your place. Mark episodes as watched, auto-scrobble progress to AniList, and pick up right where you left off across Windows PC and Android.",
-      image: "/AutaKimi/assets/anime-details.webp",
+      image: "/AutaKimi/assets/screenshots/anime-details.webp",
       shield: "AniList Two-Way Scrobbler",
       reverse: true,
     },
@@ -154,7 +154,7 @@ export default function Home() {
       title: "Premium Themes & Aesthetics",
       description:
         "Make AutaKimi yours. Choose from a variety of premium themes, ranging from classic deep dark modes to character-inspired vibrant aesthetics. Experience smooth transitions on every screen change.",
-      image: "/AutaKimi/assets/screenshot-themes.png",
+      image: "/AutaKimi/assets/screenshots/themes-showcase.png",
       shield: "Dynamic Theme Engine",
     },
   ];
@@ -253,18 +253,18 @@ export default function Home() {
               label="Download for Windows"
               href="https://github.com/anasx07/AutaKimi/releases/latest/download/AutaKimi.exe"
               icon={<Download className="w-5 h-5 text-white" />}
-              mediaUrl="/AutaKimi/assets/installer-preview.mp4"
+              mediaUrl="/AutaKimi/assets/videos/installer-preview.mp4"
               className="w-full sm:w-auto shadow-lg shadow-orange-500/10"
             />
             <ApkDownloadButton
-              mediaUrl="/AutaKimi/assets/installer-preview.mp4"
+              mediaUrl="/AutaKimi/assets/videos/installer-preview.mp4"
               className="w-full sm:w-auto"
             />
             <MediaButton
               label="Join Discord"
               href="https://discord.gg/qRbpCusgan"
               icon={<MessageSquare className="w-5 h-5 text-white" />}
-              mediaUrl="/AutaKimi/assets/discord-preview.mp4"
+              mediaUrl="/AutaKimi/assets/videos/discord-preview.mp4"
               className="w-full sm:w-auto"
             />
           </div>
@@ -302,7 +302,7 @@ export default function Home() {
               title="Click to view full screen"
             >
               <Image
-                src="/AutaKimi/assets/manga-browse.webp"
+                src="/AutaKimi/assets/screenshots/manga-browse.webp"
                 alt="AutaKimi Desktop Reader Interface"
                 width={1280}
                 height={700}

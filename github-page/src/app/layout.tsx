@@ -36,7 +36,7 @@ export const metadata = {
   icons: {
     icon: "/AutaKimi/favicon.png",
     shortcut: "/AutaKimi/favicon.png",
-    apple: "/AutaKimi/assets/icon.png",
+    apple: "/AutaKimi/assets/branding/icon.png",
   },
   openGraph: {
     title:
@@ -47,13 +47,13 @@ export const metadata = {
     siteName: "AutaKimi",
     images: [
       {
-        url: "/AutaKimi/assets/manga-browse.png",
+        url: "/AutaKimi/assets/screenshots/manga-browse.png",
         width: 1280,
         height: 720,
         alt: "AutaKimi - Manga and Anime Reader",
       },
       {
-        url: "/AutaKimi/assets/icon.png",
+        url: "/AutaKimi/assets/branding/icon.png",
         width: 512,
         height: 512,
         alt: "AutaKimi Logo",
@@ -68,7 +68,7 @@ export const metadata = {
       "AutaKimi - Modern Cross-Platform Manga & Anime Reader (Windows & Android)",
     description:
       "The ultimate privacy-first manga & anime reader for Windows and Android. Tachiyomi & Aniyomi inspired PC alternative with local Wi-Fi sync, AniList tracking, and offline CBZ support.",
-    images: ["/AutaKimi/assets/manga-browse.png"],
+    images: ["/AutaKimi/assets/screenshots/manga-browse.png"],
   },
   alternates: {
     canonical: "https://anasx07.github.io/AutaKimi",
@@ -97,13 +97,13 @@ const jsonLd = {
         "Free and open-source cross-platform manga and anime reader for Windows and Android with local Wi-Fi sync, AniList scrobbling, and offline CBZ library support.",
       url: "https://anasx07.github.io/AutaKimi",
       downloadUrl: "https://github.com/anasx07/AutaKimi/releases",
-      image: "https://anasx07.github.io/AutaKimi/assets/icon.png",
+      image: "https://anasx07.github.io/AutaKimi/assets/branding/icon.png",
       screenshot: [
-        "https://anasx07.github.io/AutaKimi/assets/manga-browse.png",
-        "https://anasx07.github.io/AutaKimi/assets/anime-browse.png",
-        "https://anasx07.github.io/AutaKimi/assets/manga-details.png",
-        "https://anasx07.github.io/AutaKimi/assets/anime-details.png",
-        "https://anasx07.github.io/AutaKimi/assets/screenshot-themes.png",
+        "https://anasx07.github.io/AutaKimi/assets/screenshots/manga-browse.png",
+        "https://anasx07.github.io/AutaKimi/assets/screenshots/anime-browse.png",
+        "https://anasx07.github.io/AutaKimi/assets/screenshots/manga-details.png",
+        "https://anasx07.github.io/AutaKimi/assets/screenshots/anime-details.png",
+        "https://anasx07.github.io/AutaKimi/assets/screenshots/themes-showcase.png",
       ],
       softwareVersion: "2.0.11",
       author: {
@@ -224,7 +224,7 @@ export default function RootLayout({ children }) {
             }}
           />
 
-          <div className="absolute inset-0 bg-[url('/AutaKimi/assets/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[url('/AutaKimi/assets/branding/noise.svg')] opacity-[0.03] mix-blend-overlay" />
         </div>
 
         <Navbar />

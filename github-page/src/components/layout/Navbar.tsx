@@ -49,7 +49,7 @@ export function Navbar() {
           <Link href="/" className="relative flex items-center gap-3 cursor-pointer group ml-2 z-10 w-fit">
             <div className="relative">
               <div className="absolute inset-0 bg-white/20 rounded-lg blur-md group-hover:bg-white/40 transition-colors"></div>
-              <Image src="/AutaKimi/assets/icon.png" alt="AutaKimi Logo" width={32} height={32} className="relative w-8 h-8 rounded-lg shadow-xl group-hover:scale-105 transition-transform" />
+              <Image src="/AutaKimi/assets/branding/icon.png" alt="AutaKimi Logo" width={32} height={32} className="relative w-8 h-8 rounded-lg shadow-xl group-hover:scale-105 transition-transform" />
             </div>
             <span className="font-bold text-xl tracking-tight text-white transition-all group-hover:tracking-wider drop-shadow-md">AutaKimi</span>
           </Link>
