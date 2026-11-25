@@ -36,6 +36,7 @@ import {
   MAX_EYE_CARE_DIMMING,
   MAX_EYE_CARE_WARMTH,
 } from "@common/utils/eyeCare";
+import { computeSmartDownloadPlan } from "@common/utils/smartDownloads";
 import { getImageHeaders } from "../../../src/mobile/cf-cookies";
 
 const EyeCareSlider = ({
@@ -501,25 +502,33 @@ export default function ReaderScreen() {
   const [eyeCareDimming, setEyeCareDimming] = useState(
     DEFAULT_EYE_CARE_CONFIG.dimming,
   );
+  const [smartDownloadsEnabled, setSmartDownloadsEnabled] = useState(false);
 
   const listRef = useRef<FlatList>(null);
   const startLocationXRef = useRef(0);
   const eyeCarePersistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const sessionCompletedChaptersRef = useRef<Set<string>>(new Set());
+  const smartQueuedChaptersRef = useRef<Set<string>>(new Set());
+  const smartSyncCleanupRef = useRef<(() => void) | null>(null);
+  const smartDownloadsEnabledRef = useRef(smartDownloadsEnabled);
+  smartDownloadsEnabledRef.current = smartDownloadsEnabled;
 
-  // Load reading mode and Night Eye-Care preferences from SQLite settings
+  // Load reading mode, Smart Downloads, and Night Eye-Care preferences from SQLite settings
   useEffect(() => {
     async function loadPreferences() {
       try {
         const [
           savedMode,
+          savedSmartDl,
           savedEyeEnabled,
           savedEyeTint,
           savedEyeWarmth,
           savedEyeDim,
         ] = await Promise.all([
           DataService.db.getSetting("reader_reading_mode"),
+          DataService.db.getSetting("smart_downloads_enabled"),
           DataService.db.getSetting("eye_care_enabled"),
           DataService.db.getSetting("eye_care_tint"),
           DataService.db.getSetting("eye_care_warmth"),
@@ -531,6 +540,9 @@ export default function ReaderScreen() {
           savedMode === "paged-ltr"
         ) {
           setReadingMode(savedMode);
+        }
+        if (savedSmartDl !== null && savedSmartDl !== undefined) {
+          setSmartDownloadsEnabled(savedSmartDl === "true");
         }
         if (savedEyeEnabled !== null && savedEyeEnabled !== undefined) {
           setEyeCareEnabled(savedEyeEnabled === "true");
@@ -736,11 +748,15 @@ export default function ReaderScreen() {
   });
 
   // Find next/prev chapters
-  const sortedChapters = allChapters
-    ? [...allChapters].sort(
-        (a, b) => Number(a.number || 0) - Number(b.number || 0),
-      )
-    : [];
+  const sortedChapters = useMemo(
+    () =>
+      allChapters
+        ? [...allChapters].sort(
+            (a, b) => Number(a.number || 0) - Number(b.number || 0),
+          )
+        : [],
+    [allChapters],
+  );
 
   const currentChapterIndex = sortedChapters.findIndex(
     (c) => c.id === chapterId,
@@ -785,6 +801,9 @@ export default function ReaderScreen() {
   const scheduleProgressUpdate = useCallback(
     (pageNum: number, totalPages: number) => {
       const isRead = pageNum >= totalPages;
+      if (isRead && chapterId) {
+        sessionCompletedChaptersRef.current.add(chapterId);
+      }
       lastProgressRef.current = { isRead, lastPage: pageNum };
 
       if (progressTimerRef.current) {
@@ -808,6 +827,132 @@ export default function ReaderScreen() {
     },
     [mangaId, chapterId],
   );
+
+  const syncMobileSmartDownloads = useCallback(
+    async (activeId: string | null) => {
+      if (
+        !smartDownloadsEnabledRef.current ||
+        !mangaId ||
+        !pkg ||
+        sortedChapters.length === 0
+      ) {
+        return;
+      }
+
+      try {
+        const [dlRes, progRows] = await Promise.all([
+          DataService.download.getMangaDownloads(mangaId),
+          DataService.db.getProgress(mangaId),
+        ]);
+        const entries = Array.isArray(dlRes) ? dlRes : [];
+
+        const downloadedSet = new Set<string>(smartQueuedChaptersRef.current);
+        const deletableSet = new Set<string>();
+        for (const entry of entries) {
+          if (
+            entry.status === "completed" ||
+            entry.status === "downloading" ||
+            entry.status === "queued"
+          ) {
+            downloadedSet.add(entry.chapterId);
+            deletableSet.add(entry.chapterId);
+          }
+        }
+
+        const completedSet = new Set<string>([
+          ...(Array.isArray(progRows)
+            ? progRows
+                .filter((r: any) => !!r.isRead)
+                .map((r: any) => r.chapterId)
+            : []),
+          ...sessionCompletedChaptersRef.current,
+        ]);
+
+        const plan = computeSmartDownloadPlan({
+          enabled: true,
+          chapters: sortedChapters,
+          currentChapterId: activeId,
+          completedChapterIds: completedSet,
+          downloadedChapterIds: downloadedSet,
+          deletableDownloadChapterIds: deletableSet,
+        });
+
+        for (const chId of plan.chapterIdsToDelete) {
+          smartQueuedChaptersRef.current.delete(chId);
+          await DataService.download
+            .remove({ mangaId, chapterId: chId })
+            .catch(() => {});
+        }
+
+        if (plan.chaptersToDownload.length > 0 && activeId) {
+          const allExts = await DataService.db.getExtensions();
+          const extList = (allExts as any)?.value || allExts || [];
+          const ext = extList.find((e: any) => e.pkg === pkg);
+          const code = ext?.code || "";
+
+          for (const ch of plan.chaptersToDownload) {
+            if (!ch.url) continue;
+            smartQueuedChaptersRef.current.add(ch.id);
+            try {
+              const result = await DataService.executeExtension({
+                pkg,
+                code,
+                contextArgs: { type: "fetchPages", chapterUrl: ch.url },
+              });
+              const pageUrls: string[] = result?.pages || result?.data || [];
+              if (pageUrls.length > 0) {
+                await DataService.download.start({
+                  mangaId,
+                  chapterId: ch.id,
+                  pageUrls,
+                  type: "manga",
+                  mangaTitle: mangaTitle || "",
+                  chapterTitle: ch.title || `Ch. ${ch.number}`,
+                });
+              }
+            } catch (err) {
+              smartQueuedChaptersRef.current.delete(ch.id);
+              console.warn(
+                "[SmartDownloads] Mobile prefetch failed:",
+                ch.id,
+                err,
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[SmartDownloads] Mobile sync failed:", err);
+      }
+    },
+    [mangaId, pkg, sortedChapters, mangaTitle],
+  );
+
+  useEffect(() => {
+    if (!smartDownloadsEnabled || !chapterId || sortedChapters.length === 0) {
+      return;
+    }
+    void syncMobileSmartDownloads(chapterId);
+  }, [
+    smartDownloadsEnabled,
+    chapterId,
+    sortedChapters.length,
+    syncMobileSmartDownloads,
+  ]);
+
+  smartSyncCleanupRef.current = () => {
+    if (
+      smartDownloadsEnabledRef.current &&
+      sessionCompletedChaptersRef.current.size > 0
+    ) {
+      void syncMobileSmartDownloads(null);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      smartSyncCleanupRef.current?.();
+    };
+  }, []);
 
   const scheduleProgressRef = useRef(scheduleProgressUpdate);
   scheduleProgressRef.current = scheduleProgressUpdate;
@@ -847,6 +992,9 @@ export default function ReaderScreen() {
       if (!pages || pages.length === 0) return;
       const targetIndex = Math.max(0, Math.min(pages.length - 1, page - 1));
       setCurrentPage(targetIndex + 1);
+      if (targetIndex + 1 >= pages.length && chapterId) {
+        sessionCompletedChaptersRef.current.add(chapterId);
+      }
       try {
         listRef.current?.scrollToIndex({
           index: targetIndex,
@@ -867,7 +1015,7 @@ export default function ReaderScreen() {
         }
       }
     },
-    [pages, readingMode],
+    [pages, readingMode, chapterId],
   );
 
   const currentPageRef = useRef(currentPage);

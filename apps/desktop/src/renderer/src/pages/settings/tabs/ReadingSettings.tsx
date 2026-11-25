@@ -1,5 +1,5 @@
 import { BookOpen, Terminal, MoveHorizontal, Rows, Zap, ArrowUpDown, Moon } from 'lucide-react'
-import { useReaderStore } from '@renderer/shared/model'
+import { useReaderStore, useSettingsStore } from '@renderer/shared/model'
 import { ReadingMode, EyeCareTintPreset } from '@common/types'
 import { EYE_CARE_PRESETS, MAX_EYE_CARE_DIMMING, MAX_EYE_CARE_WARMTH } from '@common/utils/eyeCare'
 import { cn } from '@renderer/shared/lib/utils'
@@ -33,6 +33,7 @@ export function ReadingSettings(): React.JSX.Element {
     eyeCareDimming,
     setEyeCareDimming
   } = useReaderStore()
+  const { smartDownloadsEnabled, setSmartDownloadsEnabled } = useSettingsStore()
 
   const readingModes = [
     {
@@ -142,6 +143,12 @@ export function ReadingSettings(): React.JSX.Element {
             description="Automatically track your reading progress."
           >
             <Switch checked={autoMarkRead} onCheckedChange={setAutoMarkRead} />
+          </SettingsRow>
+          <SettingsRow
+            title="Smart Downloads (Netflix-Style)"
+            description="Automatically download the next 3 chapters when you start reading and remove completed ones to free space."
+          >
+            <Switch checked={smartDownloadsEnabled} onCheckedChange={setSmartDownloadsEnabled} />
           </SettingsRow>
           <SettingsRow
             title="Crop Borders / Smart Trim"

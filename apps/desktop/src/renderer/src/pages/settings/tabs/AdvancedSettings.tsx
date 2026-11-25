@@ -16,7 +16,12 @@ import {
   Archive,
   Loader2
 } from 'lucide-react'
-import { useUIStore, useSettingsStore, useLibraryStore, useHistoryStore } from '@renderer/shared/model'
+import {
+  useUIStore,
+  useSettingsStore,
+  useLibraryStore,
+  useHistoryStore
+} from '@renderer/shared/model'
 import { cn } from '@renderer/shared/lib/utils'
 import {
   Button,
@@ -50,6 +55,8 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
     setEnableLog,
     downloadConcurrency,
     setDownloadConcurrency,
+    smartDownloadsEnabled,
+    setSmartDownloadsEnabled,
     devMode,
     setDevMode
   } = useSettingsStore()
@@ -182,13 +189,13 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
             />
           </SettingsRow>
 
-          <SettingsRow 
+          <SettingsRow
             title={
               <div className="flex items-center gap-2">
                 <RefreshCcw className="h-4 w-4" />
                 <span>Verbose Logging</span>
               </div>
-            } 
+            }
             description="Enable detailed network and scraper logs in console"
           >
             <Switch checked={enableLog} onCheckedChange={setEnableLog} />
@@ -216,6 +223,18 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
                 ]}
               />
             </div>
+          </SettingsRow>
+
+          <SettingsRow
+            title={
+              <div className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                <span>Smart Downloads (Netflix-Style)</span>
+              </div>
+            }
+            description="Automatically download the next 3 chapters when reading and delete completed chapters to save space"
+          >
+            <Switch checked={smartDownloadsEnabled} onCheckedChange={setSmartDownloadsEnabled} />
           </SettingsRow>
 
           <SettingsRow
@@ -319,10 +338,17 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
           <div className="space-y-2 max-w-xl">
             <div className="flex items-center gap-2 text-emerald-400">
               <Archive className="h-4 w-4" />
-              <h4 className="text-sm font-bold uppercase tracking-tight">Data Backup & Migration</h4>
+              <h4 className="text-sm font-bold uppercase tracking-tight">
+                Data Backup & Migration
+              </h4>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Export or restore your library, reading progress, reading history, source repositories, and trackers in a single compressed backup (<code className="text-foreground font-mono bg-secondary/40 px-1 py-0.5 rounded">.json.gz</code>) within an atomic database transaction.
+              Export or restore your library, reading progress, reading history, source
+              repositories, and trackers in a single compressed backup (
+              <code className="text-foreground font-mono bg-secondary/40 px-1 py-0.5 rounded">
+                .json.gz
+              </code>
+              ) within an atomic database transaction.
             </p>
           </div>
 

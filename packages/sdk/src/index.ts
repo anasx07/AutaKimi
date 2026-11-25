@@ -16,3 +16,4 @@ export {
   isValidMediaCatalogItem,
 } from "./utils/mangaNormalizer";
 export * from "./utils/eyeCare";
+export * from "./utils/smartDownloads";

@@ -4,7 +4,9 @@ import {
   useReaderStore,
   useHistoryStore,
   useProgressStore,
-  useExtensionStore
+  useExtensionStore,
+  useSettingsStore,
+  useDownloadStore
 } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
@@ -29,8 +31,14 @@ import { useAutoScroll } from './hooks/useAutoScroll'
 import { useDragToScroll } from './hooks/useDragToScroll'
 import { useZoom } from './hooks/useZoom'
 import { computeEyeCareOverlay, EYE_CARE_PRESETS } from '@common/utils/eyeCare'
+import { computeSmartDownloadPlan } from '@common/utils/smartDownloads'
 import { EyeCareTintPreset } from '@common/types'
-import { getNextDoublePage, getPrevDoublePage, PageDimensions } from './lib/doublePageSpread'
+import {
+  getDoublePageSlot,
+  getNextDoublePage,
+  getPrevDoublePage,
+  PageDimensions
+} from './lib/doublePageSpread'
 
 export default function ChapterReader() {
   const mobile = isMobile()
@@ -42,6 +50,7 @@ export default function ChapterReader() {
 
   const {
     readingMode,
+    autoMarkRead,
     dragToScroll,
     autoScrollEnabled,
     setAutoScrollEnabled,
@@ -61,6 +70,8 @@ export default function ChapterReader() {
     setEyeCareDimming,
     applyEyeCarePreset
   } = useReaderStore()
+
+  const { smartDownloadsEnabled } = useSettingsStore()
 
   // --- State & Refs ---
   const [loadedChapters, setLoadedChapters] = useState<Chapter[]>([])
@@ -85,6 +96,9 @@ export default function ChapterReader() {
   const activeSessionRef = useRef<{ mangaId: string; chapterId: string; startTime: number } | null>(
     null
   )
+  const sessionCompletedChaptersRef = useRef<Set<string>>(new Set())
+  const smartQueuedChaptersRef = useRef<Set<string>>(new Set())
+  const smartSyncCleanupRef = useRef<(() => void) | null>(null)
 
   const toggleZenMode = useCallback(() => {
     setIsZenMode((prev) => {
@@ -220,6 +234,9 @@ export default function ChapterReader() {
   const isHorizontalContinuous =
     readingMode === 'continuous-ltr' || readingMode === 'continuous-rtl'
 
+  const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
+  const activePageDimensions = activeChapter ? pageDimensionsByChapter[activeChapter.id] : undefined
+
   const savePageProgress = useCallback(
     (chapterId: string, page: number, chapterNumber?: number | string) => {
       if (!selectedManga) return
@@ -234,21 +251,46 @@ export default function ChapterReader() {
         const rawNum = chapterNumber !== undefined ? chapterNumber : targetChapter?.number
         const chNum = rawNum !== undefined ? Number(rawNum) : Number(activeChapter?.number)
 
+        const chapterTotal =
+          chapterPageCounts[chapterId] || (chapterId === activeChapter?.id ? totalPages : 0)
+        const slotReachedEnd =
+          isDoublePage && chapterTotal > 0
+            ? getDoublePageSlot(
+                chapterTotal,
+                page,
+                pageDimensionsByChapter[chapterId]
+              ).pages.includes(chapterTotal)
+            : false
+        const reachedEnd = chapterTotal > 0 && (page >= chapterTotal || slotReachedEnd)
+        if (reachedEnd) {
+          sessionCompletedChaptersRef.current.add(chapterId)
+        }
+
         const isReadAlready = readingProgress[selectedManga.id]?.includes(chapterId) || false
+        const isRead = isReadAlready || (autoMarkRead && reachedEnd)
         markChapterRead(
           selectedManga.id,
           chapterId,
-          isReadAlready,
+          isRead,
           page,
           !isNaN(chNum) ? chNum : undefined
         )
       }, 400)
     },
-    [selectedManga, readingProgress, markChapterRead, loadedChapters, chapters, activeChapter]
+    [
+      selectedManga,
+      readingProgress,
+      markChapterRead,
+      loadedChapters,
+      chapters,
+      activeChapter,
+      chapterPageCounts,
+      totalPages,
+      isDoublePage,
+      pageDimensionsByChapter,
+      autoMarkRead
+    ]
   )
-
-  const isDoublePage = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
-  const activePageDimensions = activeChapter ? pageDimensionsByChapter[activeChapter.id] : undefined
 
   const handlePageDimensions = useCallback(
     (chapterId: string, pageNumber: number, dimensions: PageDimensions) => {
@@ -339,6 +381,118 @@ export default function ChapterReader() {
     const ext = installedExtensions.find((e) => e.pkg === resolvedPkg)
     return ext?.name || resolvedPkg || 'Source'
   }, [resolvedPkg, installedExtensions])
+
+  const syncSmartDownloads = useCallback(
+    async (currentChapterId: string | null) => {
+      if (!smartDownloadsEnabled || !selectedManga || !resolvedPkg || sortedChapters.length === 0) {
+        return
+      }
+
+      try {
+        const downloads = await DataService.download.getMangaDownloads(selectedManga.id)
+        const downloadEntries = Array.isArray(downloads) ? downloads : []
+
+        const downloadedSet = new Set<string>(smartQueuedChaptersRef.current)
+        const deletableSet = new Set<string>()
+        for (const entry of downloadEntries) {
+          if (
+            entry.status === 'completed' ||
+            entry.status === 'downloading' ||
+            entry.status === 'queued'
+          ) {
+            downloadedSet.add(entry.chapterId)
+            deletableSet.add(entry.chapterId)
+          }
+        }
+
+        const dlStore = useDownloadStore.getState()
+        for (const queued of dlStore.downloadQueue) {
+          if (queued.mangaId === selectedManga.id) {
+            downloadedSet.add(queued.chapter.id)
+          }
+        }
+        for (const task of Object.values(dlStore.activeTasks)) {
+          if (
+            task.mangaId === selectedManga.id &&
+            (task.status === 'downloading' || task.status === 'completed')
+          ) {
+            downloadedSet.add(task.chapterId)
+            deletableSet.add(task.chapterId)
+          }
+        }
+
+        const completedSet = new Set<string>([
+          ...(readingProgress[selectedManga.id] || []),
+          ...sessionCompletedChaptersRef.current
+        ])
+
+        const plan = computeSmartDownloadPlan({
+          enabled: true,
+          chapters: sortedChapters,
+          currentChapterId,
+          completedChapterIds: completedSet,
+          downloadedChapterIds: downloadedSet,
+          deletableDownloadChapterIds: deletableSet
+        })
+
+        for (const chId of plan.chapterIdsToDelete) {
+          smartQueuedChaptersRef.current.delete(chId)
+          dlStore.removeFromDownloadQueue(chId)
+          dlStore.removeActiveTask(selectedManga.id, chId)
+          await DataService.download
+            .remove({ mangaId: selectedManga.id, chapterId: chId })
+            .catch(() => {})
+        }
+
+        if (plan.chaptersToDownload.length > 0 && currentChapterId) {
+          const itemsToQueue = plan.chaptersToDownload.map((ch) => {
+            smartQueuedChaptersRef.current.add(ch.id)
+            return {
+              mangaId: selectedManga.id,
+              mangaTitle: selectedManga.title,
+              chapter: ch,
+              extension: resolvedPkg,
+              extensionName,
+              type: 'manga' as const
+            }
+          })
+          dlStore.addToDownloadQueue(itemsToQueue)
+        }
+      } catch (err) {
+        console.error('[SmartDownloads] Failed to sync downloads:', err)
+      }
+    },
+    [
+      smartDownloadsEnabled,
+      selectedManga,
+      resolvedPkg,
+      sortedChapters,
+      readingProgress,
+      extensionName
+    ]
+  )
+
+  useEffect(() => {
+    sessionCompletedChaptersRef.current = new Set()
+    smartQueuedChaptersRef.current = new Set()
+  }, [selectedManga?.id])
+
+  useEffect(() => {
+    if (!smartDownloadsEnabled || !activeChapter?.id || sortedChapters.length === 0) return
+    void syncSmartDownloads(activeChapter.id)
+  }, [smartDownloadsEnabled, activeChapter?.id, sortedChapters.length, syncSmartDownloads])
+
+  smartSyncCleanupRef.current = () => {
+    if (sessionCompletedChaptersRef.current.size > 0) {
+      void syncSmartDownloads(null)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      smartSyncCleanupRef.current?.()
+    }
+  }, [])
 
   const openInBrowser = useCallback(() => {
     if (activeChapter?.url) DataService.openExternal(activeChapter.url)
