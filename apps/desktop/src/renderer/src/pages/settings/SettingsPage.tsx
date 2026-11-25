@@ -1,34 +1,30 @@
-import {
-  Loader2,
-  BookOpen,
-  Settings2,
-  ChevronRight
-} from 'lucide-react'
+import { Loader2, BookOpen, Settings2, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { ThemeType, ColorThemeType } from '@common/types'
 import { isMobile } from '@renderer/shared/platform'
 import { cn } from '@renderer/shared/lib/utils'
 import { useSettingsStore } from '@renderer/shared/model'
-import {
-  Badge,
-  Card,
-  CardContent,
-  MobilePage
-} from '@renderer/shared/ui'
+import { Badge, Card, CardContent, MobilePage } from '@renderer/shared/ui'
 import { ThemeOption } from '@renderer/shared/config/themes'
 import { GeneralSettings } from './tabs/GeneralSettings'
 import { ReadingSettings } from './tabs/ReadingSettings'
 import { AnimeSettings } from './tabs/AnimeSettings'
 import { AdvancedSettings } from './tabs/AdvancedSettings'
 import { SyncSettings } from './tabs/SyncSettings'
-import { Share2, Terminal, Film } from 'lucide-react'
+import { WrappedStats } from './tabs/WrappedStats'
+import { Share2, Terminal, Film, BarChart3 } from 'lucide-react'
 
-type SettingsTab = 'general' | 'reading' | 'anime' | 'sync' | 'advanced'
+type SettingsTab = 'general' | 'reading' | 'anime' | 'stats' | 'sync' | 'advanced'
 
-const sidebarItems: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const sidebarItems: {
+  id: SettingsTab
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+}[] = [
   { id: 'general', label: 'General', icon: Settings2 },
   { id: 'reading', label: 'Reading', icon: BookOpen },
   { id: 'anime', label: 'Anime', icon: Film },
+  { id: 'stats', label: 'Wrapped', icon: BarChart3 },
   { id: 'sync', label: 'Sync', icon: Share2 },
   { id: 'advanced', label: 'Advanced', icon: Terminal }
 ]
@@ -41,7 +37,13 @@ interface SidebarItemProps {
   setActiveTab: (id: SettingsTab) => void
 }
 
-function SidebarItem({ id, label, icon: Icon, activeTab, setActiveTab }: SidebarItemProps): React.JSX.Element {
+function SidebarItem({
+  id,
+  label,
+  icon: Icon,
+  activeTab,
+  setActiveTab
+}: SidebarItemProps): React.JSX.Element {
   return (
     <button
       id={`settings-tab-${id}`}
@@ -57,7 +59,9 @@ function SidebarItem({ id, label, icon: Icon, activeTab, setActiveTab }: Sidebar
         <div
           className={cn(
             'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
-            activeTab === id ? 'bg-white/20 rotate-12 scale-110' : 'bg-secondary group-hover:bg-muted'
+            activeTab === id
+              ? 'bg-white/20 rotate-12 scale-110'
+              : 'bg-secondary group-hover:bg-muted'
           )}
         >
           <Icon
@@ -116,6 +120,8 @@ export default function SettingsPage(): React.JSX.Element {
         return <ReadingSettings />
       case 'anime':
         return <AnimeSettings />
+      case 'stats':
+        return <WrappedStats />
       case 'sync':
         return <SyncSettings />
       case 'advanced':

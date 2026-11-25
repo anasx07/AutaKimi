@@ -18,3 +18,4 @@ export {
 export * from "./utils/eyeCare";
 export * from "./utils/smartDownloads";
 export * from "./utils/discordPresence";
+export * from "./utils/wrappedStats";
