@@ -234,14 +234,14 @@ export default function DocsPage() {
           </ul>
           <div className="rounded-2xl overflow-hidden border border-white/10 mt-6 shadow-2xl group relative cursor-zoom-in hover:border-orange-500/40 transition-all duration-500">
             <a
-              href="/AutaKimi/assets/screenshots/manga-details.png"
+              href="/AutaKimi/assets/screenshots/manga-details-rtl.png"
               target="_blank"
               rel="noopener noreferrer"
               title="Click to view full resolution"
               className="block"
             >
               <Image
-                src="/AutaKimi/assets/screenshots/manga-details.webp"
+                src="/AutaKimi/assets/screenshots/manga-details-rtl.png"
                 alt="AutaKimi Media Details and Progress Tracking"
                 width={1280}
                 height={700}
