@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo, useState } from 'react'
+import { useEffect, useRef, memo, useState, useCallback, type CSSProperties } from 'react'
 import { Loader2, ChevronLeft, ChevronRight, RotateCcw, ShieldCheck } from 'lucide-react'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
@@ -6,6 +6,7 @@ import { useChapterPages } from '@renderer/entities/manga/api/useMangaQueries'
 import { Chapter } from '@renderer/shared/api/sources/types'
 import { BypassService } from '@renderer/shared/api/bypass.service'
 import { useImagePreloader } from '../hooks/useImagePreloader'
+import { getDoublePageSlot, PageDimensions, PageDimensionsMap } from '../lib/doublePageSpread'
 
 interface ChapterSectionProps {
   chapter: Chapter
@@ -25,20 +26,26 @@ interface ChapterSectionProps {
   dragMoved: boolean
   scrollRoot: HTMLDivElement | null
   zoomLevel: number
+  pageDimensions?: PageDimensionsMap
+  onPageDimensions?: (chapterId: string, pageNumber: number, dimensions: PageDimensions) => void
 }
 
 function ReaderImage({
   src,
   alt,
   className,
+  style,
   priority = false,
-  chapterUrl
+  chapterUrl,
+  onDimensions
 }: {
   src: string
   alt: string
   className?: string
+  style?: CSSProperties
   priority?: boolean
   chapterUrl?: string
+  onDimensions?: (dimensions: PageDimensions) => void
 }) {
   const [hasError, setHasError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -125,8 +132,16 @@ function ReaderImage({
       src={displaySrc}
       alt={alt}
       referrerPolicy="no-referrer"
+      onLoad={(e) => {
+        const w = e.currentTarget.naturalWidth
+        const h = e.currentTarget.naturalHeight
+        if (w > 0 && h > 0) {
+          onDimensions?.({ width: w, height: h })
+        }
+      }}
       onError={() => setHasError(true)}
       className={className}
+      style={style}
       decoding="async"
       loading={priority ? 'eager' : 'lazy'}
       {...({ fetchPriority: priority ? 'high' : 'auto' } as any)}
@@ -254,10 +269,19 @@ export const ChapterSection = memo(
     isDragging,
     dragMoved,
     scrollRoot,
-    zoomLevel
+    zoomLevel,
+    pageDimensions,
+    onPageDimensions
   }: ChapterSectionProps) => {
     const { data: pages = [], isLoading } = useChapterPages(mangaId, pkg, chapter)
-    useImagePreloader(pages, currentPage)
+    const isDouble = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
+    const handlePreloaderDimensions = useCallback(
+      (pageNumber: number, dimensions: PageDimensions) => {
+        onPageDimensions?.(chapter.id, pageNumber, dimensions)
+      },
+      [chapter.id, onPageDimensions]
+    )
+    useImagePreloader(pages, currentPage, isDouble ? handlePreloaderDimensions : undefined)
     const halfwayRef = useRef<HTMLDivElement>(null)
     const sectionRef = useRef<HTMLDivElement>(null)
     const halfwayTriggered = useRef(false)
@@ -365,9 +389,18 @@ export const ChapterSection = memo(
       )
     }
 
-    const isDouble = readingMode === 'paged-double-ltr' || readingMode === 'paged-double-rtl'
     const isDoubleRtl = readingMode === 'paged-double-rtl'
     const isPagedRtl = readingMode === 'paged-rtl' || isDoubleRtl
+    const doubleSlot = isDouble
+      ? getDoublePageSlot(pages.length, currentPage, pageDimensions)
+      : null
+    const pagedPageNumbers =
+      isDouble && doubleSlot
+        ? doubleSlot.pages.length === 2 && isDoubleRtl
+          ? [doubleSlot.pages[1], doubleSlot.pages[0]]
+          : doubleSlot.pages
+        : [currentPage]
+    const isPairedView = pagedPageNumbers.length === 2
 
     const handleModeClick = (e: React.MouseEvent) => {
       if (isDragging || dragMoved) return
@@ -410,55 +443,38 @@ export const ChapterSection = memo(
                   : undefined
               }
             >
-              {isDouble && currentPage > 1 ? (
-                isDoubleRtl ? (
-                  <>
-                    {pages[currentPage] && (
-                      <ReaderImage
-                        key={pages[currentPage]}
-                        src={pages[currentPage]}
-                        alt={`Page ${currentPage + 1}`}
-                        chapterUrl={chapter.url}
-                        className="max-h-[calc(100vh-4rem)] max-w-[48vw] object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl"
-                      />
+              {pagedPageNumbers.map((pageNum) => {
+                const pageUrl = pages[pageNum - 1]
+                if (!pageUrl) return null
+                const dims = pageDimensions?.[pageNum]
+                const isWideSolo = !isPairedView && Boolean(doubleSlot?.isWideSpread)
+                const wideSpreadStyle =
+                  isWideSolo && dims && dims.height > 0
+                    ? {
+                        width: `min(96vw, calc((100vh - 4rem) * ${(dims.width / dims.height).toFixed(4)}))`,
+                        height: 'auto'
+                      }
+                    : undefined
+
+                return (
+                  <ReaderImage
+                    key={pageUrl}
+                    src={pageUrl}
+                    alt={`Page ${pageNum}`}
+                    chapterUrl={chapter.url}
+                    style={wideSpreadStyle}
+                    onDimensions={
+                      isDouble && onPageDimensions
+                        ? (measured) => onPageDimensions(chapter.id, pageNum, measured)
+                        : undefined
+                    }
+                    className={cn(
+                      'max-h-[calc(100vh-4rem)] object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl',
+                      isPairedView ? 'max-w-[48vw]' : 'max-w-[96vw]'
                     )}
-                    <ReaderImage
-                      key={pages[currentPage - 1]}
-                      src={pages[currentPage - 1]}
-                      alt={`Page ${currentPage}`}
-                      chapterUrl={chapter.url}
-                      className="max-h-[calc(100vh-4rem)] max-w-[48vw] object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ReaderImage
-                      key={pages[currentPage - 1]}
-                      src={pages[currentPage - 1]}
-                      alt={`Page ${currentPage}`}
-                      chapterUrl={chapter.url}
-                      className="max-h-[calc(100vh-4rem)] max-w-[48vw] object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl"
-                    />
-                    {pages[currentPage] && (
-                      <ReaderImage
-                        key={pages[currentPage]}
-                        src={pages[currentPage]}
-                        alt={`Page ${currentPage + 1}`}
-                        chapterUrl={chapter.url}
-                        className="max-h-[calc(100vh-4rem)] max-w-[48vw] object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl"
-                      />
-                    )}
-                  </>
+                  />
                 )
-              ) : (
-                <ReaderImage
-                  key={pages[currentPage - 1]}
-                  src={pages[currentPage - 1]}
-                  alt={`Page ${currentPage}`}
-                  chapterUrl={chapter.url}
-                  className="object-contain select-none pointer-events-none animate-in fade-in zoom-in-95 duration-300 shadow-2xl"
-                />
-              )}
+              })}
             </div>
 
             <div
@@ -474,9 +490,11 @@ export const ChapterSection = memo(
                 <ChevronLeft className="h-5 w-5 text-white" />
               </Button>
               <div className="bg-black/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-sm font-bold font-mono tracking-tighter shadow-2xl text-neutral-100 min-w-[100px] text-center">
-                {isDouble && currentPage > 1
-                  ? `${currentPage}-${Math.min(pages.length, currentPage + 1)} / ${pages.length}`
-                  : `${currentPage} / ${pages.length}`}
+                {isDouble && doubleSlot && doubleSlot.pages.length === 2
+                  ? `${doubleSlot.pages[0]}-${doubleSlot.pages[1]} / ${pages.length}`
+                  : isDouble && doubleSlot && doubleSlot.pages.length === 1
+                    ? `${doubleSlot.pages[0]} / ${pages.length}`
+                    : `${currentPage} / ${pages.length}`}
               </div>
               <Button
                 variant="outline"
