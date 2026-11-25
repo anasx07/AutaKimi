@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Sidebar } from '../components/Sidebar'
 import { MobileBottomNav } from '../components/MobileBottomNav'
+import { sharedTabNavigationMemory } from '../components/navigationMemory'
 import { TitleBar } from '@renderer/widgets/title-bar'
 import { DownloadQueueProcessor } from '@renderer/widgets/download-queue'
 import Toast from '@renderer/shared/ui/Toast'
@@ -22,14 +23,37 @@ export function AppLayout(): React.JSX.Element {
   const { selectedManga, setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
   const location = useLocation()
   const mobile = isMobile()
+  const prevPathRef = useRef(location.pathname)
   const isWatchingInlineAnime = Boolean(
     activeChapter && selectedManga?.mediaType === 'anime' && !mobile
   )
 
-  // Dismiss details and reader on route change
+  // Preserve open details/player per route when switching tabs (e.g. Browse -> History -> Browse)
   useEffect(() => {
-    setSelectedManga(null)
-    setActiveChapter(null)
+    const prevPath = prevPathRef.current
+    sharedTabNavigationMemory.recordPath(location.pathname)
+    if (prevPath === location.pathname) return
+    prevPathRef.current = location.pathname
+
+    const { selectedManga: currentManga, activeChapter: currentChapter } =
+      useLibraryStore.getState()
+    if (currentManga) {
+      sharedTabNavigationMemory.suspendOverlay(prevPath, {
+        selectedManga: currentManga,
+        activeChapter: currentChapter
+      })
+    } else {
+      sharedTabNavigationMemory.clearOverlay(prevPath)
+    }
+
+    const restored = sharedTabNavigationMemory.consumeOverlay(location.pathname)
+    if (restored) {
+      setSelectedManga(restored.selectedManga)
+      setActiveChapter(restored.activeChapter)
+    } else {
+      setSelectedManga(null)
+      setActiveChapter(null)
+    }
   }, [location.pathname, setSelectedManga, setActiveChapter])
 
   return (
