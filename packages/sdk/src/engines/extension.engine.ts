@@ -1,5 +1,6 @@
 import { templateService } from "../templates";
 import { NetworkConfig } from "../config/network";
+import { extractBasePkg, getRepoMeta } from "../services/repoIdentity";
 
 export interface IExtensionPlatform {
   fetch(
@@ -28,6 +29,9 @@ export interface IExtensionPlatform {
     lang?: string;
     icon: string;
     version: string;
+    repoUrl?: string;
+    repoName?: string;
+    repoColor?: string;
   }): Promise<void>;
 }
 
@@ -94,9 +98,19 @@ export class ExtensionEngine {
   }
 
   async install(ext: any, repoUrl: string): Promise<{ success: boolean }> {
+    const effectiveRepoUrl =
+      ext.repoUrl && ext.repoUrl !== "remote" && ext.repoUrl !== "local"
+        ? ext.repoUrl
+        : repoUrl;
+    const basePkg = extractBasePkg(ext.pkg);
+
     let baseUrl = "";
-    if (repoUrl && repoUrl !== "local") {
-      baseUrl = repoUrl.replace(/\/?([^/]+\.json)$/, "");
+    if (
+      effectiveRepoUrl &&
+      effectiveRepoUrl !== "local" &&
+      effectiveRepoUrl !== "remote"
+    ) {
+      baseUrl = effectiveRepoUrl.replace(/\/?([^/]+\.json)$/, "");
       if (baseUrl && !baseUrl.endsWith("/")) baseUrl += "/";
     }
 
@@ -105,9 +119,9 @@ export class ExtensionEngine {
       (await this.platform.getSetting("bypass_cloudflare")) === "true";
 
     try {
-      if (baseUrl) {
+      if (baseUrl && basePkg) {
         const response = await this.platform.fetch(
-          `${baseUrl}js/${ext.pkg}.js`,
+          `${baseUrl}js/${basePkg}.js`,
           {},
           bypassCf,
         );
@@ -119,11 +133,11 @@ export class ExtensionEngine {
 
     // If not found in primary repo, check the community JavaScript extensions ecosystem
     if (!code || code.startsWith("404:") || code === "Not Found") {
-      const cleanPkg = (ext.pkg || "")
+      const cleanPkg = basePkg
         .replace(/^ma\.autakimi\.extension\./, "")
         .replace(/^eu\.kanade\.tachiyomi\.extension\./, "");
       const candidateNames = [
-        ext.pkg,
+        basePkg,
         `ma.autakimi.extension.${cleanPkg}`,
         `ma.autakimi.extension.eu.kanade.tachiyomi.extension.${cleanPkg}`,
       ];
@@ -176,8 +190,19 @@ export class ExtensionEngine {
         code = template.generate(extBaseUrl, NetworkConfig.DEFAULT_UA);
     }
 
-    // Use a clean local-only URL format (this is a convention handled by the cache protocol)
-    const iconUrl = `autakimi-cache://local-icon/${ext.pkg}.png`;
+    // Preserve remote HTTP icon URL (e.g. Keiyoushi) if provided, otherwise use local cache protocol
+    const iconUrl =
+      typeof ext.icon === "string" && ext.icon.startsWith("http")
+        ? ext.icon
+        : `autakimi-cache://local-icon/${basePkg}.png`;
+
+    const hasRealRepo =
+      !!effectiveRepoUrl &&
+      effectiveRepoUrl !== "local" &&
+      effectiveRepoUrl !== "remote";
+    const repoMeta = hasRealRepo
+      ? getRepoMeta(effectiveRepoUrl, ext.repoName)
+      : null;
 
     await this.platform.upsertExtension({
       pkg: ext.pkg,
@@ -188,6 +213,9 @@ export class ExtensionEngine {
       lang: ext.lang,
       icon: iconUrl,
       version: ext.version || "1.0.0",
+      repoUrl: hasRealRepo ? effectiveRepoUrl : ext.repoUrl || undefined,
+      repoName: ext.repoName || repoMeta?.repoName,
+      repoColor: ext.repoColor || repoMeta?.repoColor,
     });
 
     return { success: true };

@@ -61,7 +61,10 @@ export const MobileDB = {
           lang TEXT,
           icon TEXT,
           version TEXT,
-          code TEXT
+          code TEXT,
+          repo_url TEXT,
+          repo_name TEXT,
+          repo_color TEXT
         );
         CREATE TABLE IF NOT EXISTS library (
           id TEXT PRIMARY KEY,
@@ -236,18 +239,44 @@ export const MobileDB = {
       currentVersion = 22;
       await connection.execAsync(`PRAGMA user_version = ${currentVersion};`);
     }
+
+    if (currentVersion < 23) {
+      const extCols = await connection.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(extensions);",
+      );
+      const names = new Set((extCols || []).map((c) => c.name));
+      if (!names.has("repo_url")) {
+        await connection.execAsync(
+          "ALTER TABLE extensions ADD COLUMN repo_url TEXT;",
+        );
+      }
+      if (!names.has("repo_name")) {
+        await connection.execAsync(
+          "ALTER TABLE extensions ADD COLUMN repo_name TEXT;",
+        );
+      }
+      if (!names.has("repo_color")) {
+        await connection.execAsync(
+          "ALTER TABLE extensions ADD COLUMN repo_color TEXT;",
+        );
+      }
+      currentVersion = 23;
+      await connection.execAsync(`PRAGMA user_version = ${currentVersion};`);
+    }
   },
 
   async getExtensions(): Promise<IpcResult<any[]>> {
     await this.ensureReady();
-    const res = await db!.getAllAsync<any>("SELECT * FROM extensions;");
+    const res = await db!.getAllAsync<any>(
+      "SELECT pkg, installed_at, code, name, baseUrl, lang, icon, version, repo_url AS repoUrl, repo_name AS repoName, repo_color AS repoColor FROM extensions;",
+    );
     return { ok: true, value: res };
   },
 
   async addExtension(data: any): Promise<SuccessResult> {
     await this.ensureReady();
     await db!.runAsync(
-      "INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+      "INSERT OR REPLACE INTO extensions (pkg, installed_at, code, name, baseUrl, lang, icon, version, repo_url, repo_name, repo_color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
       [
         data.pkg ?? null,
         new Date().toISOString(),
@@ -257,6 +286,9 @@ export const MobileDB = {
         data.lang ?? null,
         data.icon ?? null,
         data.version ?? null,
+        data.repoUrl ?? null,
+        data.repoName ?? null,
+        data.repoColor ?? null,
       ],
     );
     return { ok: true, value: { success: true } };

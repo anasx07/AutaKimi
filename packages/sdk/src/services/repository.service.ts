@@ -1,28 +1,36 @@
-import { networkClient } from './network'
-import { keiyoushiService } from './keiyoushi.service'
+import { networkClient } from "./network";
+import { keiyoushiService } from "./keiyoushi.service";
+import { getRepoMeta } from "./repoIdentity";
 
 export interface RepositoryManifest {
-  version: string
-  name?: string
-  templates: string
-  plugins: string
+  version: string;
+  name?: string;
+  templates: string;
+  plugins: string;
   catalogs: {
-    manga: string
-    anime: string
-  }
+    manga: string;
+    anime: string;
+  };
   sources: {
-    manga: string
-    anime: string
-  }
+    manga: string;
+    anime: string;
+  };
   // Internally added property for absolute path resolution
-  baseUrl: string
-  isKeiyoushi?: boolean
+  baseUrl: string;
+  sourceRepoUrl?: string;
+  repoColor?: string;
+  isKeiyoushi?: boolean;
 }
 
 export function isPrivateIpOrHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().trim()
-  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0') {
-    return true
+  const host = hostname.toLowerCase().trim();
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "0.0.0.0"
+  ) {
+    return true;
   }
 
   // IPv4 regex checks for private / link-local / loopback ranges:
@@ -35,59 +43,67 @@ export function isPrivateIpOrHost(hostname: string): boolean {
     /^127\./.test(host) ||
     /^0\./.test(host)
   ) {
-    return true
+    return true;
   }
 
   // Check IPv6 link-local and unique-local
-  if (/^fc[0-9a-f]{2}:/i.test(host) || /^fd[0-9a-f]{2}:/i.test(host) || /^fe80:/i.test(host)) {
-    return true
+  if (
+    /^fc[0-9a-f]{2}:/i.test(host) ||
+    /^fd[0-9a-f]{2}:/i.test(host) ||
+    /^fe80:/i.test(host)
+  ) {
+    return true;
   }
 
-  return false
+  return false;
 }
 
 export function validateRepositoryUrl(urlStr: string): void {
-  if (urlStr.startsWith('autakimi-local://') || urlStr.startsWith('file://')) {
-    return
+  if (urlStr.startsWith("autakimi-local://") || urlStr.startsWith("file://")) {
+    return;
   }
-  let parsed: URL
+  let parsed: URL;
   try {
-    parsed = new URL(urlStr)
+    parsed = new URL(urlStr);
   } catch {
-    throw new Error(`Invalid repository URL format: ${urlStr}`)
+    throw new Error(`Invalid repository URL format: ${urlStr}`);
   }
 
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`Invalid repository protocol "${parsed.protocol}". Only HTTP and HTTPS are permitted.`)
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(
+      `Invalid repository protocol "${parsed.protocol}". Only HTTP and HTTPS are permitted.`,
+    );
   }
 
   if (isPrivateIpOrHost(parsed.hostname)) {
-    throw new Error(`Repository host "${parsed.hostname}" is a private or local address and cannot be accessed.`)
+    throw new Error(
+      `Repository host "${parsed.hostname}" is a private or local address and cannot be accessed.`,
+    );
   }
 }
 
 export class RepositoryService {
-  private static instance: RepositoryService
-  private manifestCache = new Map<string, Promise<RepositoryManifest>>()
+  private static instance: RepositoryService;
+  private manifestCache = new Map<string, Promise<RepositoryManifest>>();
 
   public static getInstance(): RepositoryService {
     if (!RepositoryService.instance) {
-      RepositoryService.instance = new RepositoryService()
+      RepositoryService.instance = new RepositoryService();
     }
-    return RepositoryService.instance
+    return RepositoryService.instance;
   }
 
   private resolveBaseUrl(url: string): string {
-    validateRepositoryUrl(url)
-    let baseUrl = url
-    if (url.endsWith('.json')) {
-      const parts = url.split('/')
-      parts.pop()
-      baseUrl = parts.join('/') + '/'
+    validateRepositoryUrl(url);
+    let baseUrl = url;
+    if (url.endsWith(".json")) {
+      const parts = url.split("/");
+      parts.pop();
+      baseUrl = parts.join("/") + "/";
     } else {
-      baseUrl = url.endsWith('/') ? url : `${url}/`
+      baseUrl = url.endsWith("/") ? url : `${url}/`;
     }
-    return baseUrl
+    return baseUrl;
   }
 
   /**
@@ -95,65 +111,91 @@ export class RepositoryService {
    * it returns a legacy manifest mapping based on the legacy structure.
    */
   async resolveManifest(url: string): Promise<RepositoryManifest> {
-    validateRepositoryUrl(url)
+    validateRepositoryUrl(url);
     if (keiyoushiService.isKeiyoushiUrl(url)) {
-      return keiyoushiService.resolveKeiyoushiManifest(url)
+      const kManifest = await keiyoushiService.resolveKeiyoushiManifest(url);
+      const meta = getRepoMeta(url, kManifest.name);
+      return {
+        ...kManifest,
+        name: meta.repoName,
+        sourceRepoUrl: url,
+        repoColor: meta.repoColor,
+      };
     }
 
-    const baseUrl = this.resolveBaseUrl(url)
+    const baseUrl = this.resolveBaseUrl(url);
+    const meta = getRepoMeta(url);
 
     if (this.manifestCache.has(baseUrl)) {
-      return this.manifestCache.get(baseUrl)!
+      const cached = await this.manifestCache.get(baseUrl)!;
+      const resolvedMeta = getRepoMeta(url, cached.name);
+      return {
+        ...cached,
+        name: resolvedMeta.repoName,
+        sourceRepoUrl: url,
+        repoColor: resolvedMeta.repoColor,
+      };
     }
 
-    const fetchPromise = this.fetchManifest(baseUrl)
-    this.manifestCache.set(baseUrl, fetchPromise)
-    
+    const fetchPromise = this.fetchManifest(baseUrl);
+    this.manifestCache.set(baseUrl, fetchPromise);
+
     try {
-      return await fetchPromise
+      const manifest = await fetchPromise;
+      const resolvedMeta = getRepoMeta(url, manifest.name || meta.repoName);
+      return {
+        ...manifest,
+        name: resolvedMeta.repoName,
+        sourceRepoUrl: url,
+        repoColor: resolvedMeta.repoColor,
+      };
     } catch (e) {
-      this.manifestCache.delete(baseUrl)
-      throw e
+      this.manifestCache.delete(baseUrl);
+      throw e;
     }
   }
 
   private async fetchManifest(baseUrl: string): Promise<RepositoryManifest> {
-    validateRepositoryUrl(baseUrl)
-    const manifestUrl = `${baseUrl}manifest.json`
-    
+    validateRepositoryUrl(baseUrl);
+    const manifestUrl = `${baseUrl}manifest.json`;
+
     const legacyManifest: RepositoryManifest = {
-      version: '1.0.0',
-      templates: 'templates.json',
-      plugins: 'plugins.json',
+      version: "1.0.0",
+      templates: "templates.json",
+      plugins: "plugins.json",
       catalogs: {
-        manga: 'manga_catalogs.json',
-        anime: 'anime_catalogs.json'
+        manga: "manga_catalogs.json",
+        anime: "anime_catalogs.json",
       },
       sources: {
-        manga: 'manga_sources.json',
-        anime: 'anime_sources.json'
+        manga: "manga_sources.json",
+        anime: "anime_sources.json",
       },
-      baseUrl
-    }
+      baseUrl,
+    };
 
     try {
-      const res = await networkClient.fetch(manifestUrl, { cache: 'no-store' })
+      const res = await networkClient.fetch(manifestUrl, { cache: "no-store" });
       if (!res.ok || !res.value.ok) {
         if (res.ok && res.value.status === 404) {
-          console.log(`[RepositoryService] No manifest.json found at ${baseUrl}. Falling back to legacy structure.`)
-          return legacyManifest
+          console.log(
+            `[RepositoryService] No manifest.json found at ${baseUrl}. Falling back to legacy structure.`,
+          );
+          return legacyManifest;
         }
-        return legacyManifest
+        return legacyManifest;
       }
 
-      const contentType = res.value.headers.get('content-type') || ''
-      if (contentType.includes('text/html')) {
-        console.log(`[RepositoryService] HTML returned for manifest.json at ${baseUrl}. Falling back to legacy structure.`)
-        return legacyManifest
+      const contentType = res.value.headers.get("content-type") || "";
+      if (contentType.includes("text/html")) {
+        console.log(
+          `[RepositoryService] HTML returned for manifest.json at ${baseUrl}. Falling back to legacy structure.`,
+        );
+        return legacyManifest;
       }
 
-      const data = await res.value.json()
-      
+      const data = await res.value.json();
+
       // Merge with legacy structure to ensure missing fields are populated
       return {
         ...legacyManifest,
@@ -161,18 +203,21 @@ export class RepositoryService {
         baseUrl,
         catalogs: {
           ...legacyManifest.catalogs,
-          ...(data.catalogs || {})
+          ...(data.catalogs || {}),
         },
         sources: {
           ...legacyManifest.sources,
-          ...(data.sources || {})
-        }
-      }
+          ...(data.sources || {}),
+        },
+      };
     } catch (e) {
-      console.warn(`[RepositoryService] Error fetching manifest at ${baseUrl}. Falling back to legacy.`, e)
-      return legacyManifest
+      console.warn(
+        `[RepositoryService] Error fetching manifest at ${baseUrl}. Falling back to legacy.`,
+        e,
+      );
+      return legacyManifest;
     }
   }
 }
 
-export const repositoryService = RepositoryService.getInstance()
+export const repositoryService = RepositoryService.getInstance();

@@ -19,6 +19,7 @@ import { extensionKeys } from '@renderer/entities/extension/api/useExtensionQuer
 import { Button, Card, SectionHeader, Badge, SettingsRow, Switch } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
 import { useSettingsStore, useUIStore } from '@renderer/shared/model'
+import { getRepoMeta } from '@common/services/repoIdentity'
 import { cn } from '@renderer/shared/lib/utils'
 
 interface PluginManifest {
@@ -287,13 +288,18 @@ export default function RepositoriesPage({
   }
 
   return (
-    <div className={cn('space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10', !hideHeader && 'space-y-8')}>
+    <div
+      className={cn(
+        'space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10',
+        !hideHeader && 'space-y-8'
+      )}
+    >
       {/* Top Header with Quick Actions */}
       {!hideHeader ? (
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <SectionHeader title="Repositories & Addons" icon={Globe} />
-            
+
             <div className="flex items-center gap-2.5">
               <Button
                 variant="outline"
@@ -451,7 +457,8 @@ export default function RepositoriesPage({
               </h3>
               <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-2xl">
                 AutaKimi is an open-source, neutral media platform. Add community repository URLs
-                (AutaKimi manifest.json or Keiyoushi index.min.json) to discover and install manga/anime scrapers and plugins.
+                (AutaKimi manifest.json or Keiyoushi index.min.json) to discover and install
+                manga/anime scrapers and plugins.
               </p>
             </div>
 
@@ -514,7 +521,8 @@ export default function RepositoriesPage({
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-primary">Bad URL Format Detected</p>
                     <p className="text-xs text-primary/80">
-                      We noticed you entered a GitHub web URL instead of the raw JSON file. Would you like to use this direct link?
+                      We noticed you entered a GitHub web URL instead of the raw JSON file. Would
+                      you like to use this direct link?
                     </p>
                     <p className="text-xs font-mono bg-background/50 p-2 rounded-lg text-primary/80 mt-1 break-all">
                       {suggestion}
@@ -550,26 +558,35 @@ export default function RepositoriesPage({
                 <div className="text-center py-12 border-2 border-dashed border-border/50 rounded-2xl space-y-3">
                   <Globe className="h-10 w-10 text-muted-foreground/30 mx-auto" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-foreground">No repositories configured yet</p>
+                    <p className="text-sm font-bold text-foreground">
+                      No repositories configured yet
+                    </p>
                     <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      Add a community manifest URL above to unlock thousands of manga and anime sources.
+                      Add a community manifest URL above to unlock thousands of manga and anime
+                      sources.
                     </p>
                   </div>
                 </div>
               ) : (
                 repos.map((url) => {
-                  const isLocal = !url.startsWith('http://') && !url.startsWith('https://')
-                  const isKeiyoushi =
-                    url.toLowerCase().includes('keiyoushi') ||
-                    url.toLowerCase().includes('index.min.json')
+                  const repoMeta = getRepoMeta(url)
+                  const isLocal = repoMeta.isLocal
+                  const isKeiyoushi = repoMeta.isKeiyoushi
 
                   return (
                     <div
                       key={url}
+                      style={{ borderLeftWidth: 4, borderLeftColor: repoMeta.repoColor }}
                       className="flex items-center justify-between p-4 bg-secondary/20 border border-border/50 rounded-2xl group hover:border-primary/30 transition-all gap-4"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <div
+                          style={{
+                            backgroundColor: `${repoMeta.repoColor}20`,
+                            color: repoMeta.repoColor
+                          }}
+                          className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                        >
                           {isLocal ? <Folder className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
                         </div>
                         <div className="min-w-0">
@@ -577,34 +594,26 @@ export default function RepositoriesPage({
                             {url}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            {isLocal ? (
-                              <>
-                                <Badge className="bg-amber-500/10 text-amber-500 border-none text-[9px] uppercase font-black px-1.5 py-0">
-                                  Local Dev
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tight">
-                                  Developer Manifest
-                                </span>
-                              </>
-                            ) : isKeiyoushi ? (
-                              <>
-                                <Badge className="bg-purple-500/10 text-purple-500 border-none text-[9px] uppercase font-black px-1.5 py-0">
-                                  Keiyoushi Repo
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tight">
-                                  Community Manga Ecosystem
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <Badge className="bg-green-500/10 text-green-500 border-none text-[9px] uppercase font-black px-1.5 py-0">
-                                  AutaKimi Repo
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tight">
-                                  Official Specification
-                                </span>
-                              </>
-                            )}
+                            <Badge
+                              style={{
+                                backgroundColor: `${repoMeta.repoColor}1a`,
+                                color: repoMeta.repoColor
+                              }}
+                              className="border-none text-[9px] uppercase font-black px-1.5 py-0"
+                            >
+                              {isLocal
+                                ? 'Local Dev'
+                                : isKeiyoushi
+                                  ? 'Keiyoushi Repo'
+                                  : repoMeta.repoName}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground opacity-50 uppercase font-bold tracking-tight">
+                              {isLocal
+                                ? 'Developer Manifest'
+                                : isKeiyoushi
+                                  ? 'Community Manga Ecosystem'
+                                  : 'Extension Specification'}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -636,7 +645,8 @@ export default function RepositoriesPage({
                   Where to find sources?
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  After adding a repository, head over to <strong>Browse &gt; Extensions</strong> to install and update your preferred manga and anime extractors.
+                  After adding a repository, head over to <strong>Browse &gt; Extensions</strong> to
+                  install and update your preferred manga and anime extractors.
                 </p>
               </div>
             </Card>
@@ -650,7 +660,8 @@ export default function RepositoriesPage({
                   Neutral Platform Guarantee
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  AutaKimi does not host content. We provide a decentralized browser architecture that executes community extensions client-side.
+                  AutaKimi does not host content. We provide a decentralized browser architecture
+                  that executes community extensions client-side.
                 </p>
               </div>
             </Card>
@@ -670,10 +681,12 @@ export default function RepositoriesPage({
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-bold text-foreground">
-                    {pluginUpdatesCount} Plugin {pluginUpdatesCount === 1 ? 'Update' : 'Updates'} Available
+                    {pluginUpdatesCount} Plugin {pluginUpdatesCount === 1 ? 'Update' : 'Updates'}{' '}
+                    Available
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Newer versions of your installed system plugins are available from your repositories.
+                    Newer versions of your installed system plugins are available from your
+                    repositories.
                   </p>
                 </div>
               </div>
@@ -807,7 +820,9 @@ export default function RepositoriesPage({
                           size="sm"
                           variant="ghost"
                           onClick={() => handleUninstallPlugin(plugin.id)}
-                          disabled={loadingPlugins || updatingPluginId === plugin.id || updatingAllPlugins}
+                          disabled={
+                            loadingPlugins || updatingPluginId === plugin.id || updatingAllPlugins
+                          }
                           className="h-8 px-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         >
                           Uninstall
