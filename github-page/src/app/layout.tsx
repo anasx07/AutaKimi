@@ -209,29 +209,22 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased min-h-screen flex flex-col relative bg-black selection:bg-primary/30 text-white">
-        {/* Deep Space high-performance background */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-black">
-          {/* Subtle Deep Nebulae */}
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-orange-950/15 rounded-full blur-[140px] animate-pulse" />
-          <div className="absolute bottom-[0%] right-[-10%] w-[45%] h-[45%] bg-amber-950/10 rounded-full blur-[120px]" />
-          <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-red-950/5 rounded-full blur-[100px]" />
-
-          {/* Static Stars (High Performance) */}
+      <body className="antialiased min-h-screen flex flex-col relative bg-[#09090b] selection:bg-rose-500/30 selection:text-white text-zinc-100">
+        {/* Clean Studio Backdrop */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#09090b]">
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute -top-40 left-1/2 -translate-x-1/2 w-[960px] h-[420px] rounded-full opacity-40"
             style={{
-              backgroundImage:
-                "radial-gradient(1px 1px at 20px 30px, white, rgba(0,0,0,0)), radial-gradient(1.5px 1.5px at 50px 100px, white, rgba(0,0,0,0)), radial-gradient(1px 1px at 150px 150px, white, rgba(0,0,0,0)), radial-gradient(2px 2px at 250px 50px, white, rgba(0,0,0,0))",
-              backgroundSize: "300px 300px",
+              background:
+                "radial-gradient(ellipse at center, rgba(225, 29, 72, 0.14) 0%, rgba(225, 29, 72, 0.03) 45%, transparent 70%)",
             }}
           />
-
-          <div className="absolute inset-0 bg-[url('/AutaKimi/assets/branding/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+          <div className="absolute inset-0 tech-grid [mask-image:radial-gradient(ellipse_75%_55%_at_50%_0%,#000_55%,transparent_100%)]" />
+          <div className="absolute inset-0 bg-[url('/AutaKimi/assets/branding/noise.svg')] opacity-[0.025] mix-blend-overlay" />
         </div>
 
         <Navbar />
-        <main className="flex-1 w-full flex flex-col items-center pt-32 relative z-10">
+        <main className="flex-1 w-full flex flex-col items-center pt-20 relative z-10">
           {children}
         </main>
         <Footer />
