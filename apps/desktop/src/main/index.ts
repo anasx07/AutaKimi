@@ -81,8 +81,14 @@ import { IpcChannel } from './types/ipc'
 import { handleLocalProtocol } from './utils/localProtocol'
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'autakimi-cache', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } },
-  { scheme: 'autakimi-local', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
+  {
+    scheme: 'autakimi-cache',
+    privileges: { bypassCSP: true, secure: true, supportFetchAPI: true }
+  },
+  {
+    scheme: 'autakimi-local',
+    privileges: { bypassCSP: true, secure: true, supportFetchAPI: true, corsEnabled: true }
+  }
 ])
 
 let mainWindow: BrowserWindow | null = null
@@ -161,16 +167,32 @@ function createWindow(): void {
   mainWindow.on('move', saveState)
   mainWindow.on('resize', saveState)
 
-    mainWindow?.on('ready-to-show', () => {
-      mainWindow?.show()
-      // Inject webContents to BroadcastService for centralized IPC
-      if (mainWindow) {
-        broadcastService.setWebContents(mainWindow.webContents)
-      }
-      setTimeout(() => {
-        runCleanupRoutine()
-      }, 5000)
-    })
+  // Notify renderer with userGesture=true on window blur/minimize/focus for Auto OS PiP
+  const notifyAutoOsPipBlur = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents
+      .executeJavaScript('window.__autakimiHandleWindowBlur?.()', true)
+      .catch(() => {})
+  }
+  mainWindow.on('blur', notifyAutoOsPipBlur)
+  mainWindow.on('minimize', notifyAutoOsPipBlur)
+  mainWindow.on('focus', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents
+      .executeJavaScript('window.__autakimiHandleWindowFocus?.()', true)
+      .catch(() => {})
+  })
+
+  mainWindow?.on('ready-to-show', () => {
+    mainWindow?.show()
+    // Inject webContents to BroadcastService for centralized IPC
+    if (mainWindow) {
+      broadcastService.setWebContents(mainWindow.webContents)
+    }
+    setTimeout(() => {
+      runCleanupRoutine()
+    }, 5000)
+  })
 
   // Block ALL popup ads and external windows from embedded video players (Vidmoly, StreamWish, Byse, etc.)
   mainWindow?.webContents?.setWindowOpenHandler((details) => {
@@ -238,7 +260,8 @@ function createWindow(): void {
           ? '"macOS"'
           : '"Linux"'
     if (!requestHeaders['sec-ch-ua'] && !requestHeaders['Sec-CH-UA']) {
-      requestHeaders['sec-ch-ua'] = '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"'
+      requestHeaders['sec-ch-ua'] =
+        '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"'
     }
     if (!requestHeaders['sec-ch-ua-mobile'] && !requestHeaders['Sec-CH-UA-Mobile']) {
       requestHeaders['sec-ch-ua-mobile'] = '?0'
@@ -280,7 +303,10 @@ function createWindow(): void {
 
   // Prevent unauthorized top-level navigations on mainWindow
   mainWindow?.webContents?.on('will-navigate', (event, navigationUrl) => {
-    const isDevUrl = is.dev && process.env['ELECTRON_RENDERER_URL'] && navigationUrl.startsWith(process.env['ELECTRON_RENDERER_URL'])
+    const isDevUrl =
+      is.dev &&
+      process.env['ELECTRON_RENDERER_URL'] &&
+      navigationUrl.startsWith(process.env['ELECTRON_RENDERER_URL'])
     const isLocalFile = navigationUrl.startsWith('file://')
     if (!isDevUrl && !isLocalFile) {
       event.preventDefault()
@@ -343,7 +369,7 @@ app.whenReady().then(async () => {
       const [reposJson, installedExts, allSettings] = await Promise.all([
         settingsRepo.get('source_repositories'),
         extensionRepo.getAll().catch(() => []),
-        settingsRepo.getAll().catch(() => ({} as Record<string, string>))
+        settingsRepo.getAll().catch(() => ({}) as Record<string, string>)
       ])
       const repos: unknown = reposJson ? JSON.parse(reposJson) : []
       const overrideUrls = Object.entries(allSettings || {})
@@ -387,10 +413,7 @@ app.whenReady().then(async () => {
         for (const fname of candidateFilenames) {
           const cachedIconPath = path.join(userDataIconsDir, fname)
           try {
-            if (
-              isPathInside(cachedIconPath, userDataIconsDir) &&
-              fs.existsSync(cachedIconPath)
-            ) {
+            if (isPathInside(cachedIconPath, userDataIconsDir) && fs.existsSync(cachedIconPath)) {
               return new Response(fs.readFileSync(cachedIconPath), {
                 headers: {
                   'Content-Type': 'image/png',
@@ -408,7 +431,9 @@ app.whenReady().then(async () => {
         for (const repo of Array.isArray(repos) ? repos : []) {
           if (
             typeof repo === 'string' &&
-            (repo.startsWith('autakimi-local://') || repo.startsWith('file://') || path.isAbsolute(repo))
+            (repo.startsWith('autakimi-local://') ||
+              repo.startsWith('file://') ||
+              path.isAbsolute(repo))
           ) {
             try {
               const rawPath = decodeURIComponent(
@@ -473,9 +498,11 @@ app.whenReady().then(async () => {
 
         // 4. Fallback: Check remote repositories for the icon and ecosystem CDN, and cache it.
         const remoteRepos = (Array.isArray(repos) ? repos : []).filter(
-          (r): r is string => typeof r === 'string' && (r.startsWith('https://') || r.startsWith('http://'))
+          (r): r is string =>
+            typeof r === 'string' && (r.startsWith('https://') || r.startsWith('http://'))
         )
-        const officialRepo = 'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/'
+        const officialRepo =
+          'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/'
         const reposToCheck = Array.from(new Set([...remoteRepos, officialRepo]))
 
         for (const repo of reposToCheck) {
@@ -638,18 +665,23 @@ app.whenReady().then(async () => {
     broadcastService.send(IpcChannel.APP_UPDATE, { status: 'error', error: err.message })
   })
 
-  registerHandler(IpcChannel.INSTALL_UPDATE, wrapIpc(async () => {
-    autoUpdater.quitAndInstall()
-  }))
+  registerHandler(
+    IpcChannel.INSTALL_UPDATE,
+    wrapIpc(async () => {
+      autoUpdater.quitAndInstall()
+    })
+  )
 
-  registerHandler(IpcChannel.CHECK_FOR_UPDATE, wrapIpc(async () => {
-    autoUpdater.checkForUpdatesAndNotify()
-  }))
+  registerHandler(
+    IpcChannel.CHECK_FOR_UPDATE,
+    wrapIpc(async () => {
+      autoUpdater.checkForUpdatesAndNotify()
+    })
+  )
 
   ipcMain.on(IpcChannel.GET_VERSION, (event) => {
     event.returnValue = app.getVersion()
   })
-
 
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     console.error('Failed to check for updates:', err)

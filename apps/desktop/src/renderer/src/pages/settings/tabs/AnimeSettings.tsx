@@ -7,7 +7,9 @@ export function AnimeSettings(): React.JSX.Element {
     autoNextAnime,
     setAutoNextAnime,
     autoSwitchServer,
-    setAutoSwitchServer
+    setAutoSwitchServer,
+    autoOsPipOnBlur,
+    setAutoOsPipOnBlur
   } = useSettingsStore()
 
   return (
@@ -26,6 +28,12 @@ export function AnimeSettings(): React.JSX.Element {
             description="Automatically switch to a working server if current one fails."
           >
             <Switch checked={autoSwitchServer} onCheckedChange={setAutoSwitchServer} />
+          </SettingsRow>
+          <SettingsRow
+            title="Auto PiP When Switching Apps"
+            description="Automatically open floating Picture-in-Picture when leaving or minimizing AutaKimi while a video is playing."
+          >
+            <Switch checked={autoOsPipOnBlur} onCheckedChange={setAutoOsPipOnBlur} />
           </SettingsRow>
         </Card>
       </section>

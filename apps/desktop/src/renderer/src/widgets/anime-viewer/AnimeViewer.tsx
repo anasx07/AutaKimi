@@ -39,7 +39,8 @@ import {
   useExtensionStore,
   useProgressStore,
   useHistoryStore,
-  useSettingsStore
+  useSettingsStore,
+  useUIStore
 } from '@renderer/shared/model'
 import { Button } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
@@ -59,6 +60,7 @@ import {
   recordLivePlaybackSeconds,
   peekLivePlaybackSeconds,
   clearLivePlaybackSeconds,
+  shouldTriggerAutoOsPipOnBlur,
   type PipSession
 } from '@renderer/app/components/pipPlayerStore'
 
@@ -829,13 +831,17 @@ export default function AnimeViewer({
   ])
 
   // Picture-in-Picture event listeners and toggle
+  const autoEnteredOsPipRef = useRef(false)
+
   const togglePiP = useCallback(async () => {
     const video = videoRef.current
     if (!video) return
     try {
       if (document.pictureInPictureElement) {
+        autoEnteredOsPipRef.current = false
         await document.exitPictureInPicture()
       } else if (document.pictureInPictureEnabled && video.requestPictureInPicture) {
+        autoEnteredOsPipRef.current = false
         await video.requestPictureInPicture()
       }
     } catch (err) {
@@ -847,7 +853,10 @@ export default function AnimeViewer({
     const video = videoRef.current
     if (!video) return
     const onEnterPiP = () => setIsPiP(true)
-    const onLeavePiP = () => setIsPiP(false)
+    const onLeavePiP = () => {
+      autoEnteredOsPipRef.current = false
+      setIsPiP(false)
+    }
     video.addEventListener('enterpictureinpicture', onEnterPiP)
     video.addEventListener('leavepictureinpicture', onLeavePiP)
     return () => {
@@ -855,6 +864,64 @@ export default function AnimeViewer({
       video.removeEventListener('leavepictureinpicture', onLeavePiP)
     }
   }, [videoRef])
+
+  // Auto OS PiP when switching to another OS app / minimizing AutaKimi (if enabled in settings)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const win = window as unknown as {
+      __autakimiHandleWindowBlur?: () => void
+      __autakimiHandleWindowFocus?: () => void
+    }
+
+    const handleAppBlur = () => {
+      const video = videoRef.current
+      const enabled = useSettingsStore.getState().autoOsPipOnBlur
+      const isCfBypassing = useUIStore.getState().isCfBypassing
+
+      if (
+        !shouldTriggerAutoOsPipOnBlur({
+          enabled,
+          isPlaying: Boolean(video && !video.paused),
+          isEmbed: videoType === 'embed',
+          hasReadyVideo: Boolean(video && video.readyState >= 2),
+          isAlreadyInOsPip: Boolean(document.pictureInPictureElement),
+          isCfBypassing
+        })
+      ) {
+        return
+      }
+
+      if (video && document.pictureInPictureEnabled && video.requestPictureInPicture) {
+        autoEnteredOsPipRef.current = true
+        video.requestPictureInPicture().catch(() => {
+          autoEnteredOsPipRef.current = false
+        })
+      }
+    }
+
+    const handleAppFocus = () => {
+      if (
+        autoEnteredOsPipRef.current &&
+        document.pictureInPictureElement &&
+        document.pictureInPictureElement === videoRef.current
+      ) {
+        autoEnteredOsPipRef.current = false
+        document.exitPictureInPicture().catch(() => {})
+      }
+    }
+
+    win.__autakimiHandleWindowBlur = handleAppBlur
+    win.__autakimiHandleWindowFocus = handleAppFocus
+
+    return () => {
+      if (win.__autakimiHandleWindowBlur === handleAppBlur) {
+        delete win.__autakimiHandleWindowBlur
+      }
+      if (win.__autakimiHandleWindowFocus === handleAppFocus) {
+        delete win.__autakimiHandleWindowFocus
+      }
+    }
+  }, [videoRef, videoType])
 
   const prefetchNextEpisodeInBackground = useCallback(
     (episodeDurationSec: number) => {

@@ -4,6 +4,7 @@ import {
   peekLivePlaybackSeconds,
   consumeLivePlaybackSeconds,
   shouldAutoEnterPip,
+  shouldTriggerAutoOsPipOnBlur,
 } from "../apps/desktop/src/renderer/src/app/components/pipPlayerStore";
 
 describe("pipPlayerStore helpers", () => {
@@ -80,6 +81,63 @@ describe("pipPlayerStore helpers", () => {
         },
         hasExistingPip: false,
         isMobileView: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("triggers OS PiP on app blur only when setting enabled and video is actively playing", () => {
+    expect(
+      shouldTriggerAutoOsPipOnBlur({
+        enabled: true,
+        isPlaying: true,
+        isEmbed: false,
+        hasReadyVideo: true,
+        isAlreadyInOsPip: false,
+        isCfBypassing: false,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldTriggerAutoOsPipOnBlur({
+        enabled: false,
+        isPlaying: true,
+        isEmbed: false,
+        hasReadyVideo: true,
+        isAlreadyInOsPip: false,
+        isCfBypassing: false,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldTriggerAutoOsPipOnBlur({
+        enabled: true,
+        isPlaying: false,
+        isEmbed: false,
+        hasReadyVideo: true,
+        isAlreadyInOsPip: false,
+        isCfBypassing: false,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldTriggerAutoOsPipOnBlur({
+        enabled: true,
+        isPlaying: true,
+        isEmbed: true,
+        hasReadyVideo: true,
+        isAlreadyInOsPip: false,
+        isCfBypassing: false,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldTriggerAutoOsPipOnBlur({
+        enabled: true,
+        isPlaying: true,
+        isEmbed: false,
+        hasReadyVideo: true,
+        isAlreadyInOsPip: false,
+        isCfBypassing: true,
       }),
     ).toBe(false);
   });
