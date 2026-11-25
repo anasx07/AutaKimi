@@ -24,6 +24,7 @@ type SettingsState = SettingsSchema['app'] &
     setTimeoutInterval: (val: string) => Promise<void>
     setEnableLog: (val: boolean) => Promise<void>
     setDownloadConcurrency: (val: number) => Promise<void>
+    setSmartDownloadsEnabled: (val: boolean) => Promise<void>
     setAutoNextAnime: (val: boolean) => Promise<void>
     setAutoSwitchServer: (val: boolean) => Promise<void>
     setAutoOsPipOnBlur: (val: boolean) => Promise<void>
@@ -121,6 +122,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   // Download
   downloadConcurrency: 3,
+  smartDownloadsEnabled: false,
 
   // We add displayMode for compatibility with existing UI (mapped to ui.viewMode in DB)
   displayMode: 'grid',
@@ -163,6 +165,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const clamped = Math.max(1, Math.min(5, val))
     await DataService.db.setSetting('download_concurrency', clamped.toString())
     set({ downloadConcurrency: clamped })
+  },
+
+  setSmartDownloadsEnabled: async (val) => {
+    try {
+      await DataService.db.setSetting('smart_downloads_enabled', val ? 'true' : 'false')
+      set({ smartDownloadsEnabled: val })
+    } catch (e) {
+      console.error('Failed to save smartDownloadsEnabled:', e)
+    }
   },
 
   setAutoNextAnime: async (val) => {

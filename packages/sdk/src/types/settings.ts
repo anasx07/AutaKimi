@@ -56,6 +56,7 @@ export interface SettingsSchema {
   };
   download: {
     downloadConcurrency: number;
+    smartDownloadsEnabled: boolean;
   };
   ui: {
     viewMode: ViewMode;
@@ -112,6 +113,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
   },
   download: {
     downloadConcurrency: 3,
+    smartDownloadsEnabled: false,
   },
   ui: {
     viewMode: "grid",
@@ -166,6 +168,7 @@ export const SETTINGS_KEY_MAP: Record<string, keyof SettingsSchema | string> = {
 
   // Download
   download_concurrency: "download.downloadConcurrency",
+  smart_downloads_enabled: "download.smartDownloadsEnabled",
 
   // UI
   displayMode: "ui.viewMode",
