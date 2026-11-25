@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
-import { SettingsSchema, ReadingMode, ReaderShortcuts } from '@common/types'
+import { SettingsSchema, ReadingMode, ReaderShortcuts, EyeCareTintPreset } from '@common/types'
+import {
+  clampEyeCareValue,
+  EYE_CARE_PRESETS,
+  MAX_EYE_CARE_DIMMING,
+  MAX_EYE_CARE_WARMTH
+} from '@common/utils/eyeCare'
 
 type ReaderState = SettingsSchema['reader'] & {
   // Runtime state (not persisted in schema category directly)
@@ -18,6 +24,11 @@ type ReaderState = SettingsSchema['reader'] & {
   setShortcut: (action: keyof ReaderShortcuts, key: string) => Promise<void>
   setReaderTheme: (val: 'match-app' | 'light' | 'dark' | 'system') => Promise<void>
   setCropBorders: (val: boolean) => Promise<void>
+  setEyeCareEnabled: (val: boolean) => Promise<void>
+  setEyeCareTint: (val: EyeCareTintPreset) => Promise<void>
+  setEyeCareWarmth: (val: number) => Promise<void>
+  setEyeCareDimming: (val: number) => Promise<void>
+  applyEyeCarePreset: (preset: EyeCareTintPreset) => Promise<void>
 
   // Init
   _init: (settings: SettingsSchema['reader']) => void
@@ -33,6 +44,10 @@ export const useReaderStore = create<ReaderState>((set) => ({
   autoScrollSpeed: 2,
   cropBorders: false,
   readerTheme: 'dark', // traditionally the reader has been dark
+  eyeCareEnabled: false,
+  eyeCareTint: 'sepia',
+  eyeCareWarmth: 45,
+  eyeCareDimming: 30,
   autoScrollShortcuts: {
     pause: 'Space',
     toggle: 'Enter',
@@ -88,10 +103,52 @@ export const useReaderStore = create<ReaderState>((set) => ({
     set({ cropBorders: val })
   },
 
+  setEyeCareEnabled: async (val) => {
+    set({ eyeCareEnabled: val })
+    await DataService.db.setSetting('eye_care_enabled', val ? 'true' : 'false')
+  },
+
+  setEyeCareTint: async (val) => {
+    set({ eyeCareTint: val })
+    await DataService.db.setSetting('eye_care_tint', val)
+  },
+
+  setEyeCareWarmth: async (val) => {
+    const clamped = clampEyeCareValue(val, 0, MAX_EYE_CARE_WARMTH)
+    set({ eyeCareWarmth: clamped })
+    await DataService.db.setSetting('eye_care_warmth', clamped.toString())
+  },
+
+  setEyeCareDimming: async (val) => {
+    const clamped = clampEyeCareValue(val, 0, MAX_EYE_CARE_DIMMING)
+    set({ eyeCareDimming: clamped })
+    await DataService.db.setSetting('eye_care_dimming', clamped.toString())
+  },
+
+  applyEyeCarePreset: async (preset) => {
+    const meta = EYE_CARE_PRESETS[preset]
+    set({
+      eyeCareEnabled: true,
+      eyeCareTint: preset,
+      eyeCareWarmth: meta.defaultWarmth,
+      eyeCareDimming: meta.defaultDimming
+    })
+    await Promise.all([
+      DataService.db.setSetting('eye_care_enabled', 'true'),
+      DataService.db.setSetting('eye_care_tint', preset),
+      DataService.db.setSetting('eye_care_warmth', meta.defaultWarmth.toString()),
+      DataService.db.setSetting('eye_care_dimming', meta.defaultDimming.toString())
+    ])
+  },
+
   _init: (settings) => {
     set({
       ...settings,
       cropBorders: settings?.cropBorders ?? false,
+      eyeCareEnabled: settings?.eyeCareEnabled ?? false,
+      eyeCareTint: settings?.eyeCareTint ?? 'sepia',
+      eyeCareWarmth: clampEyeCareValue(settings?.eyeCareWarmth ?? 45, 0, MAX_EYE_CARE_WARMTH),
+      eyeCareDimming: clampEyeCareValue(settings?.eyeCareDimming ?? 30, 0, MAX_EYE_CARE_DIMMING),
       autoScrollEnabled: false,
       autoScrollSpeed: 2
     })

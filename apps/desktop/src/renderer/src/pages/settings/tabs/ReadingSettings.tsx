@@ -1,15 +1,9 @@
-import { BookOpen, Terminal, MoveHorizontal, Rows, Zap, ArrowUpDown } from 'lucide-react'
+import { BookOpen, Terminal, MoveHorizontal, Rows, Zap, ArrowUpDown, Moon } from 'lucide-react'
 import { useReaderStore } from '@renderer/shared/model'
-import { ReadingMode } from '@common/types'
+import { ReadingMode, EyeCareTintPreset } from '@common/types'
+import { EYE_CARE_PRESETS, MAX_EYE_CARE_DIMMING, MAX_EYE_CARE_WARMTH } from '@common/utils/eyeCare'
 import { cn } from '@renderer/shared/lib/utils'
-import {
-  Card,
-  Input,
-  Switch,
-  Select,
-  SettingsRow,
-  SectionHeader
-} from '@renderer/shared/ui'
+import { Card, Input, Switch, Select, SettingsRow, SectionHeader } from '@renderer/shared/ui'
 import { ShortcutInput } from '../components/ShortcutInput'
 
 export function ReadingSettings(): React.JSX.Element {
@@ -29,15 +23,43 @@ export function ReadingSettings(): React.JSX.Element {
     readerTheme,
     setReaderTheme,
     cropBorders,
-    setCropBorders
+    setCropBorders,
+    eyeCareEnabled,
+    setEyeCareEnabled,
+    eyeCareTint,
+    applyEyeCarePreset,
+    eyeCareWarmth,
+    setEyeCareWarmth,
+    eyeCareDimming,
+    setEyeCareDimming
   } = useReaderStore()
 
   const readingModes = [
-    { id: 'paged-ltr' as ReadingMode, label: 'Paged LTR', icon: <MoveHorizontal className="h-4 w-4" /> },
-    { id: 'paged-rtl' as ReadingMode, label: 'Paged RTL', icon: <MoveHorizontal className="h-4 w-4 rotate-180" /> },
-    { id: 'paged-vertical' as ReadingMode, label: 'Paged Vert', icon: <ArrowUpDown className="h-4 w-4" /> },
-    { id: 'continuous-vertical' as ReadingMode, label: 'Continuous', icon: <Rows className="h-4 w-4" /> },
-    { id: 'webtoon' as ReadingMode, label: 'Webtoon', icon: <Zap className="h-4 w-4 text-primary animate-pulse" /> }
+    {
+      id: 'paged-ltr' as ReadingMode,
+      label: 'Paged LTR',
+      icon: <MoveHorizontal className="h-4 w-4" />
+    },
+    {
+      id: 'paged-rtl' as ReadingMode,
+      label: 'Paged RTL',
+      icon: <MoveHorizontal className="h-4 w-4 rotate-180" />
+    },
+    {
+      id: 'paged-vertical' as ReadingMode,
+      label: 'Paged Vert',
+      icon: <ArrowUpDown className="h-4 w-4" />
+    },
+    {
+      id: 'continuous-vertical' as ReadingMode,
+      label: 'Continuous',
+      icon: <Rows className="h-4 w-4" />
+    },
+    {
+      id: 'webtoon' as ReadingMode,
+      label: 'Webtoon',
+      icon: <Zap className="h-4 w-4 text-primary animate-pulse" />
+    }
   ]
 
   return (
@@ -81,9 +103,7 @@ export function ReadingSettings(): React.JSX.Element {
           </SettingsRow>
           <div className="p-6 space-y-6">
             <div className="space-y-1">
-              <div className="text-sm font-bold flex items-center gap-2">
-                Active Reading Mode
-              </div>
+              <div className="text-sm font-bold flex items-center gap-2">Active Reading Mode</div>
               <div className="text-xs text-muted-foreground opacity-60">
                 Select your preferred navigation engine.
               </div>
@@ -145,6 +165,72 @@ export function ReadingSettings(): React.JSX.Element {
           <SettingsRow title="Drag to Scroll" description="Mouse-driven scroll navigation.">
             <Switch checked={dragToScroll} onCheckedChange={setDragToScroll} />
           </SettingsRow>
+          <SettingsRow
+            title="Night Eye-Care Filter (Kindle)"
+            description="Warm/Sepia tint overlay and custom dimming inside the reader without changing OS brightness."
+          >
+            <div className="flex items-center gap-2">
+              <Moon className="h-4 w-4 text-amber-400" />
+              <Switch checked={eyeCareEnabled} onCheckedChange={setEyeCareEnabled} />
+            </div>
+          </SettingsRow>
+          {eyeCareEnabled && (
+            <div className="p-6 space-y-5 bg-muted/10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-bold">Filter Preset</div>
+                  <div className="text-xs text-muted-foreground opacity-60">
+                    Choose a Kindle-style warmth tint or dimming-only filter.
+                  </div>
+                </div>
+                <div className="w-44">
+                  <Select
+                    value={eyeCareTint}
+                    onValueChange={(val) => applyEyeCarePreset(val as EyeCareTintPreset)}
+                    options={(Object.keys(EYE_CARE_PRESETS) as EyeCareTintPreset[]).map((key) => ({
+                      value: key,
+                      label: EYE_CARE_PRESETS[key].label
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-muted-foreground">Warm / Sepia Tint</span>
+                    <span className="font-mono text-amber-400 tabular-nums">
+                      {eyeCareTint === 'dim' ? 'Off' : `${eyeCareWarmth}%`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={MAX_EYE_CARE_WARMTH}
+                    step={1}
+                    value={eyeCareTint === 'dim' ? 0 : eyeCareWarmth}
+                    disabled={eyeCareTint === 'dim'}
+                    onChange={(e) => setEyeCareWarmth(Number(e.target.value))}
+                    className="w-full h-1.5 accent-amber-500 bg-secondary rounded-lg cursor-pointer disabled:opacity-35"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-muted-foreground">Reader Dimming</span>
+                    <span className="font-mono text-amber-400 tabular-nums">{eyeCareDimming}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={MAX_EYE_CARE_DIMMING}
+                    step={1}
+                    value={eyeCareDimming}
+                    onChange={(e) => setEyeCareDimming(Number(e.target.value))}
+                    className="w-full h-1.5 accent-amber-500 bg-secondary rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
       </section>
 

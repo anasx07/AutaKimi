@@ -10,14 +10,17 @@ import {
   PanelTopClose,
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Moon
 } from 'lucide-react'
 import { Button, Select } from '@renderer/shared/ui'
 import { ReadingMode } from '@renderer/shared/model'
+import { EyeCareTintPreset } from '@common/types'
+import { EYE_CARE_PRESETS, MAX_EYE_CARE_DIMMING, MAX_EYE_CARE_WARMTH } from '@common/utils/eyeCare'
 import { DataService } from '@renderer/shared/api'
 import { Chapter } from '@renderer/shared/api/sources/types'
 import { cn } from '@renderer/shared/lib/utils'
-import { memo } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 
 interface ReaderToolbarProps {
   chapterNumber: string | number
@@ -36,6 +39,14 @@ interface ReaderToolbarProps {
   cropBorders?: boolean
   zoomLevel?: number
   isZenMode?: boolean
+  eyeCareEnabled?: boolean
+  eyeCareTint?: EyeCareTintPreset
+  eyeCareWarmth?: number
+  eyeCareDimming?: number
+  onToggleEyeCare?: () => void
+  onApplyEyeCarePreset?: (preset: EyeCareTintPreset) => void
+  onChangeEyeCareWarmth?: (warmth: number) => void
+  onChangeEyeCareDimming?: (dimming: number) => void
   chapters?: Chapter[]
   activeChapterId?: string
   hasPrevChapter?: boolean
@@ -72,6 +83,14 @@ export const ReaderToolbar = memo(
     cropBorders = false,
     zoomLevel = 1,
     isZenMode = false,
+    eyeCareEnabled = false,
+    eyeCareTint = 'sepia',
+    eyeCareWarmth = 45,
+    eyeCareDimming = 30,
+    onToggleEyeCare,
+    onApplyEyeCarePreset,
+    onChangeEyeCareWarmth,
+    onChangeEyeCareDimming,
     chapters = [],
     activeChapterId,
     hasPrevChapter = false,
@@ -90,6 +109,19 @@ export const ReaderToolbar = memo(
     onShare
   }: ReaderToolbarProps) => {
     const platform = DataService.platform
+    const [showEyeCareMenu, setShowEyeCareMenu] = useState(false)
+    const eyeCareMenuRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+      if (!showEyeCareMenu) return
+      const handleOutsideClick = (e: MouseEvent) => {
+        if (eyeCareMenuRef.current && !eyeCareMenuRef.current.contains(e.target as Node)) {
+          setShowEyeCareMenu(false)
+        }
+      }
+      document.addEventListener('mousedown', handleOutsideClick)
+      return () => document.removeEventListener('mousedown', handleOutsideClick)
+    }, [showEyeCareMenu])
     const toolbarBg =
       readerTheme === 'match-app'
         ? 'bg-background/90 border-border'
@@ -311,6 +343,133 @@ export const ReaderToolbar = memo(
             <ZoomIn className={cn('h-3.5 w-3.5', zoomLevel !== 1 && 'text-primary')} />
             <span className="tabular-nums">{Math.round(zoomLevel * 100)}%</span>
           </Button>
+
+          {/* Night Eye-Care Filter (Kindle) */}
+          {onToggleEyeCare && (
+            <div ref={eyeCareMenuRef} className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEyeCareMenu((prev) => !prev)}
+                className={cn(
+                  'h-9 w-9 transition-colors',
+                  eyeCareEnabled
+                    ? 'text-amber-400 bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/20'
+                    : cn(textSub, 'hover:text-amber-400 hover:bg-amber-500/10')
+                )}
+                title={
+                  eyeCareEnabled
+                    ? `Night Eye-Care: ${EYE_CARE_PRESETS[eyeCareTint].label} (${eyeCareDimming}% dim)`
+                    : 'Night Eye-Care Filter (Warm/Sepia & Dimming)'
+                }
+              >
+                <Moon className="h-4 w-4" />
+              </Button>
+
+              {showEyeCareMenu && (
+                <div
+                  className={cn(
+                    'absolute right-0 top-11 w-72 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 duration-150 space-y-4',
+                    readerTheme === 'light'
+                      ? 'bg-white/95 border-slate-200 text-slate-900'
+                      : 'bg-neutral-900/95 border-white/10 text-neutral-100'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Moon className="h-4 w-4 text-amber-400" />
+                      <span className="text-xs font-bold tracking-wide">Night Eye-Care</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onToggleEyeCare}
+                      className={cn(
+                        'px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors',
+                        eyeCareEnabled
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          : readerTheme === 'light'
+                            ? 'bg-slate-100 text-slate-500 border-slate-200'
+                            : 'bg-neutral-800 text-neutral-400 border-neutral-700'
+                      )}
+                    >
+                      {eyeCareEnabled ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(Object.keys(EYE_CARE_PRESETS) as EyeCareTintPreset[]).map((key) => {
+                      const preset = EYE_CARE_PRESETS[key]
+                      const isActive = eyeCareEnabled && eyeCareTint === key
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => onApplyEyeCarePreset?.(key)}
+                          className={cn(
+                            'flex flex-col items-center gap-1.5 py-2 px-1 rounded-xl border text-[10px] font-bold transition-all',
+                            isActive
+                              ? 'border-amber-500/50 bg-amber-500/15 text-amber-400 shadow-sm'
+                              : readerTheme === 'light'
+                                ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                : 'border-white/5 bg-white/5 text-neutral-400 hover:text-neutral-200 hover:bg-white/10'
+                          )}
+                        >
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-inner"
+                            style={{ backgroundColor: preset.swatchHex }}
+                          />
+                          <span className="truncate max-w-full">{preset.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-semibold">
+                        <span className={textSub}>Warm / Sepia Tint</span>
+                        <span className="font-mono text-amber-400 tabular-nums">
+                          {eyeCareTint === 'dim' ? 'Off' : `${eyeCareWarmth}%`}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={MAX_EYE_CARE_WARMTH}
+                        step={1}
+                        value={eyeCareTint === 'dim' ? 0 : eyeCareWarmth}
+                        disabled={eyeCareTint === 'dim'}
+                        onChange={(e) => onChangeEyeCareWarmth?.(Number(e.target.value))}
+                        className="w-full h-1.5 accent-amber-500 bg-neutral-700/60 rounded-lg cursor-pointer disabled:opacity-35"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-semibold">
+                        <span className={textSub}>Reader Dimming</span>
+                        <span className="font-mono text-amber-400 tabular-nums">
+                          {eyeCareDimming}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={MAX_EYE_CARE_DIMMING}
+                        step={1}
+                        value={eyeCareDimming}
+                        onChange={(e) => onChangeEyeCareDimming?.(Number(e.target.value))}
+                        className="w-full h-1.5 accent-amber-500 bg-neutral-700/60 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <p className={cn('text-[10px] leading-tight', textSub)}>
+                    Tints and dims reader pages only without changing Windows display brightness.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Zen / Borderless Mode Toggle Button */}
           {onToggleZenMode && (

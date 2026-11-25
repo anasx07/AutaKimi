@@ -15,3 +15,4 @@ export {
   normalizeManga,
   isValidMediaCatalogItem,
 } from "./utils/mangaNormalizer";
+export * from "./utils/eyeCare";
