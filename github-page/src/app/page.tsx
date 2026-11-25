@@ -103,7 +103,7 @@ export default function Home() {
               className="w-full sm:w-auto"
             />
             <Link
-              href="/docs#screenshots-gallery"
+              href="/docs/gallery/"
               className="inline-flex items-center gap-1.5 h-11 px-4 rounded-xl text-sm font-medium text-zinc-300 hover:text-white border border-white/[0.08] hover:border-white/20 transition-colors"
             >
               <Images className="w-4 h-4 text-zinc-400" />
@@ -254,7 +254,7 @@ export default function Home() {
             </p>
           </div>
           <Link
-            href="/docs#screenshots-gallery"
+            href="/docs/gallery/"
             className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold transition-colors shrink-0"
           >
             <Images className="w-3.5 h-3.5" />

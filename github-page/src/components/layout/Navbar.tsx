@@ -9,9 +9,9 @@ import GitHubButton from "@/components/ui/github-button";
 
 const NAV_LINKS = [
   { href: "/#features", label: "Features" },
-  { href: "/docs#screenshots-gallery", label: "Screenshots" },
-  { href: "/docs", label: "Docs" },
-  { href: "/changelog", label: "Changelog" },
+  { href: "/docs/gallery/", label: "Screenshots" },
+  { href: "/docs/", label: "Docs" },
+  { href: "/changelog/", label: "Changelog" },
 ];
 
 export function Navbar() {
