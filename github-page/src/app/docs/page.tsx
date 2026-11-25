@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { DocsClient } from "@/components/docs/DocsClient";
+import { DocsOverview } from "@/components/docs/DocsOverview";
 
 export const metadata: Metadata = {
   title: "Documentation - AutaKimi (Windows & Android)",
   description:
-    "Learn how to get started with AutaKimi on Windows and Android, configure multi-repo extensions, sync over LAN, enable Floating PiP, browse screenshots, and download CBZ archives.",
+    "Full AutaKimi documentation: setup guides, multi-repo extensions, Floating PiP, Night Eye-Care, LAN sync, FAQs, and screenshots.",
   openGraph: {
     title: "Documentation - AutaKimi (Windows & Android)",
     description:
-      "Learn how to get started with AutaKimi on Windows and Android, configure multi-repo extensions, sync over LAN, enable Floating PiP, browse screenshots, and download CBZ archives.",
+      "Full AutaKimi documentation: setup guides, multi-repo extensions, Floating PiP, Night Eye-Care, LAN sync, FAQs, and screenshots.",
     url: "https://anasx07.github.io/AutaKimi/docs/",
   },
   alternates: {
@@ -17,5 +17,5 @@ export const metadata: Metadata = {
 };
 
 export default function DocsPage() {
-  return <DocsClient />;
+  return <DocsOverview />;
 }
