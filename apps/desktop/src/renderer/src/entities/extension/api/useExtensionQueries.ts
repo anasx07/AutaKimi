@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { DataService } from '@renderer/shared/api'
 import { setGeneratedSources } from '@renderer/shared/api/sources/SourceRegistry'
 import { ExtensionMetadata, useExtensionStore } from '@renderer/shared/model'
+import { computeAvailableUpdates } from '../lib/updates'
 
 export const extensionKeys = {
   all: ['extensions'] as const,
@@ -29,28 +31,18 @@ export function useExtensionsCatalog(lang?: string) {
 
 /**
  * Hook for detecting available updates for installed extensions.
+ * Derived synchronously from installedExtensions + catalog so updates clear immediately after install.
  */
 export function useExtensionUpdates() {
   const { installedExtensions = [] } = useExtensionStore()
-  const { data: catalog = [] } = useExtensionsCatalog()
+  const { data: catalog = [], isLoading, refetch } = useExtensionsCatalog()
 
-  return useQuery({
-    queryKey: extensionKeys.updates(),
-    queryFn: () => {
-      if (!Array.isArray(catalog) || !Array.isArray(installedExtensions)) return []
+  const data = useMemo(
+    () => computeAvailableUpdates(installedExtensions, catalog),
+    [installedExtensions, catalog]
+  )
 
-      return installedExtensions.filter((installed) => {
-        if (!installed || !installed.pkg) return false
-        const remote = catalog.find((c) => c && (c.pkg === installed.pkg || (c as any).id === installed.pkg))
-        if (!remote) return false
-
-        // Basic version comparison logic
-        return remote.version !== installed.version
-      })
-    },
-    enabled: Array.isArray(catalog) && Array.isArray(installedExtensions) && installedExtensions.length > 0,
-    staleTime: 1000 * 60 * 5 // 5 minutes
-  })
+  return { data, isLoading, refetch }
 }
 
 /**
