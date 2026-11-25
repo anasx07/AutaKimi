@@ -2,6 +2,7 @@ import { IpcChannel } from '../types/ipc'
 import { extensionOrchestrator } from '../services/extension.service'
 import { NetworkConfig, getEffectiveUA } from '@common/config/network'
 import { extensionRepo, settingsRepo } from '../db'
+import { extractBasePkg } from '@common/services/repoIdentity'
 import { registerHandler, wrapIpc } from './utils'
 import { cloudflareService } from '../services/cloudflare.service'
 
@@ -53,19 +54,24 @@ export function registerExtensionHandlers() {
       let rowUa: string | null = null
 
       try {
-        const cleanPkg = pkg.replace(/^ma\.autakimi\.extension\./, '')
-        const fullPkg = pkg.startsWith('ma.autakimi.extension.') ? pkg : `ma.autakimi.extension.${pkg}`
+        const basePkg = extractBasePkg(pkg)
+        const cleanPkg = basePkg.replace(/^ma\.autakimi\.extension\./, '')
+        const fullPkg = basePkg.startsWith('ma.autakimi.extension.')
+          ? basePkg
+          : `ma.autakimi.extension.${basePkg}`
 
         const ext =
+          (await extensionRepo.getByPkg(pkg)) ||
           (await extensionRepo.getByPkg(fullPkg)) ||
           (await extensionRepo.getByPkg(cleanPkg)) ||
-          (await extensionRepo.getByPkg(pkg))
+          (await extensionRepo.getByPkg(basePkg))
         if (ext) baseUrl = ext.baseUrl || ''
 
         const domainOverride =
           (await settingsRepo.get(`domain_override_${pkg}`)) ||
           (await settingsRepo.get(`domain_override_${fullPkg}`)) ||
-          (await settingsRepo.get(`domain_override_${cleanPkg}`))
+          (await settingsRepo.get(`domain_override_${cleanPkg}`)) ||
+          (await settingsRepo.get(`domain_override_${basePkg}`))
 
         if (domainOverride && domainOverride.trim() !== '') {
           baseUrl = domainOverride.trim()
@@ -136,4 +142,3 @@ export function registerExtensionHandlers() {
     })
   )
 }
-

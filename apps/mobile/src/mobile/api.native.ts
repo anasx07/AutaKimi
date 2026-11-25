@@ -614,20 +614,41 @@ export const MobileApi: ElectronApi = {
         await sourceService.fetchCatalogByLang(lang, "manga");
         await sourceService.fetchCatalogByLang(lang, "anime");
       }
+      const { getRepoMeta } = await import("@common/services/repoIdentity");
       const sources = sourceService.getAllSources();
-      const value = sources.map((s: any) => ({
-        pkg: s.id,
-        name: s.name,
-        lang: s.lang || s.language || "all",
-        icon: `autakimi-cache://local-icon/ma.autakimi.extension.${s.id}.png`,
-        version: s.version || "0.0.0",
-        baseUrl: s.baseUrl || s.url || "",
-        nsfw: !!s.nsfw,
-        repoUrl: "remote",
-        status: s.status,
-        isFullySupported:
-          s.isFullySupported !== undefined ? s.isFullySupported : undefined,
-      }));
+      const value = sources.map((s: any) => {
+        const fullPkg = s.pkg || s.id || "";
+        const effectiveRepoUrl =
+          s.repoUrl && s.repoUrl !== "remote"
+            ? s.repoUrl
+            : repos[0] || "remote";
+        const meta = getRepoMeta(effectiveRepoUrl, s.repoName);
+        const iconName = fullPkg.startsWith("ma.autakimi.extension.")
+          ? `${fullPkg}.png`
+          : `ma.autakimi.extension.${fullPkg}.png`;
+        const iconUrl =
+          typeof s.icon === "string" && s.icon.startsWith("http")
+            ? s.icon
+            : `autakimi-cache://local-icon/${iconName}`;
+
+        return {
+          pkg: fullPkg,
+          catalogKey: s.catalogKey || `${effectiveRepoUrl}::${fullPkg}`,
+          name: s.name,
+          lang: s.lang || s.language || "all",
+          icon: iconUrl,
+          version: s.version || "0.0.0",
+          baseUrl: s.baseUrl || s.url || "",
+          nsfw: !!s.nsfw,
+          repoUrl: effectiveRepoUrl,
+          repoName: s.repoName || meta.repoName,
+          repoColor: s.repoColor || meta.repoColor,
+          isKeiyoushi: Boolean(s.isKeiyoushi || meta.isKeiyoushi),
+          status: s.status,
+          isFullySupported:
+            s.isFullySupported !== undefined ? s.isFullySupported : undefined,
+        };
+      });
       return { ok: true, value };
     },
     selectDirectory: async () => {

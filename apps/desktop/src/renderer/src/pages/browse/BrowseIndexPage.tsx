@@ -15,16 +15,11 @@ import {
   Plus,
   Trash2
 } from 'lucide-react'
-import {
-  useExtensionStore,
-  useSettingsStore
-} from '@renderer/shared/model'
+import { useExtensionStore, useSettingsStore } from '@renderer/shared/model'
 import { DataService } from '@renderer/shared/api'
 import { Button, Input, Card, Badge, MobilePage } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import {
-  isAnimeExtension
-} from '@renderer/shared/lib/constants'
+import { isAnimeExtension } from '@renderer/shared/lib/constants'
 import {
   useExtensionsCatalog,
   useExtensionUpdates
@@ -33,6 +28,7 @@ import ExtensionsPage from '@renderer/pages/extensions/ExtensionsPage'
 import GlobalSearch from '@renderer/widgets/global-search/GlobalSearch'
 import RepositoriesPage from '@renderer/pages/repositories/RepositoriesPage'
 import { isFullySupported } from '@renderer/shared/api/sources'
+import { extractBasePkg, getRepoMeta } from '@common/services/repoIdentity'
 
 export default function BrowseIndexPage(): React.JSX.Element {
   const navigate = useNavigate()
@@ -44,7 +40,8 @@ export default function BrowseIndexPage(): React.JSX.Element {
     selectedLangs = ['all']
   } = useSettingsStore()
 
-  const { installedExtensions, pinnedExtensions, togglePin, uninstallExtension } = useExtensionStore()
+  const { installedExtensions, pinnedExtensions, togglePin, uninstallExtension } =
+    useExtensionStore()
   const { refetch: refreshCatalog, isRefetching } = useExtensionsCatalog()
   const { data: updates = [] } = useExtensionUpdates()
 
@@ -106,7 +103,8 @@ export default function BrowseIndexPage(): React.JSX.Element {
       )
     }
 
-    const activeLangs = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+    const activeLangs =
+      Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
     if (!activeLangs.includes('all')) {
       list = list.filter((ext) => ext && ext.lang && activeLangs.includes(ext.lang))
     }
@@ -171,7 +169,10 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 >
                   <BookOpen className="h-4 w-4" />
                   <span>Manga</span>
-                  <Badge variant={browseMediaType === 'manga' ? 'default' : 'secondary'} className="h-4 px-1 text-[9px]">
+                  <Badge
+                    variant={browseMediaType === 'manga' ? 'default' : 'secondary'}
+                    className="h-4 px-1 text-[9px]"
+                  >
                     {mangaInstalled.length}
                   </Badge>
                 </button>
@@ -188,7 +189,10 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 >
                   <Film className="h-4 w-4" />
                   <span>Anime</span>
-                  <Badge variant={browseMediaType === 'anime' ? 'default' : 'secondary'} className="h-4 px-1 text-[9px]">
+                  <Badge
+                    variant={browseMediaType === 'anime' ? 'default' : 'secondary'}
+                    className="h-4 px-1 text-[9px]"
+                  >
                     {animeInstalled.length}
                   </Badge>
                 </button>
@@ -229,7 +233,10 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 <Package className="h-4 w-4" />
                 <span>Extensions</span>
                 {mediaUpdates.length > 0 && (
-                  <Badge variant="default" className="h-4 min-w-[16px] px-1 text-[9px] bg-primary animate-pulse">
+                  <Badge
+                    variant="default"
+                    className="h-4 min-w-[16px] px-1 text-[9px] bg-primary animate-pulse"
+                  >
                     {mediaUpdates.length}
                   </Badge>
                 )}
@@ -252,7 +259,10 @@ export default function BrowseIndexPage(): React.JSX.Element {
                     {pluginUpdatesCount} {pluginUpdatesCount === 1 ? 'update' : 'updates'}
                   </span>
                 ) : (
-                  <Badge variant={browseSection === 'repositories' ? 'default' : 'secondary'} className="h-4 px-1.5 text-[9px]">
+                  <Badge
+                    variant={browseSection === 'repositories' ? 'default' : 'secondary'}
+                    className="h-4 px-1.5 text-[9px]"
+                  >
                     {repoCount}
                   </Badge>
                 )}
@@ -314,7 +324,10 @@ export default function BrowseIndexPage(): React.JSX.Element {
             {/* Main Content Area */}
             {isGlobalSearchActive ? (
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <GlobalSearch mediaType={browseMediaType} onClose={() => setIsGlobalSearchActive(false)} />
+                <GlobalSearch
+                  mediaType={browseMediaType}
+                  onClose={() => setIsGlobalSearchActive(false)}
+                />
               </div>
             ) : activeInstalledSources.length === 0 ? (
               repoCount === 0 ? (
@@ -325,7 +338,8 @@ export default function BrowseIndexPage(): React.JSX.Element {
                   <div className="space-y-1.5 max-w-sm">
                     <h3 className="text-xl font-bold tracking-tight">Welcome to AutaKimi</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      To discover and install thousands of community manga & anime sources, start by configuring your repositories.
+                      To discover and install thousands of community manga & anime sources, start by
+                      configuring your repositories.
                     </p>
                   </div>
                   <Button
@@ -350,7 +364,8 @@ export default function BrowseIndexPage(): React.JSX.Element {
                       No {browseMediaType === 'anime' ? 'Anime' : 'Manga'} Sources Installed
                     </h3>
                     <p className="text-sm text-muted-foreground max-w-xs">
-                      Install your favorite sources from the Extensions tab to start browsing {browseMediaType}.
+                      Install your favorite sources from the Extensions tab to start browsing{' '}
+                      {browseMediaType}.
                     </p>
                   </div>
                   <Button
@@ -376,15 +391,26 @@ export default function BrowseIndexPage(): React.JSX.Element {
                   {filteredSources.map((ext, idx) => {
                     const isPinned = (pinnedExtensions || []).includes(ext.pkg)
                     const isSupported = isFullySupported(ext)
-                    const iconUrl = ext.icon || DataService.getExtensionIcon(ext.pkg || '')
+                    const iconUrl =
+                      (typeof ext.icon === 'string' && ext.icon.startsWith('http')
+                        ? ext.icon
+                        : null) || DataService.getExtensionIcon(extractBasePkg(ext.pkg || ''))
+                    const hasRepo =
+                      !!ext.repoUrl && ext.repoUrl !== 'remote' && ext.repoUrl !== 'local'
+                    const repoMeta = hasRepo ? getRepoMeta(ext.repoUrl, ext.repoName) : null
+                    const repoColor = ext.repoColor || repoMeta?.repoColor
+                    const repoName = ext.repoName || repoMeta?.repoName
                     return (
                       <Card
                         key={ext.pkg}
+                        style={{
+                          animationDelay: `${idx * 60}ms`,
+                          ...(repoColor ? { borderLeftWidth: 3, borderLeftColor: repoColor } : {})
+                        }}
                         className={cn(
                           'group p-5 bg-card/50 backdrop-blur-sm hover:bg-secondary/30 transition-all duration-300 hover:shadow-xl border-border/40 cursor-pointer',
                           'animate-in fade-in slide-in-from-bottom-4'
                         )}
-                        style={{ animationDelay: `${idx * 60}ms` }}
                         onClick={() => navigate(`/browse/${ext.pkg}`)}
                       >
                         <div className="flex items-start gap-4">
@@ -437,9 +463,24 @@ export default function BrowseIndexPage(): React.JSX.Element {
                                 </Badge>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground font-mono mt-0.5 opacity-50 truncate">
-                              {ext.pkg}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                              {repoName && repoColor && (
+                                <Badge
+                                  variant="outline"
+                                  style={{
+                                    backgroundColor: `${repoColor}1a`,
+                                    color: repoColor,
+                                    borderColor: `${repoColor}40`
+                                  }}
+                                  className="text-[9px] h-4 px-1.5 font-bold shrink-0"
+                                >
+                                  {repoName}
+                                </Badge>
+                              )}
+                              <p className="text-xs text-muted-foreground font-mono opacity-50 truncate">
+                                {extractBasePkg(ext.pkg)}
+                              </p>
+                            </div>
                             <div className="mt-3 flex items-center gap-1.5">
                               <Button
                                 className="h-8 text-xs gap-1.5 flex-1 bg-primary hover:bg-primary/90 font-bold rounded-xl"
@@ -474,7 +515,11 @@ export default function BrowseIndexPage(): React.JSX.Element {
                                 className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  if (window.confirm(`Are you sure you want to uninstall ${ext.name}?`)) {
+                                  if (
+                                    window.confirm(
+                                      `Are you sure you want to uninstall ${ext.name}?`
+                                    )
+                                  ) {
                                     uninstallExtension(ext.pkg)
                                   }
                                 }}

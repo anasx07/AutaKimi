@@ -4,6 +4,7 @@ import { sourceService } from '@common/services/source.service'
 import { pluginService } from '@common/services/plugin.service'
 import { extensionRegistryOrchestrator } from '@common/services/extensionRegistryOrchestrator'
 import { registerHandler, wrapIpc, isValidUrl } from './utils'
+import { getRepoMeta } from '@common/services/repoIdentity'
 
 function isNewerVersion(remoteVersion?: string, currentVersion?: string): boolean {
   if (!remoteVersion || !currentVersion) return false
@@ -148,7 +149,9 @@ export function registerSourceHandlers() {
       return plugins.map((p) => {
         const installedPlugin = installedList.find((x: any) => x.id === p?.id)
         const isInstalled = !!installedPlugin
-        const isUpdateAvailable = installedPlugin ? isNewerVersion(p?.version, installedPlugin.version) : false
+        const isUpdateAvailable = installedPlugin
+          ? isNewerVersion(p?.version, installedPlugin.version)
+          : false
 
         // All plugins originating from external repositories are installable by user choice
         // respecting 100% legal neutrality and explicit user consent (Mihon/Tachiyomi architecture)
@@ -204,7 +207,7 @@ export function registerSourceHandlers() {
 
       const installedJson = await settingsRepo.get('installed_plugins')
       let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
-      
+
       const fullPlugin = {
         id: plugin.id,
         name: plugin.name,
@@ -241,12 +244,12 @@ export function registerSourceHandlers() {
       if (typeof id !== 'string') throw new Error('Invalid id')
       const installedJson = await settingsRepo.get('installed_plugins')
       let installedList: any[] = installedJson ? JSON.parse(installedJson) : []
-      
+
       installedList = installedList.filter((p: any) => p.id !== id)
       await settingsRepo.set('installed_plugins', JSON.stringify(installedList))
-      
+
       pluginService.removePlugin(id)
-      
+
       let enabledIds = pluginService.getEnabledPluginIds()
       if (enabledIds.includes(id)) {
         enabledIds = enabledIds.filter((x) => x !== id)
@@ -293,18 +296,31 @@ export function registerSourceHandlers() {
 
       return sources.map((s: any) => {
         const fullPkg = s.pkg || s.id || ''
-        const iconName = fullPkg.startsWith('ma.autakimi.extension.') ? `${fullPkg}.png` : `ma.autakimi.extension.${fullPkg}.png`
+        const iconName = fullPkg.startsWith('ma.autakimi.extension.')
+          ? `${fullPkg}.png`
+          : `ma.autakimi.extension.${fullPkg}.png`
+        const effectiveRepoUrl =
+          s.repoUrl && s.repoUrl !== 'remote' ? s.repoUrl : repos[0] || 'remote'
+        const meta = getRepoMeta(effectiveRepoUrl, s.repoName)
+        const iconUrl =
+          typeof s.icon === 'string' && s.icon.startsWith('http')
+            ? s.icon
+            : `autakimi-cache://local-icon/${iconName}`
 
         return {
           pkg: fullPkg,
           id: fullPkg,
+          catalogKey: s.catalogKey || `${effectiveRepoUrl}::${fullPkg}`,
           name: s.name,
           lang: s.lang || s.language || 'all',
-          icon: `autakimi-cache://local-icon/${iconName}`,
+          icon: iconUrl,
           version: s.version || '0.0.0',
           baseUrl: s.baseUrl || s.url || '',
           nsfw: !!s.nsfw,
-          repoUrl: 'remote', // Denotes it's managed via remote repository
+          repoUrl: effectiveRepoUrl,
+          repoName: s.repoName || meta.repoName,
+          repoColor: s.repoColor || meta.repoColor,
+          isKeiyoushi: Boolean(s.isKeiyoushi || meta.isKeiyoushi),
           type: s.type || (fullPkg.toLowerCase().includes('anime') ? 'anime' : 'manga'),
           status: s.status,
           isFullySupported: s.isFullySupported !== undefined ? s.isFullySupported : undefined
@@ -326,13 +342,16 @@ export function registerSourceHandlers() {
       if (result.canceled || result.filePaths.length === 0) {
         return null
       }
-      
+
       const { dirname, basename } = await import('path')
       const filePath = result.filePaths[0]
-      
+
       if (basename(filePath).toLowerCase() !== 'manifest.json') {
         const { dialog: errDialog } = await import('electron')
-        errDialog.showErrorBox('Invalid File', 'You must select a file exactly named "manifest.json".')
+        errDialog.showErrorBox(
+          'Invalid File',
+          'You must select a file exactly named "manifest.json".'
+        )
         return null
       }
 
@@ -346,4 +365,3 @@ export function registerSourceHandlers() {
     })
   )
 }
-

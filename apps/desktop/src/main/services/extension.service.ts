@@ -5,12 +5,19 @@ import { extensionRepo, settingsRepo } from '../db'
 import fs from 'fs'
 import { app } from 'electron'
 import { ExtensionEngine, IExtensionPlatform, networkClient } from '@common'
+import { extractBasePkg } from '@common/services/repoIdentity'
 import * as crypto from 'crypto'
 import { AppService, ServicePriority } from './service.registry'
 import { cloudflareService } from './cloudflare.service'
 
 class WorkerPool {
-  private workers: { worker: Worker; isBusy: boolean; id: number; pkg?: string; currentTaskId?: string }[] = []
+  private workers: {
+    worker: Worker
+    isBusy: boolean
+    id: number
+    pkg?: string
+    currentTaskId?: string
+  }[] = []
   private maxWorkers = 4
   private taskQueue: {
     id: string
@@ -28,7 +35,13 @@ class WorkerPool {
 
   private createWorker(id: number) {
     const worker = new Worker(path.join(__dirname, 'extension-worker.js'))
-    const workerEntry: { worker: Worker; isBusy: boolean; id: number; pkg?: string; currentTaskId?: string } = {
+    const workerEntry: {
+      worker: Worker
+      isBusy: boolean
+      id: number
+      pkg?: string
+      currentTaskId?: string
+    } = {
       worker,
       isBusy: false,
       id,
@@ -126,7 +139,12 @@ class WorkerPool {
     console.log(`[WorkerPool] Initialized with ${this.maxWorkers} workers.`)
   }
 
-  async runInSandbox(code: string, params: Record<string, any>, pkg?: string, taskId?: string): Promise<any> {
+  async runInSandbox(
+    code: string,
+    params: Record<string, any>,
+    pkg?: string,
+    taskId?: string
+  ): Promise<any> {
     const id = taskId || crypto.randomUUID()
     return new Promise((resolve) => {
       this.taskQueue.push({ id, pkg: pkg || '', code, params, resolve })
@@ -152,7 +170,9 @@ class WorkerPool {
         this.activeResolvers.delete(id)
       }
 
-      console.log(`[WorkerPool] Terminating worker ${workerEntry.id} due to task cancellation: ${id}`)
+      console.log(
+        `[WorkerPool] Terminating worker ${workerEntry.id} due to task cancellation: ${id}`
+      )
       workerEntry.worker.terminate()
       const index = this.workers.indexOf(workerEntry)
       if (index !== -1) {
@@ -195,7 +215,7 @@ class WorkerPool {
           resolver.resolve({ error: 'Worker timed out' })
           this.activeResolvers.delete(task.id)
         }
-        
+
         // Terminate the timed-out worker and replace it with a fresh one
         availableWorker.worker.terminate()
         const index = this.workers.indexOf(availableWorker)
@@ -207,7 +227,12 @@ class WorkerPool {
       }, watchdogTimeoutMs)
 
       this.activeResolvers.set(task.id, { resolve: task.resolve, timeout })
-      availableWorker.worker.postMessage({ id: task.id, code: task.code, params: task.params, pkg: task.pkg })
+      availableWorker.worker.postMessage({
+        id: task.id,
+        code: task.code,
+        params: task.params,
+        pkg: task.pkg
+      })
     }
   }
 
@@ -242,7 +267,12 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
     throw new Error(res.error || `Fetch failed with status ${res.status}`)
   }
 
-  async runSandboxViaPool(code: string, params: Record<string, any>, pkg?: string, taskId?: string): Promise<any> {
+  async runSandboxViaPool(
+    code: string,
+    params: Record<string, any>,
+    pkg?: string,
+    taskId?: string
+  ): Promise<any> {
     return this.workerPool.runInSandbox(code, params, pkg, taskId)
   }
 
@@ -260,7 +290,12 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
 
   // --- Public Engine Accessors ---
 
-  async runInSandbox(pkg: string, code: string, params: Record<string, any> = {}, taskId?: string): Promise<any> {
+  async runInSandbox(
+    pkg: string,
+    code: string,
+    params: Record<string, any> = {},
+    taskId?: string
+  ): Promise<any> {
     return this.engine.execute(pkg, code, params, taskId)
   }
 
@@ -284,8 +319,10 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
       }
     }
 
-    const rawPkg = ext.pkg || ext.id || ''
-    const fullPkg = rawPkg.startsWith('ma.autakimi.extension.') ? rawPkg : `ma.autakimi.extension.${rawPkg}`
+    const rawPkg = extractBasePkg(ext.pkg || ext.id || '')
+    const fullPkg = rawPkg.startsWith('ma.autakimi.extension.')
+      ? rawPkg
+      : `ma.autakimi.extension.${rawPkg}`
     const cleanPkg = rawPkg.replace(/^ma\.autakimi\.extension\./, '')
 
     // Check if local bundled JS exists when code is missing
@@ -295,8 +332,24 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
         path.join(process.cwd(), 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
         path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
         path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
-        path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
-        path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`)
+        path.resolve(
+          process.cwd(),
+          '..',
+          '..',
+          'autakimi-extensions',
+          'dist',
+          'js',
+          `${fullPkg}.js`
+        ),
+        path.resolve(
+          process.cwd(),
+          '..',
+          '..',
+          'autakimi-extensions',
+          'dist',
+          'js',
+          `${cleanPkg}.js`
+        )
       ]
       for (const cand of candidates) {
         if (fs.existsSync(cand)) {
@@ -329,12 +382,17 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
           if (res.ok) {
             const buffer = await res.arrayBuffer()
             fs.writeFileSync(cachedIconPath, Buffer.from(buffer))
-            console.log(`[ExtensionOrchestrator] Successfully pre-downloaded icon for offline mode: ${fullPkg}`)
+            console.log(
+              `[ExtensionOrchestrator] Successfully pre-downloaded icon for offline mode: ${fullPkg}`
+            )
           }
         }
       }
     } catch (err: any) {
-      console.warn('[ExtensionOrchestrator] Failed to pre-download icon during installation:', err.message)
+      console.warn(
+        '[ExtensionOrchestrator] Failed to pre-download icon during installation:',
+        err.message
+      )
     }
 
     return this.engine.install(ext, actualRepoUrl)

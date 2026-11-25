@@ -1,9 +1,8 @@
 import { create } from 'zustand'
 import { DataService } from '@renderer/shared/api'
 import { SettingsSchema, Extension } from '@common/types'
+import { resolveInstallPayload } from '../../entities/extension/lib/updates'
 export type ExtensionMetadata = Extension
-
-
 
 type ExtensionState = SettingsSchema['extensions'] & {
   installedExtensions: Extension[]
@@ -87,11 +86,12 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
   },
 
   installExtension: async (ext) => {
-    const pkg = ext.pkg
+    const targetExt = resolveInstallPayload(ext, get().installedExtensions || [])
+    const pkg = targetExt.pkg
     set((state) => ({ installingPkgs: new Set(state.installingPkgs).add(pkg) }))
 
     try {
-      await DataService.installExtension(ext, ext.repoUrl || 'local')
+      await DataService.installExtension(targetExt, targetExt.repoUrl || 'local')
 
       // Refresh installed list
       const installed = await DataService.db.getInstalledExtensions()
@@ -148,7 +148,10 @@ export const useExtensionStore = create<ExtensionState>((set, get) => ({
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) return parsed
         } catch {}
-        return raw.split(',').map((s) => s.trim()).filter(Boolean)
+        return raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       }
       return []
     }

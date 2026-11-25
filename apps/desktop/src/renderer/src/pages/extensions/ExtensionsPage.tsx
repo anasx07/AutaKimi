@@ -28,6 +28,8 @@ import {
   useInstallExtension,
   useBulkUpdate
 } from '@renderer/entities/extension/api/useExtensionQueries'
+import { findInstalledMatch, resolveInstallPayload } from '@renderer/entities/extension/lib/updates'
+import { extractBasePkg, getRepoMeta, normalizeRepoKey } from '@common/services/repoIdentity'
 import { isFullySupported } from '@renderer/shared/api/sources'
 
 export interface ExtensionsPageProps {
@@ -79,7 +81,8 @@ export default function ExtensionsPage({
     if (lang === 'all') {
       setSelectedLangs(['all'])
     } else {
-      const current = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+      const current =
+        Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
       const next = current.includes('all')
         ? [lang]
         : current.includes(lang)
@@ -111,13 +114,23 @@ export default function ExtensionsPage({
       })
       .filter((ext) => showNsfw || !ext.nsfw)
 
-    const activeLangs = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+    const activeLangs =
+      Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
     if (!activeLangs.includes('all')) {
       filtered = filtered.filter((ext) => ext && ext.lang && activeLangs.includes(ext.lang))
     }
 
     return filtered
-  }, [activeSubTab, catalog, installedExtensions, updates, searchQuery, showNsfw, selectedLangs, filterType])
+  }, [
+    activeSubTab,
+    catalog,
+    installedExtensions,
+    updates,
+    searchQuery,
+    showNsfw,
+    selectedLangs,
+    filterType
+  ])
 
   const filteredData = useMemo(() => {
     return [...(baseFiltered || [])].sort((a, b) => {
@@ -137,9 +150,7 @@ export default function ExtensionsPage({
 
       const aName = a.name || ''
       const bName = b.name || ''
-      return extensionSortOrder === 'asc'
-        ? aName.localeCompare(bName)
-        : bName.localeCompare(aName)
+      return extensionSortOrder === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName)
     })
   }, [
     baseFiltered,
@@ -153,7 +164,8 @@ export default function ExtensionsPage({
   // --- Components ---
   const LanguageFilter = (): React.JSX.Element => {
     const langs = Object.keys(LANGUAGE_NAMES)
-    const activeLangs = Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
+    const activeLangs =
+      Array.isArray(selectedLangs) && selectedLangs.length > 0 ? selectedLangs : ['all']
 
     const triggerLabel = useMemo(() => {
       if (activeLangs.includes('all')) return 'All Languages'
@@ -278,32 +290,60 @@ export default function ExtensionsPage({
 
   const updatesCount = useMemo(() => {
     return (updates || []).filter((ext) =>
-      filterType === 'anime' ? isAnimeExtension(ext) : filterType === 'manga' ? !isAnimeExtension(ext) : true
+      filterType === 'anime'
+        ? isAnimeExtension(ext)
+        : filterType === 'manga'
+          ? !isAnimeExtension(ext)
+          : true
     ).length
   }, [updates, filterType])
 
   const availableCount = useMemo(() => {
     return (catalog || []).filter((ext) =>
-      filterType === 'anime' ? isAnimeExtension(ext) : filterType === 'manga' ? !isAnimeExtension(ext) : true
+      filterType === 'anime'
+        ? isAnimeExtension(ext)
+        : filterType === 'manga'
+          ? !isAnimeExtension(ext)
+          : true
     ).length
   }, [catalog, filterType])
 
   const ExtensionCard = ({ ext }: { ext: ExtensionMetadata }): React.JSX.Element => {
     if (!ext) return <div />
-    const isInstalled = (installedExtensions || []).some((i) => i && i.pkg === ext.pkg)
-    const isPinned = (pinnedExtensions || []).includes(ext.pkg)
-    const isInstalling = installingPkgs?.has?.(ext.pkg) || false
-    const updateAvailable = (updates || []).some((u) => u && u.pkg === ext.pkg)
-    const iconUrl = DataService.getExtensionIcon(ext.pkg || '')
+    const installedMatch = findInstalledMatch(ext, installedExtensions || [])
+    const isInstalled = !!installedMatch
+    const actionPkg = installedMatch?.pkg || ext.pkg
+    const plannedInstall = resolveInstallPayload(ext, installedExtensions || [])
+    const isPinned = (pinnedExtensions || []).includes(actionPkg)
+    const isInstalling =
+      installingPkgs?.has?.(actionPkg) || installingPkgs?.has?.(plannedInstall.pkg) || false
+    const extRepoKey = normalizeRepoKey(ext.repoUrl)
+    const updateAvailable = (updates || []).some(
+      (u) =>
+        u &&
+        (installedMatch
+          ? u.pkg === installedMatch.pkg
+          : extractBasePkg(u.pkg) === extractBasePkg(ext.pkg) &&
+            (!extRepoKey || normalizeRepoKey(u.repoUrl) === extRepoKey))
+    )
+    const hasRepo = !!ext.repoUrl && ext.repoUrl !== 'remote' && ext.repoUrl !== 'local'
+    const repoMeta = hasRepo ? getRepoMeta(ext.repoUrl, ext.repoName) : null
+    const repoColor = ext.repoColor || repoMeta?.repoColor
+    const repoName = ext.repoName || repoMeta?.repoName
+    const iconUrl =
+      typeof ext.icon === 'string' && ext.icon.startsWith('http')
+        ? ext.icon
+        : DataService.getExtensionIcon(extractBasePkg(ext.pkg || ''))
 
     const handleBrowse = (): void => {
-      navigate(`/browse/${ext.pkg}`)
+      navigate(`/browse/${actionPkg}`)
     }
 
     return (
       <div className="p-2">
         <Card
           onClick={() => isInstalled && !isInstalling && handleBrowse()}
+          style={repoColor ? { borderLeftWidth: 3, borderLeftColor: repoColor } : undefined}
           className={cn(
             'group relative flex flex-col h-full bg-card/40 border-border/40 hover:border-primary/30 transition-all duration-300 rounded-2xl overflow-hidden',
             isInstalled && !isInstalling && 'cursor-pointer hover:bg-secondary/20',
@@ -373,15 +413,30 @@ export default function ExtensionsPage({
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center flex-wrap gap-1.5 mt-1">
                 <Badge
                   variant="secondary"
                   className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-wider bg-secondary/50"
                 >
                   {ext.lang}
                 </Badge>
-                <span className="text-[10px] text-muted-foreground font-medium opacity-60">
-                  v{ext.version}
+                {repoName && repoColor && (
+                  <Badge
+                    variant="outline"
+                    style={{
+                      backgroundColor: `${repoColor}1a`,
+                      color: repoColor,
+                      borderColor: `${repoColor}40`
+                    }}
+                    className="text-[9px] h-4 px-1.5 font-bold tracking-tight"
+                  >
+                    {repoName}
+                  </Badge>
+                )}
+                <span className="text-[10px] text-muted-foreground font-medium opacity-70">
+                  {updateAvailable && installedMatch?.version
+                    ? `v${installedMatch.version} → v${ext.version}`
+                    : `v${ext.version}`}
                 </span>
               </div>
             </div>
@@ -395,7 +450,7 @@ export default function ExtensionsPage({
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation()
-                    togglePin(ext.pkg)
+                    togglePin(actionPkg)
                   }}
                   className={cn(
                     'h-8 w-8 p-0 rounded-xl transition-all',
@@ -418,7 +473,7 @@ export default function ExtensionsPage({
                 if (updateAvailable || !isInstalled) {
                   installMutation.mutate(ext)
                 } else {
-                  uninstallExtension(ext.pkg)
+                  uninstallExtension(actionPkg)
                 }
               }}
               className={cn(
@@ -545,9 +600,7 @@ export default function ExtensionsPage({
             <Button
               variant={extensionSortBy !== 'name' ? 'secondary' : 'outline'}
               size="sm"
-              onClick={() =>
-                setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')
-              }
+              onClick={() => setExtensionSortOrder(extensionSortOrder === 'asc' ? 'desc' : 'asc')}
               className={cn(
                 'h-11 px-4 rounded-xl border-border/40 transition-all flex items-center gap-2 bg-card/40',
                 extensionSortBy !== 'name' && 'border-primary/50 bg-primary/5'
@@ -586,10 +639,15 @@ export default function ExtensionsPage({
   )
 
   const bodyContent = (
-    <div className={cn('flex-1 min-h-0 flex flex-col -mb-4', activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar')}>
+    <div
+      className={cn(
+        'flex-1 min-h-0 flex flex-col -mb-4',
+        activeSubTab === 'global' && 'overflow-y-auto custom-scrollbar'
+      )}
+    >
       {activeSubTab === 'global' ? (
         <GlobalSearch />
-      ) : (catalogLoading || (isRefetching && (!catalog || catalog.length === 0))) ? (
+      ) : catalogLoading || (isRefetching && (!catalog || catalog.length === 0)) ? (
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 9 }).map((_, i) => (
             <div
@@ -612,7 +670,8 @@ export default function ExtensionsPage({
             <div className="space-y-1.5 max-w-sm">
               <h3 className="text-xl font-bold tracking-tight">No Repositories Configured</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Add an extension repository to automatically discover and install thousands of manga and anime sources.
+                Add an extension repository to automatically discover and install thousands of manga
+                and anime sources.
               </p>
             </div>
             <Button
@@ -652,7 +711,12 @@ export default function ExtensionsPage({
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 py-4">
             {(filteredData || []).map((ext) =>
-              ext && ext.pkg ? <ExtensionCard key={ext.pkg} ext={ext} /> : null
+              ext && ext.pkg ? (
+                <ExtensionCard
+                  key={ext.catalogKey || `${ext.repoUrl || 'default'}::${ext.pkg}`}
+                  ext={ext}
+                />
+              ) : null
             )}
           </div>
           <div className="h-24" />
@@ -714,7 +778,9 @@ export default function ExtensionsPage({
                 <div
                   className={cn(
                     'absolute -bottom-1 -right-1 p-0.5 rounded-full transition-all border-2 border-background',
-                    activeSubTab === 'global' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'
+                    activeSubTab === 'global'
+                      ? 'bg-primary text-white'
+                      : 'bg-secondary text-muted-foreground'
                   )}
                 >
                   <SearchIcon className="h-2 w-2" strokeWidth={3} />

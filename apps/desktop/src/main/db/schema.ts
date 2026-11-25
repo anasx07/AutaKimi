@@ -8,7 +8,10 @@ export const extensions = sqliteTable('extensions', {
   baseUrl: text('baseUrl'),
   lang: text('lang'),
   icon: text('icon'),
-  version: text('version')
+  version: text('version'),
+  repoUrl: text('repo_url'),
+  repoName: text('repo_name'),
+  repoColor: text('repo_color')
 })
 
 export const library = sqliteTable(
@@ -21,9 +24,7 @@ export const library = sqliteTable(
     metadata: text('metadata'), // JSON string
     mediaType: text('type').$type<'manga' | 'anime'>().default('manga')
   },
-  (table) => [
-    index('idx_library_type').on(table.mediaType)
-  ]
+  (table) => [index('idx_library_type').on(table.mediaType)]
 )
 
 export const settings = sqliteTable('settings', {
@@ -128,9 +129,7 @@ export const mangaCache = sqliteTable(
     updatedAt: text('updated_at'),
     expiresAt: text('expires_at')
   },
-  (table) => [
-    index('idx_manga_cache_expires').on(table.expiresAt)
-  ]
+  (table) => [index('idx_manga_cache_expires').on(table.expiresAt)]
 )
 
 export const trackers = sqliteTable(

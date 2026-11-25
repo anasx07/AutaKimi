@@ -30,19 +30,22 @@ const sqlite = sqliteDb
 
 // === Versioned Migrations (Raw SQL for legacy compatibility) ===
 
-
 // Initialize Drizzle
 export const ddb = drizzle(sqlite, { schema })
 
 // === Drizzle Migrations ===
 const runMigrations = () => {
   const currentVersion = sqlite.pragma('user_version', { simple: true }) as number
-  
+
   // Transition legacy users to Drizzle migrations
   if (currentVersion >= 17) {
     try {
       // Check if drizzle migrations table exists
-      const tableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'").get()
+      const tableExists = sqlite
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'"
+        )
+        .get()
       if (!tableExists) {
         console.log('[DB] Transitioning legacy user to Drizzle migrations...')
         sqlite.exec(`
@@ -64,13 +67,15 @@ const runMigrations = () => {
 
   try {
     // Determine migrations path relative to the app bundle
-    const migrationsPath = is.dev 
+    const migrationsPath = is.dev
       ? path.join(__dirname, '../../src/main/db/migrations')
       : path.join(process.resourcesPath, 'migrations')
-    
-    // In production, electron-vite might bundle it differently. 
+
+    // In production, electron-vite might bundle it differently.
     // We should check if the folder exists, otherwise fallback to a common location.
-    const finalPath = fs.existsSync(migrationsPath) ? migrationsPath : path.join(__dirname, 'migrations')
+    const finalPath = fs.existsSync(migrationsPath)
+      ? migrationsPath
+      : path.join(__dirname, 'migrations')
 
     migrate(ddb, { migrationsFolder: finalPath })
     console.log('[DB] Migrations completed successfully.')
@@ -112,6 +117,20 @@ try {
     CREATE INDEX IF NOT EXISTS idx_history_type_started ON reading_history (type, started_at);
     CREATE INDEX IF NOT EXISTS idx_manga_cache_expires ON manga_cache (expires_at);
   `)
+
+  // Additive column migration for multi-repo extension ownership metadata
+  const extCols = (
+    sqlite.prepare('PRAGMA table_info(extensions)').all() as Array<{ name: string }>
+  ).map((c) => c.name)
+  if (!extCols.includes('repo_url')) {
+    sqlite.exec('ALTER TABLE extensions ADD COLUMN repo_url TEXT;')
+  }
+  if (!extCols.includes('repo_name')) {
+    sqlite.exec('ALTER TABLE extensions ADD COLUMN repo_name TEXT;')
+  }
+  if (!extCols.includes('repo_color')) {
+    sqlite.exec('ALTER TABLE extensions ADD COLUMN repo_color TEXT;')
+  }
 } catch (e) {
   console.warn('[DB] Failed to ensure composite indexes/tables:', e)
 }
@@ -166,10 +185,9 @@ export const runCleanupRoutine = () => {
     if (!lastVacuumAt || now - lastVacuumAt >= ONE_WEEK_MS) {
       console.log('[DB] Running weekly VACUUM to reclaim disk space...')
       sqlite.exec('VACUUM;')
-      sqlite.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(
-        'last_vacuum_at',
-        String(now)
-      )
+      sqlite
+        .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+        .run('last_vacuum_at', String(now))
       console.log('[DB] Weekly VACUUM completed.')
     } else {
       // Incremental vacuum to reclaim pages freed by the DELETE queries without blocking the main thread

@@ -10,7 +10,16 @@ import {
 import { Image } from "expo-image";
 import { router, Stack } from "expo-router";
 import { DataService } from "@renderer/shared/api";
-import { computeAvailableUpdates } from "@renderer/entities/extension/lib/updates";
+import {
+  computeAvailableUpdates,
+  findInstalledMatch,
+  resolveInstallPayload,
+} from "@renderer/entities/extension/lib/updates";
+import {
+  extractBasePkg,
+  getRepoMeta,
+  normalizeRepoKey,
+} from "@common/services/repoIdentity";
 import { Typography, Button, Card, CardContent } from "@mobile/native/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -202,16 +211,17 @@ export default function ExtensionsScreen() {
   }, [catalog, langFilter, searchQuery]);
 
   const installExt = async (ext: any) => {
-    setInstallingPkgs((prev) => new Set(prev).add(ext.pkg));
+    const payload = resolveInstallPayload(ext, validInstalled);
+    setInstallingPkgs((prev) => new Set(prev).add(payload.pkg));
     try {
-      await DataService.installExtension(ext, ext.repoUrl || "local");
+      await DataService.installExtension(payload, payload.repoUrl || "local");
       await loadData(true);
     } catch (e: any) {
       console.error("[Extensions] Install failed:", e);
     } finally {
       setInstallingPkgs((prev) => {
         const next = new Set(prev);
-        next.delete(ext.pkg);
+        next.delete(payload.pkg);
         return next;
       });
     }
@@ -255,24 +265,44 @@ export default function ExtensionsScreen() {
   };
 
   const renderExtItem = ({ item }: { item: any }) => {
-    const installedMatch = installed.find(
-      (e) =>
-        e.pkg === item.pkg ||
-        e.pkg.endsWith(item.pkg) ||
-        item.pkg.endsWith(e.pkg),
-    );
+    const installedMatch =
+      activeTab === "installed"
+        ? item
+        : findInstalledMatch(item, installed) ||
+          installed.find(
+            (e) =>
+              !normalizeRepoKey(e.repoUrl) &&
+              (e.pkg === item.pkg ||
+                e.pkg.endsWith(item.pkg) ||
+                item.pkg.endsWith(e.pkg)),
+          );
     const installed_ = !!installedMatch;
-    const updateTarget =
-      updatesByPkg.get(item.pkg) ||
-      (installedMatch ? updatesByPkg.get(installedMatch.pkg) : undefined);
+    const updateTarget = installedMatch
+      ? updatesByPkg.get(installedMatch.pkg)
+      : updatesByPkg.get(item.pkg);
+    const plannedInstall = resolveInstallPayload(item, validInstalled);
     const installing =
       installingPkgs.has(item.pkg) ||
+      installingPkgs.has(plannedInstall.pkg) ||
+      (installedMatch ? installingPkgs.has(installedMatch.pkg) : false) ||
       (updateTarget ? installingPkgs.has(updateTarget.pkg) : false);
     const flag = LANG_FLAGS[item.lang] || "🌐";
     const langName = LANG_NAMES[item.lang] || item.lang;
+    const hasRepo =
+      !!item.repoUrl && item.repoUrl !== "remote" && item.repoUrl !== "local";
+    const repoMeta = hasRepo ? getRepoMeta(item.repoUrl, item.repoName) : null;
+    const repoColor = item.repoColor || repoMeta?.repoColor;
+    const repoName = item.repoName || repoMeta?.repoName;
 
     return (
-      <Card className="mb-3">
+      <Card
+        className="mb-3"
+        style={
+          repoColor
+            ? { borderLeftWidth: 4, borderLeftColor: repoColor }
+            : undefined
+        }
+      >
         <CardContent>
           <View className="flex-row items-center">
             {item.icon ? (
@@ -289,14 +319,33 @@ export default function ExtensionsScreen() {
             )}
             <View className="flex-1 ml-3">
               <Typography className="font-semibold" numberOfLines={1}>
-                {item.name || item.pkg}
+                {item.name || extractBasePkg(item.pkg)}
               </Typography>
-              <Typography className="text-xs text-muted-foreground mt-0.5">
-                {flag} {langName} ·{" "}
-                {updateTarget
-                  ? `v${installedMatch?.version || item.version || "1.0.0"} → v${updateTarget.version}`
-                  : `v${item.version || "1.0.0"}`}
-              </Typography>
+              <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
+                <Typography className="text-xs text-muted-foreground">
+                  {flag} {langName} ·{" "}
+                  {updateTarget
+                    ? `v${installedMatch?.version || item.version || "1.0.0"} → v${updateTarget.version}`
+                    : `v${item.version || "1.0.0"}`}
+                </Typography>
+                {repoName && repoColor && (
+                  <View
+                    style={{
+                      backgroundColor: `${repoColor}1f`,
+                      borderColor: `${repoColor}45`,
+                      borderWidth: 1,
+                    }}
+                    className="px-1.5 py-0.5 rounded-md"
+                  >
+                    <Typography
+                      style={{ color: repoColor }}
+                      className="text-[10px] font-bold"
+                    >
+                      {repoName}
+                    </Typography>
+                  </View>
+                )}
+              </View>
             </View>
 
             {activeTab === "installed" ? (
@@ -571,7 +620,9 @@ export default function ExtensionsScreen() {
         ) : (
           <FlatList
             data={currentList}
-            keyExtractor={(item) => item.pkg}
+            keyExtractor={(item) =>
+              item.catalogKey || `${item.repoUrl || "default"}::${item.pkg}`
+            }
             renderItem={renderExtItem}
             contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}

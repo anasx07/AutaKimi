@@ -13,7 +13,10 @@ export class ExtensionRepository {
         lang: schema.extensions.lang,
         icon: schema.extensions.icon,
         baseUrl: schema.extensions.baseUrl,
-        version: schema.extensions.version
+        version: schema.extensions.version,
+        repoUrl: schema.extensions.repoUrl,
+        repoName: schema.extensions.repoName,
+        repoColor: schema.extensions.repoColor
       })
       .from(schema.extensions)
       .all()
@@ -40,7 +43,10 @@ export class ExtensionRepository {
           baseUrl: data.baseUrl,
           lang: data.lang,
           icon: data.icon,
-          version: data.version
+          version: data.version,
+          repoUrl: data.repoUrl,
+          repoName: data.repoName,
+          repoColor: data.repoColor
         }
       })
       .run()
