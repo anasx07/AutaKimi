@@ -192,7 +192,10 @@ export function AppLayout(): React.JSX.Element {
                   const target = usePipPlayerStore.getState().pipSession
                   clearPip()
                   if (target) {
-                    sharedTabNavigationMemory.updateSuspendedChapter(target.returnPath, null)
+                    sharedTabNavigationMemory.updateSuspendedChapter(
+                      target.returnPath,
+                      target.chapter
+                    )
                   }
                 }}
               />

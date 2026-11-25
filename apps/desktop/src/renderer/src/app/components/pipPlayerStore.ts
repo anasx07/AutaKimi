@@ -16,9 +16,25 @@ export interface LivePlaybackSnapshot {
 }
 
 const playbackSecondsByKey = new Map<string, number>()
+const startPausedKeys = new Set<string>()
 
 export function makePlaybackKey(mangaId: string, chapterId: string): string {
   return `${mangaId}::${chapterId}`
+}
+
+export function markChapterStartPaused(mangaId: string, chapterId: string): void {
+  if (!mangaId || !chapterId) return
+  startPausedKeys.add(makePlaybackKey(mangaId, chapterId))
+}
+
+export function peekChapterStartPaused(mangaId: string, chapterId: string): boolean {
+  if (!mangaId || !chapterId) return false
+  return startPausedKeys.has(makePlaybackKey(mangaId, chapterId))
+}
+
+export function clearChapterStartPaused(mangaId: string, chapterId: string): void {
+  if (!mangaId || !chapterId) return
+  startPausedKeys.delete(makePlaybackKey(mangaId, chapterId))
 }
 
 export function recordLivePlaybackSeconds(
