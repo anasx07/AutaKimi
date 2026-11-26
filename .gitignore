@@ -6,10 +6,14 @@ node_modules
 .DS_Store
 .eslintcache
 *.log*
+*_logs.txt
+electron_logs.txt
 .aider*
 tmp
 *.lnk
+*.jar
 .expo/
+.idea/
 *.tsbuildinfo
 critical_info.txt
 autakimi-extensions/
