@@ -5,7 +5,7 @@ import { MediaSeason } from '@common/types'
 interface SeasonSelectorProps {
   seasons?: MediaSeason[]
   activeSeasonUrl?: string | null
-  onSelectSeason?: (url: string) => void
+  onSelectSeason?: (season: MediaSeason) => void
   compact?: boolean
   className?: string
 }
@@ -43,7 +43,7 @@ export function SeasonSelector({
           <button
             key={season.id || season.url}
             type="button"
-            onClick={() => onSelectSeason(season.url)}
+            onClick={() => onSelectSeason(season)}
             dir="auto"
             className={cn(
               'shrink-0 rounded-lg border font-medium transition-colors whitespace-nowrap',

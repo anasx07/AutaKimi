@@ -14,7 +14,7 @@ export interface InlineEpisodesPanelProps {
   topContent?: ReactNode
   seasons?: MediaSeason[]
   activeSeasonUrl?: string | null
-  onSelectSeason?: (url: string) => void
+  onSelectSeason?: (season: MediaSeason) => void
 }
 
 export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({

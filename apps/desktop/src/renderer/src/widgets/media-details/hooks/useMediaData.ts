@@ -9,11 +9,7 @@ import {
 } from '@renderer/entities/media/api/useMediaQueries'
 import { NormalizedManga as Media } from '@common/utils/mangaNormalizer'
 
-export function useMediaData(
-  type: MediaType,
-  initialMedia: Media | null,
-  selectedSeasonUrl?: string | null
-) {
+export function useMediaData(type: MediaType, initialMedia: Media | null) {
   const { activeExtension } = useExtensionStore()
   const { loadProgress } = useProgressStore()
 
@@ -23,7 +19,7 @@ export function useMediaData(
 
   // Queries
   const detailQuery = useMediaDetails(type, mediaId, pkgToUse, mediaUrl)
-  const itemsQuery = useMediaItems(type, mediaId, pkgToUse, mediaUrl, selectedSeasonUrl || undefined)
+  const itemsQuery = useMediaItems(type, mediaId, pkgToUse, mediaUrl)
   const libraryCheckQuery = useIsMediaInLibrary(type, mediaId)
   const toggleLibraryMutation = useToggleMediaLibrary(type)
 
@@ -33,6 +29,25 @@ export function useMediaData(
     const fresh = detailQuery.data
     if (!fresh) return initialMedia
 
+    const freshSeasons = fresh.seasons
+    const baseSeasons = initialMedia.seasons
+    let mergedSeasons = freshSeasons
+    if (freshSeasons?.length && baseSeasons?.length) {
+      const baseById = new Map(baseSeasons.map((s) => [s.id, s]))
+      mergedSeasons = freshSeasons.map((s) => {
+        const prev = baseById.get(s.id)
+        const preferPrevUrl =
+          prev?.url && s.url.includes('risto_season=') && !prev.url.includes('risto_season=')
+        return {
+          ...s,
+          url: preferPrevUrl ? prev.url : s.url,
+          coverUrl: s.coverUrl || prev?.coverUrl
+        }
+      })
+    } else if (!freshSeasons?.length && baseSeasons?.length) {
+      mergedSeasons = baseSeasons
+    }
+
     return {
       ...initialMedia,
       ...fresh,
@@ -40,7 +55,8 @@ export function useMediaData(
         fresh.title && fresh.title !== 'Untitled' && !/^\d+$/.test(fresh.title)
           ? fresh.title
           : initialMedia.title || fresh.title,
-      coverUrl: fresh.coverUrl || initialMedia.coverUrl || null
+      coverUrl: fresh.coverUrl || initialMedia.coverUrl || null,
+      seasons: mergedSeasons
     }
   }, [initialMedia, detailQuery.data])
 
