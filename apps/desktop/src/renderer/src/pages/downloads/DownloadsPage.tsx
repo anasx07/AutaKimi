@@ -90,16 +90,16 @@ export default function DownloadsPage(): React.JSX.Element {
             variant="outline"
             size="sm"
             className={cn(
-              'h-9 gap-2 font-bold px-3 border-primary/20 hover:border-primary/40 transition-all',
+              'h-8 gap-2 font-medium px-3 transition-colors',
               pendingCount > 0
-                ? 'text-primary bg-primary/5 border-primary/40'
+                ? 'text-primary bg-primary/10 border-primary/40'
                 : 'text-muted-foreground'
             )}
             onClick={() => setIsManagerOpen(true)}
           >
-            <Download className={cn('h-4 w-4', pendingCount > 0 && 'animate-bounce')} />
+            <Download className="h-3.5 w-3.5" />
             {pendingCount > 0 && (
-              <Badge variant="default" className="h-5 px-1 min-w-[20px] bg-primary text-[10px]">
+              <Badge variant="default" className="h-4 px-1.5 min-w-[18px] bg-primary text-[10px]">
                 {pendingCount}
               </Badge>
             )}

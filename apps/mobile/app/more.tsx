@@ -101,8 +101,8 @@ export default function MorePage(): React.JSX.Element {
               <Card>
                 <CardContent className="flex-row items-center justify-between py-5">
                   <View className="flex-row items-center gap-4 flex-1">
-                    <View className="w-12 h-12 rounded-xl bg-secondary items-center justify-center">
-                      <Icon size={24} color="#3b82f6" />
+                    <View className="w-11 h-11 rounded-xl bg-secondary border border-border items-center justify-center">
+                      <Icon size={20} color="#e11d48" />
                     </View>
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2">

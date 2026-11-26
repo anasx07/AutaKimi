@@ -13,21 +13,21 @@ export function EmptyState({ icon, title, description, action, className }: Empt
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-500',
+        'flex flex-col items-center justify-center p-8 text-center space-y-4',
         className
       )}
     >
-      <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center ring-2 ring-primary/20 shadow-inner">
-        {/* We expect the icon to have its own sizing, e.g. h-8 w-8 text-primary */}
+      <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center">
+        {/* We expect the icon to have its own sizing, e.g. h-7 w-7 text-primary */}
         {icon}
       </div>
-      <div className="space-y-2 max-w-sm">
-        <h3 className="text-xl font-semibold text-foreground tracking-tight">{title}</h3>
+      <div className="space-y-1.5 max-w-sm">
+        <h3 className="text-lg font-semibold text-foreground tracking-tight">{title}</h3>
         {description && (
           <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
         )}
       </div>
-      {action && <div className="pt-2">{action}</div>}
+      {action && <div className="pt-1">{action}</div>}
     </div>
   )
 }

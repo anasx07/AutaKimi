@@ -258,10 +258,10 @@ export default function RepositoriesPage() {
         </View>
 
         {/* Information Cards */}
-        <View className="mt-10 gap-4">
-          <Card className="bg-blue-500/5 border-blue-500/20">
+        <View className="mt-8 gap-4">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 flex-row items-center gap-4">
-              <Library size={24} color="#3b82f6" />
+              <Library size={22} color="#e11d48" />
               <View className="flex-1">
                 <Typography className="font-bold text-sm">
                   Universal Framework

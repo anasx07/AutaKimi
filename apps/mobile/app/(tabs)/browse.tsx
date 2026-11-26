@@ -4,6 +4,7 @@ import {
   TextInput, RefreshControl, useWindowDimensions
 } from 'react-native'
 import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { router, useFocusEffect } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
 import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
@@ -218,12 +219,12 @@ export default function BrowseTab() {
 
         {/* Search Installed Sources */}
         {extensions.length > 0 && (
-          <View className="px-4 py-2 bg-card mx-4 mt-3 rounded-xl border border-border flex-row items-center">
-            <Search size={18} color="#94a3b8" />
+          <View className="px-3.5 py-1.5 bg-secondary/50 mx-4 mt-3 rounded-xl border border-border flex-row items-center">
+            <Search size={16} color="#71717a" />
             <TextInput
-              className="flex-1 ml-2 text-foreground py-2"
+              className="flex-1 ml-2 text-foreground py-2 text-sm"
               placeholder="Search installed sources..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#71717a"
               value={sourceSearch}
               onChangeText={setSourceSearch}
             />
@@ -234,11 +235,13 @@ export default function BrowseTab() {
         <View className="flex-1 px-4 mt-3">
           {extensions.length === 0 ? (
             <View className="flex-1 items-center justify-center p-6">
-              <Package size={56} color="#94a3b8" />
-              <Typography variant="h2" className="mt-4 text-center">
+              <View className="w-16 h-16 rounded-2xl bg-secondary border border-border items-center justify-center mb-4">
+                <Package size={28} color="#e11d48" />
+              </View>
+              <Typography variant="h2" className="text-center">
                 No sources installed
               </Typography>
-              <Typography className="text-muted-foreground text-center mt-2 mb-6">
+              <Typography className="text-muted-foreground text-center mt-1.5 mb-6 text-xs leading-relaxed">
                 Install extensions from community repositories like Keiyoushi to start browsing.
               </Typography>
               <Button
@@ -249,8 +252,8 @@ export default function BrowseTab() {
             </View>
           ) : filteredExtensions.length === 0 ? (
             <View className="flex-1 items-center justify-center p-6">
-              <Search size={40} color="#94a3b8" />
-              <Typography className="text-muted-foreground mt-3 text-center">
+              <Search size={36} color="#71717a" />
+              <Typography className="text-muted-foreground mt-3 text-center text-sm">
                 No installed sources match "{sourceSearch}"
               </Typography>
             </View>
@@ -265,26 +268,27 @@ export default function BrowseTab() {
                 const langName = LANG_NAMES[item.lang] || item.lang
 
                 return (
-                  <Card className="mb-3">
-                    <CardContent>
+                  <Card className="mb-2.5">
+                    <CardContent className="p-3.5">
                       <TouchableOpacity
                         className="flex-row items-center"
                         onPress={() => openSource(item.pkg, 'popular')}
+                        activeOpacity={0.75}
                       >
                         {item.icon ? (
                           <Image
                             source={{ uri: item.icon }}
-                            className="w-12 h-12 rounded-xl bg-secondary"
+                            className="w-11 h-11 rounded-xl bg-secondary"
                             contentFit="contain"
                             transition={150}
                           />
                         ) : (
-                          <View className="w-12 h-12 bg-primary/10 rounded-xl items-center justify-center">
-                            <BookOpen size={22} color="#e11d48" />
+                          <View className="w-11 h-11 bg-primary/10 rounded-xl items-center justify-center">
+                            <BookOpen size={20} color="#e11d48" />
                           </View>
                         )}
                         <View className="flex-1 ml-3">
-                          <Typography className="font-semibold text-base" numberOfLines={1}>
+                          <Typography className="font-semibold text-sm" numberOfLines={1}>
                             {item.name || item.pkg}
                           </Typography>
                           <Typography className="text-xs text-muted-foreground mt-0.5">
@@ -292,14 +296,14 @@ export default function BrowseTab() {
                           </Typography>
                         </View>
                         <TouchableOpacity
-                          className="px-3 py-1.5 rounded-full bg-secondary mr-2"
+                          className="px-3 py-1 rounded-lg bg-secondary border border-border mr-2"
                           onPress={() => openSource(item.pkg, 'latest')}
                         >
                           <Typography className="text-xs font-medium text-foreground">
                             Latest
                           </Typography>
                         </TouchableOpacity>
-                        <ChevronRight size={18} color="#94a3b8" />
+                        <ChevronRight size={16} color="#71717a" />
                       </TouchableOpacity>
                     </CardContent>
                   </Card>
@@ -348,12 +352,12 @@ export default function BrowseTab() {
       </View>
 
       {/* Search Bar inside this source */}
-      <View className="px-4 py-2 bg-card mx-4 mt-3 rounded-xl border border-border flex-row items-center">
-        <Search size={18} color="#94a3b8" />
+      <View className="px-3.5 py-1.5 bg-secondary/50 mx-4 mt-3 rounded-xl border border-border flex-row items-center">
+        <Search size={16} color="#71717a" />
         <TextInput
-          className="flex-1 ml-2 text-foreground py-2"
+          className="flex-1 ml-2 text-foreground py-2 text-sm"
           placeholder={`Search in ${activeExtension?.name || 'source'}...`}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#71717a"
           value={searchQuery}
           onChangeText={(text) => {
             setSearchQuery(text)
@@ -376,7 +380,7 @@ export default function BrowseTab() {
             }}
             className="p-1"
           >
-            <X size={16} color="#94a3b8" />
+            <X size={16} color="#71717a" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -393,9 +397,9 @@ export default function BrowseTab() {
                 fetchResults(activePkg, 'popular', '', 1, false)
               }
             }}
-            className={`px-4 py-1.5 rounded-full ${activeFeed === 'popular' ? 'bg-primary' : 'bg-card border border-border'}`}
+            className={`px-4 py-1.5 rounded-lg ${activeFeed === 'popular' ? 'bg-primary' : 'bg-card border border-border'}`}
           >
-            <Typography className={activeFeed === 'popular' ? 'text-white font-semibold text-sm' : 'text-foreground text-sm'}>
+            <Typography className={activeFeed === 'popular' ? 'text-white font-semibold text-xs' : 'text-muted-foreground font-medium text-xs'}>
               Popular
             </Typography>
           </TouchableOpacity>
@@ -408,9 +412,9 @@ export default function BrowseTab() {
                 fetchResults(activePkg, 'latest', '', 1, false)
               }
             }}
-            className={`px-4 py-1.5 rounded-full ${activeFeed === 'latest' ? 'bg-primary' : 'bg-card border border-border'}`}
+            className={`px-4 py-1.5 rounded-lg ${activeFeed === 'latest' ? 'bg-primary' : 'bg-card border border-border'}`}
           >
-            <Typography className={activeFeed === 'latest' ? 'text-white font-semibold text-sm' : 'text-foreground text-sm'}>
+            <Typography className={activeFeed === 'latest' ? 'text-white font-semibold text-xs' : 'text-muted-foreground font-medium text-xs'}>
               Latest
             </Typography>
           </TouchableOpacity>
@@ -494,17 +498,21 @@ export default function BrowseTab() {
                       />
                     ) : (
                       <View className="flex-1 items-center justify-center bg-card">
-                        <BookOpen size={24} color="#94a3b8" />
+                        <BookOpen size={24} color="#71717a" />
                       </View>
                     )}
-                    <View className="absolute bottom-0 left-0 right-0 p-1.5 bg-black/60">
+                    <LinearGradient
+                      colors={['transparent', 'rgba(9,9,11,0.55)', 'rgba(9,9,11,0.92)']}
+                      locations={[0, 0.45, 1]}
+                      className="absolute bottom-0 left-0 right-0 px-2 pb-2 pt-7"
+                    >
                       <Typography
-                        className="text-white text-xs font-semibold"
+                        className="text-white text-xs font-semibold leading-snug"
                         numberOfLines={2}
                       >
                         {norm.title}
                       </Typography>
-                    </View>
+                    </LinearGradient>
                   </Card>
                 </TouchableOpacity>
               )

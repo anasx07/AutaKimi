@@ -156,22 +156,22 @@ export default function BrowseIndexPage(): React.JSX.Element {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* 1. Media Type Switcher (Active for Sources and Extensions) */}
             {browseSection !== 'repositories' ? (
-              <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border/40 shrink-0 animate-in fade-in duration-200">
+              <div className="flex bg-secondary/60 p-1 rounded-lg border border-border shrink-0">
                 <button
                   type="button"
                   onClick={() => setBrowseMediaType('manga')}
                   className={cn(
-                    'flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-xs font-bold transition-all',
+                    'flex items-center justify-center gap-2 py-1.5 px-4 rounded-md text-xs font-medium transition-colors',
                     browseMediaType === 'manga'
-                      ? 'bg-background text-primary shadow-sm ring-1 ring-border/20 font-black'
+                      ? 'bg-card text-foreground shadow-sm border border-border font-semibold'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <BookOpen className="h-4 w-4" />
+                  <BookOpen className={cn('h-3.5 w-3.5', browseMediaType === 'manga' && 'text-primary')} />
                   <span>Manga</span>
                   <Badge
                     variant={browseMediaType === 'manga' ? 'default' : 'secondary'}
-                    className="h-4 px-1 text-[9px]"
+                    className="h-4 px-1.5 text-[10px]"
                   >
                     {mangaInstalled.length}
                   </Badge>
@@ -181,42 +181,42 @@ export default function BrowseIndexPage(): React.JSX.Element {
                   type="button"
                   onClick={() => setBrowseMediaType('anime')}
                   className={cn(
-                    'flex items-center justify-center gap-2 py-2 px-5 rounded-xl text-xs font-bold transition-all',
+                    'flex items-center justify-center gap-2 py-1.5 px-4 rounded-md text-xs font-medium transition-colors',
                     browseMediaType === 'anime'
-                      ? 'bg-background text-primary shadow-sm ring-1 ring-border/20 font-black'
+                      ? 'bg-card text-foreground shadow-sm border border-border font-semibold'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <Film className="h-4 w-4" />
+                  <Film className={cn('h-3.5 w-3.5', browseMediaType === 'anime' && 'text-primary')} />
                   <span>Anime</span>
                   <Badge
                     variant={browseMediaType === 'anime' ? 'default' : 'secondary'}
-                    className="h-4 px-1 text-[9px]"
+                    className="h-4 px-1.5 text-[10px]"
                   >
                     {animeInstalled.length}
                   </Badge>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-muted-foreground/80 bg-secondary/20 rounded-xl border border-border/30 w-fit">
-                <Globe className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground bg-secondary/40 rounded-lg border border-border w-fit">
+                <Globe className="h-3.5 w-3.5 text-primary" />
                 <span>Ecosystem Repositories & System Plugins</span>
               </div>
             )}
 
             {/* 2. Section Switcher (Sources vs Extensions vs Repositories) */}
-            <div className="flex bg-secondary/30 p-1 rounded-2xl border border-border/40 shrink-0">
+            <div className="flex bg-secondary/60 p-1 rounded-lg border border-border shrink-0">
               <button
                 type="button"
                 onClick={() => setBrowseSection('sources')}
                 className={cn(
-                  'flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all',
+                  'flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-md text-xs font-medium transition-colors',
                   browseSection === 'sources'
-                    ? 'bg-background text-primary shadow-sm ring-1 ring-border/20 font-black'
+                    ? 'bg-card text-foreground shadow-sm border border-border font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Compass className="h-4 w-4" />
+                <Compass className={cn('h-3.5 w-3.5', browseSection === 'sources' && 'text-primary')} />
                 <span>Sources</span>
               </button>
 
@@ -224,18 +224,18 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 type="button"
                 onClick={() => setBrowseSection('extensions')}
                 className={cn(
-                  'flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all relative',
+                  'flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-md text-xs font-medium transition-colors relative',
                   browseSection === 'extensions'
-                    ? 'bg-background text-primary shadow-sm ring-1 ring-border/20 font-black'
+                    ? 'bg-card text-foreground shadow-sm border border-border font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Package className="h-4 w-4" />
+                <Package className={cn('h-3.5 w-3.5', browseSection === 'extensions' && 'text-primary')} />
                 <span>Extensions</span>
                 {mediaUpdates.length > 0 && (
                   <Badge
                     variant="default"
-                    className="h-4 min-w-[16px] px-1 text-[9px] bg-primary animate-pulse"
+                    className="h-4 min-w-[16px] px-1 text-[10px] bg-primary"
                   >
                     {mediaUpdates.length}
                   </Badge>
@@ -246,22 +246,22 @@ export default function BrowseIndexPage(): React.JSX.Element {
                 type="button"
                 onClick={() => setBrowseSection('repositories')}
                 className={cn(
-                  'flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all relative',
+                  'flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-md text-xs font-medium transition-colors relative',
                   browseSection === 'repositories'
-                    ? 'bg-background text-primary shadow-sm ring-1 ring-border/20 font-black'
+                    ? 'bg-card text-foreground shadow-sm border border-border font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Globe className="h-4 w-4" />
+                <Globe className={cn('h-3.5 w-3.5', browseSection === 'repositories' && 'text-primary')} />
                 <span>Repositories</span>
                 {pluginUpdatesCount > 0 ? (
-                  <span className="h-4 px-1.5 text-[9px] rounded-full bg-amber-500 text-black font-black animate-pulse uppercase tracking-wider flex items-center justify-center">
+                  <span className="h-4 px-1.5 text-[10px] rounded-full bg-amber-500 text-black font-semibold flex items-center justify-center">
                     {pluginUpdatesCount} {pluginUpdatesCount === 1 ? 'update' : 'updates'}
                   </span>
                 ) : (
                   <Badge
                     variant={browseSection === 'repositories' ? 'default' : 'secondary'}
-                    className="h-4 px-1.5 text-[9px]"
+                    className="h-4 px-1.5 text-[10px]"
                   >
                     {repoCount}
                   </Badge>
@@ -388,7 +388,7 @@ export default function BrowseIndexPage(): React.JSX.Element {
             ) : (
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-10">
-                  {filteredSources.map((ext, idx) => {
+                  {filteredSources.map((ext) => {
                     const isPinned = (pinnedExtensions || []).includes(ext.pkg)
                     const isSupported = isFullySupported(ext)
                     const iconUrl =
@@ -403,18 +403,14 @@ export default function BrowseIndexPage(): React.JSX.Element {
                     return (
                       <Card
                         key={ext.pkg}
-                        style={{
-                          animationDelay: `${idx * 60}ms`,
-                          ...(repoColor ? { borderLeftWidth: 3, borderLeftColor: repoColor } : {})
-                        }}
-                        className={cn(
-                          'group p-5 bg-card/50 backdrop-blur-sm hover:bg-secondary/30 transition-all duration-300 hover:shadow-xl border-border/40 cursor-pointer',
-                          'animate-in fade-in slide-in-from-bottom-4'
-                        )}
+                        style={
+                          repoColor ? { borderLeftWidth: 3, borderLeftColor: repoColor } : undefined
+                        }
+                        className="group p-4 bg-card hover:bg-secondary/30 hover:border-primary/40 transition-colors duration-150 border-border cursor-pointer rounded-xl"
                         onClick={() => navigate(`/browse/${ext.pkg}`)}
                       >
-                        <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20 overflow-hidden group-hover:scale-105 transition-transform shrink-0">
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-12 h-12 rounded-xl bg-secondary/60 flex items-center justify-center border border-border overflow-hidden shrink-0">
                             <img
                               src={iconUrl}
                               alt={ext.name}

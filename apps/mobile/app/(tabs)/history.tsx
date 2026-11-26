@@ -191,15 +191,17 @@ export default function HistoryTab() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#e11d48" />
         </View>
       ) : entries.length === 0 ? (
         <View className="flex-1 items-center justify-center p-8">
-          <Clock size={48} color="#94a3b8" />
-          <Typography variant="h2" className="text-center mt-4">
+          <View className="w-16 h-16 rounded-2xl bg-secondary border border-border items-center justify-center mb-4">
+            <Clock size={28} color="#e11d48" />
+          </View>
+          <Typography variant="h2" className="text-center">
             No reading history
           </Typography>
-          <Typography variant="muted" className="text-center mt-2 px-8">
+          <Typography variant="muted" className="text-center mt-1.5 px-8">
             Your recently read chapters will appear here.
           </Typography>
         </View>
@@ -218,7 +220,7 @@ export default function HistoryTab() {
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           renderItem={({ item: [dateLabel, dateEntries] }) => (
             <View className="mb-4">
-              <Typography className="font-semibold text-sm text-muted-foreground uppercase tracking-widest mb-2 px-1">
+              <Typography className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2 px-1">
                 {dateLabel}
               </Typography>
               <View className="bg-card rounded-xl border border-border overflow-hidden">
@@ -289,7 +291,7 @@ export default function HistoryTab() {
                           className="p-2"
                           onPress={() => continueReading(entry)}
                         >
-                          <Play size={18} color="#3b82f6" fill="#3b82f6" />
+                          <Play size={18} color="#e11d48" fill="#e11d48" />
                         </TouchableOpacity>
                         <TouchableOpacity
                           className="p-2"

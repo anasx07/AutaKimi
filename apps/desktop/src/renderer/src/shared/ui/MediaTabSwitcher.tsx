@@ -12,7 +12,7 @@ export function MediaTabSwitcher({ activeTab, onTabChange, className }: MediaTab
   return (
     <div
       className={cn(
-        'relative flex items-center bg-secondary/50 p-1 rounded-xl w-fit border border-border/40',
+        'relative flex items-center bg-secondary/60 p-1 rounded-lg w-fit border border-border',
         className
       )}
     >
@@ -20,36 +20,36 @@ export function MediaTabSwitcher({ activeTab, onTabChange, className }: MediaTab
         type="button"
         onClick={() => onTabChange('manga')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-xs font-bold transition-colors duration-200 select-none focus:outline-none',
-          activeTab === 'manga' ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'
+          'relative z-10 flex items-center justify-center gap-2 h-8 px-4 rounded-md text-xs font-medium transition-colors duration-150 select-none focus:outline-none',
+          activeTab === 'manga' ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
         )}
       >
         {activeTab === 'manga' && (
           <motion.div
             layoutId="activeMediaTabPill"
-            className="absolute inset-0 bg-card rounded-lg shadow-sm border border-border/50 -z-10"
-            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+            className="absolute inset-0 bg-card rounded-md shadow-sm border border-border -z-10"
+            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
           />
         )}
-        <BookOpen className="w-3.5 h-3.5" />
+        <BookOpen className={cn('w-3.5 h-3.5', activeTab === 'manga' && 'text-primary')} />
         <span>Manga</span>
       </button>
       <button
         type="button"
         onClick={() => onTabChange('anime')}
         className={cn(
-          'relative z-10 flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-xs font-bold transition-colors duration-200 select-none focus:outline-none',
-          activeTab === 'anime' ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'
+          'relative z-10 flex items-center justify-center gap-2 h-8 px-4 rounded-md text-xs font-medium transition-colors duration-150 select-none focus:outline-none',
+          activeTab === 'anime' ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
         )}
       >
         {activeTab === 'anime' && (
           <motion.div
             layoutId="activeMediaTabPill"
-            className="absolute inset-0 bg-card rounded-lg shadow-sm border border-border/50 -z-10"
-            transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+            className="absolute inset-0 bg-card rounded-md shadow-sm border border-border -z-10"
+            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
           />
         )}
-        <Play className="w-3.5 h-3.5" />
+        <Play className={cn('w-3.5 h-3.5', activeTab === 'anime' && 'text-primary')} />
         <span>Anime</span>
       </button>
     </div>

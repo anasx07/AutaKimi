@@ -191,10 +191,7 @@ export default function HistoryPage(): React.JSX.Element {
                       index={idx}
                       onClick={() => handleEntryClick(entry)}
                       badge={
-                        <Badge
-                          variant="secondary"
-                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
-                        >
+                        <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
                           {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
                           {entry.chapterTitle || entry.chapterId}
                         </Badge>
@@ -233,10 +230,7 @@ export default function HistoryPage(): React.JSX.Element {
                       index={idx}
                       onClick={() => handleEntryClick(entry)}
                       badge={
-                        <Badge
-                          variant="secondary"
-                          className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider"
-                        >
+                        <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
                           {activeTab === 'anime' ? 'Ep. ' : 'Ch. '}
                           {entry.chapterTitle || entry.chapterId}
                         </Badge>

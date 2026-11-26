@@ -345,14 +345,14 @@ export default function ExtensionsPage({
           onClick={() => isInstalled && !isInstalling && handleBrowse()}
           style={repoColor ? { borderLeftWidth: 3, borderLeftColor: repoColor } : undefined}
           className={cn(
-            'group relative flex flex-col h-full bg-card/40 border-border/40 hover:border-primary/30 transition-all duration-300 rounded-2xl overflow-hidden',
+            'group relative flex flex-col h-full bg-card border-border hover:border-primary/40 transition-colors duration-150 rounded-xl overflow-hidden',
             isInstalled && !isInstalling && 'cursor-pointer hover:bg-secondary/20',
-            isPinned && 'ring-1 ring-primary/20 bg-primary/[0.02]'
+            isPinned && 'ring-1 ring-primary/30'
           )}
         >
-          <div className="p-4 flex gap-4 items-start">
+          <div className="p-4 flex gap-3.5 items-start">
             <div className="relative shrink-0">
-              <div className="w-14 h-14 rounded-2xl bg-secondary/30 border border-border/50 overflow-hidden flex items-center justify-center p-2 shadow-sm group-hover:scale-105 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-secondary/50 border border-border overflow-hidden flex items-center justify-center p-1.5">
                 <img
                   src={iconUrl}
                   alt={ext.name}
@@ -365,7 +365,7 @@ export default function ExtensionsPage({
                 />
               </div>
               {isInstalled && (
-                <div className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1 border-2 border-background shadow-sm">
+                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 border-2 border-card">
                   <ShieldCheck className="w-3 h-3" />
                 </div>
               )}
@@ -375,20 +375,20 @@ export default function ExtensionsPage({
               <div className="flex items-start justify-between gap-1">
                 <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                    <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
                       {ext.name}
                     </h3>
                     {isFullySupported(ext) ? (
                       <Badge
                         variant="secondary"
-                        className="text-[8px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-black tracking-tighter shrink-0"
+                        className="text-[10px] px-1.5 h-4 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-medium shrink-0"
                       >
                         Supported
                       </Badge>
                     ) : (
                       <Badge
                         variant="secondary"
-                        className="text-[8px] px-1.5 h-4 bg-amber-500/10 text-amber-500/80 border-amber-500/20 uppercase font-bold tracking-tighter shrink-0"
+                        className="text-[10px] px-1.5 h-4 bg-amber-500/10 text-amber-500 border-amber-500/20 font-medium shrink-0"
                       >
                         WIP
                       </Badge>
@@ -396,7 +396,7 @@ export default function ExtensionsPage({
                     {ext.pkg === 'ma.autakimi.extension.ar.mangasid' && (
                       <Badge
                         variant="default"
-                        className="bg-primary/90 text-[8px] h-4 px-1.5 uppercase font-black tracking-tighter shadow-md shadow-primary/20 animate-in zoom-in duration-500 shrink-0"
+                        className="bg-primary text-[10px] h-4 px-1.5 font-medium shrink-0"
                       >
                         Recommended
                       </Badge>

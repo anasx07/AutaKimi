@@ -92,20 +92,23 @@ export function Sidebar({
     <aside
       ref={asideRef}
       className={cn(
-        'glass-panel relative flex flex-col transition-all duration-500 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] z-40',
-        isSidebarCollapsed ? 'w-20' : 'w-64'
+        'relative flex flex-col bg-card/70 border-r border-border transition-[width] duration-200 ease-out z-40 shrink-0',
+        isSidebarCollapsed ? 'w-[70px]' : 'w-60'
       )}
     >
       <div
         className={cn(
-          'p-6 flex items-center justify-between',
-          isSidebarCollapsed && 'px-4 justify-center'
+          'px-5 py-4 flex items-center justify-between',
+          isSidebarCollapsed && 'px-3 justify-center'
         )}
       >
         {!isSidebarCollapsed && (
-          <h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-rose-400 bg-clip-text text-transparent animate-in fade-in duration-500 pr-2 inline-block">
-            AutaKimi
-          </h2>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+            <h2 className="text-base font-bold tracking-tight text-foreground truncate select-none">
+              AutaKimi
+            </h2>
+          </div>
         )}
         <button
           type="button"
@@ -122,7 +125,7 @@ export function Sidebar({
 
       <nav
         onScroll={() => setHoveredCapsule(null)}
-        className="flex-1 px-3 space-y-2 overflow-y-auto no-scrollbar"
+        className="flex-1 px-2.5 space-y-1 overflow-y-auto no-scrollbar"
       >
         {sidebarItems.map((item) => {
           const Icon = item.icon
@@ -163,32 +166,28 @@ export function Sidebar({
               }}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center w-full rounded-xl text-sm font-medium transition-all group relative border border-transparent',
-                  isSidebarCollapsed ? 'justify-center py-3' : 'px-4 py-2.5 gap-3',
+                  'flex items-center w-full rounded-lg text-[13px] font-medium transition-colors duration-150 group relative border',
+                  isSidebarCollapsed ? 'justify-center py-2.5' : 'px-3 py-2 gap-3',
                   isActive
-                    ? 'glass-card aura-glow text-primary'
-                    : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground hover:translate-x-1'
+                    ? 'bg-secondary/80 border-border text-foreground font-semibold'
+                    : 'border-transparent text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
                 )
               }
             >
               {({ isActive }) => (
                 <>
+                  {isActive && !isSidebarCollapsed && (
+                    <div className="absolute left-0 w-[3px] h-4 bg-primary rounded-r-full" />
+                  )}
                   <Icon
                     className={cn(
-                      'h-5 w-5 transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]',
+                      'h-[18px] w-[18px] shrink-0 transition-colors duration-150',
                       isActive
-                        ? 'text-primary [filter:drop-shadow(0_0_5px_hsl(var(--primary)/0.6))] scale-110'
-                        : 'text-muted-foreground group-hover:text-foreground group-hover:scale-110'
+                        ? 'text-primary'
+                        : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
-                  {!isSidebarCollapsed && (
-                    <span className="truncate animate-in fade-in slide-in-from-left-2 duration-300">
-                      {item.label}
-                    </span>
-                  )}
-                  {isActive && !isSidebarCollapsed && (
-                    <div className="absolute -left-1 w-1 h-5 bg-primary rounded-full shadow-[0_0_10px_hsl(var(--primary))] animate-in fade-in duration-500" />
-                  )}
+                  {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
                 </>
               )}
             </NavLink>
@@ -196,16 +195,16 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Floating Capsule Pill on Hover in Collapsed Mode (outside overflow-y-auto nav to prevent clipping) */}
+      {/* Floating Tooltip on Hover in Collapsed Mode (outside overflow-y-auto nav to prevent clipping) */}
       {isSidebarCollapsed && hoveredCapsule && (
         <div
           role="tooltip"
           style={{ top: hoveredCapsule.top }}
           className={cn(
-            'pointer-events-none absolute left-[calc(100%+12px)] -translate-y-1/2 z-50 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-xl border backdrop-blur-xl animate-in fade-in slide-in-from-left-2 duration-150',
+            'pointer-events-none absolute left-[calc(100%+10px)] -translate-y-1/2 z-50 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap shadow-lg border',
             hoveredCapsule.isActive
-              ? 'bg-primary text-primary-foreground border-primary/50 shadow-primary/25'
-              : 'bg-popover/95 text-popover-foreground border-border/80'
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-popover text-popover-foreground border-border'
           )}
         >
           {hoveredCapsule.label}
@@ -214,7 +213,7 @@ export function Sidebar({
 
       <div
         className={cn(
-          'p-4 border-t border-border mt-auto flex items-center gap-3',
+          'p-3.5 border-t border-border mt-auto flex items-center gap-2.5',
           isSidebarCollapsed && 'justify-center px-2'
         )}
       >
@@ -225,7 +224,7 @@ export function Sidebar({
             const asideRect = asideRef.current.getBoundingClientRect()
             setHoveredCapsule({
               id: '__profile__',
-              label: `Local User • v${DataService.version}`,
+              label: `Local User · v${DataService.version}`,
               top: rect.top - asideRect.top + rect.height / 2,
               isActive: false
             })
@@ -233,18 +232,14 @@ export function Sidebar({
           onMouseLeave={() => {
             setHoveredCapsule((prev) => (prev?.id === '__profile__' ? null : prev))
           }}
-          className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-secondary/40 shrink-0 group hover:ring-2 ring-primary/20 transition-all cursor-pointer"
+          className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-secondary/60 border border-border shrink-0 cursor-pointer"
         >
-          <img
-            src={appIcon}
-            className="w-6 h-6 object-contain group-hover:scale-110 transition-transform"
-            alt="Logo"
-          />
+          <img src={appIcon} className="w-5 h-5 object-contain" alt="Logo" />
         </div>
         {!isSidebarCollapsed && (
-          <div className="flex-1 min-w-0 animate-in fade-in duration-500">
-            <p className="text-xs font-bold text-foreground truncate">Local User</p>
-            <p className="text-[10px] text-muted-foreground font-medium">v{DataService.version}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">Local User</p>
+            <p className="text-[11px] text-muted-foreground">v{DataService.version}</p>
           </div>
         )}
       </div>

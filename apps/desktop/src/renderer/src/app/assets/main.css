@@ -31,63 +31,35 @@
     margin-bottom: var(--safe-area-inset-bottom);
   }
 
-  /* Aura Design System Utilities */
+  /* Clean Surface Utilities */
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-xl;
+    @apply bg-card/95 backdrop-blur-md border border-border shadow-md;
   }
-  
+
   .glass-card {
-    @apply bg-card/40 backdrop-blur-md border border-border/40 hover:border-primary/40 transition-all duration-300;
+    @apply bg-card border border-border hover:border-primary/40 transition-colors duration-150;
   }
 
   .glass-card-specular {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50;
-    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.12), 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+    @apply bg-card border border-border shadow-sm;
   }
 
   .aura-shimmer {
     position: relative;
-    overflow: hidden;
-  }
-  
-  .aura-shimmer::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -100%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      60deg,
-      transparent,
-      rgba(255, 255, 255, 0.03) 40%,
-      rgba(255, 255, 255, 0.08) 50%,
-      rgba(255, 255, 255, 0.03) 60%,
-      transparent
-    );
-    transform: rotate(25deg);
-    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-    pointer-events: none;
-  }
-
-  .aura-shimmer:hover::after,
-  .group:hover .aura-shimmer::after,
-  .group:hover.aura-shimmer::after {
-    transform: translateX(100%) rotate(25deg);
   }
 
   .aura-glow {
-    box-shadow: 0 0 15px -2px hsl(var(--primary) / 0.15);
+    @apply shadow-sm;
   }
-  
+
   .aura-glow-hover:hover {
-    box-shadow: 0 0 25px -5px hsl(var(--primary) / 0.25);
+    @apply shadow-md;
   }
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 240 5% 97.5%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -95,16 +67,16 @@
     --popover-foreground: 240 10% 3.9%;
     --primary: 350 89% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4.8% 95.9%;
+    --secondary: 240 4.8% 94%;
     --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
+    --muted: 240 4.8% 94%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
+    --accent: 240 4.8% 94%;
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --border: 240 5.9% 89%;
+    --input: 240 5.9% 89%;
     --ring: 350 84% 54%;
     --radius: 0.5rem;
   }
@@ -112,22 +84,22 @@
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 6% 7%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 6% 9%;
     --popover-foreground: 0 0% 98%;
     --primary: 350 89% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 4% 14%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
+    --muted: 240 4% 12%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --accent: 240 4% 14%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
     --ring: 350 84% 58%;
   }
 }
