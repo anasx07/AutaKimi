@@ -3,7 +3,7 @@
     "name": "AutaKimi",
     "slug": "autakimi",
     "scheme": "autakimi",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.codixy.autakimi"
     },
     "android": {
-      "versionCode": 223,
+      "versionCode": 224,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
