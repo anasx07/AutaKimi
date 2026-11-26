@@ -171,7 +171,7 @@ export default function CfBypassScreen() {
         ) : status === 'error' ? (
           <AlertTriangle size={18} color="#ef4444" />
         ) : (
-          <Shield size={18} color="#3b82f6" />
+          <Shield size={18} color="#e11d48" />
         )}
         <Typography className={`ml-2 text-sm flex-1 ${status === 'solved' ? 'text-green-400' : status === 'error' ? 'text-red-400' : ''}`}>
           {status === 'loading' ? 'Loading challenge...' :

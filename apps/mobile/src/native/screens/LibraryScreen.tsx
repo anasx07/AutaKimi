@@ -116,15 +116,15 @@ export const LibraryScreen = () => {
       <View className="flex-1">
         {isLoading && allItems.length === 0 ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#3b82f6" />
+            <ActivityIndicator size="large" color="#e11d48" />
           </View>
         ) : allItems.length === 0 ? (
           <View className="flex-1 items-center justify-center p-8">
-            <View className="bg-primary/10 p-6 rounded-full mb-4">
+            <View className="bg-secondary border border-border p-4 rounded-2xl mb-4">
               {activeTab === 'manga' ? (
-                <BookOpen size={48} color="#3b82f6" />
+                <BookOpen size={32} color="#e11d48" />
               ) : (
-                <Play size={48} color="#3b82f6" />
+                <Play size={32} color="#e11d48" />
               )}
             </View>
             <Typography variant="h2" className="text-center">

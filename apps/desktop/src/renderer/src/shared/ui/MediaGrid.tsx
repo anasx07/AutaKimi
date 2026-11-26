@@ -12,7 +12,7 @@ export function MediaGrid({ children, className }: MediaGridProps) {
   return (
     <div
       className={cn(
-        'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 items-start content-start',
+        'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 items-start content-start',
         className
       )}
     >
@@ -47,8 +47,7 @@ export function MediaGridItem({
   footerBadge,
   sourceName,
   sourceColor,
-  className,
-  index = 0
+  className
 }: MediaGridItemProps) {
   const Icon = mediaType === 'anime' ? Play : BookOpen
   const [imgError, setImgError] = useState(false)
@@ -61,29 +60,27 @@ export function MediaGridItem({
     <Card
       onClick={onClick}
       className={cn(
-        'group relative cursor-pointer overflow-hidden glass-card aura-shimmer hover:-translate-y-2 hover:aura-glow-hover transition-all duration-500 rounded-2xl',
-        'animate-in fade-in slide-in-from-bottom-6',
+        'group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-card hover:border-primary/50 hover:shadow-md transition-colors duration-150',
         className
       )}
-      style={{ animationDelay: `${Math.min(index * 40, 400)}ms` }}
     >
-      <div className="aspect-[3/4] relative overflow-hidden bg-secondary/10">
+      <div className="aspect-[3/4] relative overflow-hidden bg-secondary/40">
         {coverUrl && !imgError ? (
           <img
             src={coverUrl}
             alt={title}
             referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 ease-out"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-secondary/40 via-secondary/10 to-primary/10 select-none text-center">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 transition-transform duration-500">
-              <Icon className="h-6 w-6 text-primary/70" />
+          <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-secondary/30 select-none text-center">
+            <div className="w-10 h-10 rounded-xl bg-secondary border border-border flex items-center justify-center mb-2">
+              <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
             <span
-              className="text-[11px] font-bold line-clamp-2 text-foreground/75 leading-tight px-1 uppercase tracking-tight"
+              className="text-xs font-medium line-clamp-2 text-muted-foreground leading-snug px-1"
               dir="auto"
             >
               {title}
@@ -94,7 +91,7 @@ export function MediaGridItem({
         {/* Top-left Extension Source Pill */}
         {sourceName && (
           <div className="pointer-events-none absolute top-2 left-2 right-2 z-20 flex items-center">
-            <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-black/70 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white/95 backdrop-blur-md border border-white/10 shadow-sm">
+            <span className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-medium text-white/95 border border-white/10">
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{ backgroundColor: sourceColor || 'hsl(var(--primary))' }}
@@ -104,47 +101,34 @@ export function MediaGridItem({
           </div>
         )}
 
-        {/* Premium Edge Lighting (Inset Shadow) */}
-        <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.2)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        {/* Elegant metadata reveal (Glass Frost) */}
+        {/* Subtle description reveal on hover */}
         {description && (
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4 border-t border-white/10 translate-y-4 group-hover:translate-y-0">
-            <p
-              className="text-[10px] text-white/90 line-clamp-4 leading-relaxed font-medium drop-shadow-md"
-              dir="auto"
-            >
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/65 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 pt-8">
+            <p className="text-[11px] text-white/90 line-clamp-3 leading-snug" dir="auto">
               {description}
             </p>
           </div>
         )}
-
-        {/* Fallback glow for sites without description */}
-        {!description && (
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        )}
       </div>
 
-      <CardContent className="p-3.5 bg-card/40 backdrop-blur-md relative z-10">
+      <CardContent className="p-3 bg-card border-t border-border/50 relative z-10">
         <h3
-          className="font-bold text-[13px] line-clamp-1 group-hover:text-primary transition-colors leading-snug"
+          className="font-semibold text-[13px] line-clamp-1 group-hover:text-primary transition-colors leading-snug"
           dir="auto"
         >
           {title}
         </h3>
-        <div className="flex items-center justify-between mt-1.5 min-h-[1.2rem]">
-          <div className="flex items-center gap-2 text-[9px] text-muted-foreground uppercase tracking-[0.1em] font-black opacity-60 group-hover:opacity-100 transition-all overflow-hidden truncate">
+        <div className="flex items-center justify-between mt-1 min-h-[1.1rem]">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium overflow-hidden truncate">
             {badge ||
               (status && (
                 <div className="flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-primary/40" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
                   <span className="truncate">{status}</span>
                 </div>
               ))}
           </div>
-          <div className="transform scale-90 origin-right transition-transform group-hover:scale-100">
-            {footerBadge}
-          </div>
+          {footerBadge && <div className="shrink-0">{footerBadge}</div>}
         </div>
       </CardContent>
     </Card>

@@ -13,12 +13,12 @@ export const Typography: React.FC<TypographyProps> = ({
 }) => {
   const baseClasses = 'text-foreground'
   const variants = {
-    h1: 'text-3xl font-bold',
-    h2: 'text-2xl font-semibold',
-    h3: 'text-xl font-medium',
-    body: 'text-base',
-    small: 'text-sm',
-    muted: 'text-sm text-muted-foreground'
+    h1: 'text-2xl font-bold tracking-tight',
+    h2: 'text-xl font-semibold tracking-tight',
+    h3: 'text-base font-semibold',
+    body: 'text-sm',
+    small: 'text-xs',
+    muted: 'text-xs text-muted-foreground'
   }
 
   return (

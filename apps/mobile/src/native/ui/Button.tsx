@@ -50,10 +50,11 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
+      activeOpacity={0.75}
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50' : ''} ${className}`}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? '#000' : '#fff'} />
+        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? '#e11d48' : '#fff'} />
       ) : (
         <>
           {icon && <View className="mr-2">{icon}</View>}

@@ -171,11 +171,11 @@ export default function AnimePage(): React.JSX.Element {
       {!activePkg ? (
         /* Source Selection */
         <ScrollView className="flex-1 px-4 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
-          <Typography variant="small" className="text-muted-foreground uppercase font-bold tracking-widest mb-4 px-2">
+          <Typography variant="small" className="text-muted-foreground uppercase font-semibold tracking-wide mb-3 px-1">
             Select an Anime Source
           </Typography>
           {extensionsLoading ? (
-            <ActivityIndicator size="large" color="#3b82f6" className="mt-20" />
+            <ActivityIndicator size="large" color="#e11d48" className="mt-20" />
           ) : (
             ANIME_SOURCES.map((source) => {
               const isInstalled = extensions.some((e: any) => e.pkg === source.pkg)
@@ -187,9 +187,9 @@ export default function AnimePage(): React.JSX.Element {
                   disabled={!isInstalled}
                 >
                   <Card>
-                    <View className="flex-row items-center gap-4 p-4">
-                      <View className="w-12 h-12 rounded-xl bg-secondary items-center justify-center">
-                        <Play size={24} color={isInstalled ? '#3b82f6' : '#94a3b8'} />
+                    <View className="flex-row items-center gap-3.5 p-4">
+                      <View className="w-11 h-11 rounded-xl bg-secondary border border-border items-center justify-center">
+                        <Play size={20} color={isInstalled ? '#e11d48' : '#71717a'} />
                       </View>
                       <View className="flex-1">
                         <View className="flex-row items-center gap-2">

@@ -140,20 +140,20 @@ export default function SyncPage() {
         
         {/* Overlay */}
         <View className="absolute inset-0 items-center justify-center">
-          <View className="w-64 h-64 border-2 border-primary rounded-3xl items-center justify-center bg-black/20">
-             {isConnecting && <RefreshCw size={48} color="#3b82f6" className="animate-spin" />}
+          <View className="w-64 h-64 border-2 border-primary rounded-2xl items-center justify-center bg-black/20">
+             {isConnecting && <RefreshCw size={44} color="#e11d48" className="animate-spin" />}
           </View>
-          <Typography className="text-white font-bold mt-10 bg-black/60 px-6 py-2 rounded-full uppercase tracking-widest text-xs">
+          <Typography className="text-white font-semibold mt-8 bg-black/70 px-5 py-2 rounded-full text-xs">
             Scan Pairing QR Code
           </Typography>
         </View>
 
         {/* Instructions */}
         <View className="absolute bottom-10 left-6 right-6">
-           <Card className="bg-background/90 border-primary/20">
+           <Card className="bg-background/95 border-border">
              <CardContent className="flex-row items-center gap-4">
-                <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center">
-                  <Smartphone size={24} color="#3b82f6" />
+                <View className="w-11 h-11 rounded-xl bg-primary/10 items-center justify-center">
+                  <Smartphone size={22} color="#e11d48" />
                 </View>
                 <View className="flex-1">
                   <Typography className="font-bold text-sm">Open Desktop Settings</Typography>

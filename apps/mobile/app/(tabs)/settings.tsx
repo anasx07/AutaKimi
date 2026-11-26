@@ -203,7 +203,7 @@ export default function SettingsTab() {
             >
               {opt.label}
             </Typography>
-            {currentValue === opt.value && <Check size={16} color="#3b82f6" />}
+            {currentValue === opt.value && <Check size={16} color="#e11d48" />}
           </TouchableOpacity>
         ))}
       </View>
@@ -231,8 +231,8 @@ export default function SettingsTab() {
         {/* Reader */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
-            <BookOpen size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <BookOpen size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Reader
             </Typography>
           </View>
@@ -257,8 +257,8 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("auto_mark_read", v ? "true" : "false")
                 }
-                trackColor={{ false: "#334155", true: "#3b82f680" }}
-                thumbColor={boolVal("auto_mark_read") ? "#3b82f6" : "#64748b"}
+                trackColor={{ false: "#27272a", true: "#e11d4880" }}
+                thumbColor={boolVal("auto_mark_read") ? "#e11d48" : "#71717a"}
               />
             </View>
             <View className="border-t border-border/50" />
@@ -269,7 +269,7 @@ export default function SettingsTab() {
                 {
                   label: "Match App",
                   value: "match-app",
-                  icon: <Smartphone size={16} color="#94a3b8" />,
+                  icon: <Smartphone size={16} color="#71717a" />,
                 },
                 {
                   label: "Light",
@@ -279,7 +279,7 @@ export default function SettingsTab() {
                 {
                   label: "Dark",
                   value: "dark",
-                  icon: <Moon size={16} color="#3b82f6" />,
+                  icon: <Moon size={16} color="#e11d48" />,
                 },
               ]}
               onSelect={(v) => set("reader_theme", v)}
@@ -318,8 +318,8 @@ export default function SettingsTab() {
         {/* Display */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
-            <Eye size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Eye size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Display
             </Typography>
           </View>
@@ -331,7 +331,7 @@ export default function SettingsTab() {
                 {
                   label: "System",
                   value: "system",
-                  icon: <Monitor size={16} color="#94a3b8" />,
+                  icon: <Monitor size={16} color="#71717a" />,
                 },
                 {
                   label: "Light",
@@ -341,7 +341,7 @@ export default function SettingsTab() {
                 {
                   label: "Dark",
                   value: "dark",
-                  icon: <Moon size={16} color="#3b82f6" />,
+                  icon: <Moon size={16} color="#e11d48" />,
                 },
               ]}
               onSelect={(v) => set("theme", v)}
@@ -367,8 +367,8 @@ export default function SettingsTab() {
               <Switch
                 value={boolVal("showNsfw")}
                 onValueChange={(v) => set("showNsfw", v ? "true" : "false")}
-                trackColor={{ false: "#334155", true: "#3b82f680" }}
-                thumbColor={boolVal("showNsfw") ? "#3b82f6" : "#64748b"}
+                trackColor={{ false: "#27272a", true: "#e11d4880" }}
+                thumbColor={boolVal("showNsfw") ? "#e11d48" : "#71717a"}
               />
             </View>
           </Card>
@@ -377,8 +377,8 @@ export default function SettingsTab() {
         {/* Downloads */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
-            <Download size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Download size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Downloads
             </Typography>
           </View>
@@ -424,9 +424,9 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("smart_downloads_enabled", v ? "true" : "false")
                 }
-                trackColor={{ false: "#334155", true: "#3b82f680" }}
+                trackColor={{ false: "#27272a", true: "#e11d4880" }}
                 thumbColor={
-                  boolVal("smart_downloads_enabled") ? "#3b82f6" : "#64748b"
+                  boolVal("smart_downloads_enabled") ? "#e11d48" : "#71717a"
                 }
               />
             </View>
@@ -443,8 +443,8 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("autoNextAnime", v ? "true" : "false")
                 }
-                trackColor={{ false: "#334155", true: "#3b82f680" }}
-                thumbColor={boolVal("autoNextAnime") ? "#3b82f6" : "#64748b"}
+                trackColor={{ false: "#27272a", true: "#e11d4880" }}
+                thumbColor={boolVal("autoNextAnime") ? "#e11d48" : "#71717a"}
               />
             </View>
           </Card>
@@ -453,8 +453,8 @@ export default function SettingsTab() {
         {/* Data */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
-            <Database size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Database size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Data & Backup
             </Typography>
           </View>
@@ -485,7 +485,7 @@ export default function SettingsTab() {
               disabled={backupLoading}
             >
               <View className="flex-row items-center">
-                <Upload size={18} color="#3b82f6" />
+                <Upload size={18} color="#e11d48" />
                 <View className="ml-3">
                   <Typography className="font-medium">
                     {backupLoading
@@ -544,8 +544,8 @@ export default function SettingsTab() {
         {/* Navigate */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
-            <Menu size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Menu size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Navigate
             </Typography>
           </View>
@@ -559,7 +559,7 @@ export default function SettingsTab() {
                 <Typography variant="muted" className="text-xs">
                   Explore features
                 </Typography>
-                <ChevronRight size={16} color="#94a3b8" />
+                <ChevronRight size={16} color="#71717a" />
               </View>
             </TouchableOpacity>
           </Card>
@@ -568,8 +568,8 @@ export default function SettingsTab() {
         {/* About */}
         <View className="mt-6 px-4 mb-8">
           <View className="flex-row items-center mb-2 px-2">
-            <Info size={16} color="#94a3b8" />
-            <Typography className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Info size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               About
             </Typography>
           </View>

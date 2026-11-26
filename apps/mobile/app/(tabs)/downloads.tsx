@@ -77,9 +77,9 @@ export default function DownloadsTab() {
   const statusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle size={16} color="#22c55e" />
-      case 'downloading': return <Loader2 size={16} color="#3b82f6" />
+      case 'downloading': return <Loader2 size={16} color="#e11d48" />
       case 'error': return <AlertCircle size={16} color="#ef4444" />
-      default: return <Download size={16} color="#94a3b8" />
+      default: return <Download size={16} color="#71717a" />
     }
   }
 
@@ -103,15 +103,17 @@ export default function DownloadsTab() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#e11d48" />
         </View>
       ) : groupedEntries.length === 0 ? (
         <View className="flex-1 items-center justify-center p-8">
-          <Download size={48} color="#94a3b8" />
-          <Typography variant="h2" className="text-center mt-4">
+          <View className="w-16 h-16 rounded-2xl bg-secondary border border-border items-center justify-center mb-4">
+            <Download size={28} color="#e11d48" />
+          </View>
+          <Typography variant="h2" className="text-center">
             No downloads yet
           </Typography>
-          <Typography variant="muted" className="text-center mt-2 px-8">
+          <Typography variant="muted" className="text-center mt-1.5 px-8">
             Downloads will appear here when you save chapters for offline reading.
           </Typography>
         </View>

@@ -39,30 +39,30 @@ export function MobilePage({
     return (
       <div className={cn('flex flex-col h-full w-full', className)}>
         {(title || actions || headerExtra) && (
-          <div className="w-full max-w-7xl mx-auto px-6 pt-6 pb-2 shrink-0">
+          <div className="w-full max-w-7xl mx-auto px-6 pt-5 pb-3 shrink-0">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 {onBack && (
-                  <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 shrink-0">
-                    <ArrowLeft className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 shrink-0">
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
                 )}
                 <div className="flex flex-col min-w-0">
                   {title && (
-                    <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent italic pr-4 pb-1 inline-block overflow-visible select-none">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground truncate select-none">
                       {title}
                     </h1>
                   )}
                   {subtitle && (
-                    <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+                    <p className="text-muted-foreground text-xs mt-0.5 truncate">
                       {subtitle}
                     </p>
                   )}
                 </div>
               </div>
-              {actions && <div className="flex items-center gap-3">{actions}</div>}
+              {actions && <div className="flex items-center gap-2">{actions}</div>}
             </div>
-            {headerExtra && <div className="mt-4">{headerExtra}</div>}
+            {headerExtra && <div className="mt-3.5">{headerExtra}</div>}
           </div>
         )}
         <div
@@ -81,64 +81,58 @@ export function MobilePage({
 
   return (
     <div className={cn('flex flex-col h-full w-full overflow-hidden bg-background', className)}>
-      {/* Dynamic Kinetic Header (Mobile) */}
+      {/* Sticky Header (Mobile) */}
       {(title || actions || headerExtra) && (
-        <header 
+        <header
           className={cn(
-            'shrink-0 pt-safe transition-all duration-500 sticky top-0 z-40 border-b',
-            isScrolled ? 'glass-panel border-border/50' : 'bg-transparent border-transparent'
+            'shrink-0 pt-safe transition-colors duration-200 sticky top-0 z-40 border-b',
+            isScrolled ? 'bg-background/95 backdrop-blur-md border-border' : 'bg-transparent border-transparent'
           )}
         >
           {(title || actions) && (
-            <div className="px-4 h-14 flex items-center justify-between gap-4 relative">
+            <div className="px-4 h-13 flex items-center justify-between gap-4 relative">
               <div className="flex items-center gap-3 min-w-0 flex-1 z-10">
                 {onBack && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={onBack} 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onBack}
                     className={cn(
-                      "h-9 w-9 shrink-0 rounded-full transition-all",
-                      isScrolled ? "bg-secondary/40" : "bg-card/40 backdrop-blur-md"
+                      'h-9 w-9 shrink-0 rounded-lg transition-colors',
+                      isScrolled ? 'bg-secondary/60' : 'bg-card border border-border'
                     )}
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
                 )}
-                
+
                 {/* Compact Title (Visible on scroll) */}
-                <div 
-                  className="flex flex-col min-w-0 transition-opacity duration-300"
+                <div
+                  className="flex flex-col min-w-0 transition-opacity duration-200"
                   style={{ opacity: scrollProgress }}
                 >
-                  {title && <h1 className="text-sm font-black tracking-widest uppercase truncate">{title}</h1>}
+                  {title && <h1 className="text-sm font-semibold tracking-tight truncate">{title}</h1>}
                   {subtitle && (
-                    <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest opacity-60 truncate">
-                      {subtitle}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
                   )}
                 </div>
               </div>
-              
-              {/* Centered Large Title (Visible at top) */}
+
               {!onBack && (
-                 <div 
-                   className="absolute left-1/2 -translate-x-1/2 transition-all duration-300 pointer-events-none"
-                   style={{ 
-                     opacity: 1 - scrollProgress,
-                     transform: `scale(${1 - scrollProgress * 0.2}) translateY(${scrollProgress * 20}px)`
-                   }}
-                 >
-                   <h1 className="text-sm font-black tracking-[0.3em] uppercase opacity-20">{title}</h1>
-                 </div>
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 transition-opacity duration-200 pointer-events-none"
+                  style={{ opacity: 1 - scrollProgress }}
+                >
+                  <h1 className="text-xs font-medium text-muted-foreground">{title}</h1>
+                </div>
               )}
 
               {actions && <div className="flex items-center gap-2 shrink-0 z-10">{actions}</div>}
             </div>
           )}
           {headerExtra && (
-            <div 
-              className="px-4 pb-3 transition-all duration-300"
+            <div
+              className="px-4 pb-3 transition-opacity duration-200"
               style={{ opacity: 1 - scrollProgress * 0.5 }}
             >
               {headerExtra}
@@ -156,18 +150,16 @@ export function MobilePage({
           !title && !headerExtra && 'pt-safe'
         )}
       >
-        <div className="px-5 pb-4 flex flex-col flex-1">
-          {/* Large Header Title (Top of content) */}
+        <div className="px-4 pb-4 flex flex-col flex-1">
+          {/* Header Title (Top of content) */}
           {title && !isScrolled && (
-            <div className="pt-2 pb-6 animate-in fade-in slide-in-from-left-4 duration-700">
-               <h1 className="text-4xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/40 bg-clip-text text-transparent italic leading-[1.05] pr-4 pb-1 inline-block overflow-visible">
-                 {title}
-               </h1>
-               {subtitle && (
-                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-2 opacity-50">
-                    {subtitle}
-                 </p>
-               )}
+            <div className="pt-2 pb-4">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+              )}
             </div>
           )}
           

@@ -767,7 +767,7 @@ export default function PlayerScreen() {
       <View className="flex-1 items-center justify-center">
         {status === "loading" ? (
           <View className="items-center justify-center p-8">
-            <ActivityIndicator size="large" color="#3b82f6" />
+            <ActivityIndicator size="large" color="#e11d48" />
             <Typography className="text-white/60 mt-4 text-center font-medium">
               Loading video stream...
             </Typography>

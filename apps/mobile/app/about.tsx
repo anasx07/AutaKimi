@@ -76,7 +76,7 @@ export default function AboutPage(): React.JSX.Element {
               title="Join Discord"
               variant="outline"
               size="sm"
-              icon={<ExternalLink size={16} color="#3b82f6" />}
+              icon={<ExternalLink size={16} color="#e11d48" />}
               onPress={() => DataService.openExternal('https://discord.gg/qRbpCusgan')}
             />
           </View>
@@ -85,8 +85,8 @@ export default function AboutPage(): React.JSX.Element {
         {/* Features */}
         <View className="px-4 mb-2">
           <View className="flex-row items-center px-2 mb-2">
-            <Info size={16} color="#94a3b8" />
-            <Typography variant="small" className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Info size={16} color="#71717a" />
+            <Typography variant="small" className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Features
             </Typography>
           </View>
@@ -95,11 +95,11 @@ export default function AboutPage(): React.JSX.Element {
             return (
               <Card key={idx} className="mb-3">
                 <CardContent className="flex-row items-center gap-4">
-                  <View className="w-12 h-12 rounded-xl bg-secondary items-center justify-center">
-                    <Icon size={24} color="#3b82f6" />
+                  <View className="w-11 h-11 rounded-xl bg-secondary border border-border items-center justify-center">
+                    <Icon size={20} color="#e11d48" />
                   </View>
                   <View className="flex-1">
-                    <Typography className="font-bold text-base mb-1">{feature.title}</Typography>
+                    <Typography className="font-semibold text-sm mb-0.5">{feature.title}</Typography>
                     <Typography variant="muted">{feature.description}</Typography>
                   </View>
                 </CardContent>
@@ -111,8 +111,8 @@ export default function AboutPage(): React.JSX.Element {
         {/* Info & License */}
         <View className="px-4 mt-4">
           <View className="flex-row items-center px-2 mb-2">
-            <Shield size={16} color="#94a3b8" />
-            <Typography variant="small" className="ml-2 font-bold text-muted-foreground uppercase text-xs tracking-widest">
+            <Shield size={16} color="#71717a" />
+            <Typography variant="small" className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
               Project
             </Typography>
           </View>

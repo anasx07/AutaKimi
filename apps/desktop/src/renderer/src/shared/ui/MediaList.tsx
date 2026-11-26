@@ -38,8 +38,7 @@ export function MediaListItem({
   footerBadge,
   sourceName,
   sourceColor,
-  className,
-  index = 0
+  className
 }: MediaListItemProps) {
   const Icon = mediaType === 'anime' ? Play : BookOpen
 
@@ -47,31 +46,29 @@ export function MediaListItem({
     <Card
       onClick={onClick}
       className={cn(
-        'group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 hover:shadow-lg transition-all duration-300 hover:translate-x-1 bg-card/40 backdrop-blur-sm h-24 flex items-center',
-        'animate-in fade-in slide-in-from-left-4',
+        'group relative cursor-pointer overflow-hidden border-border hover:border-primary/40 hover:bg-secondary/20 transition-colors duration-150 bg-card h-20 flex items-center rounded-xl',
         className
       )}
-      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
-      <div className="h-full aspect-[3/4] relative overflow-hidden bg-secondary/20 shrink-0">
+      <div className="h-full aspect-[3/4] relative overflow-hidden bg-secondary/30 shrink-0">
         {coverUrl ? (
           <img
             src={coverUrl}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-200"
             loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Icon className="h-6 w-6 text-muted-foreground/30" />
+            <Icon className="h-5 w-5 text-muted-foreground/40" />
           </div>
         )}
       </div>
 
-      <CardContent className="flex-1 p-4 flex items-center justify-between min-w-0">
+      <CardContent className="flex-1 px-4 py-3 flex items-center justify-between min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
           <h3
-            className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors"
+            className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors"
             dir="auto"
           >
             {title}
@@ -80,7 +77,7 @@ export function MediaListItem({
             {sourceName && (
               <Badge
                 variant="secondary"
-                className="px-1.5 py-0 text-[10px] font-bold tracking-wide inline-flex items-center gap-1 bg-secondary/40 border border-border/50"
+                className="px-1.5 py-0 text-[10px] font-medium inline-flex items-center gap-1 bg-secondary border border-border"
               >
                 <span
                   className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -92,7 +89,7 @@ export function MediaListItem({
             {status && (
               <Badge
                 variant="secondary"
-                className="px-1.5 py-0 text-[10px] uppercase font-bold tracking-wider opacity-80"
+                className="px-1.5 py-0 text-[10px] font-medium opacity-90"
                 dir="auto"
               >
                 {status}

@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Typography, Card } from "@mobile/native/ui";
 import { BookOpen, Play, Search, LayoutGrid, List } from "lucide-react-native";
 import { normalizeManga } from "@common/utils/mangaNormalizer";
@@ -127,7 +128,7 @@ export default function LibraryTab() {
           onPress={() => openMangaDetails(item)}
           activeOpacity={0.8}
         >
-          <Card className="aspect-[2/3] w-full overflow-hidden rounded-xl border border-border/50">
+          <Card className="aspect-[2/3] w-full overflow-hidden rounded-xl border border-border">
             <Image
               source={{ uri: norm.coverUrl || undefined }}
               className="flex-1"
@@ -136,7 +137,7 @@ export default function LibraryTab() {
             />
             {src && (
               <View className="absolute top-1.5 left-1.5 right-1.5 flex-row items-center">
-                <View className="flex-row items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 max-w-full">
+                <View className="flex-row items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 max-w-full">
                   <View
                     style={{
                       width: 5,
@@ -146,7 +147,7 @@ export default function LibraryTab() {
                     }}
                   />
                   <Typography
-                    className="text-white text-[9px] font-bold"
+                    className="text-white text-[9px] font-semibold"
                     numberOfLines={1}
                   >
                     {src.name}
@@ -154,20 +155,24 @@ export default function LibraryTab() {
                 </View>
               </View>
             )}
-            <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/75">
+            <LinearGradient
+              colors={["transparent", "rgba(9,9,11,0.55)", "rgba(9,9,11,0.92)"]}
+              locations={[0, 0.45, 1]}
+              className="absolute bottom-0 left-0 right-0 px-2 pb-2 pt-8"
+            >
               <Typography
-                className="text-white text-xs font-bold"
+                className="text-white text-xs font-semibold leading-snug"
                 numberOfLines={2}
               >
                 {norm.title}
               </Typography>
               <Typography
-                className="text-white/70 text-[10px] mt-0.5 font-medium"
+                className="text-zinc-300 text-[10px] mt-0.5 font-medium"
                 numberOfLines={1}
               >
                 {chapterText}
               </Typography>
-            </View>
+            </LinearGradient>
           </Card>
         </TouchableOpacity>
       );
@@ -226,17 +231,17 @@ export default function LibraryTab() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <View className="px-5 pt-3 pb-3 flex-row items-center justify-between border-b border-border/40 bg-background">
+      <View className="px-4 pt-3 pb-2.5 flex-row items-center justify-between border-b border-border bg-background">
         <View>
           <Typography
             variant="h1"
-            className="text-2xl font-black tracking-tight text-foreground"
+            className="text-2xl font-bold tracking-tight text-foreground"
           >
             Library
           </Typography>
           <Typography
             variant="muted"
-            className="text-xs font-medium text-muted-foreground mt-0.5"
+            className="text-xs text-muted-foreground mt-0.5"
           >
             {allItems.length} {activeTab === "manga" ? "Manga" : "Anime"} saved
           </Typography>
@@ -244,7 +249,7 @@ export default function LibraryTab() {
         <View className="flex-row items-center gap-2">
           <TouchableOpacity
             onPress={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-            className="p-2.5 rounded-xl bg-secondary/50 border border-border/40"
+            className="p-2 rounded-lg bg-secondary/70 border border-border"
             activeOpacity={0.7}
           >
             {viewMode === "grid" ? (
@@ -255,7 +260,7 @@ export default function LibraryTab() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/browse")}
-            className="p-2.5 rounded-xl bg-secondary/50 border border-border/40"
+            className="p-2 rounded-lg bg-secondary/70 border border-border"
             activeOpacity={0.7}
           >
             <Search size={18} color={isDark ? "#e4e4e7" : "#3f3f46"} />
@@ -263,8 +268,8 @@ export default function LibraryTab() {
         </View>
       </View>
 
-      {/* Segmented Pill Media Switcher */}
-      <View className="mx-4 my-3 p-1 rounded-2xl bg-secondary/40 border border-border/40 flex-row">
+      {/* Segmented Media Switcher */}
+      <View className="mx-4 my-2.5 p-1 rounded-xl bg-secondary/60 border border-border flex-row">
         {(["manga", "anime"] as const).map((tab) => {
           const isActive = activeTab === tab;
           const count = tab === activeTab ? allItems.length : undefined;
@@ -272,29 +277,29 @@ export default function LibraryTab() {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl gap-2 border ${
+              className={`flex-1 flex-row items-center justify-center py-2 rounded-lg gap-2 border ${
                 isActive
-                  ? "bg-card border-border/60 shadow-sm"
+                  ? "bg-card border-border"
                   : "bg-transparent border-transparent"
               }`}
               activeOpacity={0.8}
             >
               {tab === "manga" ? (
                 <BookOpen
-                  size={16}
+                  size={15}
                   color={isActive ? "#e11d48" : isDark ? "#a1a1aa" : "#71717a"}
                 />
               ) : (
                 <Play
-                  size={16}
+                  size={15}
                   color={isActive ? "#e11d48" : isDark ? "#a1a1aa" : "#71717a"}
                 />
               )}
               <Typography
                 className={`text-xs capitalize ${
                   isActive
-                    ? "text-primary font-black"
-                    : "text-muted-foreground font-semibold"
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground font-medium"
                 }`}
               >
                 {tab}
@@ -302,10 +307,10 @@ export default function LibraryTab() {
               {count !== undefined && count > 0 ? (
                 <View
                   key={`count-${tab}`}
-                  className={`px-2 py-0.5 rounded-full ${isActive ? "bg-primary/10" : "bg-secondary"}`}
+                  className={`px-1.5 py-0.5 rounded-full ${isActive ? "bg-primary/15" : "bg-secondary"}`}
                 >
                   <Typography
-                    className={`text-[10px] font-bold ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                    className={`text-[10px] font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}
                   >
                     {count}
                   </Typography>
@@ -330,35 +335,33 @@ export default function LibraryTab() {
             key="empty-state"
             className="flex-1 items-center justify-center p-8"
           >
-            <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center border border-primary/20 mb-6">
-              <View className="w-16 h-16 rounded-full bg-primary/15 items-center justify-center">
-                {activeTab === "manga" ? (
-                  <BookOpen size={32} color="#e11d48" />
-                ) : (
-                  <Play size={32} color="#e11d48" style={{ marginLeft: 2 }} />
-                )}
-              </View>
+            <View className="w-16 h-16 rounded-2xl bg-secondary items-center justify-center border border-border mb-5">
+              {activeTab === "manga" ? (
+                <BookOpen size={28} color="#e11d48" />
+              ) : (
+                <Play size={28} color="#e11d48" style={{ marginLeft: 2 }} />
+              )}
             </View>
             <Typography
               variant="h2"
-              className="text-xl font-bold tracking-tight text-center text-foreground"
+              className="text-lg font-semibold tracking-tight text-center text-foreground"
             >
               No {activeTab === "manga" ? "Manga" : "Anime"} in Library
             </Typography>
             <Typography
               variant="muted"
-              className="text-center mt-2 px-6 text-sm leading-relaxed text-muted-foreground"
+              className="text-center mt-1.5 px-6 text-xs leading-relaxed text-muted-foreground"
             >
               Explore catalog sources to bookmark your favorite {activeTab}{" "}
               titles and track your progress.
             </Typography>
             <TouchableOpacity
               onPress={() => router.push("/browse")}
-              className="mt-8 px-6 py-3.5 rounded-xl bg-primary flex-row items-center gap-2.5 shadow-lg shadow-primary/30"
+              className="mt-6 px-5 py-3 rounded-xl bg-primary flex-row items-center gap-2"
               activeOpacity={0.8}
             >
-              <Search size={16} color="#ffffff" />
-              <Typography className="text-white font-bold text-sm tracking-wide">
+              <Search size={15} color="#ffffff" />
+              <Typography className="text-white font-semibold text-sm">
                 Browse Sources
               </Typography>
             </TouchableOpacity>

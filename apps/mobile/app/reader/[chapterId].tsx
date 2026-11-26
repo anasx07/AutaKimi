@@ -85,7 +85,7 @@ export default function ReaderChapterShimScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       {resolving ? (
         <View className="items-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#e11d48" />
           <Typography className="text-white/60 mt-4 text-sm">
             Opening reader...
           </Typography>

@@ -49,48 +49,31 @@ function SidebarItem({
       id={`settings-tab-${id}`}
       onClick={() => setActiveTab(id)}
       className={cn(
-        'w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden',
+        'w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors duration-150 group relative border',
         activeTab === id
-          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]'
-          : 'text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95'
+          ? 'bg-secondary border-border text-foreground font-semibold'
+          : 'border-transparent text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
       )}
     >
-      <div className="flex items-center gap-4 relative z-10">
+      <div className="flex items-center gap-3 min-w-0">
         <div
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300',
+            'w-8 h-8 rounded-md flex items-center justify-center transition-colors duration-150 shrink-0',
             activeTab === id
-              ? 'bg-white/20 rotate-12 scale-110'
-              : 'bg-secondary group-hover:bg-muted'
+              ? 'bg-primary/15 text-primary'
+              : 'bg-secondary/70 text-muted-foreground group-hover:text-foreground'
           )}
         >
-          <Icon
-            className={cn(
-              'h-5 w-5',
-              activeTab === id ? 'animate-pulse' : 'group-hover:scale-110 transition-transform'
-            )}
-          />
+          <Icon className="h-4 w-4" />
         </div>
-        <span
-          className={cn(
-            'font-bold tracking-tight uppercase text-xs',
-            activeTab === id ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
-          )}
-        >
-          {label}
-        </span>
+        <span className="text-[13px] truncate">{label}</span>
       </div>
       <ChevronRight
         className={cn(
-          'h-4 w-4 transition-all duration-300',
-          activeTab === id
-            ? 'translate-x-0 opacity-50'
-            : '-translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-50'
+          'h-3.5 w-3.5 shrink-0 transition-opacity duration-150',
+          activeTab === id ? 'opacity-60 text-foreground' : 'opacity-0 group-hover:opacity-40'
         )}
       />
-      {activeTab === id && (
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-50" />
-      )}
     </button>
   )
 }
@@ -130,16 +113,12 @@ export default function SettingsPage(): React.JSX.Element {
   }
 
   const statusBadge = statusMessage ? (
-    <div className="fixed bottom-10 right-10 animate-in slide-in-from-right-8 duration-500 z-50">
+    <div className="fixed bottom-6 right-6 animate-in slide-in-from-right-4 duration-200 z-50">
       <Badge
         variant={statusMessage.includes('Failed') ? 'destructive' : 'default'}
-        className="px-8 py-4 text-sm font-black uppercase tracking-widest shadow-2xl border-2 border-border/20 backdrop-blur-3xl ring-4 ring-black/10"
+        className="px-4 py-2 text-xs font-medium rounded-lg shadow-lg border border-border"
       >
-        {statusMessage.includes('Failed') ? (
-          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-        ) : (
-          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-        )}
+        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
         {statusMessage}
       </Badge>
     </div>
@@ -178,20 +157,14 @@ export default function SettingsPage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full bg-background overflow-hidden animate-in fade-in duration-700">
-      <aside className="w-80 border-r border-border/60 bg-secondary/10 backdrop-blur-3xl flex flex-col p-6 gap-8 shrink-0">
-        <div className="shrink-0 flex flex-col space-y-4 mb-2">
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent pr-3 inline-block">
-              Settings
-            </h1>
-            <p className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider opacity-60">
-              Configure preferences
-            </p>
-          </div>
+    <div className="flex h-full bg-background overflow-hidden">
+      <aside className="w-64 border-r border-border bg-card/40 flex flex-col p-5 gap-6 shrink-0">
+        <div className="shrink-0 flex flex-col space-y-0.5 px-1">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="text-muted-foreground text-xs">Configure preferences</p>
         </div>
 
-        <nav className="flex-1 space-y-3 font-medium">
+        <nav className="flex-1 space-y-1 font-medium">
           {sidebarItems.map((item) => (
             <SidebarItem
               key={item.id}
@@ -204,23 +177,21 @@ export default function SettingsPage(): React.JSX.Element {
           ))}
         </nav>
 
-        <Card className="border-border/40 bg-card group shadow-none">
-          <CardContent className="p-4 flex flex-col gap-3">
+        <Card className="border-border bg-card shadow-none">
+          <CardContent className="p-3.5 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Core Engine Active
-              </span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-xs font-medium text-foreground">Core Engine Active</span>
             </div>
-            <p className="text-[9px] text-muted-foreground/60 font-medium leading-relaxed group-hover:text-muted-foreground transition-colors">
-              Your reading state and library are synchronized with the local SQLite database.
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Reading state and library are stored locally in SQLite.
             </p>
           </CardContent>
         </Card>
       </aside>
 
-      <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-        <div className="p-10 max-w-5xl mx-auto pb-20">{renderContent()}</div>
+      <main className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
+        <div className="p-8 max-w-4xl mx-auto pb-16">{renderContent()}</div>
       </main>
 
       {statusBadge}
