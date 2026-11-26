@@ -68,6 +68,14 @@ export function useHlsPlayer({
     }
   }, [])
 
+  // Key player teardown/reload strictly on header content rather than server object identity
+  // so background server health probes updating ping/status never interrupt active playback.
+  const serverHeaders =
+    typeof serverConfig === 'object' && serverConfig?.headers ? serverConfig.headers : null
+  const headersKey = JSON.stringify(serverHeaders)
+  const serverHeadersRef = useRef(serverHeaders)
+  serverHeadersRef.current = serverHeaders
+
   // Setup HLS / Video playback & attach proxy headers
   useEffect(() => {
     if (!activeServerUrl) return
@@ -97,13 +105,10 @@ export function useHlsPlayer({
     }
 
     const setupPlayer = async () => {
-      if (
-        typeof serverConfig === 'object' &&
-        serverConfig?.headers &&
-        Object.keys(serverConfig.headers).length > 0
-      ) {
+      const headers = serverHeadersRef.current
+      if (headers && Object.keys(headers).length > 0) {
         try {
-          await DataService.setStreamHeaders(activeServerUrl, serverConfig.headers)
+          await DataService.setStreamHeaders(activeServerUrl, headers)
         } catch (err) {
           console.warn('[AnimeViewer] Failed to set stream headers:', err)
         }
@@ -291,7 +296,7 @@ export function useHlsPlayer({
   }, [
     activeServerUrl,
     videoType,
-    serverConfig,
+    headersKey,
     failoverToNextServer,
     activeServerIdx,
     clearWatchdog,

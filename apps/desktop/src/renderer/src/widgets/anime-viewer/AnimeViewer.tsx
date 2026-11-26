@@ -665,13 +665,17 @@ export default function AnimeViewer({
     }
   }, [servers, activeServerIdx])
 
+  const effectiveMangaRef = useRef(effectiveManga)
+  effectiveMangaRef.current = effectiveManga
+
   const recordWatchSession = useCallback(
     (chapter: Chapter) => {
-      if (!effectiveManga) return
+      const manga = effectiveMangaRef.current
+      if (!manga) return
 
       if (
         activeSessionRef.current &&
-        (activeSessionRef.current.mangaId !== effectiveManga.id ||
+        (activeSessionRef.current.mangaId !== manga.id ||
           activeSessionRef.current.chapterId !== chapter.id)
       ) {
         const elapsed = Math.round((Date.now() - activeSessionRef.current.startTime) / 1000)
@@ -685,26 +689,26 @@ export default function AnimeViewer({
       }
 
       activeSessionRef.current = {
-        mangaId: effectiveManga.id,
+        mangaId: manga.id,
         chapterId: chapter.id,
         startTime: Date.now()
       }
 
       const existingProgress =
-        useProgressStore.getState().pageProgress[effectiveManga.id]?.[chapter.id] || undefined
+        useProgressStore.getState().pageProgress[manga.id]?.[chapter.id] || undefined
 
       markChapterRead(
-        effectiveManga.id,
+        manga.id,
         chapter.id,
         true,
         existingProgress,
         Number(chapter.number) || undefined
       )
       addHistoryEntry({
-        mangaId: effectiveManga.id,
-        mangaTitle: effectiveManga.title,
-        mangaCover: effectiveManga.coverUrl || undefined,
-        mangaUrl: effectiveManga.url || undefined,
+        mangaId: manga.id,
+        mangaTitle: manga.title,
+        mangaCover: manga.coverUrl || undefined,
+        mangaUrl: manga.url || undefined,
         chapterId: chapter.id,
         chapterTitle: chapter.title || undefined,
         startedAt: new Date().toISOString(),
@@ -713,7 +717,7 @@ export default function AnimeViewer({
         type: 'anime'
       })
     },
-    [effectiveManga, effectivePkg, markChapterRead, addHistoryEntry, updateHistoryDuration]
+    [effectivePkg, markChapterRead, addHistoryEntry, updateHistoryDuration]
   )
 
   const applyEntryServers = useCallback(
