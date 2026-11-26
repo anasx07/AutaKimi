@@ -36,48 +36,48 @@ export const ActionBar = ({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-3 py-4 px-6 max-w-7xl mx-auto w-full border-b border-border/10">
+      <div className="grid grid-cols-3 gap-2.5 py-2.5 px-6 max-w-7xl mx-auto w-full border-b border-border/40">
         <Button
           variant="outline"
           onClick={onToggleLibrary}
           disabled={isPending}
           className={cn(
-            'h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold',
+            'h-9 flex items-center justify-center gap-2 bg-card border-border hover:bg-secondary/50 rounded-lg transition-colors font-medium text-xs',
             isInLibrary
-              ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10'
+              ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
-          <Heart className={cn('h-5 w-5', isInLibrary && 'fill-current')} />
-          <span className="text-[11px]">{isInLibrary ? 'In Library' : 'Add to Library'}</span>
+          <Heart className={cn('h-3.5 w-3.5', isInLibrary && 'fill-current')} />
+          <span>{isInLibrary ? 'In Library' : 'Add to Library'}</span>
         </Button>
 
         <Button
           variant="outline"
           onClick={() => setIsTrackingOpen(true)}
           className={cn(
-            'h-14 flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold hidden sm:flex',
+            'h-9 items-center justify-center gap-2 bg-card border-border hover:bg-secondary/50 rounded-lg transition-colors font-medium text-xs hidden sm:flex',
             hasTracker
               ? 'border-[#02A9FF]/50 bg-[#02A9FF]/10 text-[#02A9FF] hover:bg-[#02A9FF]/15'
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
-          <div className="relative">
-            <RefreshCw className={cn('h-5 w-5', hasTracker && 'text-[#02A9FF]')} />
+          <div className="relative flex items-center">
+            <RefreshCw className={cn('h-3.5 w-3.5', hasTracker && 'text-[#02A9FF]')} />
             {hasTracker && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#02A9FF] animate-pulse" />
+              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#02A9FF]" />
             )}
           </div>
-          <span className="text-[11px]">{hasTracker ? 'Tracking Active' : 'Tracking'}</span>
+          <span>{hasTracker ? 'Tracking Active' : 'Tracking'}</span>
         </Button>
 
         <Button
           variant="outline"
           onClick={() => mediaUrl && DataService.openExternal(mediaUrl)}
-          className="h-14 flex flex-col items-center justify-center gap-1 bg-secondary/10 backdrop-blur-sm border-border/30 hover:bg-secondary/20 rounded-xl transition-all font-semibold text-muted-foreground hover:text-foreground"
+          className="h-9 flex items-center justify-center gap-2 bg-card border-border hover:bg-secondary/50 rounded-lg transition-colors font-medium text-xs text-muted-foreground hover:text-foreground"
         >
-          <Globe className="h-5 w-5" />
-          <span className="text-[11px]">Web View</span>
+          <Globe className="h-3.5 w-3.5" />
+          <span>Web View</span>
         </Button>
       </div>
 

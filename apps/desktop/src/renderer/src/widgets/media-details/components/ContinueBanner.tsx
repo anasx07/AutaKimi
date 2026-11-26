@@ -54,17 +54,14 @@ export const ContinueBanner = ({
   return (
     <Button
       className={cn(
-        'w-full h-14 text-white shadow-lg flex items-center justify-center gap-3 rounded-xl transition-all active:scale-[0.99] group overflow-hidden relative',
-        isAnime
-          ? 'bg-primary hover:bg-primary/90 shadow-primary/20'
-          : 'bg-primary hover:bg-primary/90 shadow-primary/20'
+        'w-full h-12 text-white shadow-sm flex items-center justify-center gap-3 rounded-xl transition-colors',
+        'bg-primary hover:bg-primary/90'
       )}
       onClick={() => onContinue(nextToRead)}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-      <Play className="h-5 w-5 fill-current" />
+      <Play className="h-4 w-4 fill-current shrink-0" />
       <div className="flex flex-col items-start leading-tight text-left">
-        <span className="text-[10px] uppercase tracking-wider font-bold opacity-70">
+        <span className="text-[10px] uppercase tracking-wider font-semibold opacity-80">
           {progText}
         </span>
         <span className="text-sm font-semibold truncate max-w-[280px] sm:max-w-md">

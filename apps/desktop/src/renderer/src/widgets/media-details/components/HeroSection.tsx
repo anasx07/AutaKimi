@@ -38,18 +38,18 @@ export const HeroSection = ({
   }, [manga.coverUrl])
 
   return (
-    <div className="relative w-full overflow-hidden flex-shrink-0 pt-4 px-6 pb-6 border-b border-border/10">
+    <div className="relative w-full overflow-hidden flex-shrink-0 pt-3 px-6 pb-4 border-b border-border/40">
       {manga.coverUrl && (
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img
             src={manga.coverUrl}
             alt=""
-            className="w-full h-full object-cover blur-3xl opacity-45 saturate-150 scale-125"
+            className="w-full h-full object-cover blur-3xl opacity-40 saturate-150 scale-125"
           />
           {ambientPalette && (
             <div
               aria-hidden="true"
-              className="absolute inset-0 opacity-60 blur-2xl saturate-150 transition-opacity duration-700"
+              className="absolute inset-0 opacity-55 blur-2xl saturate-150 transition-opacity duration-700"
               style={{ background: buildAmbientGradientStyle(ambientPalette) }}
             />
           )}
@@ -57,11 +57,11 @@ export const HeroSection = ({
         </div>
       )}
 
-      <div className="relative z-10 flex gap-6 max-w-7xl mx-auto w-full">
+      <div className="relative z-10 flex gap-5 max-w-7xl mx-auto w-full">
         <Card
           className={cn(
-            'w-32 h-44 sm:w-40 sm:h-56 flex-shrink-0 shadow-2xl overflow-hidden rounded-lg',
-            mediaType === 'manga' ? 'border-white/10' : 'border-primary/20 shadow-primary/10'
+            'w-28 h-40 sm:w-32 sm:h-44 flex-shrink-0 shadow-lg overflow-hidden rounded-lg',
+            mediaType === 'manga' ? 'border-border' : 'border-primary/25'
           )}
         >
           {manga.coverUrl ? (

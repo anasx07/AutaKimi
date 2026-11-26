@@ -76,6 +76,7 @@ export function MediaDetailsView({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const isInlineWatchActive = isAnime && Boolean(activeChapter) && !mobile
+  const pinDetailsHeader = !mobile && !isInlineWatchActive
 
   useEffect(() => {
     if (isInlineWatchActive && usePipPlayerStore.getState().pipSession) {
@@ -325,9 +326,12 @@ export function MediaDetailsView({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 flex flex-col h-full bg-background overflow-y-auto overflow-x-hidden anime-details-page"
+      className={cn(
+        'flex-1 flex flex-col h-full min-h-0 bg-background overflow-x-hidden anime-details-page',
+        pinDetailsHeader ? 'overflow-hidden' : 'overflow-y-auto'
+      )}
     >
-      <div className="sticky top-0 z-50 flex items-center justify-between p-4 bg-background/60 backdrop-blur-md border-b border-border/50 gap-4">
+      <div className="sticky top-0 z-50 shrink-0 flex items-center justify-between px-4 py-2.5 bg-background/80 backdrop-blur-md border-b border-border/50 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="ghost"
@@ -472,47 +476,62 @@ export function MediaDetailsView({
       )}
 
       {isLoading ? (
-        <HeroSkeleton />
+        <div className="shrink-0">
+          <HeroSkeleton />
+        </div>
       ) : (
-        <HeroSection
-          manga={normalized}
-          mediaType={mediaType}
-          extension={extension}
-          isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
-          extLang={extLang}
-          onBrowseSource={() => {
-            setActiveChapter(null)
-            setActiveTab('browse')
-            setSelectedManga(null)
-          }}
-        />
+        <div className="shrink-0">
+          <HeroSection
+            manga={normalized}
+            mediaType={mediaType}
+            extension={extension}
+            isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+            extLang={extLang}
+            onBrowseSource={() => {
+              setActiveChapter(null)
+              setActiveTab('browse')
+              setSelectedManga(null)
+            }}
+          />
+        </div>
       )}
 
-      <ActionBar
-        isInLibrary={isInLibrary}
-        isPending={isToggling}
-        onToggleLibrary={toggleLibrary}
-        mediaUrl={normalized.url}
-        manga={normalized}
-        mediaType={mediaType}
-      />
-
-      <div className="p-6 max-w-7xl mx-auto w-full flex-1 space-y-6">
-        <SynopsisCard
-          description={normalized.description}
-          genres={normalized.genres}
-          isAnime={isAnime}
+      <div className="shrink-0">
+        <ActionBar
+          isInLibrary={isInLibrary}
+          isPending={isToggling}
+          onToggleLibrary={toggleLibrary}
+          mediaUrl={normalized.url}
+          manga={normalized}
+          mediaType={mediaType}
         />
+      </div>
+
+      <div
+        className={cn(
+          'max-w-7xl mx-auto w-full flex-1 flex flex-col',
+          pinDetailsHeader ? 'px-6 pt-4 pb-5 min-h-0 gap-4' : 'p-6 space-y-6'
+        )}
+      >
+        <div className="shrink-0">
+          <SynopsisCard
+            description={normalized.description}
+            genres={normalized.genres}
+            isAnime={isAnime}
+          />
+        </div>
 
         {!isInlineWatchActive && (
-          <ContinueBanner
-            nextToRead={nextItem}
-            mediaId={mergedMedia.id}
-            pageProgress={pageProgress}
-            readChapterIds={readIds}
-            mediaType={mediaType}
-            onContinue={setActiveChapter}
-          />
+          <div className="shrink-0">
+            <ContinueBanner
+              nextToRead={nextItem}
+              mediaId={mergedMedia.id}
+              pageProgress={pageProgress}
+              readChapterIds={readIds}
+              mediaType={mediaType}
+              onContinue={setActiveChapter}
+            />
+          </div>
         )}
 
         <ChapterEpisodeList
@@ -525,6 +544,7 @@ export function MediaDetailsView({
           isLoading={isLoading}
           error={error}
           extLang={extLang}
+          fillHeight={pinDetailsHeader}
           onItemClick={(item) => {
             setActiveChapter(item)
             addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })
