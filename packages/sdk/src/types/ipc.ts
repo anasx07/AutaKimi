@@ -72,6 +72,7 @@ export enum IpcChannel {
   WINDOW_IS_MAXIMIZED = "window:is-maximized",
   WINDOW_SET_FULLSCREEN = "window:set-fullscreen",
   WINDOW_IS_FULLSCREEN = "window:is-fullscreen",
+  WINDOW_FULLSCREEN_CHANGE = "window:fullscreen-change",
   WINDOW_UPDATE_OVERLAY = "window:update-overlay",
 
   // Downloads
@@ -464,6 +465,8 @@ export type IpcInvokeMap = {
 export type IpcEventMap = {
   [IpcChannel.APP_UPDATE]: (data: {
     status: string;
+    version?: string;
+    manual?: boolean;
     progress?: {
       percent: number;
       bytesPerSecond: number;
@@ -472,6 +475,7 @@ export type IpcEventMap = {
     };
     error?: string;
   }) => void;
+  [IpcChannel.WINDOW_FULLSCREEN_CHANGE]: (isFullScreen: boolean) => void;
   [IpcChannel.DOWNLOAD_EVENT]: (data: {
     type: "start" | "progress" | "completed" | "error" | "canceled";
     mangaId: string;
@@ -566,6 +570,9 @@ export interface ElectronApi {
     isMaximized: IpcInvokeMap[IpcChannel.WINDOW_IS_MAXIMIZED];
     setFullScreen: IpcInvokeMap[IpcChannel.WINDOW_SET_FULLSCREEN];
     isFullScreen: IpcInvokeMap[IpcChannel.WINDOW_IS_FULLSCREEN];
+    onFullScreenChange: (
+      callback: IpcEventMap[IpcChannel.WINDOW_FULLSCREEN_CHANGE],
+    ) => () => void;
     updateOverlay: IpcInvokeMap[IpcChannel.WINDOW_UPDATE_OVERLAY];
     openExternal: IpcInvokeMap[IpcChannel.OPEN_EXTERNAL];
     openInternalBrowser: IpcInvokeMap[IpcChannel.OPEN_INTERNAL_BROWSER];

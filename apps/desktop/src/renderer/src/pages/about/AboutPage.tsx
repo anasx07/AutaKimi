@@ -2,13 +2,16 @@ import { Card, Button, Badge, MobilePage } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
 import { isMobile } from '@renderer/shared/platform'
 import { useNavigate } from 'react-router-dom'
-import { Info, Github, ExternalLink, ShieldCheck, Code, Heart, Sparkles, Users } from 'lucide-react'
+import { Info, Github, ExternalLink, ShieldCheck, Code, Heart, Sparkles, Users, RefreshCcw } from 'lucide-react'
+import { useUIStore } from '@renderer/shared/model'
 import appIcon from '../../app/assets/app-icon/256x256.png'
 
 export default function AboutPage(): React.JSX.Element {
   const navigate = useNavigate()
   const mobile = isMobile()
   const version = DataService.version
+  const updateStatus = useUIStore((s) => s.updateStatus)
+  const updateVersion = useUIStore((s) => s.updateVersion)
 
   const features = [
     {
@@ -80,6 +83,16 @@ export default function AboutPage(): React.JSX.Element {
 
           {/* Action Links */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+            {!mobile && updateStatus === 'downloaded' && (
+              <Button
+                size="sm"
+                className="gap-2 rounded-xl px-4 h-9 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 text-xs font-bold transition-all"
+                onClick={() => DataService.installUpdate()}
+              >
+                <RefreshCcw className="h-4 w-4" />
+                Restart & Update{updateVersion ? ` to v${updateVersion}` : ''}
+              </Button>
+            )}
             <Button
               size="sm"
               className="gap-2 rounded-xl px-4 h-9 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 text-xs font-bold transition-all"

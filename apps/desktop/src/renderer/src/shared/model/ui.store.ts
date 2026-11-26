@@ -16,8 +16,12 @@ export interface UIState {
   activeTab: TabType
   toasts: Toast[]
   updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error'
+  updateVersion: string | null
   updateProgress: { percent: number } | null
   updateError: string | null
+  updateDismissed: boolean
+  updateCheckManual: boolean
+  isWindowFullscreen: boolean
   isCfBypassing: boolean
   cfDomain: string | null
   viewMode: ViewMode
@@ -26,8 +30,12 @@ export interface UIState {
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
   setUpdateStatus: (status: UIState['updateStatus']) => void
+  setUpdateVersion: (version: string | null) => void
   setUpdateProgress: (progress: { percent: number }) => void
   setUpdateError: (error: string | null) => void
+  setUpdateDismissed: (dismissed: boolean) => void
+  setUpdateCheckManual: (manual: boolean) => void
+  setIsWindowFullscreen: (fullscreen: boolean) => void
   setIsCfBypassing: (val: boolean, domain?: string | null) => void
   setViewMode: (mode: ViewMode) => void
   _init: (settings: SettingsSchema['ui']) => void
@@ -37,8 +45,12 @@ export const useUIStore = create<UIState>((set) => ({
   activeTab: 'library',
   toasts: [],
   updateStatus: 'idle',
+  updateVersion: null,
   updateProgress: null,
   updateError: null,
+  updateDismissed: false,
+  updateCheckManual: false,
+  isWindowFullscreen: false,
   isCfBypassing: false,
   cfDomain: null,
   viewMode: 'grid',
@@ -66,8 +78,12 @@ export const useUIStore = create<UIState>((set) => ({
     })),
 
   setUpdateStatus: (updateStatus) => set({ updateStatus }),
+  setUpdateVersion: (updateVersion) => set({ updateVersion }),
   setUpdateProgress: (updateProgress) => set({ updateProgress }),
   setUpdateError: (updateError) => set({ updateError }),
+  setUpdateDismissed: (updateDismissed) => set({ updateDismissed }),
+  setUpdateCheckManual: (updateCheckManual) => set({ updateCheckManual }),
+  setIsWindowFullscreen: (isWindowFullscreen) => set({ isWindowFullscreen }),
 
   setIsCfBypassing: (isCfBypassing, cfDomain = null) => set({ isCfBypassing, cfDomain }),
 
