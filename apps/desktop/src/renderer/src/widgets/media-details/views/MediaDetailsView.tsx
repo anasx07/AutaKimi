@@ -526,70 +526,75 @@ export function MediaDetailsView({
                 </Suspense>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <div className="relative w-full aspect-video max-h-[76vh] rounded-xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl flex items-center justify-center p-6">
+                  <div className="relative w-full aspect-video max-h-[76vh] rounded-xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl flex items-center justify-center p-6 sm:p-10">
                     {normalized.coverUrl && (
                       <img
                         src={normalized.coverUrl}
                         alt=""
                         aria-hidden="true"
-                        className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-30 pointer-events-none select-none"
+                        className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-40 pointer-events-none select-none"
                       />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/65 to-black/75 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/70 pointer-events-none" />
 
-                    <div className="relative z-10 flex flex-col items-center text-center max-w-md gap-4">
+                    <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 sm:gap-8 max-w-2xl w-full justify-center">
                       {normalized.coverUrl ? (
                         <img
                           src={normalized.coverUrl}
                           alt={normalized.title}
-                          className="w-20 h-28 rounded-lg object-cover border border-white/15 shadow-xl"
+                          className="w-40 sm:w-48 lg:w-52 aspect-[2/3] shrink-0 rounded-xl object-cover border border-white/20 shadow-2xl ring-1 ring-white/10"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
-                          <Tv className="h-7 w-7" />
+                        <div className="w-36 sm:w-44 aspect-[2/3] shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
+                          <Tv className="h-12 w-12" />
                         </div>
                       )}
 
-                      <div className="space-y-1.5">
-                        <h3 className="text-lg font-bold text-white line-clamp-2" dir="auto">
-                          {normalized.title}
-                        </h3>
-                        {isLoading ? (
-                          <p className="text-xs text-white/70 flex items-center justify-center gap-2">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                            Loading season episodes...
-                          </p>
-                        ) : (
-                          <p className="text-xs text-white/70">
-                            {items.length > 0
-                              ? 'Select an episode from the list to start watching.'
-                              : 'No episodes available for this season yet.'}
-                          </p>
-                        )}
-                      </div>
+                      <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-3.5 min-w-0">
+                        <div className="space-y-1.5">
+                          <h3
+                            className="text-xl sm:text-2xl font-bold text-white line-clamp-2 leading-tight"
+                            dir="auto"
+                          >
+                            {normalized.title}
+                          </h3>
+                          {isLoading ? (
+                            <p className="text-sm text-white/75 flex items-center justify-center sm:justify-start gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              Loading season episodes...
+                            </p>
+                          ) : (
+                            <p className="text-sm text-white/75">
+                              {items.length > 0
+                                ? 'Select an episode from the list to start watching.'
+                                : 'No episodes available for this season yet.'}
+                            </p>
+                          )}
+                        </div>
 
-                      <div className="flex flex-wrap items-center justify-center gap-2.5">
-                        {nextItem && !isLoading && (
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                          {nextItem && !isLoading && (
+                            <Button
+                              size="sm"
+                              onClick={() => setActiveChapter(nextItem)}
+                              className="h-10 px-5 text-xs sm:text-sm gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-semibold"
+                            >
+                              <Play className="h-4 w-4 fill-current" />
+                              {(pageProgress[mergedMedia.id]?.[nextItem.id] || 0) > 1 ||
+                              readIds.includes(nextItem.id)
+                                ? `Resume Episode ${nextItem.number}`
+                                : `Play Episode ${nextItem.number}`}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
-                            onClick={() => setActiveChapter(nextItem)}
-                            className="h-9 px-4 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-semibold"
+                            variant="outline"
+                            onClick={() => setActiveChapter(null)}
+                            className="h-10 px-4 text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white border-white/20"
                           >
-                            <Play className="h-3.5 w-3.5 fill-current" />
-                            {(pageProgress[mergedMedia.id]?.[nextItem.id] || 0) > 1 ||
-                            readIds.includes(nextItem.id)
-                              ? `Resume Episode ${nextItem.number}`
-                              : `Play Episode ${nextItem.number}`}
+                            Details View
                           </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setActiveChapter(null)}
-                          className="h-9 px-3.5 text-xs bg-white/5 hover:bg-white/15 text-white border-white/15"
-                        >
-                          Details View
-                        </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
