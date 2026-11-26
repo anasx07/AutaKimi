@@ -13,10 +13,10 @@ import {
   ArrowUpDown
 } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
-import { Button, Input, ErrorState, ChapterItemSkeleton } from '@renderer/shared/ui'
+import { Button, Input, ErrorState, ChapterItemSkeleton, SeasonSelector } from '@renderer/shared/ui'
 import { DataService } from '@renderer/shared/api'
 import { cn } from '@renderer/shared/lib/utils'
-import { Chapter } from '@renderer/shared/api/sources/types'
+import { Chapter, MediaSeason } from '@renderer/shared/api/sources/types'
 
 interface ChapterEpisodeListProps {
   items: Chapter[]
@@ -39,6 +39,9 @@ interface ChapterEpisodeListProps {
   onToggleMarkAll?: () => void
   defaultSortOrder?: 'asc' | 'desc'
   fillHeight?: boolean
+  seasons?: MediaSeason[]
+  activeSeasonUrl?: string | null
+  onSelectSeason?: (url: string) => void
 }
 
 export const ChapterEpisodeList = ({
@@ -58,7 +61,10 @@ export const ChapterEpisodeList = ({
   onToggleMarkAll,
   downloadProgress = {},
   defaultSortOrder = 'desc',
-  fillHeight = false
+  fillHeight = false,
+  seasons,
+  activeSeasonUrl,
+  onSelectSeason
 }: ChapterEpisodeListProps): React.JSX.Element => {
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -274,6 +280,15 @@ export const ChapterEpisodeList = ({
 
   return (
     <div className={cn(fillHeight ? 'flex-1 min-h-0 flex flex-col gap-3' : 'space-y-4')}>
+      {seasons && seasons.length > 1 && (
+        <div className="shrink-0">
+          <SeasonSelector
+            seasons={seasons}
+            activeSeasonUrl={activeSeasonUrl}
+            onSelectSeason={onSelectSeason}
+          />
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">

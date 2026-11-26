@@ -1,8 +1,8 @@
 import { memo, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Search, ArrowUpDown, CheckCircle } from 'lucide-react'
-import { Button, Input } from '@renderer/shared/ui'
+import { Button, Input, SeasonSelector } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
-import { Chapter } from '@renderer/shared/api/sources/types'
+import { Chapter, MediaSeason } from '@renderer/shared/api/sources/types'
 
 export interface InlineEpisodesPanelProps {
   episodes: Chapter[]
@@ -12,6 +12,9 @@ export interface InlineEpisodesPanelProps {
   extLang: string
   onSelectEpisode: (ep: Chapter) => void
   topContent?: ReactNode
+  seasons?: MediaSeason[]
+  activeSeasonUrl?: string | null
+  onSelectSeason?: (url: string) => void
 }
 
 export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
@@ -21,7 +24,10 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   pageProgress = {},
   extLang,
   onSelectEpisode,
-  topContent
+  topContent,
+  seasons,
+  activeSeasonUrl,
+  onSelectSeason
 }: InlineEpisodesPanelProps) {
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -55,6 +61,13 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   return (
     <div className="rounded-xl border border-border bg-card flex flex-col overflow-hidden h-[420px] lg:h-full min-h-0">
       {topContent}
+
+      <SeasonSelector
+        compact
+        seasons={seasons}
+        activeSeasonUrl={activeSeasonUrl}
+        onSelectSeason={onSelectSeason}
+      />
 
       {/* Header */}
       <div className="px-3.5 py-2.5 border-b border-border flex items-center justify-between gap-2 bg-card shrink-0">

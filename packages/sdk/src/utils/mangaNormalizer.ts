@@ -110,6 +110,7 @@ export const normalizeManga = (manga: any, preferredLang?: string, includeRaw = 
     author,
     artist,
     genres,
+    seasons: Array.isArray(manga.seasons) ? manga.seasons : undefined,
     url: manga.url || manga.manga_url || undefined,
     pkg: manga.pkg || undefined,
     mediaType: manga.mediaType || manga.type || manga.attributes?.mediaType || undefined,
