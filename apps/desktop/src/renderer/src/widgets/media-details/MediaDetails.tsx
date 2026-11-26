@@ -22,7 +22,7 @@ export default function MediaDetails({ mediaType }: MediaDetailsProps) {
       id: season.url,
       url: season.url,
       title: season.title || selectedManga.title,
-      coverUrl: season.coverUrl || selectedManga.coverUrl || null,
+      coverUrl: season.coverUrl || null,
       description: '',
       status: '',
       genres: [],

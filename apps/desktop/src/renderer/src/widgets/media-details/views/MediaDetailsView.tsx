@@ -108,6 +108,32 @@ export function MediaDetailsView({
     const updateStatuses = async (): Promise<void> => {
       if (!mergedMedia?.id) return
 
+      // Keep selectedManga aligned with fresh season metadata so players record accurate History covers/titles
+      const currentSelected = useLibraryStore.getState().selectedManga
+      if (currentSelected && currentSelected.id === mergedMedia.id) {
+        const nextCover = mergedMedia.coverUrl || currentSelected.coverUrl || null
+        const nextTitle = mergedMedia.title || currentSelected.title
+        const nextSeasons =
+          mergedMedia.seasons && mergedMedia.seasons.length > 0
+            ? mergedMedia.seasons
+            : currentSelected.seasons
+        if (
+          nextCover !== currentSelected.coverUrl ||
+          nextTitle !== currentSelected.title ||
+          (!currentSelected.seasons?.length && Boolean(nextSeasons?.length))
+        ) {
+          setSelectedManga({
+            ...currentSelected,
+            title: nextTitle,
+            coverUrl: nextCover,
+            description: mergedMedia.description || currentSelected.description,
+            status: mergedMedia.status || currentSelected.status,
+            genres: mergedMedia.genres?.length ? mergedMedia.genres : currentSelected.genres,
+            seasons: nextSeasons
+          })
+        }
+      }
+
       // Auto-cache metadata for Downloads page and other lists
       const mediaToCache = {
         ...mergedMedia,
@@ -131,7 +157,7 @@ export function MediaDetailsView({
     }
 
     updateStatuses()
-  }, [mergedMedia, mediaType])
+  }, [mergedMedia, mediaType, setSelectedManga])
 
   // Merge synchronized real-time statuses from store
   const effectiveStatuses = useMemo(() => {
