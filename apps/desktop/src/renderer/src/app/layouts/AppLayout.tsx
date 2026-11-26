@@ -50,6 +50,7 @@ export function AppLayout(): React.JSX.Element {
     // Check if leaving prevPath while an inline/overlay anime video was actively playing
     let autoPipActivated = false
     if (
+      currentChapter &&
       shouldAutoEnterPip({
         livePlayback: pipState.livePlayback,
         hasExistingPip: Boolean(pipState.pipSession),

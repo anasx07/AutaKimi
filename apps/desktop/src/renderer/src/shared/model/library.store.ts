@@ -3,6 +3,7 @@ import { DataService } from '@renderer/shared/api'
 import { NormalizedManga } from '@common/utils/mangaNormalizer'
 import { Chapter } from '@renderer/shared/api/sources/types'
 import { useExtensionStore } from './extension.store'
+import { usePipPlayerStore } from '@renderer/app/components/pipPlayerStore'
 
 interface LibraryState {
   library: NormalizedManga[]
@@ -64,6 +65,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       const next: Partial<LibraryState> = { selectedManga: manga }
       if (!manga) {
         next.isWatchStageOpen = false
+        usePipPlayerStore.getState().setLivePlayback(null)
       }
       if (manga && manga.pkg) {
         useExtensionStore.getState().setActiveExtension(manga.pkg)
@@ -72,8 +74,13 @@ export const useLibraryStore = create<LibraryState>((set) => ({
     }),
 
   setActiveChapter: (chapter: Chapter | null, options?: { keepWatchStage?: boolean }) =>
-    set({
-      activeChapter: chapter,
-      isWatchStageOpen: chapter ? true : Boolean(options?.keepWatchStage)
+    set(() => {
+      if (!chapter) {
+        usePipPlayerStore.getState().setLivePlayback(null)
+      }
+      return {
+        activeChapter: chapter,
+        isWatchStageOpen: chapter ? true : Boolean(options?.keepWatchStage)
+      }
     })
 }))
