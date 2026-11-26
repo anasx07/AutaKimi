@@ -92,12 +92,19 @@ export function useAnimeDetails(animeId: string, pkg: string | null, animeUrl?: 
 /**
  * Unified hook to fetch items (chapters or episodes)
  */
-export function useMediaItems(type: MediaType, id: string, pkg: string | null, url?: string) {
+export function useMediaItems(
+  type: MediaType,
+  id: string,
+  pkg: string | null,
+  url?: string,
+  overrideUrl?: string
+) {
+  const isAlternateSeason = Boolean(overrideUrl && overrideUrl !== url)
   return useQuery({
-    queryKey: mediaKeys.items(type, id),
+    queryKey: [...mediaKeys.items(type, id), overrideUrl || 'default'],
     queryFn: async () => {
-      // 1. Get from DB
-      const cached = await DataService.db.getChapters(id)
+      // 1. Get from DB (only for primary season)
+      const cached = isAlternateSeason ? null : await DataService.db.getChapters(id)
 
       // 2. Refresh from extension if pkg provided
       if (pkg) {
@@ -105,10 +112,12 @@ export function useMediaItems(type: MediaType, id: string, pkg: string | null, u
           const runner = await ExtensionResolver.resolve(pkg)
           if (runner) {
             const media = await DataService.db.getMangaCache(id)
-            const urlToFetch = url || (media as any)?.url || id
+            const urlToFetch = overrideUrl || url || (media as any)?.url || id
             const fresh = await runner.fetchChapters(urlToFetch)
             if (fresh && fresh.length > 0) {
-              await DataService.db.saveChapters({ mangaId: id, chapters: fresh })
+              if (!isAlternateSeason) {
+                await DataService.db.saveChapters({ mangaId: id, chapters: fresh })
+              }
               return fresh
             }
           }

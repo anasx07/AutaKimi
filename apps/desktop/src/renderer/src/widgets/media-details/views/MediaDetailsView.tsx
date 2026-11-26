@@ -42,6 +42,8 @@ export interface MediaDetailsViewProps {
   isToggling: boolean
   refetch: () => void
   mediaType?: 'manga' | 'anime'
+  activeSeasonUrl?: string | null
+  onSelectSeason?: (url: string) => void
 }
 
 export function MediaDetailsView({
@@ -53,7 +55,9 @@ export function MediaDetailsView({
   toggleLibrary,
   isToggling,
   refetch,
-  mediaType: propMediaType
+  mediaType: propMediaType,
+  activeSeasonUrl,
+  onSelectSeason
 }: MediaDetailsViewProps): React.JSX.Element {
   const mediaType = propMediaType || mergedMedia?.mediaType || 'manga'
   const isAnime = mediaType === 'anime'
@@ -478,6 +482,9 @@ export function MediaDetailsView({
                     pageProgress={pageProgress[mergedMedia.id] || {}}
                     extLang={extLang}
                     onSelectEpisode={(ep) => setActiveChapter(ep)}
+                    seasons={normalized.seasons}
+                    activeSeasonUrl={activeSeasonUrl}
+                    onSelectSeason={onSelectSeason}
                     topContent={
                       <div className="p-3 border-b border-border space-y-2.5 bg-card shrink-0">
                         <div className="flex items-start gap-2.5">
@@ -641,6 +648,9 @@ export function MediaDetailsView({
               error={error}
               extLang={extLang}
               fillHeight={pinDetailsHeader}
+              seasons={normalized.seasons}
+              activeSeasonUrl={activeSeasonUrl}
+              onSelectSeason={onSelectSeason}
               onItemClick={(item) => {
                 setActiveChapter(item)
                 addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })

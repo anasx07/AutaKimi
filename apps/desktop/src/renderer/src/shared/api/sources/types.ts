@@ -1,5 +1,12 @@
-import { Manga, PartialManga, Chapter, FetchOptions, StreamingServer } from '@common/types'
-export type { Manga, PartialManga, Chapter, FetchOptions, StreamingServer }
+import {
+  Manga,
+  PartialManga,
+  MediaSeason,
+  Chapter,
+  FetchOptions,
+  StreamingServer
+} from '@common/types'
+export type { Manga, PartialManga, MediaSeason, Chapter, FetchOptions, StreamingServer }
 
 export interface MangaPage {
   manga: Manga[]

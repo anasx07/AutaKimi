@@ -9,7 +9,11 @@ import {
 } from '@renderer/entities/media/api/useMediaQueries'
 import { NormalizedManga as Media } from '@common/utils/mangaNormalizer'
 
-export function useMediaData(type: MediaType, initialMedia: Media | null) {
+export function useMediaData(
+  type: MediaType,
+  initialMedia: Media | null,
+  selectedSeasonUrl?: string | null
+) {
   const { activeExtension } = useExtensionStore()
   const { loadProgress } = useProgressStore()
 
@@ -19,7 +23,7 @@ export function useMediaData(type: MediaType, initialMedia: Media | null) {
 
   // Queries
   const detailQuery = useMediaDetails(type, mediaId, pkgToUse, mediaUrl)
-  const itemsQuery = useMediaItems(type, mediaId, pkgToUse, mediaUrl)
+  const itemsQuery = useMediaItems(type, mediaId, pkgToUse, mediaUrl, selectedSeasonUrl || undefined)
   const libraryCheckQuery = useIsMediaInLibrary(type, mediaId)
   const toggleLibraryMutation = useToggleMediaLibrary(type)
 

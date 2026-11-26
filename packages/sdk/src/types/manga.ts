@@ -1,3 +1,11 @@
+export interface MediaSeason {
+  id: string
+  title: string
+  url: string
+  coverUrl?: string | null
+  isCurrent?: boolean
+}
+
 export interface PartialManga {
   id: string
   title: string
@@ -7,6 +15,7 @@ export interface PartialManga {
   author?: string
   artist?: string
   genres?: string[]
+  seasons?: MediaSeason[]
   url?: string
   pkg?: string
   mediaType?: 'manga' | 'anime'

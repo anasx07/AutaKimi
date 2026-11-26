@@ -38,16 +38,21 @@ export default function AnimeDetailsScreen() {
   const [description, setDescription] = useState<string>(
     "No description available.",
   );
+  const [seasons, setSeasons] = useState<any[]>([]);
+  const [activeSeasonUrl, setActiveSeasonUrl] = useState<string | null>(null);
+
+  const effectiveEpisodeSourceUrl = activeSeasonUrl || url || id;
+  const isAlternateSeason = Boolean(activeSeasonUrl && activeSeasonUrl !== (url || id));
 
   const {
     data: episodes,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["anime-episodes", id, pkg, url],
+    queryKey: ["anime-episodes", id, pkg, effectiveEpisodeSourceUrl],
     queryFn: async () => {
-      // 1. Check local DB first
-      const cached = await DataService.db.getChapters(id);
+      // 1. Check local DB first (for default season)
+      const cached = isAlternateSeason ? null : await DataService.db.getChapters(id);
       const cachedList = (cached as any)?.value || cached || [];
 
       // If we don't have package/url info, return cached list
@@ -71,7 +76,7 @@ export default function AnimeDetailsScreen() {
             code: codeToUse,
             contextArgs: {
               type: "fetchChapters",
-              mangaUrl: url || id,
+              mangaUrl: effectiveEpisodeSourceUrl,
             },
           });
 
@@ -100,11 +105,13 @@ export default function AnimeDetailsScreen() {
               }),
             );
 
-            // Persist to local SQLite for offline access
-            await DataService.db.saveChapters({
-              mangaId: id,
-              chapters: formattedEpisodes,
-            });
+            // Persist primary season to local SQLite for offline access
+            if (!isAlternateSeason) {
+              await DataService.db.saveChapters({
+                mangaId: id,
+                chapters: formattedEpisodes,
+              });
+            }
 
             return formattedEpisodes;
           }
@@ -141,7 +148,6 @@ export default function AnimeDetailsScreen() {
         const c = (cached as any)?.value || cached;
         if (c?.description && c.description !== "No description available.") {
           setDescription(c.description);
-          return;
         }
 
         if (pkg && url) {
@@ -164,6 +170,9 @@ export default function AnimeDetailsScreen() {
                 },
               });
               const details = res?.data || res;
+              if (Array.isArray(details?.seasons) && details.seasons.length > 0) {
+                setSeasons(details.seasons);
+              }
               if (details?.description) {
                 setDescription(details.description);
                 await DataService.db.saveMangaCache({
@@ -326,6 +335,49 @@ export default function AnimeDetailsScreen() {
             </CardContent>
           </Card>
         </View>
+
+        {/* Seasons */}
+        {seasons.length > 1 && (
+          <View className="mt-6">
+            <Typography className="px-4 mb-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
+              Seasons
+            </Typography>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+            >
+              {seasons.map((season: any) => {
+                const currentUrl =
+                  activeSeasonUrl ||
+                  seasons.find((s: any) => s.isCurrent)?.url ||
+                  seasons[0]?.url;
+                const isActive = season.url === currentUrl;
+                return (
+                  <TouchableOpacity
+                    key={season.id || season.url}
+                    onPress={() => setActiveSeasonUrl(season.url)}
+                    className={`px-3.5 py-2 rounded-lg border ${
+                      isActive
+                        ? "bg-primary border-primary"
+                        : "bg-card border-border"
+                    }`}
+                  >
+                    <Typography
+                      className={
+                        isActive
+                          ? "text-white text-xs font-semibold"
+                          : "text-foreground text-xs font-medium"
+                      }
+                    >
+                      {season.title}
+                    </Typography>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Episodes */}
         <View className="px-4 mt-6 mb-8">
