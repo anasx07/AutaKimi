@@ -43,7 +43,7 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const { updateStatus } = useUIStore()
+  const { updateStatus, updateVersion, updateProgress, updateError } = useUIStore()
   const {
     bypassCloudflare,
     setBypassCloudflare,
@@ -138,13 +138,22 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
   }
 
   const handleCheckForUpdates = async () => {
+    if (updateStatus === 'downloaded') {
+      await DataService.installUpdate()
+      return
+    }
     setIsCheckingUpdate(true)
     setStatusMessage('Checking for application updates...')
     try {
       await DataService.checkForUpdates()
       setTimeout(() => {
-        setStatusMessage('Application is up to date')
-        setTimeout(() => setStatusMessage(null), 3000)
+        const latest = useUIStore.getState().updateStatus
+        if (latest === 'idle') {
+          setStatusMessage('Application is up to date')
+          setTimeout(() => setStatusMessage(null), 3000)
+        } else {
+          setStatusMessage(null)
+        }
       }, 1500)
     } catch (e: any) {
       setStatusMessage(`Update check failed: ${e.message}`)
@@ -153,6 +162,23 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
       setIsCheckingUpdate(false)
     }
   }
+
+  const updateStatusLabel = (() => {
+    switch (updateStatus) {
+      case 'checking':
+        return 'Checking for updates...'
+      case 'available':
+        return `Update available${updateVersion ? ` (v${updateVersion})` : ''}`
+      case 'downloading':
+        return `Downloading update (${updateProgress?.percent ? Math.round(updateProgress.percent) : 0}%)`
+      case 'downloaded':
+        return `Restart to update${updateVersion ? ` (v${updateVersion})` : ''}`
+      case 'error':
+        return updateError ? `Error: ${updateError}` : 'Check failed'
+      default:
+        return 'Up to date'
+    }
+  })()
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -413,8 +439,8 @@ export function AdvancedSettings({ setStatusMessage }: AdvancedSettingsProps): R
             onClick={handleCheckForUpdates}
             disabled={isCheckingUpdate}
           >
-            <RefreshCcw className={cn('h-3 w-3', isCheckingUpdate && 'animate-spin')} />
-            System Status: {updateStatus || 'Up to date'}
+            <RefreshCcw className={cn('h-3 w-3', (isCheckingUpdate || updateStatus === 'checking') && 'animate-spin')} />
+            System Status: {updateStatusLabel}
           </Button>
         </div>
       </section>

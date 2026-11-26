@@ -96,6 +96,34 @@ export function MediaDetailsView({
     }
   }, [isInlineWatchActive, activeChapter?.id])
 
+  // Reset theater mode when leaving Cinema Watch mode and support Escape on the Watch Stage
+  useEffect(() => {
+    if (!isInlineWatchActive) {
+      setIsTheaterMode(false)
+      return
+    }
+    if (activeChapter) return
+
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return
+      }
+      e.preventDefault()
+      if (isTheaterMode) {
+        setIsTheaterMode(false)
+      } else {
+        setActiveChapter(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isInlineWatchActive, activeChapter, isTheaterMode, setActiveChapter])
+
   const readIds = mergedMedia ? readingProgress[mergedMedia.id] || [] : []
   const extension = installedExtensions.find((e) => e.pkg === (mergedMedia?.pkg || activeExtension))
   const pkgParts = (mergedMedia?.pkg || activeExtension)?.split('.') || []
@@ -205,15 +233,16 @@ export function MediaDetailsView({
   }
 
   const handleDownload = async (item: Chapter): Promise<void> => {
-    if (!mergedMedia || !activeExtension) return
+    const effectivePkg = mergedMedia?.pkg || activeExtension
+    if (!mergedMedia || !effectivePkg) return
 
     if (isAnime) {
       addToDownloadQueue([
         {
           mangaId: mergedMedia.id,
           mangaTitle: mergedMedia.title,
-          extension: activeExtension,
-          extensionName: extension?.name || activeExtension || 'Source',
+          extension: effectivePkg,
+          extensionName: extension?.name || effectivePkg || 'Source',
           chapter: item,
           type: 'anime'
         }
@@ -227,7 +256,7 @@ export function MediaDetailsView({
 
     try {
       setDownloadStatuses((prev) => ({ ...prev, [item.id]: 'downloading' }))
-      const runner = await ExtensionResolver.resolve(activeExtension)
+      const runner = await ExtensionResolver.resolve(effectivePkg)
       if (!runner) throw new Error('Extension not found')
       const pages = (await runner.fetchPages(item.url)) as string[]
       if (!pages || pages.length === 0) throw new Error('No pages found')
@@ -237,7 +266,7 @@ export function MediaDetailsView({
         pageUrls: pages,
         type: 'manga',
         mangaTitle: mergedMedia.title,
-        extensionName: extension?.name || activeExtension || 'Source',
+        extensionName: extension?.name || effectivePkg || 'Source',
         chapterTitle: item.title || `${itemNoun} ${item.number}`
       })
       addToast({
@@ -293,7 +322,8 @@ export function MediaDetailsView({
 
   const handleBulkDownload = (type: 'all' | 'unread' | 'next-5' | 'next-10'): void => {
     setShowDownloadMenu(false)
-    if (!mergedMedia || !activeExtension) return
+    const effectivePkg = mergedMedia?.pkg || activeExtension
+    if (!mergedMedia || !effectivePkg) return
 
     const ascItems = [...items].sort(
       (a, b) => parseFloat(String(a.number || '0')) - parseFloat(String(b.number || '0'))
@@ -325,8 +355,8 @@ export function MediaDetailsView({
       toDownload.map((c) => ({
         mangaId: mergedMedia.id,
         mangaTitle: mergedMedia.title,
-        extension: activeExtension,
-        extensionName: extension?.name || activeExtension || 'Source',
+        extension: effectivePkg,
+        extensionName: extension?.name || effectivePkg || 'Source',
         chapter: c,
         type: isAnime ? 'anime' : 'manga'
       }))
