@@ -38,6 +38,7 @@ interface ChapterEpisodeListProps {
   onRefresh: () => void
   onToggleMarkAll?: () => void
   defaultSortOrder?: 'asc' | 'desc'
+  fillHeight?: boolean
 }
 
 export const ChapterEpisodeList = ({
@@ -56,7 +57,8 @@ export const ChapterEpisodeList = ({
   onRefresh,
   onToggleMarkAll,
   downloadProgress = {},
-  defaultSortOrder = 'desc'
+  defaultSortOrder = 'desc',
+  fillHeight = false
 }: ChapterEpisodeListProps): React.JSX.Element => {
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -153,10 +155,7 @@ export const ChapterEpisodeList = ({
     return (
       <div
         key={item.id}
-        className={cn(
-          'flex items-center justify-between w-full px-5 py-4 hover:bg-primary/5 transition-all duration-300 group cursor-pointer relative border-b border-border/10 last:border-b-0',
-          'hover:shadow-[0_0_20px_rgba(var(--primary),0.05)] border-l-2 border-transparent hover:border-primary/40'
-        )}
+        className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors duration-150 group cursor-pointer relative border-b border-border/40 last:border-b-0"
         onClick={() => onItemClick(item)}
       >
         <div className="flex-1 flex flex-col items-start text-left min-w-0 pr-4">
@@ -274,8 +273,8 @@ export const ChapterEpisodeList = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className={cn(fillHeight ? 'flex-1 min-h-0 flex flex-col gap-3' : 'space-y-4')}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">
             {(items || []).length} {isAnime ? 'Episodes' : 'Chapters'}
@@ -384,11 +383,11 @@ export const ChapterEpisodeList = ({
       </div>
 
       {showSearch && (
-        <div className="relative animate-in slide-in-from-top-2 duration-200">
+        <div className="relative shrink-0 animate-in slide-in-from-top-2 duration-150">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={`Search ${isAnime ? 'episodes' : 'chapters'}...`}
-            className="pl-9 h-10 border-primary/20 focus:border-primary/40"
+            className="pl-9 h-9 border-border focus:border-primary/50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -397,7 +396,12 @@ export const ChapterEpisodeList = ({
       )}
 
       {isLoading && (!items || items.length === 0) && (
-        <div className="divide-y divide-border/10 border border-border/10 rounded-xl bg-card/40 overflow-hidden">
+        <div
+          className={cn(
+            'divide-y divide-border/40 border border-border rounded-xl bg-card overflow-hidden',
+            fillHeight && 'flex-1 min-h-0 overflow-y-auto custom-scrollbar'
+          )}
+        >
           {Array.from({ length: 8 }).map((_, i) => (
             <ChapterItemSkeleton key={i} />
           ))}
@@ -410,13 +414,18 @@ export const ChapterEpisodeList = ({
           message={error}
           onRetry={onRefresh}
           onWebView={() => DataService.openInternalBrowser('https://google.com')} // Fallback, will be improved in MediaDetails
-          className="bg-card/40 rounded-xl border border-border/10"
+          className="bg-card rounded-xl border border-border shrink-0"
         />
       )}
 
-      <div className="border border-border/10 rounded-xl bg-card/40 overflow-hidden shadow-none">
+      <div
+        className={cn(
+          'border border-border rounded-xl bg-card overflow-hidden shadow-none',
+          fillHeight && 'flex-1 min-h-0 flex flex-col'
+        )}
+      >
         {filteredItems.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm italic">
+          <div className="text-center py-12 text-muted-foreground text-sm">
             {search
               ? `No ${isAnime ? 'episodes' : 'chapters'} matching "${search}"`
               : filterMode === 'unread'
@@ -426,13 +435,18 @@ export const ChapterEpisodeList = ({
                   : `No ${isAnime ? 'episodes' : 'chapters'} available.`}
           </div>
         ) : filteredItems.length <= 100 ? (
-          <div className="divide-y divide-border/10 max-h-[550px] overflow-y-auto custom-scrollbar">
+          <div
+            className={cn(
+              'divide-y divide-border/40 overflow-y-auto custom-scrollbar',
+              fillHeight ? 'flex-1 min-h-0' : 'max-h-[550px]'
+            )}
+          >
             {filteredItems.map((item) => renderChapterItem(item))}
           </div>
         ) : (
           <Virtuoso
-            style={{ height: '550px' }}
-            className="custom-scrollbar"
+            style={{ height: fillHeight ? '100%' : '550px' }}
+            className={cn('custom-scrollbar', fillHeight && 'flex-1 min-h-0')}
             data={filteredItems}
             increaseViewportBy={{ top: 200, bottom: 200 }}
             itemContent={(_index, item) => renderChapterItem(item)}
