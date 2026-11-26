@@ -65,10 +65,15 @@ export default function BrowsePage(): React.JSX.Element {
   // State definitions
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [activeFeed, setActiveFeed] = useState<'popular' | 'latest' | 'search'>('popular')
+  const [browseFeed, setBrowseFeed] = useState<'popular' | 'latest'>('popular')
   const [showFilters, setShowFilters] = useState(false)
   const { metadata } = useExtensionMetadata(activeExtension)
   const { domainOverrides } = useExtensionStore()
+
+  const trimmedDebouncedSearch = debouncedSearch.trim()
+  const activeFeed: 'popular' | 'latest' | 'search' = trimmedDebouncedSearch
+    ? 'search'
+    : browseFeed
 
   const isSourceAnime = useMemo(() => {
     return pkg ? isAnimeExtension({ pkg }) : false
@@ -101,11 +106,14 @@ export default function BrowsePage(): React.JSX.Element {
     filters: filterValues
   })
 
-  // Debounce search query updates
+  // Debounce search query updates (clears immediately when input is emptied)
   useEffect(() => {
+    if (!searchQuery.trim()) {
+      setDebouncedSearch('')
+      return
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      if (searchQuery) setActiveFeed('search')
     }, 500)
     return () => clearTimeout(timer)
   }, [searchQuery])
@@ -174,15 +182,13 @@ export default function BrowsePage(): React.JSX.Element {
         <div className="space-y-3">
           {/* Tabs (Feed Selection) */}
           <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-lg border border-border overflow-x-auto no-scrollbar">
-            {(['popular', 'latest', 'search'] as const).map((feed) => (
+            {(['popular', 'latest'] as const).map((feed) => (
               <button
                 key={feed}
                 onClick={() => {
-                  setActiveFeed(feed)
-                  if (feed !== 'search') {
-                    setSearchQuery('')
-                    setDebouncedSearch('')
-                  }
+                  setBrowseFeed(feed)
+                  setSearchQuery('')
+                  setDebouncedSearch('')
                 }}
                 className={cn(
                   'px-4 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-1',
@@ -208,25 +214,15 @@ export default function BrowsePage(): React.JSX.Element {
               />
               <Input
                 className="pl-9 pr-9 h-10 bg-card border-border focus:border-primary/50 rounded-lg"
-                placeholder={
-                  activeFeed === 'search'
-                    ? isSourceAnime
-                      ? 'Search anime...'
-                      : 'Search manga...'
-                    : 'Quick Search...'
-                }
+                placeholder={isSourceAnime ? 'Search anime...' : 'Search manga...'}
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  if (e.target.value && activeFeed !== 'search') setActiveFeed('search')
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <button
                   onClick={() => {
                     setSearchQuery('')
                     setDebouncedSearch('')
-                    if (activeFeed === 'search') setActiveFeed('popular')
                   }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-colors"
                 >
