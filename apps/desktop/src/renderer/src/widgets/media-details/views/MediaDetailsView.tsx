@@ -1,7 +1,8 @@
 import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Share2, Download, ShieldAlert, AlignLeft, Play, Tv, Loader2, X, RectangleHorizontal } from 'lucide-react'
 import { usePipPlayerStore } from '@renderer/app/components/pipPlayerStore'
+import { sharedTabNavigationMemory } from '@renderer/app/components/navigationMemory'
 import {
   useUIStore,
   useLibraryStore,
@@ -66,9 +67,10 @@ export function MediaDetailsView({
 
   const mobile = isMobile()
   const location = useLocation()
-  const { setActiveTab, addToast } = useUIStore()
+  const navigate = useNavigate()
+  const { addToast } = useUIStore()
   const { setSelectedManga, activeChapter, setActiveChapter, isWatchStageOpen } = useLibraryStore()
-  const { activeExtension, installedExtensions } = useExtensionStore()
+  const { activeExtension, setActiveExtension, installedExtensions } = useExtensionStore()
   const { readingProgress, pageProgress, markAllChaptersRead } = useProgressStore()
   const { downloadQueue, addToDownloadQueue, activeTasks } = useDownloadStore()
   const { defaultChapterSort } = useReaderStore()
@@ -365,6 +367,20 @@ export function MediaDetailsView({
       type: 'success',
       message: `Bulk Download: Added ${toDownload.length} ${itemsNoun.toLowerCase()} to the queue.`
     })
+  }
+
+  const handleBrowseSource = (): void => {
+    const targetPkg = extension?.pkg || normalized.pkg || activeExtension || ''
+    const targetPath = targetPkg ? `/browse/${targetPkg}` : '/browse'
+    if (targetPkg) {
+      setActiveExtension(targetPkg)
+    }
+    setActiveChapter(null)
+    setSelectedManga(null)
+    sharedTabNavigationMemory.clearOverlay(targetPath)
+    if (location.pathname !== targetPath) {
+      navigate(targetPath)
+    }
   }
 
   const nextItem = (() => {
@@ -786,11 +802,7 @@ export function MediaDetailsView({
                   extension={extension}
                   isFullySupported={isFullySupported(extension || normalized.pkg || activeExtension || undefined)}
                   extLang={extLang}
-                  onBrowseSource={() => {
-                    setActiveChapter(null)
-                    setActiveTab('browse')
-                    setSelectedManga(null)
-                  }}
+                  onBrowseSource={handleBrowseSource}
                 />
               )}
 
@@ -844,11 +856,7 @@ export function MediaDetailsView({
                   extension={extension}
                   isFullySupported={isFullySupported(extension || normalized.pkg || activeExtension || undefined)}
                   extLang={extLang}
-                  onBrowseSource={() => {
-                    setActiveChapter(null)
-                    setActiveTab('browse')
-                    setSelectedManga(null)
-                  }}
+                  onBrowseSource={handleBrowseSource}
                 />
               </div>
             )}
