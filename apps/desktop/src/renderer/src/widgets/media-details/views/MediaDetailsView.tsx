@@ -173,8 +173,8 @@ export function MediaDetailsView({
     addToast({
       type: 'success',
       message: allRead
-        ? `Marked all ${itemsNoun.toLowerCase()} unread`
-        : `Marked all ${itemsNoun.toLowerCase()} as read`
+        ? `Marked all ${itemsNoun.toLowerCase()} ${isAnime ? 'unwatched' : 'unread'}`
+        : `Marked all ${itemsNoun.toLowerCase()} as ${isAnime ? 'watched' : 'read'}`
     })
   }
 
@@ -437,7 +437,7 @@ export function MediaDetailsView({
                     onClick={() => handleBulkDownload('unread')}
                     className="w-full text-left px-4 py-2 text-xs hover:bg-secondary/50 text-foreground transition-colors"
                   >
-                    Download Unread / Unwatched
+                    Download {isAnime ? 'Unwatched' : 'Unread'} {itemsNoun}
                   </button>
                   <button
                     onClick={() => handleBulkDownload('next-5')}
