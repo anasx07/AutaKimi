@@ -329,16 +329,42 @@ export function MediaDetailsView({
     return ascItems.find((c) => !readIds.includes(c.id)) || ascItems[0] || null
   })()
 
+  const episodesListNode = (
+    <ChapterEpisodeList
+      items={items}
+      readChapterIds={readIds}
+      pageProgress={pageProgress[mergedMedia.id] || {}}
+      downloadStatuses={effectiveStatuses}
+      downloadProgress={downloadProgress}
+      mediaType={mediaType}
+      isLoading={isLoading}
+      error={error}
+      extLang={extLang}
+      fillHeight={pinDetailsHeader}
+      seasons={normalized.seasons}
+      activeSeasonUrl={activeSeasonUrl}
+      onSelectSeason={onSelectSeason}
+      onItemClick={(item) => {
+        setActiveChapter(item)
+        addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })
+      }}
+      onDownload={handleDownload}
+      onRemoveDownload={handleRemoveDownload}
+      onRefresh={refetch}
+      onToggleMarkAll={handleToggleMarkAll}
+      defaultSortOrder={defaultChapterSort}
+      onCancelDownload={handleCancelDownload}
+    />
+  )
+
   return (
     <div
       ref={scrollContainerRef}
       className={cn(
         'flex-1 flex flex-col h-full min-h-0 bg-background overflow-x-hidden anime-details-page',
-        pinDetailsHeader
-          ? 'overflow-hidden'
-          : lockWatchViewport
-            ? 'overflow-y-auto lg:overflow-hidden'
-            : 'overflow-y-auto'
+        pinDetailsHeader || lockWatchViewport
+          ? 'overflow-y-auto lg:overflow-hidden'
+          : 'overflow-y-auto'
       )}
     >
       <div className="sticky top-0 z-50 shrink-0 flex items-center justify-between px-4 py-2.5 bg-background/80 backdrop-blur-md border-b border-border/50 gap-4">
@@ -577,54 +603,50 @@ export function MediaDetailsView({
       )}
 
       {(!isInlineWatchActive || isTheaterMode) && (
-        <>
-          {isLoading ? (
-            <div className="shrink-0">
-              <HeroSkeleton />
-            </div>
-          ) : (
-            <div className="shrink-0">
-              <HeroSection
-                manga={normalized}
-                mediaType={mediaType}
-                extension={extension}
-                isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
-                extLang={extLang}
-                onBrowseSource={() => {
-                  setActiveChapter(null)
-                  setActiveTab('browse')
-                  setSelectedManga(null)
-                }}
-              />
-            </div>
-          )}
+        pinDetailsHeader ? (
+          <div className="max-w-7xl mx-auto w-full flex-1 lg:min-h-0 px-6 py-4 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-stretch">
+            {/* Left Fixed Info Column */}
+            <div className="flex flex-col lg:min-h-0 gap-3.5">
+              {isLoading ? (
+                <div className="h-44 rounded-xl bg-card border border-border animate-pulse shrink-0" />
+              ) : (
+                <HeroSection
+                  layout="sidebar"
+                  manga={normalized}
+                  mediaType={mediaType}
+                  extension={extension}
+                  isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+                  extLang={extLang}
+                  onBrowseSource={() => {
+                    setActiveChapter(null)
+                    setActiveTab('browse')
+                    setSelectedManga(null)
+                  }}
+                />
+              )}
 
-          <div className="shrink-0">
-            <ActionBar
-              isInLibrary={isInLibrary}
-              isPending={isToggling}
-              onToggleLibrary={toggleLibrary}
-              mediaUrl={normalized.url}
-              manga={normalized}
-              mediaType={mediaType}
-            />
-          </div>
+              <div className="shrink-0">
+                <ActionBar
+                  compact
+                  isInLibrary={isInLibrary}
+                  isPending={isToggling}
+                  onToggleLibrary={toggleLibrary}
+                  mediaUrl={normalized.url}
+                  manga={normalized}
+                  mediaType={mediaType}
+                />
+              </div>
 
-          <div
-            className={cn(
-              'max-w-7xl mx-auto w-full flex-1 flex flex-col',
-              pinDetailsHeader ? 'px-6 pt-4 pb-5 min-h-0 gap-4' : 'p-6 space-y-6'
-            )}
-          >
-            <div className="shrink-0">
               <SynopsisCard
+                inSidebar
                 description={normalized.description}
                 genres={normalized.genres}
                 isAnime={isAnime}
               />
             </div>
 
-            {!isInlineWatchActive && (
+            {/* Right Episodes Stack */}
+            <div className="flex flex-col min-h-[420px] lg:min-h-0 gap-3.5">
               <div className="shrink-0">
                 <ContinueBanner
                   nextToRead={nextItem}
@@ -635,35 +657,70 @@ export function MediaDetailsView({
                   onContinue={setActiveChapter}
                 />
               </div>
+
+              {episodesListNode}
+            </div>
+          </div>
+        ) : (
+          <>
+            {isLoading ? (
+              <div className="shrink-0">
+                <HeroSkeleton />
+              </div>
+            ) : (
+              <div className="shrink-0">
+                <HeroSection
+                  manga={normalized}
+                  mediaType={mediaType}
+                  extension={extension}
+                  isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+                  extLang={extLang}
+                  onBrowseSource={() => {
+                    setActiveChapter(null)
+                    setActiveTab('browse')
+                    setSelectedManga(null)
+                  }}
+                />
+              </div>
             )}
 
-            <ChapterEpisodeList
-              items={items}
-              readChapterIds={readIds}
-              pageProgress={pageProgress[mergedMedia.id] || {}}
-              downloadStatuses={effectiveStatuses}
-              downloadProgress={downloadProgress}
-              mediaType={mediaType}
-              isLoading={isLoading}
-              error={error}
-              extLang={extLang}
-              fillHeight={pinDetailsHeader}
-              seasons={normalized.seasons}
-              activeSeasonUrl={activeSeasonUrl}
-              onSelectSeason={onSelectSeason}
-              onItemClick={(item) => {
-                setActiveChapter(item)
-                addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })
-              }}
-              onDownload={handleDownload}
-              onRemoveDownload={handleRemoveDownload}
-              onRefresh={refetch}
-              onToggleMarkAll={handleToggleMarkAll}
-              defaultSortOrder={defaultChapterSort}
-              onCancelDownload={handleCancelDownload}
-            />
-          </div>
-        </>
+            <div className="shrink-0">
+              <ActionBar
+                isInLibrary={isInLibrary}
+                isPending={isToggling}
+                onToggleLibrary={toggleLibrary}
+                mediaUrl={normalized.url}
+                manga={normalized}
+                mediaType={mediaType}
+              />
+            </div>
+
+            <div className="p-6 max-w-7xl mx-auto w-full flex-1 flex flex-col space-y-6">
+              <div className="shrink-0">
+                <SynopsisCard
+                  description={normalized.description}
+                  genres={normalized.genres}
+                  isAnime={isAnime}
+                />
+              </div>
+
+              {!isInlineWatchActive && (
+                <div className="shrink-0">
+                  <ContinueBanner
+                    nextToRead={nextItem}
+                    mediaId={mergedMedia.id}
+                    pageProgress={pageProgress}
+                    readChapterIds={readIds}
+                    mediaType={mediaType}
+                    onContinue={setActiveChapter}
+                  />
+                </div>
+              )}
+
+              {episodesListNode}
+            </div>
+          </>
+        )
       )}
     </div>
   )
