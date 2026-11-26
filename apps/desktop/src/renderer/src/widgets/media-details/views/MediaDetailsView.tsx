@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ArrowLeft, Share2, Download, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Share2, Download, ShieldAlert, AlignLeft } from 'lucide-react'
 import { usePipPlayerStore } from '@renderer/app/components/pipPlayerStore'
 import {
   useUIStore,
@@ -72,11 +72,13 @@ export function MediaDetailsView({
   const [downloadStatuses, setDownloadStatuses] = useState<Record<string, DownloadStatus>>({})
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
   const [isTheaterMode, setIsTheaterMode] = useState(false)
+  const [showWatchSynopsis, setShowWatchSynopsis] = useState(false)
   const downloadMenuRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const isInlineWatchActive = isAnime && Boolean(activeChapter) && !mobile
   const pinDetailsHeader = !mobile && !isInlineWatchActive
+  const lockWatchViewport = isInlineWatchActive && !isTheaterMode
 
   useEffect(() => {
     if (isInlineWatchActive && usePipPlayerStore.getState().pipSession) {
@@ -328,7 +330,11 @@ export function MediaDetailsView({
       ref={scrollContainerRef}
       className={cn(
         'flex-1 flex flex-col h-full min-h-0 bg-background overflow-x-hidden anime-details-page',
-        pinDetailsHeader ? 'overflow-hidden' : 'overflow-y-auto'
+        pinDetailsHeader
+          ? 'overflow-hidden'
+          : lockWatchViewport
+            ? 'overflow-y-auto lg:overflow-hidden'
+            : 'overflow-y-auto'
       )}
     >
       <div className="sticky top-0 z-50 shrink-0 flex items-center justify-between px-4 py-2.5 bg-background/80 backdrop-blur-md border-b border-border/50 gap-4">
@@ -423,19 +429,24 @@ export function MediaDetailsView({
       </div>
 
       {isInlineWatchActive && activeChapter && (
-        <div className="w-full px-6 pt-5 pb-3">
+        <div
+          className={cn(
+            'w-full px-5 pt-4 pb-4',
+            !isTheaterMode && 'flex-1 min-h-0 flex flex-col'
+          )}
+        >
           <div
             className={cn(
-              'grid gap-5',
+              'grid gap-4',
               isTheaterMode
-                ? 'grid-cols-1 max-w-6xl mx-auto items-start'
-                : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] items-stretch'
+                ? 'grid-cols-1 max-w-6xl mx-auto w-full items-start'
+                : 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_350px] flex-1 min-h-0 items-stretch'
             )}
           >
-            <div className="min-w-0">
+            <div className={cn('min-w-0', !isTheaterMode && 'flex flex-col justify-center min-h-0')}>
               <Suspense
                 fallback={
-                  <div className="w-full aspect-video max-h-[76vh] rounded-2xl bg-black flex items-center justify-center border border-white/10">
+                  <div className="w-full aspect-video max-h-[76vh] rounded-xl bg-black flex items-center justify-center border border-white/10">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
                   </div>
                 }
@@ -458,8 +469,8 @@ export function MediaDetailsView({
               </Suspense>
             </div>
             {!isTheaterMode && (
-              <div className="relative min-h-[360px] xl:min-h-0">
-                <div className="h-full xl:absolute xl:inset-0 flex flex-col">
+              <div className="relative min-h-[420px] lg:min-h-0 flex flex-col">
+                <div className="h-full lg:absolute lg:inset-0 flex flex-col">
                   <InlineEpisodesPanel
                     episodes={items}
                     activeChapterId={activeChapter.id}
@@ -467,6 +478,89 @@ export function MediaDetailsView({
                     pageProgress={pageProgress[mergedMedia.id] || {}}
                     extLang={extLang}
                     onSelectEpisode={(ep) => setActiveChapter(ep)}
+                    topContent={
+                      <div className="p-3 border-b border-border space-y-2.5 bg-card shrink-0">
+                        <div className="flex items-start gap-2.5">
+                          {normalized.coverUrl && (
+                            <img
+                              src={normalized.coverUrl}
+                              alt={normalized.title}
+                              className="w-11 h-16 rounded-md object-cover border border-border shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setActiveChapter(null)}
+                              className="text-left text-xs font-semibold text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug"
+                              title="Back to anime details"
+                              dir="auto"
+                            >
+                              {normalized.title}
+                            </button>
+                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground truncate">
+                              {extension?.name && <span className="truncate">{extension.name}</span>}
+                              {normalized.status && (
+                                <>
+                                  {extension?.name && <span>•</span>}
+                                  <span className="truncate" dir="auto">
+                                    {normalized.status.split(' • ')[0]}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <ActionBar
+                          compact
+                          isInLibrary={isInLibrary}
+                          isPending={isToggling}
+                          onToggleLibrary={toggleLibrary}
+                          mediaUrl={normalized.url}
+                          manga={normalized}
+                          mediaType={mediaType}
+                          extraAction={
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowWatchSynopsis((prev) => !prev)}
+                              title="Toggle Synopsis & Genres"
+                              className={cn(
+                                'h-8 w-8 p-0 shrink-0 flex items-center justify-center rounded-lg border transition-colors',
+                                showWatchSynopsis
+                                  ? 'bg-primary/10 border-primary/40 text-primary'
+                                  : 'bg-background border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                              )}
+                            >
+                              <AlignLeft className="h-3.5 w-3.5" />
+                            </Button>
+                          }
+                        />
+
+                        {showWatchSynopsis && (
+                          <div className="pt-2 border-t border-border/60 space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                            <p
+                              className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-line"
+                              dir="auto"
+                            >
+                              {normalized.description || 'No description available.'}
+                            </p>
+                            {normalized.genres && normalized.genres.length > 0 && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {normalized.genres.map((genre: string) => (
+                                  <span
+                                    key={genre}
+                                    className="px-2 py-0.5 rounded-full bg-secondary text-[10px] text-secondary-foreground font-medium"
+                                  >
+                                    {genre}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    }
                   />
                 </div>
               </div>
@@ -475,88 +569,92 @@ export function MediaDetailsView({
         </div>
       )}
 
-      {isLoading ? (
-        <div className="shrink-0">
-          <HeroSkeleton />
-        </div>
-      ) : (
-        <div className="shrink-0">
-          <HeroSection
-            manga={normalized}
-            mediaType={mediaType}
-            extension={extension}
-            isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
-            extLang={extLang}
-            onBrowseSource={() => {
-              setActiveChapter(null)
-              setActiveTab('browse')
-              setSelectedManga(null)
-            }}
-          />
-        </div>
-      )}
+      {(!isInlineWatchActive || isTheaterMode) && (
+        <>
+          {isLoading ? (
+            <div className="shrink-0">
+              <HeroSkeleton />
+            </div>
+          ) : (
+            <div className="shrink-0">
+              <HeroSection
+                manga={normalized}
+                mediaType={mediaType}
+                extension={extension}
+                isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+                extLang={extLang}
+                onBrowseSource={() => {
+                  setActiveChapter(null)
+                  setActiveTab('browse')
+                  setSelectedManga(null)
+                }}
+              />
+            </div>
+          )}
 
-      <div className="shrink-0">
-        <ActionBar
-          isInLibrary={isInLibrary}
-          isPending={isToggling}
-          onToggleLibrary={toggleLibrary}
-          mediaUrl={normalized.url}
-          manga={normalized}
-          mediaType={mediaType}
-        />
-      </div>
-
-      <div
-        className={cn(
-          'max-w-7xl mx-auto w-full flex-1 flex flex-col',
-          pinDetailsHeader ? 'px-6 pt-4 pb-5 min-h-0 gap-4' : 'p-6 space-y-6'
-        )}
-      >
-        <div className="shrink-0">
-          <SynopsisCard
-            description={normalized.description}
-            genres={normalized.genres}
-            isAnime={isAnime}
-          />
-        </div>
-
-        {!isInlineWatchActive && (
           <div className="shrink-0">
-            <ContinueBanner
-              nextToRead={nextItem}
-              mediaId={mergedMedia.id}
-              pageProgress={pageProgress}
-              readChapterIds={readIds}
+            <ActionBar
+              isInLibrary={isInLibrary}
+              isPending={isToggling}
+              onToggleLibrary={toggleLibrary}
+              mediaUrl={normalized.url}
+              manga={normalized}
               mediaType={mediaType}
-              onContinue={setActiveChapter}
             />
           </div>
-        )}
 
-        <ChapterEpisodeList
-          items={items}
-          readChapterIds={readIds}
-          pageProgress={pageProgress[mergedMedia.id] || {}}
-          downloadStatuses={effectiveStatuses}
-          downloadProgress={downloadProgress}
-          mediaType={mediaType}
-          isLoading={isLoading}
-          error={error}
-          extLang={extLang}
-          fillHeight={pinDetailsHeader}
-          onItemClick={(item) => {
-            setActiveChapter(item)
-            addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })
-          }}
-          onDownload={handleDownload}
-          onRemoveDownload={handleRemoveDownload}
-          onRefresh={refetch}
-          onToggleMarkAll={handleToggleMarkAll}
-          defaultSortOrder={defaultChapterSort}
-          onCancelDownload={handleCancelDownload}
-        />
-      </div>
+          <div
+            className={cn(
+              'max-w-7xl mx-auto w-full flex-1 flex flex-col',
+              pinDetailsHeader ? 'px-6 pt-4 pb-5 min-h-0 gap-4' : 'p-6 space-y-6'
+            )}
+          >
+            <div className="shrink-0">
+              <SynopsisCard
+                description={normalized.description}
+                genres={normalized.genres}
+                isAnime={isAnime}
+              />
+            </div>
+
+            {!isInlineWatchActive && (
+              <div className="shrink-0">
+                <ContinueBanner
+                  nextToRead={nextItem}
+                  mediaId={mergedMedia.id}
+                  pageProgress={pageProgress}
+                  readChapterIds={readIds}
+                  mediaType={mediaType}
+                  onContinue={setActiveChapter}
+                />
+              </div>
+            )}
+
+            <ChapterEpisodeList
+              items={items}
+              readChapterIds={readIds}
+              pageProgress={pageProgress[mergedMedia.id] || {}}
+              downloadStatuses={effectiveStatuses}
+              downloadProgress={downloadProgress}
+              mediaType={mediaType}
+              isLoading={isLoading}
+              error={error}
+              extLang={extLang}
+              fillHeight={pinDetailsHeader}
+              onItemClick={(item) => {
+                setActiveChapter(item)
+                addToast({ type: 'info', message: `Opening ${itemNoun} ${item.number}` })
+              }}
+              onDownload={handleDownload}
+              onRemoveDownload={handleRemoveDownload}
+              onRefresh={refetch}
+              onToggleMarkAll={handleToggleMarkAll}
+              defaultSortOrder={defaultChapterSort}
+              onCancelDownload={handleCancelDownload}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }
