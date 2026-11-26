@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Search, ArrowUpDown, CheckCircle } from 'lucide-react'
 import { Button, Input } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
@@ -11,6 +11,7 @@ export interface InlineEpisodesPanelProps {
   pageProgress?: Record<string, number>
   extLang: string
   onSelectEpisode: (ep: Chapter) => void
+  topContent?: ReactNode
 }
 
 export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
@@ -19,7 +20,8 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   readChapterIds,
   pageProgress = {},
   extLang,
-  onSelectEpisode
+  onSelectEpisode,
+  topContent
 }: InlineEpisodesPanelProps) {
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -51,14 +53,16 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   }, [activeChapterId])
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-card/85 backdrop-blur-md shadow-lg flex flex-col overflow-hidden h-[360px] xl:h-full min-h-0">
+    <div className="rounded-xl border border-border bg-card flex flex-col overflow-hidden h-[420px] lg:h-full min-h-0">
+      {topContent}
+
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between gap-2 bg-card/90">
+      <div className="px-3.5 py-2.5 border-b border-border flex items-center justify-between gap-2 bg-card shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-black uppercase tracking-wider text-foreground">
+          <span className="text-xs font-semibold text-foreground">
             Episodes
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[11px] font-bold">
+          <span className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[11px] font-semibold">
             {episodes.length}
           </span>
         </div>
@@ -67,7 +71,7 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
           variant="ghost"
           size="sm"
           onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-          className="h-7 px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground gap-1"
+          className="h-7 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground gap-1"
           title={sortOrder === 'asc' ? 'Showing Oldest First' : 'Showing Latest First'}
         >
           <ArrowUpDown className="h-3.5 w-3.5" />
@@ -77,21 +81,21 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
 
       {/* Quick Search for large series */}
       {episodes.length >= 12 && (
-        <div className="px-3 py-2 border-b border-border/40 bg-background/40">
+        <div className="px-3 py-2 border-b border-border/60 bg-background/40 shrink-0">
           <div className="relative">
             <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Jump to episode..."
-              className="h-8 pl-8 text-xs bg-background/80 border-border/60"
+              className="h-8 pl-8 text-xs bg-background border-border"
             />
           </div>
         </div>
       )}
 
       {/* Episode List */}
-      <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 custom-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar">
         {filteredEpisodes.length === 0 ? (
           <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
             No matching episodes
@@ -109,17 +113,17 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
                 type="button"
                 onClick={() => onSelectEpisode(ep)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all border',
+                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors border',
                   isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                    ? 'bg-primary text-primary-foreground border-primary'
                     : isRead
-                      ? 'bg-secondary/20 border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-                      : 'bg-background/60 border-border/40 text-foreground hover:bg-secondary/60 hover:border-border'
+                      ? 'bg-secondary/30 border-transparent text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      : 'bg-background/60 border-border/60 text-foreground hover:bg-secondary/60 hover:border-border'
                 )}
               >
                 <div
                   className={cn(
-                    'h-8 w-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-black',
+                    'h-7 w-7 rounded-md flex items-center justify-center shrink-0 text-xs font-semibold',
                     isActive
                       ? 'bg-white/20 text-white'
                       : isRead
@@ -132,7 +136,7 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold truncate">
+                    <span className="text-xs font-semibold truncate">
                       {prefix} {ep.number}
                     </span>
                     {!isActive && isRead && (
@@ -142,21 +146,21 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
                   {ep.title ? (
                     <p
                       className={cn(
-                        'text-[10px] truncate mt-0.5',
+                        'text-[11px] truncate mt-0.5',
                         isActive ? 'text-white/80' : 'text-muted-foreground'
                       )}
                     >
                       {ep.title}
                     </p>
                   ) : !isActive && savedSec > 10 && !isRead ? (
-                    <p className="text-[10px] text-primary font-semibold mt-0.5">
+                    <p className="text-[11px] text-primary font-medium mt-0.5">
                       Resume at {Math.floor(savedSec / 60)}:
                       {String(Math.floor(savedSec % 60)).padStart(2, '0')}
                     </p>
                   ) : null}
                 </div>
 
-                {isActive && <Play className="h-3.5 w-3.5 fill-current shrink-0 animate-pulse" />}
+                {isActive && <Play className="h-3.5 w-3.5 fill-current shrink-0" />}
               </button>
             )
           })
