@@ -615,7 +615,7 @@ export function MediaDetailsView({
                   manga={normalized}
                   mediaType={mediaType}
                   extension={extension}
-                  isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+                  isFullySupported={isFullySupported(extension || normalized.pkg || activeExtension || undefined)}
                   extLang={extLang}
                   onBrowseSource={() => {
                     setActiveChapter(null)
@@ -673,7 +673,7 @@ export function MediaDetailsView({
                   manga={normalized}
                   mediaType={mediaType}
                   extension={extension}
-                  isFullySupported={activeExtension ? isFullySupported(activeExtension) : false}
+                  isFullySupported={isFullySupported(extension || normalized.pkg || activeExtension || undefined)}
                   extLang={extLang}
                   onBrowseSource={() => {
                     setActiveChapter(null)

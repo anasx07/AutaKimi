@@ -43,20 +43,20 @@ export const HeroSection = ({
     return (
       <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shrink-0">
         {manga.coverUrl && (
-          <div className="absolute inset-x-0 top-0 h-56 z-0 pointer-events-none">
+          <div className="absolute inset-0 z-0 pointer-events-none">
             <img
               src={manga.coverUrl}
               alt=""
-              className="w-full h-full object-cover blur-3xl opacity-35 saturate-150 scale-125"
+              className="w-full h-full object-cover blur-3xl opacity-30 saturate-150 scale-125"
             />
             {ambientPalette && (
               <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-45 blur-2xl saturate-150 transition-opacity duration-500"
+                className="absolute inset-0 opacity-40 blur-2xl saturate-150 transition-opacity duration-500"
                 style={{ background: buildAmbientGradientStyle(ambientPalette) }}
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/85 to-card/30" />
           </div>
         )}
 
