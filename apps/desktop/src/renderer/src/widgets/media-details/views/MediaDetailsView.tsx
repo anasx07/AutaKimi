@@ -604,11 +604,11 @@ export function MediaDetailsView({
 
       {(!isInlineWatchActive || isTheaterMode) && (
         pinDetailsHeader ? (
-          <div className="max-w-7xl mx-auto w-full flex-1 lg:min-h-0 px-6 py-4 grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-stretch">
+          <div className="max-w-[1440px] mx-auto w-full flex-1 lg:min-h-0 px-6 py-4 grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-stretch">
             {/* Left Fixed Info Column */}
-            <div className="flex flex-col lg:min-h-0 gap-3.5">
+            <div className="flex flex-col lg:min-h-0 lg:overflow-y-auto no-scrollbar gap-3">
               {isLoading ? (
-                <div className="h-44 rounded-xl bg-card border border-border animate-pulse shrink-0" />
+                <div className="h-80 rounded-xl bg-card border border-border animate-pulse shrink-0" />
               ) : (
                 <HeroSection
                   layout="sidebar"

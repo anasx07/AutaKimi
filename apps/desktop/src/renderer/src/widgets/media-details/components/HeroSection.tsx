@@ -43,27 +43,27 @@ export const HeroSection = ({
     return (
       <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4 shrink-0">
         {manga.coverUrl && (
-          <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-x-0 top-0 h-56 z-0 pointer-events-none">
             <img
               src={manga.coverUrl}
               alt=""
-              className="w-full h-full object-cover blur-3xl opacity-25 saturate-150 scale-125"
+              className="w-full h-full object-cover blur-3xl opacity-35 saturate-150 scale-125"
             />
             {ambientPalette && (
               <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-35 blur-2xl saturate-150 transition-opacity duration-500"
+                className="absolute inset-0 opacity-45 blur-2xl saturate-150 transition-opacity duration-500"
                 style={{ background: buildAmbientGradientStyle(ambientPalette) }}
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/85 to-card/50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-transparent" />
           </div>
         )}
 
-        <div className="relative z-10 flex gap-3.5 items-start">
+        <div className="relative z-10 flex flex-col items-center text-center gap-3">
           <Card
             className={cn(
-              'w-24 h-36 flex-shrink-0 shadow-md overflow-hidden rounded-lg',
+              'w-44 sm:w-48 aspect-[2/3] flex-shrink-0 shadow-xl overflow-hidden rounded-xl',
               mediaType === 'manga' ? 'border-border' : 'border-primary/25'
             )}
           >
@@ -84,26 +84,26 @@ export const HeroSection = ({
                   mediaType === 'manga' ? 'bg-secondary/50' : 'bg-primary/10 text-primary'
                 )}
               >
-                <Icon className="h-8 w-8 text-muted-foreground/40" />
+                <Icon className="h-10 w-10 text-muted-foreground/40" />
               </div>
             )}
           </Card>
 
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          <div className="w-full min-w-0 flex flex-col items-center gap-1.5">
             <h1
-              className="text-lg font-bold tracking-tight text-foreground line-clamp-3 leading-snug"
+              className="text-base sm:text-lg font-bold tracking-tight text-foreground line-clamp-2 leading-snug"
               dir="auto"
             >
               {manga.title}
             </h1>
 
             {manga.author && (
-              <p className="text-xs font-medium text-muted-foreground truncate" dir="auto">
+              <p className="text-xs font-medium text-muted-foreground truncate max-w-full" dir="auto">
                 {manga.author}
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 text-xs">
               <div className={cn('flex items-center gap-1 font-semibold', iconColor)}>
                 <StatusIcon className="h-3 w-3 fill-current shrink-0" />
                 <span dir="auto">{manga.status?.split(' • ')[0] || manga.status}</span>
@@ -115,14 +115,14 @@ export const HeroSection = ({
               >
                 <button
                   onClick={onBrowseSource}
-                  className="text-muted-foreground font-medium hover:text-primary hover:underline underline-offset-2 transition-colors truncate max-w-full"
+                  className="text-muted-foreground font-medium hover:text-primary hover:underline underline-offset-2 transition-colors truncate max-w-[180px]"
                 >
                   {extension?.name || manga.pkg?.split('.').pop()} ({extLang.toUpperCase()})
                 </button>
               </Tooltip>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
               {manga.pkg &&
                 (isFullySupported ? (
                   <Badge
@@ -146,7 +146,7 @@ export const HeroSection = ({
             {manga.url && (
               <button
                 onClick={() => DataService.openExternal(manga.url!)}
-                className="text-[11px] text-muted-foreground/70 hover:text-primary transition-colors truncate max-w-full flex items-center gap-1 mt-0.5 underline underline-offset-2"
+                className="text-[11px] text-muted-foreground/70 hover:text-primary transition-colors truncate max-w-full flex items-center justify-center gap-1 mt-0.5 underline underline-offset-2"
                 title={manga.url}
               >
                 <ExternalLink className="h-3 w-3 flex-shrink-0" />
