@@ -6,7 +6,11 @@ import { NetworkConfig } from '@common/config/network'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { ServiceRegistry } from './services/service.registry'
 import { downloadManager } from './services/download.service'
-import { autoUpdater } from 'electron-updater'
+import {
+  installPendingUpdateOnStartup,
+  initializeAutoUpdater,
+  replayUpdateStateToRenderer
+} from './services/app-updater'
 import icon from '../../resources/icon.png?asset'
 
 if (!app.requestSingleInstanceLock()) {
@@ -78,7 +82,6 @@ import { registerSourceHandlers } from './ipc/sources'
 import { registerTrackerHandlers } from './ipc/trackers'
 import { registerBackupHandlers } from './ipc/backup'
 import { registerDiscordHandlers } from './ipc/discord'
-import { registerHandler, wrapIpc } from './ipc/utils'
 import { IpcChannel } from './types/ipc'
 
 import { handleLocalProtocol } from './utils/localProtocol'
@@ -186,6 +189,14 @@ function createWindow(): void {
       .catch(() => {})
   })
 
+  const notifyFullScreenChange = (flag: boolean): void => {
+    broadcastService.send(IpcChannel.WINDOW_FULLSCREEN_CHANGE, flag)
+  }
+  mainWindow.on('enter-full-screen', () => notifyFullScreenChange(true))
+  mainWindow.on('leave-full-screen', () => notifyFullScreenChange(false))
+  mainWindow.on('enter-html-full-screen', () => notifyFullScreenChange(true))
+  mainWindow.on('leave-html-full-screen', () => notifyFullScreenChange(false))
+
   mainWindow?.on('ready-to-show', () => {
     mainWindow?.show()
     // Inject webContents to BroadcastService for centralized IPC
@@ -195,6 +206,13 @@ function createWindow(): void {
     setTimeout(() => {
       runCleanupRoutine()
     }, 5000)
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (mainWindow) {
+      broadcastService.setWebContents(mainWindow.webContents)
+      replayUpdateStateToRenderer()
+    }
   })
 
   // Block ALL popup ads and external windows from embedded video players (Vidmoly, StreamWish, Byse, etc.)
@@ -635,60 +653,15 @@ app.whenReady().then(async () => {
     }
   })
 
-  // Initialize auto updater
-  autoUpdater.logger = console
-  autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'anasx07',
-    repo: 'AutaKimi',
-    private: false
-  })
-  autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  // Option A: If a verified update is pending from an interrupted exit, apply it before opening UI
+  if (installPendingUpdateOnStartup()) {
+    return
+  }
 
-  // Update events
-  autoUpdater.on('checking-for-update', () => {
-    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'checking' })
-  })
-  autoUpdater.on('update-available', () => {
-    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'available' })
-  })
-  autoUpdater.on('update-not-available', () => {
-    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'idle' })
-  })
-  autoUpdater.on('download-progress', (progressObj) => {
-    broadcastService.send(IpcChannel.APP_UPDATE, {
-      status: 'downloading',
-      progress: progressObj
-    })
-  })
-  autoUpdater.on('update-downloaded', () => {
-    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'downloaded' })
-  })
-  autoUpdater.on('error', (err) => {
-    broadcastService.send(IpcChannel.APP_UPDATE, { status: 'error', error: err.message })
-  })
-
-  registerHandler(
-    IpcChannel.INSTALL_UPDATE,
-    wrapIpc(async () => {
-      autoUpdater.quitAndInstall()
-    })
-  )
-
-  registerHandler(
-    IpcChannel.CHECK_FOR_UPDATE,
-    wrapIpc(async () => {
-      autoUpdater.checkForUpdatesAndNotify()
-    })
-  )
+  initializeAutoUpdater()
 
   ipcMain.on(IpcChannel.GET_VERSION, (event) => {
     event.returnValue = app.getVersion()
-  })
-
-  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-    console.error('Failed to check for updates:', err)
   })
 
   // Load window state

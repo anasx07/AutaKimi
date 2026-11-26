@@ -85,6 +85,7 @@ const api: ElectronApi = {
     isMaximized: () => invoke(IpcChannel.WINDOW_IS_MAXIMIZED),
     setFullScreen: (flag: boolean) => invoke(IpcChannel.WINDOW_SET_FULLSCREEN, flag),
     isFullScreen: () => invoke(IpcChannel.WINDOW_IS_FULLSCREEN),
+    onFullScreenChange: (callback) => on(IpcChannel.WINDOW_FULLSCREEN_CHANGE, callback),
     updateOverlay: (options) => invoke(IpcChannel.WINDOW_UPDATE_OVERLAY, options),
     openExternal: (url: string) => invoke(IpcChannel.OPEN_EXTERNAL, url),
     openInternalBrowser: (url: string) => invoke(IpcChannel.OPEN_INTERNAL_BROWSER, url)
