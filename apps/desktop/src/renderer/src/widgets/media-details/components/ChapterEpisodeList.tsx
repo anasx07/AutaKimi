@@ -188,10 +188,10 @@ export const ChapterEpisodeList = ({
                 </span>
               )}
 
-              {/* Most Recently Read */}
+              {/* Most Recently Read / Watched */}
               {isFinished && readChapterIds[readChapterIds.length - 1] === item.id && (
                 <span className="text-[10px] font-bold bg-secondary/80 text-secondary-foreground px-2 py-0.5 rounded-full border border-secondary whitespace-nowrap flex-shrink-0">
-                  Last Read
+                  {isAnime ? 'Last Watched' : 'Last Read'}
                 </span>
               )}
             </div>
@@ -320,7 +320,7 @@ export const ChapterEpisodeList = ({
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <span>Unread</span>
+                <span>{isAnime ? 'Unwatched' : 'Unread'}</span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] px-1 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
                     {unreadCount}
@@ -359,11 +359,17 @@ export const ChapterEpisodeList = ({
                 'text-xs h-8 gap-1.5 transition-colors',
                 allRead ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary'
               )}
-              title={allRead ? 'Mark all unread' : 'Mark all as read'}
+              title={
+                allRead
+                  ? `Mark all ${isAnime ? 'unwatched' : 'unread'}`
+                  : `Mark all as ${isAnime ? 'watched' : 'read'}`
+              }
               onClick={onToggleMarkAll}
             >
               <CheckCheck className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{allRead ? 'All Read' : 'Mark All'}</span>
+              <span className="hidden sm:inline">
+                {allRead ? (isAnime ? 'All Watched' : 'All Read') : 'Mark All'}
+              </span>
             </Button>
           )}
           <Button
@@ -374,7 +380,7 @@ export const ChapterEpisodeList = ({
               showSearch && 'text-primary bg-primary/10'
             )}
             onClick={() => setShowSearch(!showSearch)}
-            title="Search Chapters"
+            title={`Search ${isAnime ? 'Episodes' : 'Chapters'}`}
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -391,7 +397,13 @@ export const ChapterEpisodeList = ({
             <ArrowUpDown className="h-3.5 w-3.5" />
             <span>{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh} title="Refresh Chapters">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onRefresh}
+            title={`Refresh ${isAnime ? 'Episodes' : 'Chapters'}`}
+          >
             <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
           </Button>
         </div>
@@ -444,7 +456,7 @@ export const ChapterEpisodeList = ({
             {search
               ? `No ${isAnime ? 'episodes' : 'chapters'} matching "${search}"`
               : filterMode === 'unread'
-                ? `All ${isAnime ? 'episodes' : 'chapters'} are marked as read!`
+                ? `All ${isAnime ? 'episodes' : 'chapters'} are marked as ${isAnime ? 'watched' : 'read'}!`
                 : filterMode === 'downloaded'
                   ? `No downloaded ${isAnime ? 'episodes' : 'chapters'}.`
                   : `No ${isAnime ? 'episodes' : 'chapters'} available.`}
