@@ -205,6 +205,7 @@ export function installPendingUpdateOnStartup(): boolean {
     console.info(
       `[Updater] Launching cached v${meta.version} update before opening AutaKimi...`
     )
+    app.releaseSingleInstanceLock()
     app.exit(0)
     return true
   } catch (err) {
