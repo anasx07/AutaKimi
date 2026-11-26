@@ -21,7 +21,8 @@ const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewe
 
 export function AppLayout(): React.JSX.Element {
   useAppUpdater()
-  const { selectedManga, setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
+  const { selectedManga, setSelectedManga, activeChapter, setActiveChapter, isWatchStageOpen } =
+    useLibraryStore()
   const pipSession = usePipPlayerStore((s) => s.pipSession)
   const enterPip = usePipPlayerStore((s) => s.enterPip)
   const clearPip = usePipPlayerStore((s) => s.clearPip)
@@ -32,7 +33,7 @@ export function AppLayout(): React.JSX.Element {
   const mobile = isMobile()
   const prevPathRef = useRef(location.pathname)
   const isWatchingInlineAnime = Boolean(
-    activeChapter && selectedManga?.mediaType === 'anime' && !mobile
+    (activeChapter || isWatchStageOpen) && selectedManga?.mediaType === 'anime' && !mobile
   )
 
   // Preserve open details/player per route and auto-dock active video to Bottom-Right PiP when leaving
