@@ -380,6 +380,7 @@ export const MobileApi: ElectronApi = {
     isMaximized: async () => ({ ok: true, value: true }),
     setFullScreen: async () => ({ ok: true, value: undefined }),
     isFullScreen: async () => ({ ok: true, value: false }),
+    onFullScreenChange: () => () => {},
     updateOverlay: async () => ({ ok: true, value: undefined }),
     openExternal: async (url: string) => {
       await WebBrowser.openBrowserAsync(url);
