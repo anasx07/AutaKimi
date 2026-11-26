@@ -18,7 +18,7 @@ import { isMobile } from '@renderer/shared/platform'
 import { normalizeManga } from '@common/utils/mangaNormalizer'
 import { ExtensionResolver } from '@renderer/shared/api/sources/resolver'
 import { isFullySupported } from '@renderer/shared/api/sources'
-import { Chapter } from '@renderer/shared/api/sources/types'
+import { Chapter, MediaSeason } from '@renderer/shared/api/sources/types'
 import { InlineEpisodesPanel } from '@renderer/widgets/anime-viewer/components/InlineEpisodesPanel'
 
 const AnimeViewer = lazy(() => import('@renderer/widgets/anime-viewer/AnimeViewer'))
@@ -43,7 +43,7 @@ export interface MediaDetailsViewProps {
   refetch: () => void
   mediaType?: 'manga' | 'anime'
   activeSeasonUrl?: string | null
-  onSelectSeason?: (url: string) => void
+  onSelectSeason?: (season: MediaSeason) => void
 }
 
 export function MediaDetailsView({

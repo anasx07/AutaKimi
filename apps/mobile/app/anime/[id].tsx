@@ -38,10 +38,13 @@ export default function AnimeDetailsScreen() {
   const [description, setDescription] = useState<string>(
     "No description available.",
   );
+  const [displayTitle, setDisplayTitle] = useState<string>(paramTitle || "Unknown");
+  const [displayCover, setDisplayCover] = useState<string>(paramCover || "");
   const [seasons, setSeasons] = useState<any[]>([]);
   const [activeSeasonUrl, setActiveSeasonUrl] = useState<string | null>(null);
 
   const effectiveEpisodeSourceUrl = activeSeasonUrl || url || id;
+  const effectiveMediaId = activeSeasonUrl || id;
   const isAlternateSeason = Boolean(activeSeasonUrl && activeSeasonUrl !== (url || id));
 
   const {
@@ -141,16 +144,18 @@ export default function AnimeDetailsScreen() {
   }, [pkg]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!effectiveMediaId) return;
     DataService.db
-      .getMangaCache(id)
+      .getMangaCache(effectiveMediaId)
       .then(async (cached: any) => {
         const c = (cached as any)?.value || cached;
         if (c?.description && c.description !== "No description available.") {
           setDescription(c.description);
         }
+        if (c?.title) setDisplayTitle(c.title);
+        if (c?.coverUrl || c?.cover_url) setDisplayCover(c.coverUrl || c.cover_url);
 
-        if (pkg && url) {
+        if (pkg && effectiveEpisodeSourceUrl) {
           let codeToUse = extCode;
           if (!codeToUse) {
             const exts = await DataService.db.getExtensions();
@@ -166,21 +171,38 @@ export default function AnimeDetailsScreen() {
                 code: codeToUse,
                 contextArgs: {
                   type: "fetchMangaDetails",
-                  mangaUrl: url,
+                  mangaUrl: effectiveEpisodeSourceUrl,
                 },
               });
               const details = res?.data || res;
               if (Array.isArray(details?.seasons) && details.seasons.length > 0) {
-                setSeasons(details.seasons);
+                setSeasons((prev) => {
+                  if (!prev.length) return details.seasons;
+                  const prevById = new Map(prev.map((s: any) => [s.id, s]));
+                  return details.seasons.map((s: any) => {
+                    const old = prevById.get(s.id);
+                    const keepOldUrl =
+                      old?.url &&
+                      String(s.url).includes("risto_season=") &&
+                      !String(old.url).includes("risto_season=");
+                    return {
+                      ...s,
+                      url: keepOldUrl ? old.url : s.url,
+                      coverUrl: s.coverUrl || old?.coverUrl,
+                    };
+                  });
+                });
               }
+              if (details?.title) setDisplayTitle(details.title);
+              if (details?.coverUrl) setDisplayCover(details.coverUrl);
               if (details?.description) {
                 setDescription(details.description);
                 await DataService.db.saveMangaCache({
-                  id,
+                  id: effectiveMediaId,
                   title: details.title || paramTitle || "Unknown",
                   coverUrl: details.coverUrl || paramCover || "",
                   description: details.description,
-                  url,
+                  url: effectiveEpisodeSourceUrl,
                   pkg,
                   mediaType: "anime",
                 });
@@ -190,7 +212,7 @@ export default function AnimeDetailsScreen() {
         }
       })
       .catch(() => {});
-  }, [id, pkg, url, extCode, paramTitle, paramCover]);
+  }, [effectiveMediaId, effectiveEpisodeSourceUrl, pkg, extCode, paramTitle, paramCover]);
 
   const sortedEpisodes = episodes
     ? [...episodes].sort(
@@ -203,10 +225,10 @@ export default function AnimeDetailsScreen() {
 
     DataService.db
       .addHistory({
-        mangaId: id,
-        mangaTitle: paramTitle,
-        mangaCover: paramCover,
-        mangaUrl: url,
+        mangaId: effectiveMediaId,
+        mangaTitle: displayTitle || paramTitle,
+        mangaCover: displayCover || paramCover,
+        mangaUrl: effectiveEpisodeSourceUrl,
         chapterId: episode.id,
         chapterTitle: episode.title || `Episode ${episode.number}`,
         startedAt: new Date().toISOString(),
@@ -218,14 +240,14 @@ export default function AnimeDetailsScreen() {
     router.push({
       pathname: "/player/[animeId]/[episodeId]" as any,
       params: {
-        animeId: id,
+        animeId: effectiveMediaId,
         episodeId: episode.id,
         pkg: pkg,
         episodeUrl: episode.url,
         episodeTitle: episode.title || `Episode ${episode.number}`,
-        animeTitle: paramTitle || "",
-        animeCover: paramCover || "",
-        animeUrl: url || "",
+        animeTitle: displayTitle || paramTitle || "",
+        animeCover: displayCover || paramCover || "",
+        animeUrl: effectiveEpisodeSourceUrl || "",
       },
     });
   };
@@ -246,9 +268,9 @@ export default function AnimeDetailsScreen() {
       >
         {/* Hero Image */}
         <View style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}>
-          {paramCover ? (
+          {displayCover ? (
             <Image
-              source={{ uri: paramCover }}
+              source={{ uri: displayCover }}
               style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}
               contentFit="cover"
               transition={150}
@@ -282,7 +304,7 @@ export default function AnimeDetailsScreen() {
             className="text-white text-2xl font-bold mb-1"
             numberOfLines={3}
           >
-            {paramTitle || "Unknown"}
+            {displayTitle || "Unknown"}
           </Typography>
         </View>
 
@@ -356,7 +378,11 @@ export default function AnimeDetailsScreen() {
                 return (
                   <TouchableOpacity
                     key={season.id || season.url}
-                    onPress={() => setActiveSeasonUrl(season.url)}
+                    onPress={() => {
+                      setActiveSeasonUrl(season.url);
+                      if (season.title) setDisplayTitle(season.title);
+                      if (season.coverUrl) setDisplayCover(season.coverUrl);
+                    }}
                     className={`px-3.5 py-2 rounded-lg border ${
                       isActive
                         ? "bg-primary border-primary"

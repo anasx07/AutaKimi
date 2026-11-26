@@ -41,7 +41,7 @@ interface ChapterEpisodeListProps {
   fillHeight?: boolean
   seasons?: MediaSeason[]
   activeSeasonUrl?: string | null
-  onSelectSeason?: (url: string) => void
+  onSelectSeason?: (season: MediaSeason) => void
 }
 
 export const ChapterEpisodeList = ({
