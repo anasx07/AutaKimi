@@ -1,12 +1,13 @@
 import { memo, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Play, Search, ArrowUpDown, CheckCircle } from 'lucide-react'
+import { Play, Search, ArrowUpDown, CheckCircle, Loader2 } from 'lucide-react'
 import { Button, Input, SeasonSelector } from '@renderer/shared/ui'
 import { cn } from '@renderer/shared/lib/utils'
 import { Chapter, MediaSeason } from '@renderer/shared/api/sources/types'
 
 export interface InlineEpisodesPanelProps {
   episodes: Chapter[]
-  activeChapterId: string
+  activeChapterId?: string | null
+  isLoading?: boolean
   readChapterIds: string[]
   pageProgress?: Record<string, number>
   extLang: string
@@ -20,6 +21,7 @@ export interface InlineEpisodesPanelProps {
 export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
   episodes,
   activeChapterId,
+  isLoading = false,
   readChapterIds,
   pageProgress = {},
   extLang,
@@ -109,7 +111,12 @@ export const InlineEpisodesPanel = memo(function InlineEpisodesPanel({
 
       {/* Episode List */}
       <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-        {filteredEpisodes.length === 0 ? (
+        {isLoading && filteredEpisodes.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span>Loading episodes...</span>
+          </div>
+        ) : filteredEpisodes.length === 0 ? (
           <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
             No matching episodes
           </div>

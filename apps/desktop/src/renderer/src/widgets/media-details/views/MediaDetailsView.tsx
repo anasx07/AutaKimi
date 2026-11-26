@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ArrowLeft, Share2, Download, ShieldAlert, AlignLeft } from 'lucide-react'
+import { ArrowLeft, Share2, Download, ShieldAlert, AlignLeft, Play, Tv, Loader2, X, RectangleHorizontal } from 'lucide-react'
 import { usePipPlayerStore } from '@renderer/app/components/pipPlayerStore'
 import {
   useUIStore,
@@ -67,7 +67,7 @@ export function MediaDetailsView({
   const mobile = isMobile()
   const location = useLocation()
   const { setActiveTab, addToast } = useUIStore()
-  const { setSelectedManga, activeChapter, setActiveChapter } = useLibraryStore()
+  const { setSelectedManga, activeChapter, setActiveChapter, isWatchStageOpen } = useLibraryStore()
   const { activeExtension, installedExtensions } = useExtensionStore()
   const { readingProgress, pageProgress, markAllChaptersRead } = useProgressStore()
   const { downloadQueue, addToDownloadQueue, activeTasks } = useDownloadStore()
@@ -80,7 +80,7 @@ export function MediaDetailsView({
   const downloadMenuRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const isInlineWatchActive = isAnime && Boolean(activeChapter) && !mobile
+  const isInlineWatchActive = isAnime && (Boolean(activeChapter) || isWatchStageOpen) && !mobile
   const pinDetailsHeader = !mobile && !isInlineWatchActive
   const lockWatchViewport = isInlineWatchActive && !isTheaterMode
 
@@ -415,11 +415,11 @@ export function MediaDetailsView({
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          {isInlineWatchActive && activeChapter && (
+          {isInlineWatchActive && (
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-sm font-bold truncate text-foreground">{normalized.title}</span>
               <span className="px-2 py-0.5 rounded-md bg-primary/15 text-primary text-xs font-bold shrink-0">
-                EP {activeChapter.number}
+                {activeChapter ? `EP ${activeChapter.number}` : 'Select Episode'}
               </span>
             </div>
           )}
@@ -484,7 +484,7 @@ export function MediaDetailsView({
         </div>
       </div>
 
-      {isInlineWatchActive && activeChapter && (
+      {isInlineWatchActive && (
         <div
           className={cn(
             'w-full px-5 pt-4 pb-4',
@@ -500,36 +500,144 @@ export function MediaDetailsView({
             )}
           >
             <div className={cn('min-w-0', !isTheaterMode && 'flex flex-col justify-center min-h-0')}>
-              <Suspense
-                fallback={
-                  <div className="w-full aspect-video max-h-[76vh] rounded-xl bg-black flex items-center justify-center border border-white/10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+              {activeChapter ? (
+                <Suspense
+                  fallback={
+                    <div className="w-full aspect-video max-h-[76vh] rounded-xl bg-black flex items-center justify-center border border-white/10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
+                    </div>
+                  }
+                >
+                  <AnimeViewer
+                    variant="inline"
+                    isTheaterMode={isTheaterMode}
+                    onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+                    onEnterMiniPip={() => {
+                      if (!activeChapter) return
+                      usePipPlayerStore.getState().enterPip({
+                        manga: normalized,
+                        chapter: activeChapter,
+                        pkg: normalized.pkg || activeExtension || '',
+                        returnPath: location.pathname
+                      })
+                      setActiveChapter(null)
+                    }}
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="relative w-full aspect-video max-h-[76vh] rounded-xl overflow-hidden bg-zinc-950 border border-white/10 shadow-2xl flex items-center justify-center p-6">
+                    {normalized.coverUrl && (
+                      <img
+                        src={normalized.coverUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-30 pointer-events-none select-none"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/65 to-black/75 pointer-events-none" />
+
+                    <div className="relative z-10 flex flex-col items-center text-center max-w-md gap-4">
+                      {normalized.coverUrl ? (
+                        <img
+                          src={normalized.coverUrl}
+                          alt={normalized.title}
+                          className="w-20 h-28 rounded-lg object-cover border border-white/15 shadow-xl"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60">
+                          <Tv className="h-7 w-7" />
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <h3 className="text-lg font-bold text-white line-clamp-2" dir="auto">
+                          {normalized.title}
+                        </h3>
+                        {isLoading ? (
+                          <p className="text-xs text-white/70 flex items-center justify-center gap-2">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                            Loading season episodes...
+                          </p>
+                        ) : (
+                          <p className="text-xs text-white/70">
+                            {items.length > 0
+                              ? 'Select an episode from the list to start watching.'
+                              : 'No episodes available for this season yet.'}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center gap-2.5">
+                        {nextItem && !isLoading && (
+                          <Button
+                            size="sm"
+                            onClick={() => setActiveChapter(nextItem)}
+                            className="h-9 px-4 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-semibold"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                            {(pageProgress[mergedMedia.id]?.[nextItem.id] || 0) > 1 ||
+                            readIds.includes(nextItem.id)
+                              ? `Resume Episode ${nextItem.number}`
+                              : `Play Episode ${nextItem.number}`}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setActiveChapter(null)}
+                          className="h-9 px-3.5 text-xs bg-white/5 hover:bg-white/15 text-white border-white/15"
+                        >
+                          Details View
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                }
-              >
-                <AnimeViewer
-                  variant="inline"
-                  isTheaterMode={isTheaterMode}
-                  onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
-                  onEnterMiniPip={() => {
-                    if (!activeChapter) return
-                    usePipPlayerStore.getState().enterPip({
-                      manga: normalized,
-                      chapter: activeChapter,
-                      pkg: normalized.pkg || activeExtension || '',
-                      returnPath: location.pathname
-                    })
-                    setActiveChapter(null)
-                  }}
-                />
-              </Suspense>
+
+                  {/* Subtle Control Strip Matching Player Dock */}
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-card border border-border">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {isLoading
+                        ? 'Fetching season episodes...'
+                        : `${items.length} Episodes in this season`}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsTheaterMode((prev) => !prev)}
+                        className={cn(
+                          'h-8 px-2.5 rounded-full text-xs font-semibold gap-1.5 border',
+                          isTheaterMode
+                            ? 'bg-primary/15 border-primary/40 text-primary'
+                            : 'border-border/70 text-muted-foreground hover:text-foreground'
+                        )}
+                        title="Toggle Theater Mode"
+                      >
+                        <RectangleHorizontal className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Theater</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setActiveChapter(null)}
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Exit Cinema Mode"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             {!isTheaterMode && (
               <div className="relative min-h-[420px] lg:min-h-0 flex flex-col">
                 <div className="h-full lg:absolute lg:inset-0 flex flex-col">
                   <InlineEpisodesPanel
                     episodes={items}
-                    activeChapterId={activeChapter.id}
+                    activeChapterId={activeChapter?.id}
+                    isLoading={isLoading}
                     readChapterIds={readIds}
                     pageProgress={pageProgress[mergedMedia.id] || {}}
                     extLang={extLang}

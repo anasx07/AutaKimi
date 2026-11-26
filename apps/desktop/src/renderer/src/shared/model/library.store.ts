@@ -14,19 +14,22 @@ interface LibraryState {
   selectedManga: NormalizedManga | null
   /** The chapter or episode currently being read/watched. */
   activeChapter: Chapter | null
+  /** Keeps the inline Cinema Watch stage open across season switches while awaiting episode selection. */
+  isWatchStageOpen: boolean
 
   // Actions
   _init: (library: NormalizedManga[]) => void
   loadFromDb: () => Promise<void>
   toggleLibrary: (manga: NormalizedManga) => Promise<void>
   setSelectedManga: (manga: NormalizedManga | null) => void
-  setActiveChapter: (chapter: Chapter | null) => void
+  setActiveChapter: (chapter: Chapter | null, options?: { keepWatchStage?: boolean }) => void
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
   library: [],
   selectedManga: null,
   activeChapter: null,
+  isWatchStageOpen: false,
 
   _init: (library) => {
     set({ library: library || [] })
@@ -59,11 +62,18 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   setSelectedManga: (manga: NormalizedManga | null) =>
     set(() => {
       const next: Partial<LibraryState> = { selectedManga: manga }
+      if (!manga) {
+        next.isWatchStageOpen = false
+      }
       if (manga && manga.pkg) {
         useExtensionStore.getState().setActiveExtension(manga.pkg)
       }
       return next
     }),
 
-  setActiveChapter: (chapter: Chapter | null) => set({ activeChapter: chapter })
+  setActiveChapter: (chapter: Chapter | null, options?: { keepWatchStage?: boolean }) =>
+    set({
+      activeChapter: chapter,
+      isWatchStageOpen: chapter ? true : Boolean(options?.keepWatchStage)
+    })
 }))

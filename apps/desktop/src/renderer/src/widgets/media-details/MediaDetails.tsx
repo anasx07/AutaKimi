@@ -8,7 +8,8 @@ interface MediaDetailsProps {
 }
 
 export default function MediaDetails({ mediaType }: MediaDetailsProps) {
-  const { selectedManga, setSelectedManga, setActiveChapter } = useLibraryStore()
+  const { selectedManga, setSelectedManga, activeChapter, setActiveChapter, isWatchStageOpen } =
+    useLibraryStore()
   const mediaData = useMediaData(mediaType, selectedManga)
 
   if (!selectedManga) return null
@@ -16,7 +17,9 @@ export default function MediaDetails({ mediaType }: MediaDetailsProps) {
   const handleSelectSeason = (season: MediaSeason): void => {
     if (!season?.url || season.url === selectedManga.url) return
     const currentSeasons = mediaData.mergedMedia?.seasons || selectedManga.seasons
-    setActiveChapter(null)
+    const stayInCinemaStage =
+      mediaType === 'anime' && Boolean(activeChapter || isWatchStageOpen)
+    setActiveChapter(null, { keepWatchStage: stayInCinemaStage })
     setSelectedManga({
       ...selectedManga,
       id: season.url,
