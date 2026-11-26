@@ -20,23 +20,23 @@ export const SynopsisCard = ({
   const bgClass = isAnime ? 'bg-primary/5 border-primary/15' : 'bg-card border-border'
   const titleColor = isAnime ? 'text-primary' : ''
   const textContent = description?.trim() || 'No description available.'
-  const canExpand = !inSidebar && textContent.length > 160
+  const canExpand = textContent.length > (inSidebar ? 180 : 160)
 
   return (
     <Card
       className={cn(
-        'p-4 rounded-xl shadow-none border flex flex-col gap-2.5',
-        inSidebar && 'flex-1 min-h-0',
+        'rounded-xl shadow-none border flex flex-col gap-2',
+        inSidebar ? 'p-3.5 shrink-0' : 'p-4',
         bgClass
       )}
     >
       <div className="flex items-center justify-between shrink-0">
-        <h2 className={cn('text-sm font-semibold', titleColor)}>Synopsis</h2>
+        <h2 className={cn('text-xs sm:text-sm font-semibold', titleColor)}>Synopsis</h2>
         {canExpand && (
           <Button
             variant="ghost"
             size="sm"
-            className={cn('h-7 text-xs gap-1 text-muted-foreground', isAnime && 'hover:text-primary')}
+            className={cn('h-6 px-2 text-xs gap-1 text-muted-foreground', isAnime && 'hover:text-primary')}
             onClick={() => setDescExpanded(!descExpanded)}
           >
             {descExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -48,15 +48,13 @@ export const SynopsisCard = ({
       <div
         className={cn(
           'relative',
-          inSidebar
-            ? 'flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1'
-            : descExpanded && 'max-h-32 overflow-y-auto custom-scrollbar pr-1'
+          descExpanded && 'max-h-36 overflow-y-auto custom-scrollbar pr-1'
         )}
       >
         <p
           className={cn(
-            'text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-line',
-            !inSidebar && !descExpanded && 'line-clamp-2'
+            'text-xs text-foreground/90 leading-relaxed whitespace-pre-line',
+            !descExpanded && (inSidebar ? 'line-clamp-4' : 'line-clamp-2')
           )}
           dir="auto"
         >
@@ -65,7 +63,7 @@ export const SynopsisCard = ({
       </div>
 
       {genres && genres.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-border/40 shrink-0">
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/40 shrink-0">
           {genres.map((genre) => (
             <Badge
               key={genre}
