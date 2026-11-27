@@ -244,31 +244,42 @@ export function resolveExtensionBadge(
   };
 }
 
-const OFFICIAL_EXTENSIONS_DIST_BASE =
-  "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/";
+function toHttpRepoBaseUrl(repoUrl?: string | null): string {
+  const repo = (repoUrl || "").trim();
+  if (!repo.startsWith("http://") && !repo.startsWith("https://")) {
+    return "";
+  }
+  return repo.replace(/[\\/]?([^/]+\.json)$/i, "").replace(/\/?$/, "/");
+}
 
 /**
- * Resolves a remote HTTPS icon URL for mobile/non-Electron clients, replacing
- * Electron-only `autakimi-cache://local-icon/...` and relative icon paths.
+ * Resolves a remote HTTPS icon URL for mobile/non-Electron clients from the
+ * extension's owning repository URL (or user-configured HTTP repositories),
+ * replacing Electron-only `autakimi-cache://local-icon/...` and relative paths.
+ * Returns empty string when no user-configured HTTP repository base is available.
  */
 export function resolveRemoteExtensionIconUrl(
   rawIcon?: string | null,
   pkg?: string | null,
   repoUrl?: string | null,
+  fallbackRepos?: Array<string | null | undefined>,
 ): string {
   const icon = (rawIcon || "").trim();
   if (icon.startsWith("http://") || icon.startsWith("https://")) {
     return icon;
   }
 
-  let repoBase = "";
-  const repo = (repoUrl || "").trim();
-  if (repo.startsWith("http://") || repo.startsWith("https://")) {
-    repoBase = repo
-      .replace(/[\\/]?([^/]+\.json)$/i, "")
-      .replace(/\/?$/, "/");
+  let effectiveBase = toHttpRepoBaseUrl(repoUrl);
+  if (!effectiveBase && Array.isArray(fallbackRepos)) {
+    for (const cand of fallbackRepos) {
+      effectiveBase = toHttpRepoBaseUrl(cand);
+      if (effectiveBase) break;
+    }
   }
-  const effectiveBase = repoBase || OFFICIAL_EXTENSIONS_DIST_BASE;
+
+  if (!effectiveBase) {
+    return "";
+  }
 
   if (icon.startsWith("autakimi-cache://local-icon/")) {
     const file = icon

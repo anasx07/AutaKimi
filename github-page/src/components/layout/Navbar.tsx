@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Github, ArrowUpRight } from "lucide-react";
+import { Menu, X, Github } from "lucide-react";
 import GitHubButton from "@/components/ui/github-button";
 
 const NAV_LINKS = [
@@ -84,15 +84,6 @@ export function Navbar() {
               </Link>
             );
           })}
-          <a
-            href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors inline-flex items-center gap-1"
-          >
-            <span>Extensions</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500" />
-          </a>
         </nav>
 
         {/* Actions */}
@@ -142,16 +133,6 @@ export function Navbar() {
               {item.label}
             </Link>
           ))}
-          <a
-            href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-300 hover:text-white hover:bg-white/[0.05]"
-          >
-            <span>Extensions Repository</span>
-            <ArrowUpRight className="w-4 h-4 text-zinc-500" />
-          </a>
           <div className="pt-3 mt-2 border-t border-white/[0.06] flex items-center gap-2">
             <a
               href="https://github.com/anasx07/AutaKimi"

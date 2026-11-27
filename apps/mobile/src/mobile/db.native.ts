@@ -268,12 +268,29 @@ export const MobileDB = {
 
   async getExtensions(): Promise<IpcResult<any[]>> {
     await this.ensureReady();
-    const res = await db!.getAllAsync<any>(
-      "SELECT pkg, installed_at, code, name, baseUrl, lang, icon, version, repo_url AS repoUrl, repo_name AS repoName, repo_color AS repoColor FROM extensions;",
-    );
+    const [res, reposRow] = await Promise.all([
+      db!.getAllAsync<any>(
+        "SELECT pkg, installed_at, code, name, baseUrl, lang, icon, version, repo_url AS repoUrl, repo_name AS repoName, repo_color AS repoColor FROM extensions;",
+      ),
+      db!.getFirstAsync<{ value: string }>(
+        "SELECT value FROM settings WHERE key = 'source_repositories';",
+      ),
+    ]);
+    let configuredRepos: string[] = [];
+    if (reposRow?.value) {
+      try {
+        const parsed = JSON.parse(reposRow.value);
+        if (Array.isArray(parsed)) configuredRepos = parsed;
+      } catch {}
+    }
     const normalized = (res || []).map((row) => ({
       ...row,
-      icon: resolveRemoteExtensionIconUrl(row.icon, row.pkg, row.repoUrl),
+      icon: resolveRemoteExtensionIconUrl(
+        row.icon,
+        row.pkg,
+        row.repoUrl,
+        configuredRepos,
+      ),
     }));
     return { ok: true, value: normalized };
   },

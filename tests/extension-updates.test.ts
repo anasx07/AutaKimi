@@ -25,7 +25,7 @@ describe("computeAvailableUpdates", () => {
         version: "0.0.1",
         baseUrl: "https://old.example.com",
         repoUrl:
-          "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json",
+          "https://community.autakimi.example/dist/manifest.json",
         code: "/* stale code */",
       },
     ];
@@ -37,7 +37,7 @@ describe("computeAvailableUpdates", () => {
         version: "0.0.2",
         baseUrl: "https://new.example.com",
         repoUrl:
-          "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json",
+          "https://community.autakimi.example/dist/manifest.json",
       },
     ];
 
@@ -94,7 +94,7 @@ describe("computeAvailableUpdates", () => {
 
 describe("Multi-repo Option A isolation & coexistence", () => {
   const repoAutakimi =
-    "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json";
+    "https://community.autakimi.example/dist/manifest.json";
   const repoKeiyoushi =
     "https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json";
 
@@ -296,7 +296,7 @@ describe("resolveExtensionBadge", () => {
         pkg: "ma.autakimi.extension.ar.witanime",
         name: "WitAnime",
         repoUrl:
-          "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json",
+          "https://community.autakimi.example/dist/manifest.json",
       },
       {
         pkg: "ar.teamx::abcdef",

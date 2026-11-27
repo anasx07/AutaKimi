@@ -323,42 +323,6 @@ export class ExtensionOrchestrator implements IExtensionPlatform, AppService {
     const fullPkg = rawPkg.startsWith('ma.autakimi.extension.')
       ? rawPkg
       : `ma.autakimi.extension.${rawPkg}`
-    const cleanPkg = rawPkg.replace(/^ma\.autakimi\.extension\./, '')
-
-    // Check if local bundled JS exists when code is missing
-    if (!ext.code) {
-      const candidates = [
-        path.join(process.cwd(), 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
-        path.join(process.cwd(), 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
-        path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${fullPkg}.js`),
-        path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'js', `${cleanPkg}.js`),
-        path.resolve(
-          process.cwd(),
-          '..',
-          '..',
-          'autakimi-extensions',
-          'dist',
-          'js',
-          `${fullPkg}.js`
-        ),
-        path.resolve(
-          process.cwd(),
-          '..',
-          '..',
-          'autakimi-extensions',
-          'dist',
-          'js',
-          `${cleanPkg}.js`
-        )
-      ]
-      for (const cand of candidates) {
-        if (fs.existsSync(cand)) {
-          ext.code = fs.readFileSync(cand, 'utf8')
-          console.log(`[ExtensionOrchestrator] Loaded bundled JS for ${fullPkg} from ${cand}`)
-          break
-        }
-      }
-    }
 
     // Proactively download and cache the extension's icon for offline mode
     try {

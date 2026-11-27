@@ -182,20 +182,18 @@ export default function Home() {
                 Isolated Multi-Repo Catalogs
               </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
-                Run AutaKimi &amp; Keiyoushi repos side by side with repo badge
+                Run multiple community &amp; third-party repos side by side with repo badge
                 colors, isolated versions, and source pills across History and
                 Library.
               </p>
             </div>
-            <a
-              href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs/guides/extensions/"
               className="pt-3 border-t border-white/[0.06] inline-flex items-center justify-between text-xs font-medium text-zinc-300 hover:text-white transition-colors"
             >
-              <span>Browse extensions repo</span>
-              <ArrowUpRight className="w-3.5 h-3.5 text-zinc-500" />
-            </a>
+              <span>Read extensions guide</span>
+              <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
+            </Link>
           </div>
 
           <div className="md:col-span-2 rounded-2xl studio-surface p-6 flex flex-col justify-between gap-5 hover:border-white/[0.15] transition-colors">

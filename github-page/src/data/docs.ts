@@ -288,11 +288,11 @@ export const DOC_PAGES: DocPage[] = [
         id: "local-dev-repo",
         title: "Loading Local Repositories (Developers)",
         paragraphs: [
-          "On Desktop, turn on Developer Mode in Settings to reveal the Load Local (manifest.json) picker on RepositoriesPage. This lets you test locally built extensions in autakimi-extensions/dist/ before pushing.",
+          "On Desktop, turn on Developer Mode in Settings to reveal the Load Local (manifest.json) picker on RepositoriesPage. This lets you test locally built extension repositories directly from disk.",
         ],
         code: {
-          label: "Build extensions locally before testing",
-          snippet: "cd autakimi-extensions && npm run build && npm test",
+          label: "Build your local extensions repository before testing",
+          snippet: "cd <your-local-repo> && npm run build && npm test",
         },
       },
     ],

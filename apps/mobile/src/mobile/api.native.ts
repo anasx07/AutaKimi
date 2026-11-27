@@ -50,6 +50,23 @@ setCfStatusCallback((data) => notifyCfStatus(data.status, data.domain));
 setCacheInvalidateCallback((data) =>
   notifyCacheInvalidate(data.group, data.key),
 );
+async function getConfiguredHttpRepoBases(): Promise<string[]> {
+  try {
+    const res = await MobileDB.getSetting("source_repositories");
+    const list: string[] = res.ok && res.value ? JSON.parse(res.value) : [];
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter(
+        (r): r is string =>
+          typeof r === "string" &&
+          (r.startsWith("http://") || r.startsWith("https://")),
+      )
+      .map((r) => `${r.replace(/[\\/]?([^/]+\.json)$/i, "").replace(/\/?$/, "/")}js/`);
+  } catch {
+    return [];
+  }
+}
+
 const mobileExtensionPlatform: IExtensionPlatform = {
   fetch: async (url: string, init?: any) => {
     const res = await networkClient.fetch(url, init);
@@ -79,9 +96,15 @@ const mobileExtensionPlatform: IExtensionPlatform = {
     return res.ok ? res.value : null;
   },
   upsertExtension: async (ext: any) => {
+    const configuredBases = await getConfiguredHttpRepoBases();
     await MobileDB.addExtension({
       ...ext,
-      icon: resolveRemoteExtensionIconUrl(ext.icon, ext.pkg, ext.repoUrl),
+      icon: resolveRemoteExtensionIconUrl(
+        ext.icon,
+        ext.pkg,
+        ext.repoUrl,
+        configuredBases,
+      ),
     });
   },
 };
@@ -184,7 +207,7 @@ export const MobileApi: ElectronApi = {
         return null;
       }
 
-      // Step 1: If preferTemplate is false, check community JavaScript extensions ecosystem
+      // Step 1: If preferTemplate is false, check user-configured repository JS bundles
       if (!preferTemplate) {
         const cleanPkg = pkg
           .replace(/^ma\.autakimi\.extension\./, "")
@@ -194,34 +217,47 @@ export const MobileApi: ElectronApi = {
           `ma.autakimi.extension.${cleanPkg}`,
           `ma.autakimi.extension.eu.kanade.tachiyomi.extension.${cleanPkg}`,
         ];
-        const COMMUNITY_JS_REPO =
-          "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/js/";
+        const repoJsBases = await getConfiguredHttpRepoBases();
+        if (
+          typeof dbExtValue?.repoUrl === "string" &&
+          (dbExtValue.repoUrl.startsWith("http://") ||
+            dbExtValue.repoUrl.startsWith("https://"))
+        ) {
+          const ownBase = `${dbExtValue.repoUrl
+            .replace(/[\\/]?([^/]+\.json)$/i, "")
+            .replace(/\/?$/, "/")}js/`;
+          if (!repoJsBases.includes(ownBase)) {
+            repoJsBases.unshift(ownBase);
+          }
+        }
 
-        for (const name of candidateNames) {
-          try {
-            const resp = await MobileNetwork.fetchText(
-              `${COMMUNITY_JS_REPO}${name}.js`,
-            );
-            if (
-              resp.ok &&
-              resp.value.ok &&
-              resp.value.data &&
-              !resp.value.data.startsWith("404:") &&
-              resp.value.data.length > 50
-            ) {
-              const jsCode = resp.value.data;
-              await MobileDB.addExtension({
-                ...dbExtValue,
-                baseUrl: extBaseUrl,
-                code: jsCode,
-              });
-              console.log(
-                `[MobileApi] Successfully resolved community JS scraper for ${pkg} -> ${name}.js`,
+        for (const repoJsBase of repoJsBases) {
+          for (const name of candidateNames) {
+            try {
+              const resp = await MobileNetwork.fetchText(
+                `${repoJsBase}${name}.js`,
               );
-              return jsCode;
+              if (
+                resp.ok &&
+                resp.value.ok &&
+                resp.value.data &&
+                !resp.value.data.startsWith("404:") &&
+                resp.value.data.length > 50
+              ) {
+                const jsCode = resp.value.data;
+                await MobileDB.addExtension({
+                  ...dbExtValue,
+                  baseUrl: extBaseUrl,
+                  code: jsCode,
+                });
+                console.log(
+                  `[MobileApi] Successfully resolved repository JS scraper for ${pkg} -> ${name}.js`,
+                );
+                return jsCode;
+              }
+            } catch (_) {
+              /* ignore */
             }
-          } catch (_) {
-            /* ignore */
           }
         }
       }
@@ -640,6 +676,7 @@ export const MobileApi: ElectronApi = {
           s.icon,
           fullPkg,
           effectiveRepoUrl,
+          repos,
         );
 
         return {

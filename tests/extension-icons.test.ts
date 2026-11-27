@@ -12,15 +12,24 @@ describe("resolveRemoteExtensionIconUrl", () => {
     ).toBe("https://cdn.example.com/icon.png");
   });
 
-  it("rewrites autakimi-cache://local-icon URLs against repo base or official CDN", () => {
+  it("rewrites autakimi-cache://local-icon URLs against repoUrl or configured HTTP repos", () => {
     expect(
       resolveRemoteExtensionIconUrl(
         "autakimi-cache://local-icon/ar.ristoanime.png",
         "ar.ristoanime",
-        "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/manifest.json",
+        "https://repo.example.com/dist/manifest.json",
+      ),
+    ).toBe("https://repo.example.com/dist/icons/ar.ristoanime.png");
+
+    expect(
+      resolveRemoteExtensionIconUrl(
+        "autakimi-cache://local-icon/ma.autakimi.extension.ar.witanime.png",
+        "ar.witanime",
+        "local",
+        ["https://configured.example.org/manifest.json"],
       ),
     ).toBe(
-      "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/icons/ar.ristoanime.png",
+      "https://configured.example.org/icons/ma.autakimi.extension.ar.witanime.png",
     );
 
     expect(
@@ -29,9 +38,7 @@ describe("resolveRemoteExtensionIconUrl", () => {
         "ar.witanime",
         "local",
       ),
-    ).toBe(
-      "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/icons/ma.autakimi.extension.ar.witanime.png",
-    );
+    ).toBe("");
   });
 
   it("derives HTTPS icon URLs from scoped pkg when icon is missing", () => {
