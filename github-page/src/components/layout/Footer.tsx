@@ -28,14 +28,6 @@ export function Footer() {
             Changelog
           </Link>
           <a
-            href="https://github.com/Autakimi-Ecosystem/autakimi-extensions"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            Extensions
-          </a>
-          <a
             href="https://github.com/anasx07/AutaKimi"
             target="_blank"
             rel="noopener noreferrer"

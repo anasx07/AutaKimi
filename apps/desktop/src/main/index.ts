@@ -469,19 +469,10 @@ app.whenReady().then(async () => {
           }
         }
 
-        // 3. Check bundled local icon locations (dev workspace dist/icons, icons, or resourcesPath)
+        // 3. Check bundled app resource icon locations (not repo-specific directories)
         const localIconBases = Array.from(
           new Set([
             ...localRepoDirs,
-            path.join(process.cwd(), 'autakimi-extensions', 'dist', 'icons'),
-            path.join(process.cwd(), 'autakimi-extensions', 'icons'),
-            path.resolve(process.cwd(), '..', 'autakimi-extensions', 'dist', 'icons'),
-            path.resolve(process.cwd(), '..', 'autakimi-extensions', 'icons'),
-            path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'dist', 'icons'),
-            path.resolve(process.cwd(), '..', '..', 'autakimi-extensions', 'icons'),
-            path.resolve(app.getAppPath(), 'autakimi-extensions', 'dist', 'icons'),
-            path.resolve(app.getAppPath(), '..', 'autakimi-extensions', 'dist', 'icons'),
-            path.resolve(app.getAppPath(), '..', '..', 'autakimi-extensions', 'dist', 'icons'),
             path.resolve(__dirname, '../../src/renderer/src/app/assets/Animeicon'),
             path.resolve(__dirname, '../renderer/assets/Animeicon'),
             path.join(process.resourcesPath, 'icons'),
@@ -518,14 +509,12 @@ app.whenReady().then(async () => {
           }
         }
 
-        // 4. Fallback: Check remote repositories for the icon and ecosystem CDN, and cache it.
+        // 4. Fallback: Check user-configured remote repositories for the icon and cache it.
         const remoteRepos = (Array.isArray(repos) ? repos : []).filter(
           (r): r is string =>
             typeof r === 'string' && (r.startsWith('https://') || r.startsWith('http://'))
         )
-        const officialRepo =
-          'https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/'
-        const reposToCheck = Array.from(new Set([...remoteRepos, officialRepo]))
+        const reposToCheck = Array.from(new Set(remoteRepos))
 
         for (const repo of reposToCheck) {
           const baseUrl = repo

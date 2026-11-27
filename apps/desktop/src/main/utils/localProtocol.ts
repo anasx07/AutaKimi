@@ -27,9 +27,7 @@ async function getAllowedDirectories(): Promise<string[]> {
   } catch {}
 
   if (is.dev) {
-    allowed.push(path.join(process.cwd(), 'autakimi-extensions'))
-    allowed.push(path.resolve(process.cwd(), '../autakimi-extensions'))
-    allowed.push(path.resolve(process.cwd(), '../../autakimi-extensions'))
+    allowed.push(process.cwd())
   } else if (process.resourcesPath) {
     allowed.push(path.join(process.resourcesPath, 'extensions'))
     allowed.push(path.join(process.resourcesPath, 'icons'))

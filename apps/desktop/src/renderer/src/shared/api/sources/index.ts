@@ -7,7 +7,7 @@ export function reloadSource(pkg: string): void {
 
 /**
  * Determines if an extension is fully supported based on its metadata.
- * Driven dynamically by the extension's own config/manifest from autakimi-extensions.
+ * Driven dynamically by the extension's own config/manifest from the source repository.
  */
 export function isFullySupported(
   pkgOrExt?: string | { pkg?: string; id?: string; status?: string; isFullySupported?: boolean }

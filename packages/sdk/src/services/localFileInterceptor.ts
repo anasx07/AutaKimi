@@ -56,9 +56,6 @@ function getAllowedDirectories(): string[] {
   }
 
   const dirs: string[] = [
-    path.join(process.cwd(), 'autakimi-extensions'),
-    path.resolve(process.cwd(), '../autakimi-extensions'),
-    path.resolve(process.cwd(), '../../autakimi-extensions'),
     path.join(process.cwd(), 'resources')
   ]
 

@@ -131,7 +131,7 @@ export class ExtensionEngine {
       console.warn(`[ExtensionEngine] Failed to fetch JS for ${ext.pkg}:`, e);
     }
 
-    // If not found in primary repo, check the community JavaScript extensions ecosystem
+    // If not found in primary repo, check other user-configured HTTP repositories
     if (!code || code.startsWith("404:") || code === "Not Found") {
       const cleanPkg = basePkg
         .replace(/^ma\.autakimi\.extension\./, "")
@@ -141,29 +141,51 @@ export class ExtensionEngine {
         `ma.autakimi.extension.${cleanPkg}`,
         `ma.autakimi.extension.eu.kanade.tachiyomi.extension.${cleanPkg}`,
       ];
-      const COMMUNITY_JS_REPO =
-        "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/js/";
 
-      for (const name of candidateNames) {
-        if (!name) continue;
-        try {
-          const resp = await this.platform.fetch(
-            `${COMMUNITY_JS_REPO}${name}.js`,
-            {},
-            bypassCf,
-          );
-          if (resp.ok) {
-            const text = await resp.text();
-            if (text && !text.startsWith("404") && text.length > 50) {
-              code = text;
-              console.log(
-                `[ExtensionEngine] Resolved community JS scraper for ${ext.pkg} -> ${name}.js`,
-              );
-              break;
+      let configuredRepoBases: string[] = [];
+      try {
+        const reposJson = await this.platform.getSetting("source_repositories");
+        const parsed = reposJson ? JSON.parse(reposJson) : [];
+        if (Array.isArray(parsed)) {
+          configuredRepoBases = parsed
+            .filter(
+              (r): r is string =>
+                typeof r === "string" &&
+                (r.startsWith("http://") || r.startsWith("https://")),
+            )
+            .map((r) => {
+              let b = r.replace(/\/?([^/]+\.json)$/i, "");
+              if (b && !b.endsWith("/")) b += "/";
+              return b;
+            })
+            .filter((b) => b && b !== baseUrl);
+        }
+      } catch {
+        configuredRepoBases = [];
+      }
+
+      outer: for (const repoBase of configuredRepoBases) {
+        for (const name of candidateNames) {
+          if (!name) continue;
+          try {
+            const resp = await this.platform.fetch(
+              `${repoBase}js/${name}.js`,
+              {},
+              bypassCf,
+            );
+            if (resp.ok) {
+              const text = await resp.text();
+              if (text && !text.startsWith("404") && text.length > 50) {
+                code = text;
+                console.log(
+                  `[ExtensionEngine] Resolved JS scraper for ${ext.pkg} -> ${name}.js`,
+                );
+                break outer;
+              }
             }
+          } catch (_) {
+            /* ignore */
           }
-        } catch (_) {
-          /* ignore */
         }
       }
     }
