@@ -2,10 +2,12 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Modal,
 } from "react-native";
 import { Image } from "expo-image";
 import { router, Stack, useFocusEffect } from "expo-router";
@@ -33,8 +35,10 @@ import {
   RefreshCw,
   Pin,
   ChevronRight,
+  Globe,
+  ChevronDown,
 } from "lucide-react-native";
-import { useColorScheme } from "nativewind";
+import { useAppTheme } from "../src/mobile/theme";
 
 const LANG_FLAGS: Record<string, string> = {
   all: "🌐",
@@ -49,7 +53,7 @@ const LANG_FLAGS: Record<string, string> = {
   ru: "🇷🇺",
   th: "🇹🇭",
   tr: "🇹🇷",
-  vi: "Viet",
+  vi: "🇻🇳",
   zh: "🇨🇳",
   hi: "🇮🇳",
   de: "🇩🇪",
@@ -63,7 +67,7 @@ const LANG_FLAGS: Record<string, string> = {
 };
 
 const LANG_NAMES: Record<string, string> = {
-  all: "All",
+  all: "All Languages",
   en: "English",
   ar: "Arabic",
   es: "Spanish",
@@ -105,11 +109,37 @@ const LANGS = [
   "de",
   "it",
   "pl",
+  "hi",
+  "nl",
+  "cs",
+  "bg",
+  "ca",
+  "uk",
 ];
 
+function parseSavedLangs(rawSetting: unknown): string[] {
+  const rawValue =
+    typeof rawSetting === "string"
+      ? rawSetting
+      : (rawSetting as any)?.value;
+  if (typeof rawValue !== "string" || !rawValue.trim()) return ["all"];
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const cleaned = parsed
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+      return cleaned.length > 0 ? cleaned : ["all"];
+    }
+  } catch {
+    const single = rawValue.trim();
+    if (single) return [single];
+  }
+  return ["all"];
+}
+
 export default function ExtensionsScreen() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { themeVars, themeClassName, palette } = useAppTheme();
   const [catalog, setCatalog] = useState<any[]>([]);
   const [installed, setInstalled] = useState<any[]>([]);
   const [pinnedPkgs, setPinnedPkgs] = useState<string[]>([]);
@@ -126,30 +156,56 @@ export default function ExtensionsScreen() {
     "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [langFilter, setLangFilter] = useState<string | null>(null);
+  const [selectedLangs, setSelectedLangs] = useState<string[]>(["all"]);
+  const selectedLangsRef = useRef<string[]>(["all"]);
+  const [langModalOpen, setLangModalOpen] = useState(false);
+  const [langSearchQuery, setLangSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const hasInitializedTabRef = useRef(false);
 
+  const fetchCatalogForLangs = useCallback(async (langs: string[]) => {
+    const targets =
+      !langs || langs.length === 0 || langs.includes("all") ? ["all"] : langs;
+    const results = await Promise.all(
+      targets.map((l) => DataService.getExtensionsCatalog(l).catch(() => null)),
+    );
+    const nonEmpty = results.filter((r) => Array.isArray(r));
+    if (nonEmpty.length === 0) return null;
+    // MobileApi.sources.getCatalogExtensions returns all loaded sources from sourceService,
+    // so the latest non-empty array contains the full merged catalog across fetched langs.
+    return nonEmpty[nonEmpty.length - 1] as any[];
+  }, []);
+
   const loadData = useCallback(
-    async (isRefresh = false, explicitLang?: string | null) => {
+    async (isRefresh = false, explicitLangs?: string[]) => {
       if (isRefresh) setRefreshing(true);
       else if (!hasInitializedTabRef.current) setLoading(true);
       setError(null);
       try {
-        const targetLang =
-          explicitLang !== undefined ? explicitLang : langFilter;
-        const [installedExts, catalogRes, pinnedRaw, nsfwRaw] = await Promise.all([
-          DataService.db.getExtensions(),
-          DataService.getExtensionsCatalog(targetLang || "all"),
-          DataService.db.getSetting("pinned_extensions").catch(() => null),
-          DataService.db.getSetting("showNsfw").catch(() => null),
-        ]);
+        const [installedExts, savedLangsRaw, pinnedRaw, nsfwRaw] =
+          await Promise.all([
+            DataService.db.getExtensions(),
+            explicitLangs
+              ? Promise.resolve(JSON.stringify(explicitLangs))
+              : DataService.db.getSetting("selectedLangs").catch(() => null),
+            DataService.db.getSetting("pinned_extensions").catch(() => null),
+            DataService.db.getSetting("showNsfw").catch(() => null),
+          ]);
+
+        const effectiveLangs = explicitLangs
+          ? explicitLangs
+          : parseSavedLangs(savedLangsRaw);
+        selectedLangsRef.current = effectiveLangs;
+        setSelectedLangs(effectiveLangs);
+
+        const catalogRes = await fetchCatalogForLangs(effectiveLangs);
         const validInstalled = (installedExts || []).filter(
           (e: any) => e.pkg && !/^\d+$/.test(e.pkg),
         );
         setInstalled(validInstalled);
-        const cat = Array.isArray(catalogRes) ? catalogRes : [];
-        setCatalog(cat);
+        if (Array.isArray(catalogRes)) {
+          setCatalog(catalogRes);
+        }
 
         const rawPinned =
           typeof pinnedRaw === "string" ? pinnedRaw : (pinnedRaw as any)?.value;
@@ -178,7 +234,7 @@ export default function ExtensionsScreen() {
         setRefreshing(false);
       }
     },
-    [langFilter],
+    [fetchCatalogForLangs],
   );
 
   useFocusEffect(
@@ -187,20 +243,49 @@ export default function ExtensionsScreen() {
     }, [loadData]),
   );
 
-  const onRefresh = () => loadData(true);
+  const onRefresh = () => loadData(true, selectedLangsRef.current);
 
-  const handleSelectLang = async (nextLang: string | null) => {
-    setLangFilter(nextLang);
-    setFetchingLangCatalog(true);
-    try {
-      const cat = await DataService.getExtensionsCatalog(nextLang || "all");
-      if (Array.isArray(cat)) setCatalog(cat);
-    } catch {
-      // keep existing cached catalog on failure
-    } finally {
-      setFetchingLangCatalog(false);
-    }
-  };
+  const persistAndApplyLangs = useCallback(
+    async (nextLangs: string[]) => {
+      const normalized =
+        nextLangs.length === 0 || nextLangs.includes("all")
+          ? ["all"]
+          : Array.from(new Set(nextLangs));
+      selectedLangsRef.current = normalized;
+      setSelectedLangs(normalized);
+      DataService.db
+        .setSetting("selectedLangs", JSON.stringify(normalized))
+        .catch(() => {});
+
+      setFetchingLangCatalog(true);
+      try {
+        const cat = await fetchCatalogForLangs(normalized);
+        if (Array.isArray(cat)) setCatalog(cat);
+      } catch {
+        // keep existing cached catalog on failure
+      } finally {
+        setFetchingLangCatalog(false);
+      }
+    },
+    [fetchCatalogForLangs],
+  );
+
+  const toggleLang = useCallback(
+    (lang: string) => {
+      if (lang === "all") {
+        void persistAndApplyLangs(["all"]);
+        return;
+      }
+      const current = selectedLangsRef.current;
+      const next = current.includes("all")
+        ? [lang]
+        : current.includes(lang)
+          ? current.filter((l) => l !== lang)
+          : [...current, lang];
+      void persistAndApplyLangs(next.length === 0 ? ["all"] : next);
+    },
+    [persistAndApplyLangs],
+  );
 
   const togglePinExt = async (pkg: string) => {
     const next = pinnedPkgs.includes(pkg)
@@ -226,6 +311,15 @@ export default function ExtensionsScreen() {
     return new Map(updatesList.map((u) => [u.pkg, u]));
   }, [updatesList]);
 
+  const activeLangs = useMemo(
+    () =>
+      Array.isArray(selectedLangs) && selectedLangs.length > 0
+        ? selectedLangs
+        : ["all"],
+    [selectedLangs],
+  );
+  const isAllLangs = activeLangs.includes("all");
+
   const filteredInstalled = useMemo(() => {
     let list = validInstalled;
     if (mediaFilter === "anime") {
@@ -233,8 +327,8 @@ export default function ExtensionsScreen() {
     } else if (mediaFilter === "manga") {
       list = list.filter((ext) => !isAnimeExtension(ext));
     }
-    if (langFilter) {
-      list = list.filter((ext) => ext.lang === langFilter);
+    if (!isAllLangs) {
+      list = list.filter((ext) => ext.lang && activeLangs.includes(ext.lang));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -250,7 +344,14 @@ export default function ExtensionsScreen() {
       if (aPin !== bPin) return bPin - aPin;
       return (a.name || a.pkg).localeCompare(b.name || b.pkg);
     });
-  }, [validInstalled, mediaFilter, langFilter, searchQuery, pinnedPkgs]);
+  }, [
+    validInstalled,
+    mediaFilter,
+    isAllLangs,
+    activeLangs,
+    searchQuery,
+    pinnedPkgs,
+  ]);
 
   const filteredCatalog = useMemo(() => {
     let list = catalog;
@@ -262,8 +363,8 @@ export default function ExtensionsScreen() {
     } else if (mediaFilter === "manga") {
       list = list.filter((ext) => !isAnimeExtension(ext));
     }
-    if (langFilter) {
-      list = list.filter((ext) => ext.lang === langFilter);
+    if (!isAllLangs) {
+      list = list.filter((ext) => ext.lang && activeLangs.includes(ext.lang));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -274,7 +375,42 @@ export default function ExtensionsScreen() {
       );
     }
     return list;
-  }, [catalog, showNsfw, mediaFilter, langFilter, searchQuery]);
+  }, [catalog, showNsfw, mediaFilter, isAllLangs, activeLangs, searchQuery]);
+
+  const availableLanguageOptions = useMemo(() => {
+    const discovered = new Set<string>(LANGS);
+    for (const ext of validInstalled) {
+      if (ext?.lang) discovered.add(String(ext.lang));
+    }
+    for (const ext of catalog) {
+      if (ext?.lang) discovered.add(String(ext.lang));
+    }
+    for (const lang of activeLangs) {
+      if (lang && lang !== "all") discovered.add(lang);
+    }
+    const q = langSearchQuery.trim().toLowerCase();
+    return Array.from(discovered)
+      .filter((code) => {
+        if (!q) return true;
+        const name = (LANG_NAMES[code] || code).toLowerCase();
+        return name.includes(q) || code.toLowerCase().includes(q);
+      })
+      .sort((a, b) => {
+        const aSel = !isAllLangs && activeLangs.includes(a) ? 0 : 1;
+        const bSel = !isAllLangs && activeLangs.includes(b) ? 0 : 1;
+        if (aSel !== bSel) return aSel - bSel;
+        return (LANG_NAMES[a] || a).localeCompare(LANG_NAMES[b] || b);
+      });
+  }, [validInstalled, catalog, activeLangs, isAllLangs, langSearchQuery]);
+
+  const langButtonLabel = useMemo(() => {
+    if (isAllLangs) return "All Languages";
+    if (activeLangs.length === 1) {
+      const code = activeLangs[0];
+      return `${LANG_FLAGS[code] || "🌐"} ${LANG_NAMES[code] || code.toUpperCase()}`;
+    }
+    return `Languages (${activeLangs.length})`;
+  }, [isAllLangs, activeLangs]);
 
   const installExt = async (ext: any) => {
     const payload = resolveInstallPayload(ext, validInstalled);
@@ -544,7 +680,7 @@ export default function ExtensionsScreen() {
               onPress={() => router.back()}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={24} color={isDark ? "#f4f4f5" : "#09090b"} />
+              <ArrowLeft size={24} color={palette.foreground} />
             </TouchableOpacity>
             <Typography
               variant="h1"
@@ -660,73 +796,68 @@ export default function ExtensionsScreen() {
           ) : null}
         </View>
 
-        {/* Media Filter: All / Manga / Anime */}
-        <View className="flex-row mx-4 mt-2.5 gap-2">
-          {(
-            [
-              { key: "all", label: "All" },
-              { key: "manga", label: "Manga" },
-              { key: "anime", label: "Anime" },
-            ] as const
-          ).map((opt) => (
-            <TouchableOpacity
-              key={opt.key}
-              onPress={() => setMediaFilter(opt.key)}
-              className={`px-3.5 py-1.5 rounded-lg border ${
-                mediaFilter === opt.key
-                  ? "bg-primary border-primary"
-                  : "bg-card border-border"
-              }`}
-            >
-              <Typography
-                className={
-                  mediaFilter === opt.key
-                    ? "text-white font-semibold text-xs"
-                    : "text-muted-foreground font-medium text-xs"
-                }
-              >
-                {opt.label}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-          {fetchingLangCatalog && (
-            <View className="ml-auto justify-center pr-1">
-              <ActivityIndicator size="small" color="#e11d48" />
-            </View>
-          )}
-        </View>
-
-        {/* Lang Filter */}
-        <View className="py-2">
-          <FlatList
-            horizontal
-            data={["all", ...LANGS]}
-            keyExtractor={(l) => l}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-            renderItem={({ item: lang }) => (
+        {/* Media Filter + Multi-Select Languages Button (TachiManga Style) */}
+        <View className="flex-row items-center justify-between mx-4 mt-2.5 mb-1 gap-2">
+          <View className="flex-row items-center gap-1.5">
+            {(
+              [
+                { key: "all", label: "All" },
+                { key: "manga", label: "Manga" },
+                { key: "anime", label: "Anime" },
+              ] as const
+            ).map((opt) => (
               <TouchableOpacity
-                className={`px-3 py-1.5 rounded-full mr-2 ${
-                  langFilter === lang || (!langFilter && lang === "all")
-                    ? "bg-primary"
-                    : "bg-card border border-border"
+                key={opt.key}
+                onPress={() => setMediaFilter(opt.key)}
+                className={`px-3 py-1.5 rounded-lg border ${
+                  mediaFilter === opt.key
+                    ? "bg-primary border-primary"
+                    : "bg-card border-border"
                 }`}
-                onPress={() =>
-                  handleSelectLang(lang === "all" ? null : lang)
-                }
               >
                 <Typography
-                  className={`text-xs font-medium ${
-                    langFilter === lang || (!langFilter && lang === "all")
-                      ? "text-white"
-                      : "text-foreground"
-                  }`}
+                  className={
+                    mediaFilter === opt.key
+                      ? "text-white font-semibold text-xs"
+                      : "text-muted-foreground font-medium text-xs"
+                  }
                 >
-                  {LANG_FLAGS[lang] || "🌐"} {LANG_NAMES[lang] || lang}
+                  {opt.label}
                 </Typography>
               </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setLangModalOpen(true)}
+            activeOpacity={0.8}
+            className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border shrink ${
+              !isAllLangs
+                ? "bg-primary/15 border-primary/50"
+                : "bg-card border-border"
+            }`}
+          >
+            {fetchingLangCatalog ? (
+              <ActivityIndicator size="small" color="#e11d48" />
+            ) : (
+              <Globe
+                size={14}
+                color={!isAllLangs ? "#e11d48" : palette.mutedForeground}
+              />
             )}
-          />
+            <Typography
+              className={`text-xs font-semibold ${
+                !isAllLangs ? "text-primary" : "text-foreground"
+              }`}
+              numberOfLines={1}
+            >
+              {langButtonLabel}
+            </Typography>
+            <ChevronDown
+              size={13}
+              color={!isAllLangs ? "#e11d48" : palette.mutedForeground}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Update All Banner */}
@@ -811,6 +942,172 @@ export default function ExtensionsScreen() {
             }
           />
         )}
+
+        {/* TachiManga-Style Multi-Select Languages Modal */}
+        <Modal
+          visible={langModalOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setLangModalOpen(false)}
+        >
+          <View
+            className={`${themeClassName} flex-1 bg-black/70 justify-end`}
+            style={themeVars}
+          >
+            <View className="bg-card border-t border-border rounded-t-3xl max-h-[82%] p-4">
+              <View className="flex-row items-center justify-between pb-3 border-b border-border">
+                <View className="flex-row items-center gap-2">
+                  <Globe size={18} color="#e11d48" />
+                  <View>
+                    <Typography className="text-foreground font-bold text-base">
+                      Languages
+                    </Typography>
+                    <Typography className="text-muted-foreground text-[11px]">
+                      {isAllLangs
+                        ? "Showing all languages"
+                        : `${activeLangs.length} selected · Saved automatically`}
+                    </Typography>
+                  </View>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  {!isAllLangs && (
+                    <TouchableOpacity
+                      onPress={() => toggleLang("all")}
+                      className="px-2.5 py-1 rounded-lg bg-secondary border border-border"
+                    >
+                      <Typography className="text-xs font-semibold text-primary">
+                        Reset
+                      </Typography>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    className="p-1.5 rounded-full bg-secondary"
+                    onPress={() => setLangModalOpen(false)}
+                  >
+                    <X size={16} color={palette.foreground} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View className="mt-3 mb-2 px-3 py-1.5 bg-secondary rounded-xl border border-border flex-row items-center">
+                <Search size={15} color={palette.mutedForeground} />
+                <TextInput
+                  className="flex-1 ml-2 text-foreground text-sm py-1"
+                  placeholder="Filter languages..."
+                  placeholderTextColor={palette.mutedForeground}
+                  value={langSearchQuery}
+                  onChangeText={setLangSearchQuery}
+                />
+                {langSearchQuery ? (
+                  <TouchableOpacity
+                    onPress={() => setLangSearchQuery("")}
+                    className="p-1"
+                  >
+                    <X size={14} color={palette.mutedForeground} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <ScrollView
+                className="my-1"
+                showsVerticalScrollIndicator={false}
+              >
+                {/* All Languages Master Checkbox Row */}
+                {!langSearchQuery.trim() && (
+                  <TouchableOpacity
+                    onPress={() => toggleLang("all")}
+                    activeOpacity={0.75}
+                    className={`flex-row items-center justify-between p-3 rounded-xl mb-2 border ${
+                      isAllLangs
+                        ? "bg-primary/15 border-primary/50"
+                        : "bg-secondary/50 border-border"
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <Typography className="text-lg">🌐</Typography>
+                      <View>
+                        <Typography
+                          className={`text-sm font-bold ${
+                            isAllLangs ? "text-primary" : "text-foreground"
+                          }`}
+                        >
+                          All Languages
+                        </Typography>
+                        <Typography className="text-[10px] text-muted-foreground">
+                          Show sources from every language
+                        </Typography>
+                      </View>
+                    </View>
+                    <View
+                      className={`w-5 h-5 rounded-md border items-center justify-center ${
+                        isAllLangs
+                          ? "bg-primary border-primary"
+                          : "border-muted-foreground/50 bg-transparent"
+                      }`}
+                    >
+                      {isAllLangs && (
+                        <Check size={13} color="#fff" strokeWidth={3} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {availableLanguageOptions.map((code) => {
+                  const isChecked = !isAllLangs && activeLangs.includes(code);
+                  return (
+                    <TouchableOpacity
+                      key={code}
+                      onPress={() => toggleLang(code)}
+                      activeOpacity={0.75}
+                      className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 border ${
+                        isChecked
+                          ? "bg-primary/15 border-primary/50"
+                          : "bg-background/60 border-border/60"
+                      }`}
+                    >
+                      <View className="flex-row items-center gap-3 flex-1">
+                        <Typography className="text-lg">
+                          {LANG_FLAGS[code] || "🌐"}
+                        </Typography>
+                        <View className="flex-1">
+                          <Typography
+                            className={`text-sm font-semibold ${
+                              isChecked ? "text-primary" : "text-foreground"
+                            }`}
+                          >
+                            {LANG_NAMES[code] || code.toUpperCase()}
+                          </Typography>
+                          <Typography className="text-[10px] uppercase font-bold text-muted-foreground">
+                            {code}
+                          </Typography>
+                        </View>
+                      </View>
+
+                      <View
+                        className={`w-5 h-5 rounded-md border items-center justify-center ${
+                          isChecked
+                            ? "bg-primary border-primary"
+                            : "border-muted-foreground/50 bg-transparent"
+                        }`}
+                      >
+                        {isChecked && (
+                          <Check size={13} color="#fff" strokeWidth={3} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <Button
+                title="Done"
+                variant="primary"
+                className="mt-2"
+                onPress={() => setLangModalOpen(false)}
+              />
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
