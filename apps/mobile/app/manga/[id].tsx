@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   View, ScrollView, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Dimensions, TextInput
+  RefreshControl, Dimensions, TextInput, Alert
 } from 'react-native'
 import { Image } from 'expo-image'
-import { useLocalSearchParams, router, Stack } from 'expo-router'
+import { useLocalSearchParams, router, Stack, useFocusEffect } from 'expo-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Typography, Button, Card, CardContent } from '@mobile/native/ui'
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   ArrowLeft, BookOpen, ChevronRight, AlignLeft,
-  Download, CheckCircle, Loader2, Bookmark, AlertTriangle, RefreshCw,
-  ArrowUpDown, Search, X
+  Download, CheckCircle, Loader2, Bookmark, AlertTriangle,
+  ArrowUpDown, Search, X, Check
 } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { resolveExtensionBadge } from '@common/services/repoIdentity'
@@ -42,6 +42,8 @@ export default function MangaDetailsScreen() {
   const [activeProgress, setActiveProgress] = useState<Record<string, { cached: number; total: number; status: string }>>({})
   const [sortAsc, setSortAsc] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all')
+  const [batchDownloading, setBatchDownloading] = useState(false)
 
   // 1. Fetch cached manga info from SQLite
   const { data: cachedManga } = useQuery({
@@ -75,7 +77,37 @@ export default function MangaDetailsScreen() {
     enabled: !!id
   })
 
-  // 4. Fetch installed extensions
+  // 4. Fetch reading progress per chapter
+  const { data: progressRows = [], refetch: refetchProgress } = useQuery({
+    queryKey: ['manga-progress', id],
+    queryFn: async () => {
+      const res = await DataService.db.getProgress(id)
+      return (res as any)?.value || res || []
+    },
+    enabled: !!id
+  })
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProgress()
+      queryClient.invalidateQueries({ queryKey: ['manga-history', id] })
+    }, [refetchProgress, queryClient, id])
+  )
+
+  const progressMap = useMemo(() => {
+    const map = new Map<string, { isRead: boolean; lastPage: number }>()
+    for (const row of progressRows || []) {
+      const chId = String(row.chapter_id || row.chapterId || '')
+      if (!chId) continue
+      map.set(chId, {
+        isRead: Boolean(row.is_read ?? row.isRead),
+        lastPage: Number(row.last_page ?? row.lastPage ?? 0)
+      })
+    }
+    return map
+  }, [progressRows])
+
+  // 5. Fetch installed extensions
   const { data: installedExtensions } = useQuery({
     queryKey: ['installed-extensions'],
     queryFn: async () => {
@@ -336,22 +368,123 @@ export default function MangaDetailsScreen() {
       })
   })
 
-  const filteredChapters = chapters
-    ? [...chapters]
-        .filter((ch) => {
-          if (!searchQuery.trim()) return true
-          const q = searchQuery.trim().toLowerCase()
-          return (
-            (ch.title && ch.title.toLowerCase().includes(q)) ||
-            (ch.number !== undefined && String(ch.number).includes(q))
-          )
-        })
-        .sort((a, b) => {
-          const numA = Number(a.number || 0)
-          const numB = Number(b.number || 0)
-          return sortAsc ? numA - numB : numB - numA
-        })
-    : []
+  const sortedAscChapters = useMemo(() => {
+    return chapters
+      ? [...chapters].sort((a, b) => Number(a.number || 0) - Number(b.number || 0))
+      : []
+  }, [chapters])
+
+  const unreadCount = useMemo(() => {
+    return sortedAscChapters.filter((ch) => !progressMap.get(String(ch.id))?.isRead).length
+  }, [sortedAscChapters, progressMap])
+
+  const allRead = sortedAscChapters.length > 0 && unreadCount === 0
+
+  const filteredChapters = useMemo(() => {
+    let list = [...sortedAscChapters]
+    if (filterMode === 'unread') {
+      list = list.filter((ch) => !progressMap.get(String(ch.id))?.isRead)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      list = list.filter(
+        (ch) =>
+          (ch.title && ch.title.toLowerCase().includes(q)) ||
+          (ch.number !== undefined && String(ch.number).includes(q))
+      )
+    }
+    if (!sortAsc) {
+      list.reverse()
+    }
+    return list
+  }, [sortedAscChapters, filterMode, progressMap, searchQuery, sortAsc])
+
+  const { targetContinueChapter, primaryButtonLabel } = useMemo(() => {
+    if (sortedAscChapters.length === 0) {
+      return { targetContinueChapter: null, primaryButtonLabel: 'Start Reading' }
+    }
+    if (history) {
+      const lastIdx = sortedAscChapters.findIndex(
+        (c) => String(c.id) === String(history.chapterId || history.chapter_id)
+      )
+      if (lastIdx >= 0) {
+        const lastCh = sortedAscChapters[lastIdx]
+        const prog = progressMap.get(String(lastCh.id))
+        if (prog?.isRead && lastIdx + 1 < sortedAscChapters.length) {
+          const nextCh = sortedAscChapters[lastIdx + 1]
+          return {
+            targetContinueChapter: nextCh,
+            primaryButtonLabel: `Continue · Ch. ${nextCh.number ?? lastIdx + 2}`
+          }
+        }
+        return {
+          targetContinueChapter: lastCh,
+          primaryButtonLabel: `Continue · Ch. ${lastCh.number ?? lastIdx + 1}`
+        }
+      }
+    }
+    const firstUnread = sortedAscChapters.find((c) => !progressMap.get(String(c.id))?.isRead)
+    const chosen = firstUnread || sortedAscChapters[0]
+    return {
+      targetContinueChapter: chosen,
+      primaryButtonLabel: progressMap.size > 0 ? `Continue · Ch. ${chosen.number}` : 'Start Reading'
+    }
+  }, [sortedAscChapters, history, progressMap])
+
+  const markChapterReadState = async (chapter: Chapter, isRead: boolean) => {
+    await DataService.db.updateProgress({
+      mangaId: id,
+      chapterId: chapter.id,
+      isRead,
+      lastPage: isRead ? 0 : progressMap.get(String(chapter.id))?.lastPage || 0
+    })
+    await refetchProgress()
+    queryClient.invalidateQueries({ queryKey: ['library-unread'] })
+  }
+
+  const markPreviousRead = async (chapter: Chapter) => {
+    const idx = sortedAscChapters.findIndex((c) => String(c.id) === String(chapter.id))
+    if (idx < 0) return
+    const targetIds = sortedAscChapters.slice(0, idx + 1).map((c) => String(c.id))
+    await DataService.db.updateProgressBatch({
+      mangaId: id,
+      chapterIds: targetIds,
+      isRead: true
+    })
+    await refetchProgress()
+    queryClient.invalidateQueries({ queryKey: ['library-unread'] })
+  }
+
+  const toggleAllRead = async () => {
+    if (sortedAscChapters.length === 0) return
+    const targetRead = !allRead
+    await DataService.db.updateProgressBatch({
+      mangaId: id,
+      chapterIds: sortedAscChapters.map((c) => String(c.id)),
+      isRead: targetRead
+    })
+    await refetchProgress()
+    queryClient.invalidateQueries({ queryKey: ['library-unread'] })
+  }
+
+  const showChapterActions = (chapter: Chapter) => {
+    const isRead = Boolean(progressMap.get(String(chapter.id))?.isRead)
+    Alert.alert(
+      chapter.title || `Chapter ${chapter.number}`,
+      'Choose an action for this chapter:',
+      [
+        {
+          text: isRead ? 'Mark as Unread' : 'Mark as Read',
+          onPress: () => markChapterReadState(chapter, !isRead)
+        },
+        {
+          text: 'Mark Previous Chapters Read',
+          onPress: () => markPreviousRead(chapter)
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    )
+  }
 
   const toggleLibrary = useMutation({
     mutationFn: async () => {
@@ -431,6 +564,30 @@ export default function MangaDetailsScreen() {
     }
   }
 
+  const downloadNextUnread = async () => {
+    if (batchDownloading || !resolvedPkg) return
+    const targets = sortedAscChapters
+      .filter((ch) => {
+        const key = String(ch.id)
+        const isRead = Boolean(progressMap.get(key)?.isRead)
+        const dl = downloadStatuses[key]
+        return !isRead && dl !== 'completed' && dl !== 'downloading' && dl !== 'queued'
+      })
+      .slice(0, 5)
+    if (targets.length === 0) {
+      Alert.alert('Nothing to Download', 'All unread chapters are already downloaded or queued.')
+      return
+    }
+    setBatchDownloading(true)
+    try {
+      for (const ch of targets) {
+        await downloadChapter(ch)
+      }
+    } finally {
+      setBatchDownloading(false)
+    }
+  }
+
   const errorMessage =
     (chaptersError as Error)?.message || 'An error occurred while connecting to the source extension.'
   const isCloudflareIssue =
@@ -493,23 +650,13 @@ export default function MangaDetailsScreen() {
         {/* Quick Actions */}
         <View className="px-4 mt-3 flex-row gap-3">
           <Button
-            title={history ? 'Continue Reading' : 'Start Reading'}
+            title={primaryButtonLabel}
             variant="primary"
             className="flex-1"
             onPress={() => {
-              if (history && (chapters?.length || 0) > 0) {
-                const ch = chapters?.find(
-                  (c) => String(c.id) === String(history.chapterId || history.chapter_id)
-                )
-                if (ch) openReader(ch)
-                else openReader(filteredChapters[0] || chapters![0])
-              } else if (filteredChapters.length > 0) {
-                openReader(filteredChapters[0])
-              } else if (chapters && chapters.length > 0) {
-                openReader(chapters[0])
-              }
+              if (targetContinueChapter) openReader(targetContinueChapter)
             }}
-            disabled={!chapters || chapters.length === 0}
+            disabled={!targetContinueChapter}
           />
           <TouchableOpacity
             className={`w-12 h-12 rounded-xl items-center justify-center border border-border ${
@@ -614,16 +761,74 @@ export default function MangaDetailsScreen() {
               <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-widest">
                 Chapters
               </Typography>
+              {chaptersRefetching && (
+                <ActivityIndicator size="small" color="#e11d48" className="ml-2" />
+              )}
             </View>
             <View className="flex-row items-center gap-2">
-              {chaptersRefetching && <ActivityIndicator size="small" color="#e11d48" />}
-              <Typography className="text-muted-foreground text-sm font-medium">
-                {searchQuery.trim()
-                  ? `${filteredChapters.length} / ${chapters?.length || 0}`
-                  : `${chapters?.length || 0}`}
-              </Typography>
+              <TouchableOpacity
+                onPress={() => setFilterMode('all')}
+                className={`px-2.5 py-1 rounded-lg border ${
+                  filterMode === 'all' ? 'bg-primary/15 border-primary/40' : 'bg-card border-border'
+                }`}
+              >
+                <Typography
+                  className={`text-xs font-medium ${
+                    filterMode === 'all' ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  All ({sortedAscChapters.length})
+                </Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFilterMode('unread')}
+                className={`px-2.5 py-1 rounded-lg border ${
+                  filterMode === 'unread' ? 'bg-primary/15 border-primary/40' : 'bg-card border-border'
+                }`}
+              >
+                <Typography
+                  className={`text-xs font-medium ${
+                    filterMode === 'unread' ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  Unread ({unreadCount})
+                </Typography>
+              </TouchableOpacity>
             </View>
           </View>
+
+          {/* Batch Actions Bar */}
+          {sortedAscChapters.length > 0 && (
+            <View className="flex-row items-center gap-2 mb-3">
+              <TouchableOpacity
+                onPress={toggleAllRead}
+                className="flex-1 h-9 px-3 rounded-xl bg-card border border-border flex-row items-center justify-center gap-1.5"
+                activeOpacity={0.7}
+              >
+                <Check size={14} color={allRead ? '#10b981' : '#94a3b8'} />
+                <Typography className="text-xs font-semibold text-foreground">
+                  {allRead ? 'Mark All Unread' : 'Mark All Read'}
+                </Typography>
+              </TouchableOpacity>
+              {!!resolvedPkg && unreadCount > 0 && (
+                <TouchableOpacity
+                  onPress={downloadNextUnread}
+                  disabled={batchDownloading}
+                  className="flex-1 h-9 px-3 rounded-xl bg-card border border-border flex-row items-center justify-center gap-1.5"
+                  activeOpacity={0.7}
+                >
+                  {batchDownloading ? (
+                    <ActivityIndicator size="small" color="#e11d48" />
+                  ) : (
+                    <Download size={14} color="#e11d48" />
+                  )}
+                  <Typography className="text-xs font-semibold text-foreground">
+                    Download Next 5
+                  </Typography>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Chapter Search & Sort Controls */}
           {(chapters?.length ?? 0) > 0 && (
@@ -730,6 +935,9 @@ export default function MangaDetailsScreen() {
                 const chapterKey = String(chapter.id || `ch-${idx}`)
                 const dlStatus = downloadStatuses[chapterKey]
                 const isDownloading = downloadingChapters.has(chapterKey)
+                const prog = progressMap.get(chapterKey)
+                const isRead = Boolean(prog?.isRead)
+                const lastPage = prog?.lastPage || 0
                 const titleText = typeof chapter.title === 'string' && chapter.title.trim()
                   ? chapter.title
                   : (typeof (chapter as any)?.attributes?.title === 'string' && (chapter as any).attributes.title.trim())
@@ -747,16 +955,32 @@ export default function MangaDetailsScreen() {
                     <TouchableOpacity
                       className="flex-1 flex-row items-center"
                       onPress={() => openReader(chapter)}
+                      onLongPress={() => showChapterActions(chapter)}
                     >
                       <View className="flex-1">
-                        <Typography className="font-medium" numberOfLines={1}>
+                        <Typography
+                          className={`font-medium ${isRead ? 'text-muted-foreground' : ''}`}
+                          numberOfLines={1}
+                        >
                           {titleText}
                         </Typography>
-                        {!!dateText && (
-                          <Typography className="text-xs text-muted-foreground mt-0.5">
-                            {dateText}
-                          </Typography>
-                        )}
+                        <View className="flex-row items-center gap-2 mt-0.5">
+                          {isRead && (
+                            <Typography className="text-[11px] font-semibold text-emerald-500">
+                              Read
+                            </Typography>
+                          )}
+                          {!isRead && lastPage > 1 && (
+                            <Typography className="text-[11px] font-semibold text-primary">
+                              Page {lastPage}
+                            </Typography>
+                          )}
+                          {!!dateText && (
+                            <Typography className="text-xs text-muted-foreground">
+                              {dateText}
+                            </Typography>
+                          )}
+                        </View>
                       </View>
                       <ChevronRight size={18} color="#94a3b8" />
                     </TouchableOpacity>
