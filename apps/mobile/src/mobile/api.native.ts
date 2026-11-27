@@ -111,12 +111,28 @@ const mobileExtensionPlatform: IExtensionPlatform = {
 
 const extensionEngine = new ExtensionEngine(mobileExtensionPlatform);
 
+async function getInstalledExtensionLangs(): Promise<string[]> {
+  try {
+    const installedDb = await MobileDB.getExtensions();
+    if (installedDb.ok && installedDb.value) {
+      return Array.from(
+        new Set(installedDb.value.map((e) => e.lang || "en")),
+      );
+    }
+  } catch (e) {
+    console.warn("[MobileApi] Failed to read installed languages:", e);
+  }
+  return [];
+}
+
 export const MobileApi: ElectronApi = {
   init: async () => {
     await MobileDB.init();
     await CfCookieStore.init();
     await identityService.initialize();
     mobileBypassProvider.initialize();
+    // Hydrate configured repositories in background without blocking app boot
+    MobileApi.sources.refreshAll().catch(() => {});
     return { ok: true, value: undefined };
   },
   db: MobileDB as unknown as ElectronApi["db"],
@@ -584,24 +600,17 @@ export const MobileApi: ElectronApi = {
         return { ok: true, value: { success: true, count: 0 } };
       }
 
-      let installedLangs: string[] = [];
-      try {
-        const installedDb = await MobileDB.getExtensions();
-        if (installedDb.ok && installedDb.value) {
-          installedLangs = Array.from(
-            new Set(installedDb.value.map((e) => e.lang || "en")),
-          );
-        }
-      } catch (e) {
-        console.warn("[MobileApi] Failed to read installed languages:", e);
-      }
+      const installedLangs = await getInstalledExtensionLangs();
 
       const syncRes = await extensionRegistryOrchestrator.syncRepositories(
         [url],
         installedLangs,
       );
       if (!syncRes.success || syncRes.manifestsCount === 0) {
-        throw new Error("Failed to resolve repository manifest");
+        return {
+          ok: false,
+          error: "Failed to resolve repository manifest",
+        };
       }
 
       repos.push(url);
@@ -621,9 +630,13 @@ export const MobileApi: ElectronApi = {
         reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : [];
       repos = repos.filter((r) => r !== url);
       await MobileDB.setSetting("source_repositories", JSON.stringify(repos));
-      sourceService.clear();
+      extensionRegistryOrchestrator.clearCache();
       if (repos.length > 0) {
-        await sourceService.loadAllRepositories(repos);
+        const installedLangs = await getInstalledExtensionLangs();
+        await extensionRegistryOrchestrator.syncRepositories(
+          repos,
+          installedLangs,
+        );
       }
       return { ok: true, value: undefined };
     },
@@ -631,22 +644,22 @@ export const MobileApi: ElectronApi = {
       const reposJson = await MobileDB.getSetting("source_repositories");
       const repos: string[] =
         reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : [];
-      const templatesRes = await templateService.loadAllRepositories(repos);
-
-      let installedLangs: string[] = [];
-      try {
-        const installedDb = await MobileDB.getExtensions();
-        if (installedDb.ok && installedDb.value) {
-          installedLangs = Array.from(
-            new Set(installedDb.value.map((e) => e.lang || "en")),
-          );
-        }
-      } catch (e) {
-        console.warn("[MobileApi] Failed to get installed languages:", e);
+      extensionRegistryOrchestrator.clearCache();
+      if (repos.length === 0) {
+        return { ok: true, value: { success: true, totalCount: 0 } };
       }
-
-      await sourceService.loadAllRepositories(repos, installedLangs);
-      return { ok: true, value: templatesRes };
+      const installedLangs = await getInstalledExtensionLangs();
+      const syncRes = await extensionRegistryOrchestrator.syncRepositories(
+        repos,
+        installedLangs,
+      );
+      return {
+        ok: true,
+        value: {
+          success: syncRes.success,
+          totalCount: syncRes.sourcesCount || syncRes.templatesCount,
+        },
+      };
     },
     getAllSources: async () => {
       return { ok: true, value: sourceService.getAllSources() };
@@ -656,13 +669,24 @@ export const MobileApi: ElectronApi = {
       const repos: string[] =
         reposJson.ok && reposJson.value ? JSON.parse(reposJson.value) : [];
       if (repos.length === 0) {
-        sourceService.clear();
+        extensionRegistryOrchestrator.clearCache();
         return { ok: true, value: [] };
       }
 
-      if (lang && lang !== "all") {
+      const installedLangs = await getInstalledExtensionLangs();
+      if (!sourceService.hasCatalogFiles()) {
+        await extensionRegistryOrchestrator.syncRepositories(
+          repos,
+          installedLangs,
+        );
+      }
+
+      if (lang) {
         await sourceService.fetchCatalogByLang(lang, "manga");
         await sourceService.fetchCatalogByLang(lang, "anime");
+      } else if (sourceService.getAllSources().length === 0) {
+        await sourceService.fetchCatalogByLang("all", "manga");
+        await sourceService.fetchCatalogByLang("all", "anime");
       }
       const sources = sourceService.getAllSources();
       const value = sources.map((s: any) => {
