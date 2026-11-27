@@ -902,14 +902,17 @@ export default function PlayerScreen() {
                 onPress={fetchStream}
                 icon={<RefreshCw size={16} color="#fff" />}
               />
-              <Button
-                title="Go Back"
-                variant="outline"
+              <TouchableOpacity
+                className="px-4 py-2 rounded-lg border border-white/25 bg-white/10 justify-center items-center"
                 onPress={() => {
                   flushProgress();
                   router.back();
                 }}
-              />
+              >
+                <Typography className="text-white font-medium text-sm">
+                  Go Back
+                </Typography>
+              </TouchableOpacity>
             </View>
           </View>
         ) : activeServer ? (
