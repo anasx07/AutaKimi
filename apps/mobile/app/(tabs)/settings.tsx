@@ -48,7 +48,10 @@ export default function SettingsTab() {
   const [updateInfo, setUpdateInfo] = useState<MobileReleaseCheckResult | null>(
     null,
   );
-  const { setColorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const switchTrackFalse = isDark ? "#27272a" : "#d4d4d8";
+  const switchThumbOff = isDark ? "#71717a" : "#ffffff";
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
@@ -372,8 +375,8 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("auto_mark_read", v ? "true" : "false")
                 }
-                trackColor={{ false: "#27272a", true: "#e11d4880" }}
-                thumbColor={boolVal("auto_mark_read") ? "#e11d48" : "#71717a"}
+                trackColor={{ false: switchTrackFalse, true: "#e11d4880" }}
+                thumbColor={boolVal("auto_mark_read") ? "#e11d48" : switchThumbOff}
               />
             </View>
             <View className="border-t border-border/50" />
@@ -482,8 +485,8 @@ export default function SettingsTab() {
               <Switch
                 value={boolVal("showNsfw")}
                 onValueChange={(v) => set("showNsfw", v ? "true" : "false")}
-                trackColor={{ false: "#27272a", true: "#e11d4880" }}
-                thumbColor={boolVal("showNsfw") ? "#e11d48" : "#71717a"}
+                trackColor={{ false: switchTrackFalse, true: "#e11d4880" }}
+                thumbColor={boolVal("showNsfw") ? "#e11d48" : switchThumbOff}
               />
             </View>
           </Card>
@@ -539,9 +542,9 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("smart_downloads_enabled", v ? "true" : "false")
                 }
-                trackColor={{ false: "#27272a", true: "#e11d4880" }}
+                trackColor={{ false: switchTrackFalse, true: "#e11d4880" }}
                 thumbColor={
-                  boolVal("smart_downloads_enabled") ? "#e11d48" : "#71717a"
+                  boolVal("smart_downloads_enabled") ? "#e11d48" : switchThumbOff
                 }
               />
             </View>
@@ -558,8 +561,8 @@ export default function SettingsTab() {
                 onValueChange={(v) =>
                   set("autoNextAnime", v ? "true" : "false")
                 }
-                trackColor={{ false: "#27272a", true: "#e11d4880" }}
-                thumbColor={boolVal("autoNextAnime") ? "#e11d48" : "#71717a"}
+                trackColor={{ false: switchTrackFalse, true: "#e11d4880" }}
+                thumbColor={boolVal("autoNextAnime") ? "#e11d48" : switchThumbOff}
               />
             </View>
           </Card>

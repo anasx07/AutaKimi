@@ -67,7 +67,18 @@ import {
   sanitizeHeadersMap,
   DEFAULT_MOBILE_USER_AGENT,
 } from "../../../src/mobile/cf-cookies";
+import { useAppTheme } from "../../../src/mobile/theme";
 import { MobileTracker } from "../../../src/mobile/tracker.native";
+
+function normalizeEpisodeMatchKey(value?: string | null): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw).replace(/\/+$/, "").toLowerCase();
+  } catch {
+    return raw.replace(/\/+$/, "").toLowerCase();
+  }
+}
 
 function formatEpisodeTime(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -571,6 +582,7 @@ export default function PlayerScreen() {
 
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const isLandscape = winWidth > winHeight;
+  const { isDark, themeVars, themeClassName, palette } = useAppTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
@@ -686,11 +698,33 @@ export default function PlayerScreen() {
     );
   }, [allEpisodes]);
 
-  const currentEpIndex = sortedEpisodes.findIndex(
-    (e: any) => e.id === episodeId,
+  const isCurrentEpisodeMatch = useCallback(
+    (ep: any): boolean => {
+      if (!ep) return false;
+      if (ep.id === episodeId) return true;
+      if (episodeUrl && ep.url === episodeUrl) return true;
+      const targetIdNorm = normalizeEpisodeMatchKey(episodeId);
+      const targetUrlNorm = normalizeEpisodeMatchKey(episodeUrl);
+      const epIdNorm = normalizeEpisodeMatchKey(ep.id);
+      const epUrlNorm = normalizeEpisodeMatchKey(ep.url);
+      if (targetIdNorm && (epIdNorm === targetIdNorm || epUrlNorm === targetIdNorm)) {
+        return true;
+      }
+      if (targetUrlNorm && (epUrlNorm === targetUrlNorm || epIdNorm === targetUrlNorm)) {
+        return true;
+      }
+      return false;
+    },
+    [episodeId, episodeUrl],
   );
+
+  const currentEpIndex = sortedEpisodes.findIndex(isCurrentEpisodeMatch);
   const currentEpisode =
     currentEpIndex >= 0 ? sortedEpisodes[currentEpIndex] : null;
+  const displayEpisodeNumber =
+    currentEpisode?.number ??
+    parseEpisodeNumber(undefined, episodeTitle) ??
+    "?";
   const prevEpisode =
     currentEpIndex > 0 ? sortedEpisodes[currentEpIndex - 1] : null;
   const nextEpisode =
@@ -1227,42 +1261,64 @@ export default function PlayerScreen() {
   const activeServer = servers[activeServerIdx] || null;
   const stageHeight = isLandscape ? winHeight : Math.round((winWidth * 9) / 16);
 
-  const serverSelectorPill = servers.length > 0 && (
-    <View className="flex-row items-center gap-1">
-      <TouchableOpacity
-        onPress={() => setShowServerModal(true)}
-        activeOpacity={0.8}
-        className="flex-row items-center bg-zinc-800/95 border border-white/15 px-3 py-1.5 rounded-full gap-1.5"
-      >
-        <Typography className="text-xs">
-          {activeServer ? getServerStatusDot(activeServer) : "🌐"}
-        </Typography>
-        <Typography
-          className="text-white text-xs font-bold max-w-[110px]"
-          numberOfLines={1}
-        >
-          {activeServer?.name || `Server ${activeServerIdx + 1}`}
-        </Typography>
-        {activeServer?.pingMs ? (
-          <Typography className="text-white/50 text-[10px]">
-            {activeServer.pingMs}ms
-          </Typography>
-        ) : null}
-        <ChevronDown size={13} color="#a1a1aa" />
-      </TouchableOpacity>
-
-      {servers.length > 1 && (
+  const renderServerSelectorPill = (inOverlay: boolean) =>
+    servers.length > 0 ? (
+      <View className="flex-row items-center gap-1">
         <TouchableOpacity
-          onPress={handleManualNextServer}
+          onPress={() => setShowServerModal(true)}
           activeOpacity={0.8}
-          className="p-1.5 rounded-full bg-zinc-800/95 border border-white/15"
-          accessibilityLabel="Switch to Next Working Server"
+          className={
+            inOverlay
+              ? "flex-row items-center bg-zinc-900/95 border border-white/15 px-3 py-1.5 rounded-full gap-1.5"
+              : "flex-row items-center bg-secondary border border-border px-3 py-1.5 rounded-full gap-1.5"
+          }
         >
-          <RefreshCw size={13} color="#60a5fa" />
+          <Typography className="text-xs">
+            {activeServer ? getServerStatusDot(activeServer) : "🌐"}
+          </Typography>
+          <Typography
+            className={
+              inOverlay
+                ? "text-white text-xs font-bold max-w-[110px]"
+                : "text-foreground text-xs font-bold max-w-[110px]"
+            }
+            numberOfLines={1}
+          >
+            {activeServer?.name || `Server ${activeServerIdx + 1}`}
+          </Typography>
+          {activeServer?.pingMs ? (
+            <Typography
+              className={
+                inOverlay
+                  ? "text-white/50 text-[10px]"
+                  : "text-muted-foreground text-[10px]"
+              }
+            >
+              {activeServer.pingMs}ms
+            </Typography>
+          ) : null}
+          <ChevronDown
+            size={13}
+            color={inOverlay ? "#a1a1aa" : palette.mutedForeground}
+          />
         </TouchableOpacity>
-      )}
-    </View>
-  );
+
+        {servers.length > 1 && (
+          <TouchableOpacity
+            onPress={handleManualNextServer}
+            activeOpacity={0.8}
+            className={
+              inOverlay
+                ? "p-1.5 rounded-full bg-zinc-900/95 border border-white/15"
+                : "p-1.5 rounded-full bg-secondary border border-border"
+            }
+            accessibilityLabel="Switch to Next Working Server"
+          >
+            <RefreshCw size={13} color={isDark || inOverlay ? "#60a5fa" : "#2563eb"} />
+          </TouchableOpacity>
+        )}
+      </View>
+    ) : null;
 
   const videoStage = (
     <View
@@ -1478,36 +1534,39 @@ export default function PlayerScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-zinc-950"
+      className={isLandscape ? "flex-1 bg-black" : "flex-1 bg-background"}
       edges={isLandscape ? [] : ["top"]}
     >
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar hidden={isLandscape && !showControls} style="light" />
+      <StatusBar
+        hidden={isLandscape && !showControls}
+        style={isLandscape ? "light" : isDark ? "light" : "dark"}
+      />
 
       {!isLandscape ? (
         /* PORTRAIT WATCH MODE (Desktop-parity Watch Layout: Header -> 16:9 Player -> Provider/Control Bar -> Episodes List) */
-        <View className="flex-1 bg-zinc-950">
+        <View className="flex-1 bg-background">
           {/* Always-visible Top Header */}
-          <View className="flex-row items-center justify-between px-3 py-2.5 border-b border-white/10 bg-zinc-950">
+          <View className="flex-row items-center justify-between px-3 py-2.5 border-b border-border bg-card">
             <View className="flex-row items-center flex-1 mr-2">
               <TouchableOpacity
-                className="p-2 rounded-full bg-white/10 mr-2.5"
+                className="p-2 rounded-full bg-secondary mr-2.5"
                 onPress={() => {
                   flushProgress();
                   router.back();
                 }}
               >
-                <ArrowLeft size={18} color="#fff" />
+                <ArrowLeft size={18} color={palette.foreground} />
               </TouchableOpacity>
               <View className="flex-1">
                 <Typography
-                  className="text-white text-sm font-bold"
+                  className="text-foreground text-sm font-bold"
                   numberOfLines={1}
                 >
                   {animeTitle || "Watch"}
                 </Typography>
                 <Typography
-                  className="text-zinc-400 text-xs"
+                  className="text-muted-foreground text-xs"
                   numberOfLines={1}
                 >
                   {episodeTitle ||
@@ -1519,23 +1578,23 @@ export default function PlayerScreen() {
             <View className="flex-row items-center gap-1.5">
               <TouchableOpacity
                 onPress={fetchStream}
-                className="p-2 rounded-full bg-white/10"
+                className="p-2 rounded-full bg-secondary"
                 accessibilityLabel="Reload Stream"
               >
-                <RefreshCw size={16} color="#fff" />
+                <RefreshCw size={16} color={palette.foreground} />
               </TouchableOpacity>
               {activeServer?.url && (
                 <TouchableOpacity
                   onPress={() => {
                     WebBrowser.openBrowserAsync(activeServer.url, {
-                      toolbarColor: "#09090b",
-                      controlsColor: "#ffffff",
+                      toolbarColor: palette.background,
+                      controlsColor: palette.foreground,
                     }).catch(() => {});
                   }}
-                  className="p-2 rounded-full bg-white/10"
+                  className="p-2 rounded-full bg-secondary"
                   accessibilityLabel="Open in External Browser"
                 >
-                  <ExternalLink size={16} color="#fff" />
+                  <ExternalLink size={16} color={palette.foreground} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1545,20 +1604,20 @@ export default function PlayerScreen() {
           {videoStage}
 
           {/* Control Strip Below Video (Desktop Parity) */}
-          <View className="px-3 py-2.5 bg-zinc-900 border-b border-white/10 gap-2">
+          <View className="px-3 py-2.5 bg-card border-b border-border gap-2">
             {/* Row 1: Prev/Next Episode & Video Providers Dropdown */}
             <View className="flex-row items-center justify-between gap-2">
-              <View className="flex-row items-center bg-zinc-800 rounded-full border border-white/10 p-0.5">
+              <View className="flex-row items-center bg-secondary rounded-full border border-border p-0.5">
                 <TouchableOpacity
                   disabled={!prevEpisode}
                   onPress={() => prevEpisode && navigateToEpisode(prevEpisode)}
                   className="p-1.5 rounded-full"
                   style={{ opacity: prevEpisode ? 1 : 0.35 }}
                 >
-                  <ChevronLeft size={16} color="#fff" />
+                  <ChevronLeft size={16} color={palette.foreground} />
                 </TouchableOpacity>
-                <Typography className="text-white text-xs font-bold px-2">
-                  EP {currentEpisode?.number ?? "?"}
+                <Typography className="text-foreground text-xs font-bold px-2">
+                  EP {displayEpisodeNumber}
                 </Typography>
                 <TouchableOpacity
                   disabled={!nextEpisode}
@@ -1566,12 +1625,12 @@ export default function PlayerScreen() {
                   className="p-1.5 rounded-full"
                   style={{ opacity: nextEpisode ? 1 : 0.35 }}
                 >
-                  <ChevronRight size={16} color="#fff" />
+                  <ChevronRight size={16} color={palette.foreground} />
                 </TouchableOpacity>
               </View>
 
-              {serverSelectorPill || (
-                <Typography className="text-zinc-500 text-xs">
+              {renderServerSelectorPill(false) || (
+                <Typography className="text-muted-foreground text-xs">
                   {status === "loading" ? "Resolving providers..." : "No providers"}
                 </Typography>
               )}
@@ -1587,17 +1646,17 @@ export default function PlayerScreen() {
                 onPress={toggleAutoNext}
                 className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full border ${
                   autoNextEnabled
-                    ? "bg-primary/20 border-primary/50"
-                    : "bg-zinc-800 border-white/10"
+                    ? "bg-primary/15 border-primary/50"
+                    : "bg-secondary border-border"
                 }`}
               >
                 <Zap
                   size={12}
-                  color={autoNextEnabled ? "#e11d48" : "#a1a1aa"}
+                  color={autoNextEnabled ? "#e11d48" : palette.mutedForeground}
                 />
                 <Typography
                   className={`text-[11px] font-bold ${
-                    autoNextEnabled ? "text-primary" : "text-zinc-300"
+                    autoNextEnabled ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   Auto-Next
@@ -1606,25 +1665,25 @@ export default function PlayerScreen() {
 
               <TouchableOpacity
                 onPress={() => seekBy(-10)}
-                className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                className="px-2.5 py-1 rounded-full bg-secondary border border-border"
               >
-                <Typography className="text-white text-[11px] font-bold">
+                <Typography className="text-foreground text-[11px] font-bold">
                   -10s
                 </Typography>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => seekBy(10)}
-                className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                className="px-2.5 py-1 rounded-full bg-secondary border border-border"
               >
-                <Typography className="text-white text-[11px] font-bold">
+                <Typography className="text-foreground text-[11px] font-bold">
                   +10s
                 </Typography>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => seekBy(85)}
-                className="px-2.5 py-1 rounded-full bg-primary/25 border border-primary/40"
+                className="px-2.5 py-1 rounded-full bg-primary/15 border border-primary/40"
               >
                 <Typography className="text-primary text-[11px] font-bold">
                   +85s OP
@@ -1638,19 +1697,23 @@ export default function PlayerScreen() {
                     className={`px-2.5 py-1 rounded-full border ${
                       playbackSpeed > 1
                         ? "bg-primary border-primary"
-                        : "bg-zinc-800 border-white/10"
+                        : "bg-secondary border-border"
                     }`}
                   >
-                    <Typography className="text-white text-[11px] font-bold">
+                    <Typography
+                      className={`text-[11px] font-bold ${
+                        playbackSpeed > 1 ? "text-white" : "text-foreground"
+                      }`}
+                    >
                       {playbackSpeed}x
                     </Typography>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={cycleAspectFit}
-                    className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                    className="px-2.5 py-1 rounded-full bg-secondary border border-border"
                   >
-                    <Typography className="text-white text-[11px] font-semibold">
+                    <Typography className="text-foreground text-[11px] font-semibold">
                       {aspectFit === "contain"
                         ? "Fit"
                         : aspectFit === "cover"
@@ -1661,10 +1724,10 @@ export default function PlayerScreen() {
 
                   <TouchableOpacity
                     onPress={() => playerFullscreenRef.current?.()}
-                    className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                    className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-secondary border border-border"
                   >
-                    <Maximize2 size={12} color="#fff" />
-                    <Typography className="text-white text-[11px] font-semibold">
+                    <Maximize2 size={12} color={palette.foreground} />
+                    <Typography className="text-foreground text-[11px] font-semibold">
                       Fullscreen
                     </Typography>
                   </TouchableOpacity>
@@ -1674,9 +1737,9 @@ export default function PlayerScreen() {
           </View>
 
           {/* Inline Episodes Panel (Desktop Watch Page Parity) */}
-          <ScrollView className="flex-1 px-3 pt-3" contentContainerStyle={{ paddingBottom: 32 }}>
+          <ScrollView className="flex-1 bg-background px-3 pt-3" contentContainerStyle={{ paddingBottom: 32 }}>
             <View className="flex-row items-center justify-between mb-2.5 px-1">
-              <Typography className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+              <Typography className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
                 Episodes ({sortedEpisodes.length})
               </Typography>
               {servers.length > 0 && (
@@ -1689,7 +1752,7 @@ export default function PlayerScreen() {
             </View>
 
             {sortedEpisodes.map((ep: any) => {
-              const isActive = ep.id === episodeId;
+              const isActive = isCurrentEpisodeMatch(ep);
               const prog = episodeProgressMap.get(String(ep.id));
               const isWatched = Boolean(prog?.isRead);
               const resumeSec = prog?.lastPage || 0;
@@ -1702,7 +1765,7 @@ export default function PlayerScreen() {
                   className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 border ${
                     isActive
                       ? "bg-primary/15 border-primary/50"
-                      : "bg-zinc-900 border-white/5 active:bg-zinc-800"
+                      : "bg-card border-border active:bg-secondary"
                   }`}
                 >
                   <View className="flex-row items-center flex-1 mr-2">
@@ -1711,7 +1774,7 @@ export default function PlayerScreen() {
                     ) : (
                       <Play
                         size={13}
-                        color={isActive ? "#e11d48" : "#94a3b8"}
+                        color={isActive ? "#e11d48" : palette.mutedForeground}
                         fill={isActive ? "#e11d48" : "none"}
                       />
                     )}
@@ -1721,8 +1784,8 @@ export default function PlayerScreen() {
                           isActive
                             ? "text-primary"
                             : isWatched
-                              ? "text-zinc-400"
-                              : "text-white"
+                              ? "text-muted-foreground"
+                              : "text-foreground"
                         }`}
                         numberOfLines={1}
                       >
@@ -1813,7 +1876,7 @@ export default function PlayerScreen() {
                         <List size={16} color="#fff" />
                       </TouchableOpacity>
                     )}
-                    {serverSelectorPill}
+                    {renderServerSelectorPill(true)}
                     <TouchableOpacity
                       className="p-2 rounded-full bg-white/15"
                       onPress={() => setIsLocked(true)}
@@ -1926,20 +1989,23 @@ export default function PlayerScreen() {
         animationType="fade"
         onRequestClose={() => setShowServerModal(false)}
       >
-        <View className="flex-1 bg-black/75 items-center justify-center p-6">
-          <View className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden p-4">
-            <View className="flex-row items-center justify-between pb-3 border-b border-white/10 mb-2">
+        <View
+          className={`${themeClassName} flex-1 bg-black/75 items-center justify-center p-6`}
+          style={themeVars}
+        >
+          <View className="bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden p-4">
+            <View className="flex-row items-center justify-between pb-3 border-b border-border mb-2">
               <View className="flex-row items-center">
-                <Server size={18} color="#60a5fa" />
-                <Typography className="text-white font-bold text-base ml-2">
+                <Server size={18} color={isDark ? "#60a5fa" : "#2563eb"} />
+                <Typography className="text-foreground font-bold text-base ml-2">
                   Select Video Provider ({servers.length})
                 </Typography>
               </View>
               <TouchableOpacity
-                className="p-1 rounded-full bg-white/10"
+                className="p-1.5 rounded-full bg-secondary"
                 onPress={() => setShowServerModal(false)}
               >
-                <X size={16} color="#fff" />
+                <X size={16} color={palette.foreground} />
               </TouchableOpacity>
             </View>
 
@@ -1950,12 +2016,12 @@ export default function PlayerScreen() {
                 return (
                   <TouchableOpacity
                     key={`${srv.url}-${idx}`}
-                    className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 ${
+                    className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 border ${
                       isSelected
-                        ? "bg-primary/20 border border-primary/50"
+                        ? "bg-primary/15 border-primary/50"
                         : isDead
-                          ? "bg-red-500/10 border border-red-500/20"
-                          : "bg-white/5 active:bg-white/10"
+                          ? "bg-red-500/10 border-red-500/20"
+                          : "bg-secondary/70 border-border/50 active:bg-secondary"
                     }`}
                     onPress={() => {
                       if (idx !== activeServerIdx && currentTime > 10) {
@@ -1977,8 +2043,8 @@ export default function PlayerScreen() {
                             isSelected
                               ? "text-primary"
                               : isDead
-                                ? "text-zinc-400 line-through"
-                                : "text-white"
+                                ? "text-muted-foreground line-through"
+                                : "text-foreground"
                           }`}
                           numberOfLines={1}
                         >
@@ -1986,13 +2052,13 @@ export default function PlayerScreen() {
                         </Typography>
                         {srv.error ? (
                           <Typography
-                            className="text-[10px] text-red-400"
+                            className="text-[10px] text-red-500"
                             numberOfLines={1}
                           >
                             {srv.error}
                           </Typography>
                         ) : srv.pingMs ? (
-                          <Typography className="text-[10px] text-emerald-400">
+                          <Typography className="text-[10px] text-emerald-500">
                             {srv.pingMs}ms
                           </Typography>
                         ) : null}
@@ -2008,8 +2074,8 @@ export default function PlayerScreen() {
                       <Typography
                         className={`text-[10px] font-bold uppercase ${
                           srv.type === "hls" || srv.type === "mp4"
-                            ? "text-emerald-400"
-                            : "text-amber-400"
+                            ? "text-emerald-500"
+                            : "text-amber-500"
                         }`}
                       >
                         {srv.type}
@@ -2030,36 +2096,39 @@ export default function PlayerScreen() {
         animationType="slide"
         onRequestClose={() => setShowEpisodesModal(false)}
       >
-        <View className="flex-1 bg-black/75 justify-end">
-          <View className="bg-zinc-900 border-t border-white/10 rounded-t-3xl max-h-[75%] p-4">
-            <View className="flex-row items-center justify-between pb-3 border-b border-white/10 mb-2">
+        <View
+          className={`${themeClassName} flex-1 bg-black/75 justify-end`}
+          style={themeVars}
+        >
+          <View className="bg-card border-t border-border rounded-t-3xl max-h-[75%] p-4">
+            <View className="flex-row items-center justify-between pb-3 border-b border-border mb-2">
               <View className="flex-row items-center">
                 <List size={18} color="#e11d48" />
-                <Typography className="text-white font-bold text-base ml-2">
+                <Typography className="text-foreground font-bold text-base ml-2">
                   Episodes ({sortedEpisodes.length})
                 </Typography>
               </View>
               <TouchableOpacity
-                className="p-1.5 rounded-full bg-white/10"
+                className="p-1.5 rounded-full bg-secondary"
                 onPress={() => setShowEpisodesModal(false)}
               >
-                <X size={16} color="#fff" />
+                <X size={16} color={palette.foreground} />
               </TouchableOpacity>
             </View>
 
             <ScrollView className="my-1">
               {sortedEpisodes.map((ep: any) => {
-                const isActive = ep.id === episodeId;
+                const isActive = isCurrentEpisodeMatch(ep);
                 const prog = episodeProgressMap.get(String(ep.id));
                 const isWatched = Boolean(prog?.isRead);
                 const resumeSec = prog?.lastPage || 0;
                 return (
                   <TouchableOpacity
                     key={ep.id}
-                    className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 ${
+                    className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 border ${
                       isActive
-                        ? "bg-primary/20 border border-primary/50"
-                        : "bg-white/5 active:bg-white/10"
+                        ? "bg-primary/15 border-primary/50"
+                        : "bg-secondary/70 border-border/50 active:bg-secondary"
                     }`}
                     onPress={() => {
                       setShowEpisodesModal(false);
@@ -2072,7 +2141,7 @@ export default function PlayerScreen() {
                       ) : (
                         <Play
                           size={13}
-                          color={isActive ? "#e11d48" : "#94a3b8"}
+                          color={isActive ? "#e11d48" : palette.mutedForeground}
                           fill={isActive ? "#e11d48" : "none"}
                         />
                       )}
@@ -2082,8 +2151,8 @@ export default function PlayerScreen() {
                             isActive
                               ? "text-primary"
                               : isWatched
-                                ? "text-zinc-400"
-                                : "text-white"
+                                ? "text-muted-foreground"
+                                : "text-foreground"
                           }`}
                           numberOfLines={1}
                         >
