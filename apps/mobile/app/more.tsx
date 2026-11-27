@@ -60,7 +60,7 @@ export default function MorePage(): React.JSX.Element {
       label: 'GitHub',
       description: 'Source code, releases, and issue tracking',
       icon: GitBranch,
-      onPress: () => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release')
+      onPress: () => DataService.openExternal('https://github.com/anasx07/AutaKimi')
     },
     {
       id: 'discord',

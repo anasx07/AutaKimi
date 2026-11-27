@@ -582,7 +582,7 @@ export default function SettingsTab() {
                 <Typography className="text-muted-foreground">
                   Version
                 </Typography>
-                <Typography>1.5.80</Typography>
+                <Typography>{DataService.version}</Typography>
               </View>
               <View className="flex-row justify-between mb-2">
                 <Typography className="text-muted-foreground">

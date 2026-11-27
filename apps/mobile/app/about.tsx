@@ -70,7 +70,7 @@ export default function AboutPage(): React.JSX.Element {
               variant="primary"
               size="sm"
               icon={<GitBranch size={16} color="#fff" />}
-              onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release')}
+              onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi')}
             />
             <Button
               title="Join Discord"
@@ -123,7 +123,7 @@ export default function AboutPage(): React.JSX.Element {
               </Typography>
               <View className="flex-row justify-between items-center pt-3 border-t border-border">
                 <Typography variant="small" className="text-muted-foreground">MIT LICENSE</Typography>
-                <TouchableOpacity onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi-Release/blob/main/LICENSE')}>
+                <TouchableOpacity onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi/blob/main/LICENSE')}>
                   <Typography variant="small" className="text-primary font-bold">Read Terms</Typography>
                 </TouchableOpacity>
               </View>

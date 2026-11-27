@@ -9,6 +9,7 @@ import {
   BackupData,
 } from "@common/types";
 import { Extension } from "@common/types";
+import { resolveRemoteExtensionIconUrl } from "@common/services/repoIdentity";
 
 type SuccessResult = IpcResult<{ success?: boolean; error?: string }>;
 
@@ -270,7 +271,11 @@ export const MobileDB = {
     const res = await db!.getAllAsync<any>(
       "SELECT pkg, installed_at, code, name, baseUrl, lang, icon, version, repo_url AS repoUrl, repo_name AS repoName, repo_color AS repoColor FROM extensions;",
     );
-    return { ok: true, value: res };
+    const normalized = (res || []).map((row) => ({
+      ...row,
+      icon: resolveRemoteExtensionIconUrl(row.icon, row.pkg, row.repoUrl),
+    }));
+    return { ok: true, value: normalized };
   },
 
   async addExtension(data: any): Promise<SuccessResult> {
