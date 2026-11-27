@@ -28,7 +28,6 @@ import {
   Monitor,
   ChevronRight,
   Check,
-  Menu,
   Upload,
   BarChart3,
   Globe,
@@ -222,11 +221,14 @@ export default function SettingsTab() {
           className="flex-row items-center justify-between px-4 py-4"
           onPress={() => setShowOptions(true)}
         >
-          <View className="flex-row items-center">
-            {cur?.icon && <View className="mr-2">{cur.icon}</View>}
-            <Typography>{cur?.label || currentValue}</Typography>
+          <Typography className="font-medium mr-3">{label}</Typography>
+          <View className="flex-row items-center gap-2 shrink">
+            {cur?.icon}
+            <Typography className="text-muted-foreground text-xs" numberOfLines={1}>
+              {cur?.label || currentValue}
+            </Typography>
+            <ChevronRight size={16} color="#94a3b8" />
           </View>
-          <ChevronRight size={16} color="#94a3b8" />
         </TouchableOpacity>
       );
     }
@@ -655,30 +657,6 @@ export default function SettingsTab() {
                 </Typography>
               </View>
               <ChevronRight size={16} color="#94a3b8" />
-            </TouchableOpacity>
-          </Card>
-        </View>
-
-        {/* Navigate */}
-        <View className="mt-6 px-4">
-          <View className="flex-row items-center mb-2 px-2">
-            <Menu size={16} color="#71717a" />
-            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
-              Navigate
-            </Typography>
-          </View>
-          <Card className="overflow-hidden mb-3">
-            <TouchableOpacity
-              onPress={() => router.push("/more" as any)}
-              className="flex-row items-center justify-between px-4 py-4 active:bg-secondary"
-            >
-              <Typography className="text-base">More</Typography>
-              <View className="flex-row items-center gap-2">
-                <Typography variant="muted" className="text-xs">
-                  Explore features
-                </Typography>
-                <ChevronRight size={16} color="#71717a" />
-              </View>
             </TouchableOpacity>
           </Card>
         </View>
