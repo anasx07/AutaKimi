@@ -14,6 +14,7 @@ import {
   ArrowUpDown, Search, X
 } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
+import { resolveExtensionBadge } from '@common/services/repoIdentity'
 import { Chapter } from '@common/types'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -530,12 +531,37 @@ export default function MangaDetailsScreen() {
         </View>
 
         {/* Extension / Genres Badges */}
-        <View className="px-4 mt-4 flex-row flex-wrap gap-2">
-          {!!resolvedPkg && (
-            <View className="bg-primary/20 px-3 py-1 rounded-full">
-              <Typography className="text-primary text-xs">{resolvedPkg}</Typography>
-            </View>
-          )}
+        <View className="px-4 mt-4 flex-row flex-wrap gap-2 items-center">
+          {!!resolvedPkg && (() => {
+            const badge = resolveExtensionBadge(resolvedPkg, installedExtensions || [])
+            return (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/browse' as any,
+                    params: { pkg: resolvedPkg }
+                  })
+                }
+                activeOpacity={0.75}
+                className="flex-row items-center gap-1.5 bg-primary/15 border border-primary/30 px-3 py-1 rounded-full"
+              >
+                {badge?.color && (
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 99,
+                      backgroundColor: badge.color
+                    }}
+                  />
+                )}
+                <Typography className="text-primary text-xs font-semibold">
+                  {badge?.name || resolvedPkg}
+                </Typography>
+                <ChevronRight size={12} color="#e11d48" />
+              </TouchableOpacity>
+            )
+          })()}
           {!!cachedManga?.status && (
             <View className="bg-muted px-3 py-1 rounded-full">
               <Typography className="text-muted-foreground text-xs uppercase font-medium">

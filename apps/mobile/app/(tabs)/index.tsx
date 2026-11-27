@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View,
   FlatList,
@@ -11,10 +11,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Typography, Card } from "@mobile/native/ui";
 import { BookOpen, Play, Search, LayoutGrid, List } from "lucide-react-native";
 import { normalizeManga } from "@common/utils/mangaNormalizer";
+import { isAnimeExtension } from "@common/utils/mediaType";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
 import { DataService } from "@renderer/shared/api";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "nativewind";
 
@@ -76,6 +77,7 @@ export default function LibraryTab() {
     refetch,
   } = useLibraryItems(activeTab);
 
+  const queryClient = useQueryClient();
   const { data: historyData } = useQuery({
     queryKey: ["history", activeTab],
     queryFn: () => DataService.db.getHistory({ type: activeTab }),
@@ -85,6 +87,13 @@ export default function LibraryTab() {
     queryKey: ["extensions", "installed"],
     queryFn: () => DataService.db.getExtensions(),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["history", activeTab] });
+    }, [refetch, queryClient, activeTab]),
+  );
 
   const historyMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -100,7 +109,10 @@ export default function LibraryTab() {
 
   const openMangaDetails = (item: any) => {
     const norm = normalizeManga(item);
-    const isAnime = item.type === "anime" || item.mediaType === "anime";
+    const isAnime =
+      item.type === "anime" ||
+      item.mediaType === "anime" ||
+      isAnimeExtension({ pkg: item.pkg });
     router.push({
       pathname: (isAnime ? "/anime/[id]" : "/manga/[id]") as any,
       params: {

@@ -1,18 +1,20 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View, FlatList, TouchableOpacity, ActivityIndicator,
   TextInput, RefreshControl, useWindowDimensions
 } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
 import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
+import { isAnimeExtension } from '@common/utils/mediaType'
+import { resolveExtensionBadge } from '@common/services/repoIdentity'
 import { Typography, Button, Card, CardContent } from '@mobile/native/ui'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
-  Search, Compass, Package, BookOpen,
-  ArrowLeft, ChevronRight, RefreshCw, X
+  Search, Compass, Package, BookOpen, Film,
+  ArrowLeft, ChevronRight, X
 } from 'lucide-react-native'
 
 const LANG_FLAGS: Record<string, string> = {
@@ -42,8 +44,10 @@ const LANG_NAMES: Record<string, string> = {
 }
 
 export default function BrowseTab() {
+  const { pkg: paramPkg, feed: paramFeed } = useLocalSearchParams<{ pkg?: string; feed?: string }>()
   const [extensions, setExtensions] = useState<any[]>([])
   const [activePkg, setActivePkg] = useState<string | null>(null)
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'manga' | 'anime'>('all')
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [activeFeed, setActiveFeed] = useState<'popular' | 'latest'>('popular')
@@ -54,6 +58,7 @@ export default function BrowseTab() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { width: windowWidth } = useWindowDimensions()
   const numColumns = 3
@@ -76,6 +81,9 @@ export default function BrowseTab() {
   )
 
   const activeExtension = extensions.find((e) => e.pkg === activePkg)
+  const isActiveSourceAnime = isAnimeExtension(
+    activeExtension || (activePkg ? { pkg: activePkg } : undefined)
+  )
 
   const fetchResults = useCallback(
     async (pkg: string, feed: string, query?: string, pageNum = 1, isLoadMore = false) => {
@@ -98,6 +106,7 @@ export default function BrowseTab() {
       try {
         const limit = 24
         const offset = (pageNum - 1) * limit
+        const trimmedQuery = (query || '').trim()
         const result = await DataService.executeExtension({
           pkg,
           code: ext.code || '',
@@ -105,8 +114,9 @@ export default function BrowseTab() {
             page: pageNum,
             limit,
             offset,
-            activeFeed: query ? 'search' : feed,
-            debouncedSearch: query || '',
+            activeFeed: trimmedQuery ? 'search' : feed,
+            debouncedSearch: trimmedQuery,
+            query: trimmedQuery,
             lang: ext.lang || 'all'
           }
         })
@@ -154,7 +164,11 @@ export default function BrowseTab() {
     fetchResults(activePkg, activeFeed, searchQuery, page + 1, true)
   }, [activePkg, loading, loadingMore, hasMore, fetchResults, activeFeed, searchQuery, page])
 
-  const openSource = (pkg: string, feed: 'popular' | 'latest' = 'popular') => {
+  const openSource = useCallback((pkg: string, feed: 'popular' | 'latest' = 'popular') => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+      searchDebounceRef.current = null
+    }
     setActivePkg(pkg)
     setActiveFeed(feed)
     setSearchQuery('')
@@ -162,12 +176,35 @@ export default function BrowseTab() {
     setPage(1)
     setHasMore(true)
     fetchResults(pkg, feed, '', 1, false)
-  }
+  }, [fetchResults])
 
-  const openMangaDetails = (item: any) => {
+  // Open a specific extension directly when navigated with ?pkg=... (e.g. clicking source badge in Details)
+  useEffect(() => {
+    const targetPkg = typeof paramPkg === 'string' ? paramPkg.trim() : ''
+    if (!targetPkg) return
+    const targetFeed = paramFeed === 'latest' ? 'latest' : 'popular'
+    openSource(targetPkg, targetFeed)
+    try {
+      router.setParams({ pkg: '', feed: '' } as any)
+    } catch {
+      // Ignore if router param reset isn't supported in this context
+    }
+  }, [paramPkg, paramFeed, openSource])
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
+  }, [])
+
+  const openMediaDetails = (item: any) => {
     const norm = normalizeManga(item)
+    const isAnime =
+      item.type === 'anime' ||
+      item.mediaType === 'anime' ||
+      isAnimeExtension(activeExtension || { pkg: activePkg || item.pkg })
     router.push({
-      pathname: '/manga/[id]' as any,
+      pathname: (isAnime ? '/anime/[id]' : '/manga/[id]') as any,
       params: {
         id: item.id,
         title: norm.title,
@@ -177,6 +214,15 @@ export default function BrowseTab() {
       }
     })
   }
+
+  const mangaCount = useMemo(
+    () => extensions.filter((ext) => !isAnimeExtension(ext)).length,
+    [extensions]
+  )
+  const animeCount = useMemo(
+    () => extensions.filter((ext) => isAnimeExtension(ext)).length,
+    [extensions]
+  )
 
   if (initialLoading) {
     return (
@@ -193,6 +239,9 @@ export default function BrowseTab() {
   // ========================================================
   if (!activePkg) {
     const filteredExtensions = extensions.filter((ext) => {
+      const extIsAnime = isAnimeExtension(ext)
+      if (mediaFilter === 'anime' && !extIsAnime) return false
+      if (mediaFilter === 'manga' && extIsAnime) return false
       if (!sourceSearch.trim()) return true
       const q = sourceSearch.toLowerCase()
       return (
@@ -216,6 +265,39 @@ export default function BrowseTab() {
             icon={<Package size={18} color="#e11d48" />}
           />
         </View>
+
+        {/* Media Type Filter Pills */}
+        {extensions.length > 0 && (
+          <View className="flex-row px-4 pt-3 gap-2">
+            {(
+              [
+                { key: 'all', label: `All (${extensions.length})` },
+                { key: 'manga', label: `Manga (${mangaCount})` },
+                { key: 'anime', label: `Anime (${animeCount})` }
+              ] as const
+            ).map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => setMediaFilter(opt.key)}
+                className={`px-3.5 py-1.5 rounded-lg border ${
+                  mediaFilter === opt.key
+                    ? 'bg-primary border-primary'
+                    : 'bg-card border-border'
+                }`}
+              >
+                <Typography
+                  className={
+                    mediaFilter === opt.key
+                      ? 'text-white font-semibold text-xs'
+                      : 'text-muted-foreground font-medium text-xs'
+                  }
+                >
+                  {opt.label}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Search Installed Sources */}
         {extensions.length > 0 && (
@@ -242,7 +324,7 @@ export default function BrowseTab() {
                 No sources installed
               </Typography>
               <Typography className="text-muted-foreground text-center mt-1.5 mb-6 text-xs leading-relaxed">
-                Install extensions from community repositories like Keiyoushi to start browsing.
+                Install extensions from community repositories like Keiyoushi or AutaKimi to start browsing.
               </Typography>
               <Button
                 title="Browse Extensions"
@@ -254,7 +336,9 @@ export default function BrowseTab() {
             <View className="flex-1 items-center justify-center p-6">
               <Search size={36} color="#71717a" />
               <Typography className="text-muted-foreground mt-3 text-center text-sm">
-                No installed sources match "{sourceSearch}"
+                {sourceSearch.trim()
+                  ? `No installed sources match "${sourceSearch}"`
+                  : `No ${mediaFilter} sources installed`}
               </Typography>
             </View>
           ) : (
@@ -266,6 +350,8 @@ export default function BrowseTab() {
               renderItem={({ item }) => {
                 const flag = LANG_FLAGS[item.lang] || '🌐'
                 const langName = LANG_NAMES[item.lang] || item.lang
+                const isAnime = isAnimeExtension(item)
+                const badge = resolveExtensionBadge(item.pkg, extensions)
 
                 return (
                   <Card className="mb-2.5">
@@ -284,13 +370,24 @@ export default function BrowseTab() {
                           />
                         ) : (
                           <View className="w-11 h-11 bg-primary/10 rounded-xl items-center justify-center">
-                            <BookOpen size={20} color="#e11d48" />
+                            {isAnime ? (
+                              <Film size={20} color="#e11d48" />
+                            ) : (
+                              <BookOpen size={20} color="#e11d48" />
+                            )}
                           </View>
                         )}
                         <View className="flex-1 ml-3">
-                          <Typography className="font-semibold text-sm" numberOfLines={1}>
-                            {item.name || item.pkg}
-                          </Typography>
+                          <View className="flex-row items-center gap-1.5">
+                            <Typography className="font-semibold text-sm flex-shrink" numberOfLines={1}>
+                              {item.name || badge?.name || item.pkg}
+                            </Typography>
+                            <View className="px-1.5 py-0.5 rounded bg-secondary border border-border/50">
+                              <Typography className="text-[9px] font-bold uppercase text-muted-foreground">
+                                {isAnime ? 'Anime' : 'Manga'}
+                              </Typography>
+                            </View>
+                          </View>
                           <Typography className="text-xs text-muted-foreground mt-0.5">
                             {flag} {langName} {item.version ? `· v${item.version}` : ''}
                           </Typography>
@@ -359,18 +456,31 @@ export default function BrowseTab() {
           placeholder={`Search in ${activeExtension?.name || 'source'}...`}
           placeholderTextColor="#71717a"
           value={searchQuery}
-          onChangeText={(text) => {
-            setSearchQuery(text)
+          returnKeyType="search"
+          onSubmitEditing={() => {
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
             if (activePkg) {
               setPage(1)
               setHasMore(true)
-              fetchResults(activePkg, activeFeed, text, 1, false)
+              fetchResults(activePkg, activeFeed, searchQuery, 1, false)
+            }
+          }}
+          onChangeText={(text) => {
+            setSearchQuery(text)
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+            if (activePkg) {
+              searchDebounceRef.current = setTimeout(() => {
+                setPage(1)
+                setHasMore(true)
+                fetchResults(activePkg, activeFeed, text, 1, false)
+              }, 350)
             }
           }}
         />
         {searchQuery ? (
           <TouchableOpacity
             onPress={() => {
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
               setSearchQuery('')
               if (activePkg) {
                 setPage(1)
@@ -421,7 +531,7 @@ export default function BrowseTab() {
         </View>
       )}
 
-      {/* Manga Grid Results */}
+      {/* Catalog Grid Results */}
       <View className="flex-1 px-4 pt-2">
         {loading ? (
           <View className="flex-1 items-center justify-center">
@@ -431,7 +541,7 @@ export default function BrowseTab() {
           <View className="flex-1 items-center justify-center p-6">
             <Compass size={48} color={error ? '#ef4444' : '#94a3b8'} />
             <Typography className={`mt-4 text-center ${error ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-              {error ? error : searchQuery ? 'No results found' : 'No manga returned from this source'}
+              {error ? error : searchQuery ? 'No results found' : `No ${isActiveSourceAnime ? 'anime' : 'manga'} returned from this source`}
             </Typography>
             <Button
               title="Retry"
@@ -461,7 +571,7 @@ export default function BrowseTab() {
                 <View className="py-6 items-center justify-center">
                   <ActivityIndicator size="small" color="#e11d48" />
                   <Typography className="text-xs text-muted-foreground mt-2">
-                    Loading more manga...
+                    Loading more...
                   </Typography>
                 </View>
               ) : undefined
@@ -485,7 +595,7 @@ export default function BrowseTab() {
                 <TouchableOpacity
                   style={{ width: cardWidth }}
                   className="mb-3"
-                  onPress={() => openMangaDetails(item)}
+                  onPress={() => openMediaDetails(item)}
                   activeOpacity={0.8}
                 >
                   <Card className="aspect-[2/3] w-full overflow-hidden">
@@ -498,7 +608,11 @@ export default function BrowseTab() {
                       />
                     ) : (
                       <View className="flex-1 items-center justify-center bg-card">
-                        <BookOpen size={24} color="#71717a" />
+                        {isActiveSourceAnime ? (
+                          <Film size={24} color="#71717a" />
+                        ) : (
+                          <BookOpen size={24} color="#71717a" />
+                        )}
                       </View>
                     )}
                     <LinearGradient
