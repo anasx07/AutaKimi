@@ -39,7 +39,8 @@ export const ALLOWED_STREAMING_DOMAINS = [
   'mega.nz', 'uqload.com', 'uqload.to', 'uqload.io', 'uqload.vc',
   'sibnet.ru', 'mp4upload.com', 'sendvid.com',
   'google.com', 'ok.ru', 'vk.com', 'vkvideo.ru',
-  'videa.hu',
+  'videa.hu', 'videas.hu', 'yonaplay.net', '4shared.com', 'hgcloud.to',
+  'mediafire.com', 'workupload.com', 'gofile.io',
   'dood.to', 'dood.watch', 'dood.so', 'dood.pm', 'dood.wf', 'dood.cx', 'dood.sh', 'doodstream.com',
   'filelions.to', 'filelions.site', 'filelions.live',
   'streamtape.com', 'streamtape.to', 'streamtape.net',
@@ -324,6 +325,60 @@ export class URLSearchParams {
     this._map.delete(key)
   }
 
+  get size(): number {
+    let count = 0
+    this._map.forEach((vals) => {
+      count += vals.length
+    })
+    return count
+  }
+
+  sort(): void {
+    const sortedKeys = Array.from(this._map.keys()).sort()
+    const next = new Map<string, string[]>()
+    for (const k of sortedKeys) {
+      const v = this._map.get(k)
+      if (v) next.set(k, v)
+    }
+    this._map = next
+  }
+
+  forEach(callback: (value: string, key: string, parent: URLSearchParams) => void, thisArg?: any): void {
+    this._map.forEach((vals, k) => {
+      vals.forEach((v) => {
+        callback.call(thisArg, v, k, this)
+      })
+    })
+  }
+
+  *entries(): IterableIterator<[string, string]> {
+    for (const [k, vals] of this._map.entries()) {
+      for (const v of vals) {
+        yield [k, v]
+      }
+    }
+  }
+
+  *keys(): IterableIterator<string> {
+    for (const [k, vals] of this._map.entries()) {
+      for (let i = 0; i < vals.length; i++) {
+        yield k
+      }
+    }
+  }
+
+  *values(): IterableIterator<string> {
+    for (const vals of this._map.values()) {
+      for (const v of vals) {
+        yield v
+      }
+    }
+  }
+
+  [Symbol.iterator](): IterableIterator<[string, string]> {
+    return this.entries()
+  }
+
   toString(): string {
     const parts: string[] = []
     this._map.forEach((vals, k) => {
@@ -332,6 +387,54 @@ export class URLSearchParams {
       })
     })
     return parts.join('&')
+  }
+}
+
+function createEmptyHeaders() {
+  const emptyMap = new Map<string, string>()
+  return {
+    get: (name: string) => emptyMap.get(String(name).toLowerCase()) ?? null,
+    has: (name: string) => emptyMap.has(String(name).toLowerCase()),
+    forEach: (cb: (val: string, key: string) => void) => {
+      emptyMap.forEach((v, k) => cb(v, k))
+    },
+    entries: () => emptyMap.entries(),
+    keys: () => emptyMap.keys(),
+    values: () => emptyMap.values(),
+  }
+}
+
+function ensureSandboxRuntimeBuiltins() {
+  const g = globalThis as any
+  if (typeof g.atob !== 'function') g.atob = atob
+  if (typeof g.btoa !== 'function') g.btoa = btoa
+  if (typeof g.Buffer !== 'function') g.Buffer = SafeBuffer
+  if (typeof g.AbortSignal !== 'undefined') {
+    if (typeof g.AbortSignal.timeout !== 'function') {
+      g.AbortSignal.timeout = (ms: number) => {
+        const controller = new AbortController()
+        setTimeout(() => {
+          controller.abort(new Error(`TimeoutError: Signal timed out after ${ms}ms`))
+        }, Math.max(0, Number(ms) || 0))
+        return controller.signal
+      }
+    }
+    if (typeof g.AbortSignal.any !== 'function') {
+      g.AbortSignal.any = (signals: AbortSignal[]) => {
+        const controller = new AbortController()
+        for (const sig of signals || []) {
+          if (!sig) continue
+          if (sig.aborted) {
+            controller.abort((sig as any).reason)
+            break
+          }
+          if (typeof sig.addEventListener === 'function') {
+            sig.addEventListener('abort', () => controller.abort((sig as any).reason), { once: true })
+          }
+        }
+        return controller.signal
+      }
+    }
   }
 }
 
@@ -348,8 +451,10 @@ export class SafeURL {
   searchParams: URLSearchParams
 
   constructor(url: any, base?: any) {
-    let fullUrl = String(url)
-    if (base) {
+    let fullUrl = String(url ?? '').trim()
+    if (!base && fullUrl.startsWith('//')) {
+      fullUrl = 'https:' + fullUrl
+    } else if (base) {
       const b = String(base)
       if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
         if (fullUrl.startsWith('//')) {
@@ -382,6 +487,15 @@ export class SafeURL {
     this.searchParams = new URLSearchParams(this.search)
   }
 
+  static canParse(url: any, base?: any): boolean {
+    try {
+      new SafeURL(url, base)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   toString(): string {
     return this.href
   }
@@ -408,21 +522,27 @@ export const MobileExtension = {
 
   async execute(args: { pkg: string; code: string; contextArgs?: any }): Promise<IpcResult<any>> {
     const { code, contextArgs: params } = args
+    ensureSandboxRuntimeBuiltins()
 
     const sandbox = {
       cheerio: {
-        load: (html: string) => cheerio.load(html)
+        load: (html: string, options?: any) => cheerio.load(html, options)
       },
-      fetch: async (url: any, init?: { method?: string; headers?: any; body?: any }) => {
-        const urlStr = typeof url === 'string' ? url : String(url)
+      fetch: async (url: any, init?: { method?: string; headers?: any; body?: any; signal?: AbortSignal }) => {
+        if (init?.signal?.aborted) {
+          throw (init.signal as any).reason || new Error('Fetch aborted')
+        }
+        const rawUrl = typeof url === 'string' ? url : String(url)
+        const baseUrl = (params?._baseUrl || params?.baseUrl) as string | undefined
 
-        // 1. Strictly require HTTP or HTTPS protocol
+        // 1. Strictly require HTTP or HTTPS protocol (resolve protocol-relative / base-relative URLs when safe)
         let parsedUrl: SafeURL
         try {
-          parsedUrl = new SafeURL(urlStr)
+          parsedUrl = new SafeURL(rawUrl, baseUrl)
         } catch {
-          throw new Error(`Security Exception: invalid URL: ${urlStr}`)
+          throw new Error(`Security Exception: invalid URL: ${rawUrl}`)
         }
+        const urlStr = parsedUrl.href
         if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
           throw new Error(`Security Exception: only HTTP and HTTPS protocols are allowed: ${urlStr}`)
         }
@@ -437,7 +557,6 @@ export const MobileExtension = {
         }
 
         // 3. Domain allowlist check if baseUrl / params._baseUrl is provided
-        const baseUrl = (params?._baseUrl || params?.baseUrl) as string | undefined
         if (baseUrl) {
           let allowedParsed: SafeURL
           try {
@@ -480,10 +599,36 @@ export const MobileExtension = {
           }
         }
 
+        const normalizedHeaders: Record<string, string> = {}
+        if (params?._userAgent) {
+          normalizedHeaders['User-Agent'] = String(params._userAgent)
+        }
+        if (params?._cfCookies) {
+          normalizedHeaders['Cookie'] = String(params._cfCookies)
+        }
+        if (init?.headers) {
+          if (typeof (init.headers as any).forEach === 'function') {
+            ;(init.headers as any).forEach((v: any, k: any) => {
+              normalizedHeaders[String(k)] = String(v)
+            })
+          } else if (Array.isArray(init.headers)) {
+            for (const [k, v] of init.headers) {
+              normalizedHeaders[String(k)] = String(v)
+            }
+          } else if (typeof init.headers === 'object') {
+            Object.assign(normalizedHeaders, init.headers)
+          }
+        }
+
+        let normalizedBody = init?.body
+        if (normalizedBody instanceof URLSearchParams) {
+          normalizedBody = normalizedBody.toString()
+        }
+
         const res = await MobileNetwork.fetchText(urlStr, {
           method: (init?.method as any) || 'GET',
-          headers: init?.headers,
-          body: init?.body
+          headers: Object.keys(normalizedHeaders).length > 0 ? normalizedHeaders : undefined,
+          body: normalizedBody
         })
 
         if (!res.ok) {
@@ -491,15 +636,24 @@ export const MobileExtension = {
         }
 
         const data = res.value.data
-        return {
+        const responseHeaders = createEmptyHeaders()
+        const responseObj: any = {
           ok: res.value.ok,
           status: res.value.status,
+          statusText: res.value.ok ? 'OK' : `HTTP ${res.value.status}`,
+          url: urlStr,
+          redirected: false,
+          headers: responseHeaders,
           text: async () => data,
-          json: async () => JSON.parse(data)
+          json: async () => JSON.parse(data),
+          arrayBuffer: async () => SafeBuffer.from(data, 'utf8').buffer,
+          clone: () => responseObj,
         }
+        return responseObj
       },
       console: {
         log: (...args: any[]) => console.log('[Native-Sandbox]:', ...args),
+        warn: (...args: any[]) => console.warn('[Native-Sandbox Warn]:', ...args),
         error: (...args: any[]) => console.error('[Native-Sandbox Error]:', ...args)
       },
       params: params || {}
@@ -539,6 +693,7 @@ export const MobileExtension = {
   var require = function(m) {
     if (m === 'cheerio') return __cheerio;
     if (m === 'buffer') return { Buffer: __Buffer };
+    if (m === 'url') return { URL: __URL, URLSearchParams: __URLSearchParams };
     throw new Error('Module not found in mobile sandbox: ' + m);
   };
 
@@ -585,8 +740,8 @@ export const MobileExtension = {
         if (timer) clearTimeout(timer)
       }
     } catch (err: any) {
-      console.error(`[Native-Sandbox] Execution failed for ${args.pkg}:`, err)
-      return { ok: false, error: err.message || String(err) }
+      console.error(`[Native-Sandbox] Execution failed for ${args.pkg}:`, err, err?.stack || '')
+      return { ok: false, error: err?.message || String(err) }
     }
   }
 }
