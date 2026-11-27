@@ -8,6 +8,8 @@ import {
   TouchableWithoutFeedback,
   PanResponder,
   Animated,
+  Modal,
+  ScrollView,
 } from "react-native";
 
 import { useLocalSearchParams, router, Stack } from "expo-router";
@@ -24,6 +26,9 @@ import {
   RefreshCw,
   ShieldCheck,
   Moon,
+  List,
+  CheckCircle,
+  X,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { EyeCareTintPreset } from "@common/types";
@@ -38,6 +43,7 @@ import {
 } from "@common/utils/eyeCare";
 import { computeSmartDownloadPlan } from "@common/utils/smartDownloads";
 import { getImageHeaders } from "../../../src/mobile/cf-cookies";
+import { MobileTracker } from "../../../src/mobile/tracker.native";
 
 const EyeCareSlider = ({
   label,
@@ -489,6 +495,7 @@ export default function ReaderScreen() {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
   const [isBypassingChapterCf, setIsBypassingChapterCf] = useState(false);
+  const [showChaptersSheet, setShowChaptersSheet] = useState(false);
   const [showEyeCarePanel, setShowEyeCarePanel] = useState(false);
   const [eyeCareEnabled, setEyeCareEnabled] = useState(
     DEFAULT_EYE_CARE_CONFIG.enabled,
@@ -743,12 +750,34 @@ export default function ReaderScreen() {
     },
   });
 
-  // 2. Fetch Chapters for Navigation
+  // 2. Fetch Chapters & Progress for Drawer Navigation
   const { data: allChapters } = useQuery({
     queryKey: ["manga-chapters", mangaId],
     queryFn: () => DataService.db.getChapters(mangaId),
     enabled: !!mangaId,
   });
+
+  const { data: chapterProgressRows = [] } = useQuery({
+    queryKey: ["manga-progress", mangaId],
+    queryFn: async () => {
+      const res = await DataService.db.getProgress(mangaId);
+      return (res as any)?.value || res || [];
+    },
+    enabled: !!mangaId,
+  });
+
+  const readerProgressMap = useMemo(() => {
+    const map = new Map<string, { isRead: boolean; lastPage: number }>();
+    for (const row of chapterProgressRows || []) {
+      const chId = String(row.chapter_id || row.chapterId || "");
+      if (!chId) continue;
+      map.set(chId, {
+        isRead: Boolean(row.is_read ?? row.isRead),
+        lastPage: Number(row.last_page ?? row.lastPage ?? 0),
+      });
+    }
+    return map;
+  }, [chapterProgressRows]);
 
   // Find next/prev chapters
   const sortedChapters = useMemo(
@@ -764,6 +793,10 @@ export default function ReaderScreen() {
   const currentChapterIndex = sortedChapters.findIndex(
     (c) => c.id === chapterId,
   );
+  const currentChapterObj =
+    currentChapterIndex >= 0 ? sortedChapters[currentChapterIndex] : null;
+  const prevChapter =
+    currentChapterIndex > 0 ? sortedChapters[currentChapterIndex - 1] : null;
   const nextChapter =
     currentChapterIndex >= 0 && currentChapterIndex < sortedChapters.length - 1
       ? sortedChapters[currentChapterIndex + 1]
@@ -773,6 +806,7 @@ export default function ReaderScreen() {
   pagesRef.current = pages;
 
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncedChaptersRef = useRef<Set<string>>(new Set());
   const lastProgressRef = useRef<{ isRead: boolean; lastPage: number } | null>(
     null,
   );
@@ -783,17 +817,25 @@ export default function ReaderScreen() {
       progressTimerRef.current = null;
     }
     if (lastProgressRef.current) {
+      const payload = lastProgressRef.current;
       DataService.db
         .updateProgress({
           mangaId,
           chapterId,
-          isRead: lastProgressRef.current.isRead,
-          lastPage: lastProgressRef.current.lastPage,
+          isRead: payload.isRead,
+          lastPage: payload.lastPage,
         })
         .catch(console.error);
+      if (payload.isRead && chapterId && !syncedChaptersRef.current.has(chapterId)) {
+        syncedChaptersRef.current.add(chapterId);
+        void MobileTracker.autoSyncProgress(
+          mangaId,
+          currentChapterObj?.number ?? chapterTitle,
+        );
+      }
       lastProgressRef.current = null;
     }
-  }, [mangaId, chapterId]);
+  }, [mangaId, chapterId, currentChapterObj?.number, chapterTitle]);
 
   useEffect(() => {
     return () => {
@@ -815,20 +857,32 @@ export default function ReaderScreen() {
 
       progressTimerRef.current = setTimeout(() => {
         if (lastProgressRef.current) {
+          const payload = lastProgressRef.current;
           DataService.db
             .updateProgress({
               mangaId,
               chapterId,
-              isRead: lastProgressRef.current.isRead,
-              lastPage: lastProgressRef.current.lastPage,
+              isRead: payload.isRead,
+              lastPage: payload.lastPage,
             })
             .catch(console.error);
+          if (
+            payload.isRead &&
+            chapterId &&
+            !syncedChaptersRef.current.has(chapterId)
+          ) {
+            syncedChaptersRef.current.add(chapterId);
+            void MobileTracker.autoSyncProgress(
+              mangaId,
+              currentChapterObj?.number ?? chapterTitle,
+            );
+          }
           lastProgressRef.current = null;
         }
         progressTimerRef.current = null;
       }, 500);
     },
-    [mangaId, chapterId],
+    [mangaId, chapterId, currentChapterObj?.number, chapterTitle],
   );
 
   const syncMobileSmartDownloads = useCallback(
@@ -1117,20 +1171,38 @@ export default function ReaderScreen() {
     }),
   ).current;
 
-  const handleNextChapter = () => {
-    if (!nextChapter) return;
+  const navigateToChapter = (targetChapter: any) => {
+    if (!targetChapter) return;
     flushProgress();
+    setShowChaptersSheet(false);
+    if (mangaId) {
+      DataService.db
+        .addHistory({
+          mangaId,
+          mangaTitle: mangaTitle || undefined,
+          chapterId: targetChapter.id,
+          chapterTitle: targetChapter.title || `Ch. ${targetChapter.number}`,
+          startedAt: new Date().toISOString(),
+          pkg: pkg || undefined,
+          type: "manga",
+        })
+        .catch(() => {});
+    }
     router.replace({
       pathname: "/reader/[mangaId]/[chapterId]" as any,
       params: {
         mangaId,
-        chapterId: nextChapter.id,
+        chapterId: targetChapter.id,
         pkg: pkg || "",
-        chapterUrl: nextChapter.url,
-        chapterTitle: nextChapter.title || `Ch. ${nextChapter.number}`,
+        chapterUrl: targetChapter.url || "",
+        chapterTitle: targetChapter.title || `Ch. ${targetChapter.number}`,
         mangaTitle: mangaTitle || "",
       },
     });
+  };
+
+  const handleNextChapter = () => {
+    if (nextChapter) navigateToChapter(nextChapter);
   };
 
   const handleChapterCloudflareBypass = async () => {
@@ -1179,8 +1251,23 @@ export default function ReaderScreen() {
               </Typography>
               <Typography className="text-white/70 text-xs" numberOfLines={1}>
                 {mangaTitle || ""}
+                {sortedChapters.length > 0 && currentChapterIndex >= 0
+                  ? ` · ${currentChapterIndex + 1}/${sortedChapters.length}`
+                  : ""}
               </Typography>
             </View>
+
+            {/* Chapters Drawer Button */}
+            {sortedChapters.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setShowChaptersSheet(true)}
+                activeOpacity={0.7}
+                className="mr-2 p-2 rounded-full border bg-zinc-800 border-zinc-700"
+                accessibilityLabel="Chapters List"
+              >
+                <List size={16} color="#e4e4e7" />
+              </TouchableOpacity>
+            )}
 
             {/* Night Eye-Care Button */}
             <TouchableOpacity
@@ -1534,14 +1621,38 @@ export default function ReaderScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Page & Progress Info */}
+          {/* Page & Chapter Navigation Info */}
           <View className="flex-row items-center justify-between mb-1.5 px-1">
-            <Typography className="text-white text-xs font-semibold">
-              Page {activePage} / {pages.length}
-            </Typography>
-            <Typography className="text-zinc-400 text-xs font-medium">
-              {Math.round(progressPercent)}%
-            </Typography>
+            <View className="flex-row items-center gap-2">
+              {prevChapter && (
+                <TouchableOpacity
+                  onPress={() => navigateToChapter(prevChapter)}
+                  className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700"
+                >
+                  <Typography className="text-zinc-300 text-[11px] font-semibold">
+                    Prev Ch.
+                  </Typography>
+                </TouchableOpacity>
+              )}
+              <Typography className="text-white text-xs font-semibold">
+                Page {activePage} / {pages.length}
+              </Typography>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <Typography className="text-zinc-400 text-xs font-medium">
+                {Math.round(progressPercent)}%
+              </Typography>
+              {nextChapter && (
+                <TouchableOpacity
+                  onPress={() => navigateToChapter(nextChapter)}
+                  className="px-2 py-0.5 rounded bg-primary/20 border border-primary/40"
+                >
+                  <Typography className="text-primary text-[11px] font-semibold">
+                    Next Ch.
+                  </Typography>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Interactive Scrub Slider Controls */}
@@ -1592,6 +1703,89 @@ export default function ReaderScreen() {
           </View>
         </View>
       )}
+
+      {/* Chapters List Drawer Modal */}
+      <Modal
+        visible={showChaptersSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowChaptersSheet(false)}
+      >
+        <View className="flex-1 bg-black/75 justify-end">
+          <View className="bg-zinc-900 border-t border-zinc-800 rounded-t-3xl max-h-[75%] p-4">
+            <View className="flex-row items-center justify-between pb-3 border-b border-zinc-800 mb-2">
+              <View className="flex-row items-center">
+                <List size={18} color="#e11d48" />
+                <Typography className="text-white font-bold text-base ml-2">
+                  Chapters ({sortedChapters.length})
+                </Typography>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowChaptersSheet(false)}
+                className="p-1.5 rounded-full bg-zinc-800"
+              >
+                <X size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="my-1">
+              {[...sortedChapters].reverse().map((ch) => {
+                const isActive = ch.id === chapterId;
+                const prog = readerProgressMap.get(String(ch.id));
+                const isRead = Boolean(prog?.isRead);
+                return (
+                  <TouchableOpacity
+                    key={ch.id}
+                    onPress={() => {
+                      if (!isActive) navigateToChapter(ch);
+                      else setShowChaptersSheet(false);
+                    }}
+                    className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 ${
+                      isActive
+                        ? "bg-primary/20 border border-primary/50"
+                        : "bg-zinc-800/60"
+                    }`}
+                  >
+                    <View className="flex-row items-center flex-1 mr-2">
+                      {isRead && (
+                        <CheckCircle
+                          size={14}
+                          color="#10b981"
+                          style={{ marginRight: 8 }}
+                        />
+                      )}
+                      <View className="flex-1">
+                        <Typography
+                          className={`text-sm font-semibold ${
+                            isActive
+                              ? "text-primary"
+                              : isRead
+                                ? "text-zinc-400"
+                                : "text-white"
+                          }`}
+                          numberOfLines={1}
+                        >
+                          {ch.title || `Chapter ${ch.number}`}
+                        </Typography>
+                        {!isRead && prog && prog.lastPage > 1 && (
+                          <Typography className="text-[11px] text-primary">
+                            Page {prog.lastPage}
+                          </Typography>
+                        )}
+                      </View>
+                    </View>
+                    {isActive && (
+                      <Typography className="text-[10px] font-bold uppercase text-primary">
+                        Current
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

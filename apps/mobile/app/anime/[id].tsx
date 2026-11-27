@@ -28,9 +28,11 @@ import {
   Search,
   ArrowUpDown,
   X,
+  Link2,
 } from "lucide-react-native";
 import { DataService } from "@renderer/shared/api";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
+import { TrackingModal } from "../../src/native/components/TrackingModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 1.15), 420);
@@ -75,6 +77,7 @@ export default function AnimeDetailsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [filterMode, setFilterMode] = useState<"all" | "unwatched">("all");
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
 
   const effectiveEpisodeSourceUrl = activeSeasonUrl || paramUrl || id;
   const effectiveMediaId = activeSeasonUrl || id;
@@ -126,6 +129,16 @@ export default function AnimeDetailsScreen() {
     },
     enabled: !!effectiveMediaId,
   });
+
+  const { data: trackersList = [], refetch: refetchTrackers } = useQuery({
+    queryKey: ["anime-trackers", effectiveMediaId],
+    queryFn: async () => {
+      const res = await DataService.tracker.getByManga(effectiveMediaId);
+      return (res as any)?.value || res || [];
+    },
+    enabled: !!effectiveMediaId,
+  });
+  const isTracked = trackersList.some((t: any) => t.provider === "anilist");
 
   useFocusEffect(
     useCallback(() => {
@@ -557,7 +570,7 @@ export default function AnimeDetailsScreen() {
           </Typography>
         </View>
 
-        {/* Quick Actions: Continue/Start Watching + Bookmark */}
+        {/* Quick Actions: Continue/Start Watching + Track + Bookmark */}
         <View className="px-4 mt-4 flex-row gap-3">
           <Button
             title={primaryButtonLabel}
@@ -568,6 +581,17 @@ export default function AnimeDetailsScreen() {
             }}
             disabled={!targetEpisode}
           />
+          <TouchableOpacity
+            className={`w-12 h-12 rounded-xl items-center justify-center border ${
+              isTracked
+                ? "bg-[#02A9FF]/20 border-[#02A9FF]"
+                : "bg-card border-border"
+            }`}
+            onPress={() => setShowTrackingModal(true)}
+            accessibilityLabel="Track on AniList"
+          >
+            <Link2 size={20} color={isTracked ? "#02A9FF" : "#94a3b8"} />
+          </TouchableOpacity>
           <TouchableOpacity
             className={`w-12 h-12 rounded-xl items-center justify-center border border-border ${
               isInLibrary ? "bg-primary/20 border-primary" : "bg-card"
@@ -892,6 +916,23 @@ export default function AnimeDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      <TrackingModal
+        visible={showTrackingModal}
+        onClose={() => setShowTrackingModal(false)}
+        mediaId={effectiveMediaId}
+        mediaTitle={displayTitle || paramTitle || "Anime"}
+        mediaType="anime"
+        suggestedProgress={sortedEpisodes.reduce((max: number, ep: any) => {
+          if (progressMap.get(String(ep.id))?.isRead) {
+            return Math.max(max, Math.floor(Number(ep.number || 0)));
+          }
+          return max;
+        }, 0)}
+        onTrackerChanged={() => {
+          refetchTrackers();
+        }}
+      />
     </View>
   );
 }

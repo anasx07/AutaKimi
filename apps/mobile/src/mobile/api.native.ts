@@ -16,6 +16,8 @@ import { identityService } from "./identity.native";
 import { mobileBypassProvider } from "./bypass.native";
 import { CfCookieStore } from "./cf-cookies";
 import { MobileBackup } from "./backup.native";
+import { MobileTracker, normalizeTrackerRow } from "./tracker.native";
+import { checkMobileReleaseUpdate } from "./updater.native";
 import {
   sourceService,
   templateService,
@@ -33,6 +35,8 @@ type Callback = (data: any) => void;
 
 const cfStatusCallbacks = new Set<Callback>();
 const cacheInvalidateCallbacks = new Set<Callback>();
+const appUpdateCallbacks = new Set<Callback>();
+let latestUpdateUrl: string | null = null;
 
 function notifyCfStatus(
   status: "started" | "completed" | "failed",
@@ -537,7 +541,12 @@ export const MobileApi: ElectronApi = {
     return { ok: true, value: theme };
   },
 
-  onAppUpdate: () => () => {},
+  onAppUpdate: (callback: (data: any) => void) => {
+    appUpdateCallbacks.add(callback);
+    return () => {
+      appUpdateCallbacks.delete(callback);
+    };
+  },
   onDownloadEvent: (callback: (data: any) => void) => {
     MobileDownload.onEvent(callback);
     return () => MobileDownload.onEvent(() => {});
@@ -562,8 +571,36 @@ export const MobileApi: ElectronApi = {
     };
   },
 
-  installUpdate: async () => ({ ok: true, value: undefined }),
-  checkForUpdates: async () => ({ ok: true, value: undefined }),
+  installUpdate: async () => {
+    const target =
+      latestUpdateUrl || "https://github.com/anasx07/AutaKimi/releases/latest";
+    await WebBrowser.openBrowserAsync(target);
+    return { ok: true, value: undefined };
+  },
+  checkForUpdates: async () => {
+    appUpdateCallbacks.forEach((cb) => cb({ status: "checking", manual: true }));
+    try {
+      const info = await checkMobileReleaseUpdate();
+      latestUpdateUrl = info.apkDownloadUrl || info.releaseUrl;
+      appUpdateCallbacks.forEach((cb) =>
+        cb({
+          status: info.updateAvailable ? "available" : "idle",
+          version: info.latestVersion,
+          manual: true,
+        }),
+      );
+      return { ok: true, value: undefined };
+    } catch (err: any) {
+      appUpdateCallbacks.forEach((cb) =>
+        cb({
+          status: "error",
+          error: err?.message || "Failed to check updates",
+          manual: true,
+        }),
+      );
+      return { ok: false, error: err?.message || "Failed to check updates" };
+    }
+  },
 
   sync: {
     startServer: async () => ({ ok: false, error: "Not supported on mobile" }),
@@ -736,26 +773,37 @@ export const MobileApi: ElectronApi = {
   },
 
   trackers: {
-    getByManga: async (mangaId: string) => MobileDB.getTrackers(mangaId),
+    getByManga: async (mangaId: string) => {
+      const res = await MobileDB.getTrackers(mangaId);
+      if (!res.ok) return res;
+      return {
+        ok: true,
+        value: (res.value || []).map(normalizeTrackerRow),
+      };
+    },
     save: async (tracker: any) => MobileDB.saveTracker(tracker),
     delete: async (args: { mangaId: string; provider: string }) =>
       MobileDB.deleteTracker(args.mangaId, args.provider),
-    authAniList: async () => ({ ok: false, error: "Not supported on mobile" }),
-    getUserAniList: async () => ({
+    authAniList: async () => ({
       ok: false,
-      error: "Not supported on mobile",
+      error: "Use the in-app AniList login dialog or personal token.",
     }),
-    setTokenAniList: async () => ({
-      ok: false,
-      error: "Not supported on mobile",
-    }),
-    logoutAniList: async () => ({ ok: true, value: undefined }),
-    searchAniList: async () => ({ ok: true, value: [] }),
-    getMediaAniList: async () => ({ ok: true, value: null }),
-    updateAniList: async () => ({
-      ok: false,
-      error: "Not supported on mobile",
-    }),
+    getUserAniList: async () => MobileTracker.getUserAniList(),
+    setTokenAniList: async (token: string) =>
+      MobileTracker.setTokenAniList(token),
+    logoutAniList: async () => MobileTracker.logoutAniList(),
+    searchAniList: async (args: {
+      query: string;
+      type?: "ANIME" | "MANGA";
+    }) => MobileTracker.searchAniList(args),
+    getMediaAniList: async (mediaId: number) =>
+      MobileTracker.getMediaAniList(mediaId),
+    updateAniList: async (args: {
+      mediaId: number;
+      status?: string;
+      progress?: number;
+      score?: number;
+    }) => MobileTracker.updateAniList(args),
     processQueue: async () => ({
       ok: true,
       value: { processed: 0, succeeded: 0, failed: 0 },
