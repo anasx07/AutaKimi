@@ -3,10 +3,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { MobileApi } from '../src/mobile/api.native';
 import { View, ActivityIndicator } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme, cssInterop } from 'nativewind';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DataService } from '@renderer/shared/api';
 import { syncClient } from '../src/mobile/sync-client.native';
 import '../global.css';
+
+cssInterop(Image, { className: 'style' });
+cssInterop(LinearGradient, { className: 'style' });
 
 const queryClient = new QueryClient();
 

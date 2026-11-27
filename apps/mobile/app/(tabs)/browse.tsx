@@ -10,6 +10,7 @@ import { DataService } from '@renderer/shared/api'
 import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 import { isAnimeExtension } from '@common/utils/mediaType'
 import { resolveExtensionBadge } from '@common/services/repoIdentity'
+import { buildImageSource } from '../../src/mobile/cf-cookies'
 import { Typography, Button, Card, CardContent } from '@mobile/native/ui'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
@@ -639,6 +640,10 @@ export default function BrowseTab() {
                     const norm = normalizeManga(entry.item)
                     const badge = resolveExtensionBadge(entry.extension.pkg, extensions)
                     const anime = isAnimeExtension(entry.extension)
+                    const coverSource = buildImageSource(
+                      norm.coverUrl,
+                      entry.extension?.baseUrl || entry.item?.url,
+                    )
                     return (
                       <TouchableOpacity
                         style={{ width: cardWidth }}
@@ -646,11 +651,18 @@ export default function BrowseTab() {
                         onPress={() => openMediaDetails(entry.item, entry.extension)}
                         activeOpacity={0.8}
                       >
-                        <Card className="aspect-[2/3] w-full overflow-hidden">
-                          {norm.coverUrl ? (
+                        <Card
+                          style={{
+                            width: cardWidth,
+                            height: Math.round(cardWidth * 1.5),
+                            position: 'relative',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {coverSource ? (
                             <Image
-                              source={{ uri: norm.coverUrl }}
-                              className="flex-1"
+                              source={coverSource}
+                              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
                               contentFit="cover"
                               transition={150}
                             />
@@ -684,7 +696,15 @@ export default function BrowseTab() {
                           <LinearGradient
                             colors={['transparent', 'rgba(9,9,11,0.55)', 'rgba(9,9,11,0.92)']}
                             locations={[0, 0.45, 1]}
-                            className="absolute bottom-0 left-0 right-0 px-2 pb-2 pt-7"
+                            style={{
+                              position: 'absolute',
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              paddingHorizontal: 8,
+                              paddingBottom: 8,
+                              paddingTop: 28,
+                            }}
                           >
                             <Typography
                               className="text-white text-xs font-semibold leading-snug"
@@ -748,8 +768,8 @@ export default function BrowseTab() {
                           >
                             {item.icon ? (
                               <Image
-                                source={{ uri: item.icon }}
-                                className="w-11 h-11 rounded-xl bg-secondary"
+                                source={buildImageSource(item.icon, item.baseUrl)}
+                                style={{ width: 44, height: 44, borderRadius: 12 }}
                                 contentFit="contain"
                                 transition={150}
                               />
@@ -989,6 +1009,10 @@ export default function BrowseTab() {
             }
             renderItem={({ item }) => {
               const norm = normalizeManga(item)
+              const coverSource = buildImageSource(
+                norm.coverUrl,
+                activeExtension?.baseUrl || item.url,
+              )
               return (
                 <TouchableOpacity
                   style={{ width: cardWidth }}
@@ -996,11 +1020,18 @@ export default function BrowseTab() {
                   onPress={() => openMediaDetails(item)}
                   activeOpacity={0.8}
                 >
-                  <Card className="aspect-[2/3] w-full overflow-hidden">
-                    {norm.coverUrl ? (
+                  <Card
+                    style={{
+                      width: cardWidth,
+                      height: Math.round(cardWidth * 1.5),
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {coverSource ? (
                       <Image
-                        source={{ uri: norm.coverUrl }}
-                        className="flex-1"
+                        source={coverSource}
+                        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
                         contentFit="cover"
                         transition={150}
                       />
@@ -1016,7 +1047,15 @@ export default function BrowseTab() {
                     <LinearGradient
                       colors={['transparent', 'rgba(9,9,11,0.55)', 'rgba(9,9,11,0.92)']}
                       locations={[0, 0.45, 1]}
-                      className="absolute bottom-0 left-0 right-0 px-2 pb-2 pt-7"
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        paddingHorizontal: 8,
+                        paddingBottom: 8,
+                        paddingTop: 28,
+                      }}
                     >
                       <Typography
                         className="text-white text-xs font-semibold leading-snug"

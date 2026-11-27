@@ -15,6 +15,7 @@ import { normalizeManga } from "@common/utils/mangaNormalizer";
 import { isAnimeExtension } from "@common/utils/mediaType";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
 import { DataService } from "@renderer/shared/api";
+import { buildImageSource } from "../../src/mobile/cf-cookies";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -210,6 +211,7 @@ export default function LibraryTab() {
         : "Unread";
     const src = resolveExtensionBadge(item.pkg, installedExtensions);
     const unreadCount = unreadMap[item.id] || 0;
+    const coverSource = buildImageSource(norm.coverUrl, item.url);
 
     if (viewMode === "grid") {
       return (
@@ -218,13 +220,37 @@ export default function LibraryTab() {
           onPress={() => openMangaDetails(item)}
           activeOpacity={0.8}
         >
-          <Card className="aspect-[2/3] w-full overflow-hidden rounded-xl border border-border">
-            <Image
-              source={{ uri: norm.coverUrl || undefined }}
-              className="flex-1"
-              contentFit="cover"
-              transition={150}
-            />
+          <Card
+            style={{
+              width: cardWidth,
+              height: Math.round(cardWidth * 1.5),
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: 12,
+            }}
+          >
+            {coverSource ? (
+              <Image
+                source={coverSource}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                }}
+                contentFit="cover"
+                transition={150}
+              />
+            ) : (
+              <View className="flex-1 items-center justify-center bg-card">
+                {activeTab === "anime" ? (
+                  <Play size={24} color="#71717a" />
+                ) : (
+                  <BookOpen size={24} color="#71717a" />
+                )}
+              </View>
+            )}
             {(src || unreadCount > 0) && (
               <View className="absolute top-1.5 left-1.5 right-1.5 flex-row items-center justify-between gap-1">
                 {src ? (
@@ -259,7 +285,15 @@ export default function LibraryTab() {
             <LinearGradient
               colors={["transparent", "rgba(9,9,11,0.55)", "rgba(9,9,11,0.92)"]}
               locations={[0, 0.45, 1]}
-              className="absolute bottom-0 left-0 right-0 px-2 pb-2 pt-8"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                paddingHorizontal: 8,
+                paddingBottom: 8,
+                paddingTop: 32,
+              }}
             >
               <Typography
                 className="text-white text-xs font-semibold leading-snug"
@@ -286,8 +320,8 @@ export default function LibraryTab() {
         activeOpacity={0.7}
       >
         <Image
-          source={{ uri: norm.coverUrl || undefined }}
-          className="w-16 h-24 rounded-xl border border-border/40"
+          source={coverSource}
+          style={{ width: 64, height: 96, borderRadius: 12 }}
           contentFit="cover"
           transition={150}
         />
