@@ -6,11 +6,10 @@ import { Stack, router } from 'expo-router'
 import { ArrowLeft, Smartphone, ShieldCheck, RefreshCw } from 'lucide-react-native'
 import { Typography, Button, Card, CardContent } from '../src/native/ui'
 import { syncClient } from '../src/mobile/sync-client.native'
-import { useColorScheme } from 'nativewind'
+import { useAppTheme } from '../src/mobile/theme'
 
 export default function SyncPage() {
-  const { colorScheme } = useColorScheme()
-  const isDark = colorScheme === 'dark'
+  const { isDark, themeVars, themeClassName } = useAppTheme()
   const [permission, requestPermission] = useCameraPermissions()
   const [scanned, setScanned] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -170,42 +169,42 @@ export default function SyncPage() {
         transparent={true}
         onRequestClose={() => setShowManualModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/60">
-          <View className="bg-background border-t border-white/10 rounded-t-3xl p-6 pb-10 space-y-6">
+        <View className={`${themeClassName} flex-1 justify-end bg-black/60`} style={themeVars}>
+          <View className="bg-card border-t border-border rounded-t-3xl p-6 pb-10 space-y-6">
             <View className="flex-row items-center justify-between">
               <Typography variant="h3" className="font-bold text-lg">Manual Pairing</Typography>
               <TouchableOpacity onPress={() => setShowManualModal(false)}>
-                <Typography className="text-zinc-500 font-bold text-sm">Cancel</Typography>
+                <Typography className="text-muted-foreground font-bold text-sm">Cancel</Typography>
               </TouchableOpacity>
             </View>
 
             <View className="space-y-4">
               <View>
-                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">IP Address</Typography>
+                <Typography className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">IP Address</Typography>
                 <TextInput
                   placeholder="e.g. 192.168.1.15"
                   placeholderTextColor="#71717a"
                   value={manualIp}
                   onChangeText={setManualIp}
                   keyboardType="numeric"
-                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                  className="bg-secondary border border-border text-foreground rounded-xl px-4 py-3 font-mono text-sm"
                 />
               </View>
 
               <View>
-                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Port</Typography>
+                <Typography className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Port</Typography>
                 <TextInput
                   placeholder="e.g. 42069"
                   placeholderTextColor="#71717a"
                   value={manualPort}
                   onChangeText={setManualPort}
                   keyboardType="numeric"
-                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                  className="bg-secondary border border-border text-foreground rounded-xl px-4 py-3 font-mono text-sm"
                 />
               </View>
 
               <View>
-                <Typography className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Shared Secret Key</Typography>
+                <Typography className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1.5 ml-1">Shared Secret Key</Typography>
                 <TextInput
                   placeholder="Paste secret key from Desktop"
                   placeholderTextColor="#71717a"
@@ -213,7 +212,7 @@ export default function SyncPage() {
                   onChangeText={setManualSecret}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  className="bg-zinc-900 border border-white/10 text-white rounded-xl px-4 py-3 font-mono text-sm"
+                  className="bg-secondary border border-border text-foreground rounded-xl px-4 py-3 font-mono text-sm"
                 />
               </View>
             </View>

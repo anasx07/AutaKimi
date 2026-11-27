@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Typography, Button } from "../ui";
 import { DataService } from "@renderer/shared/api";
 import { ANILIST_OAUTH_URL } from "../../mobile/tracker.native";
+import { useAppTheme } from "../../mobile/theme";
 import type { AniListMedia, AniListUser, Tracker } from "@common/types";
 import {
   X,
@@ -57,6 +58,7 @@ export function TrackingModal({
   suggestedProgress = 0,
   onTrackerChanged,
 }: TrackingModalProps) {
+  const { themeVars, themeClassName } = useAppTheme();
   const [user, setUser] = useState<AniListUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(false);
   const [showTokenInput, setShowTokenInput] = useState(false);
@@ -332,7 +334,7 @@ export function TrackingModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/75 justify-end">
+      <View className={`${themeClassName} flex-1 bg-black/75 justify-end`} style={themeVars}>
         <View className="bg-background rounded-t-3xl border-t border-border max-h-[88%]">
           {/* Header */}
           <View className="flex-row items-center justify-between px-5 py-4 border-b border-border">
