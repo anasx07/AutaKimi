@@ -14,7 +14,12 @@ import { MobileDownload } from "./download.native";
 import { MobileCache, setCacheInvalidateCallback } from "./cache.native";
 import { identityService } from "./identity.native";
 import { mobileBypassProvider } from "./bypass.native";
-import { CfCookieStore } from "./cf-cookies";
+import {
+  CfCookieStore,
+  DEFAULT_MOBILE_USER_AGENT,
+  sanitizeHeadersMap,
+  sanitizeUrlForHttp,
+} from "./cf-cookies";
 import { MobileBackup } from "./backup.native";
 import { MobileTracker, normalizeTrackerRow } from "./tracker.native";
 import { checkMobileReleaseUpdate } from "./updater.native";
@@ -829,35 +834,129 @@ export const MobileApi: ElectronApi = {
     timeoutMs?: number;
   }) => {
     const startTime = Date.now();
+    const timeoutMs = args.timeoutMs || 3500;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(
-        () => controller.abort(),
-        args.timeoutMs || 4000,
-      );
-      const res = await fetch(args.url, {
-        method: "HEAD",
-        headers: args.headers,
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      const safeUrl = sanitizeUrlForHttp(args.url);
+      if (!safeUrl.startsWith("http://") && !safeUrl.startsWith("https://")) {
+        clearTimeout(timeout);
+        return {
+          ok: true,
+          value: { alive: false, status: 0, pingMs: 0, error: "Invalid URL" },
+        };
+      }
+      const lowerUrl = safeUrl.toLowerCase();
+      const isHls =
+        lowerUrl.includes(".m3u8") ||
+        lowerUrl.includes("hls_proxy") ||
+        lowerUrl.includes("mode=m3u8");
+      const reqHeaders: Record<string, string> =
+        sanitizeHeadersMap({
+          "User-Agent": DEFAULT_MOBILE_USER_AGENT,
+          Accept: "*/*",
+          ...(args.headers || {}),
+        }) || {};
+
+      if (!isHls && !reqHeaders.Range && !reqHeaders.range) {
+        reqHeaders.Range = "bytes=0-1024";
+      }
+      if (!reqHeaders.Referer && !reqHeaders.referer) {
+        if (
+          lowerUrl.includes("vidmoly") ||
+          lowerUrl.includes("staticmoly") ||
+          lowerUrl.includes("moly")
+        ) {
+          reqHeaders.Referer = "https://vidmoly.to/";
+        } else if (lowerUrl.includes("uqload")) {
+          reqHeaders.Referer = "https://uqload.vc/";
+        } else if (lowerUrl.includes("mp4upload")) {
+          reqHeaders.Referer = "https://www.mp4upload.com/";
+        } else {
+          try {
+            const parsed = new URL(safeUrl);
+            reqHeaders.Referer = `${parsed.protocol}//${parsed.host}/`;
+          } catch {}
+        }
+      }
+
+      let res: Response;
+      try {
+        res = await fetch(safeUrl, {
+          method: isHls ? "GET" : "HEAD",
+          headers: reqHeaders,
+          signal: controller.signal,
+        });
+        if (!isHls && (res.status === 405 || res.status === 501)) {
+          res = await fetch(safeUrl, {
+            method: "GET",
+            headers: reqHeaders,
+            signal: controller.signal,
+          });
+        }
+      } catch {
+        res = await fetch(safeUrl, {
+          method: "GET",
+          headers: reqHeaders,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+
       const pingMs = Date.now() - startTime;
+      const status = res.status;
+      let alive =
+        res.ok ||
+        status === 206 ||
+        status === 416 ||
+        (status >= 200 && status < 400);
+
+      if (alive && status === 200) {
+        try {
+          const ct = (res.headers?.get("content-type") || "").toLowerCase();
+          if (ct.includes("text/html")) {
+            const text = (await res.text()).toLowerCase();
+            if (
+              text.includes("the embed could not be loaded") ||
+              text.includes("file was deleted") ||
+              text.includes("video not found") ||
+              text.includes("video has been removed") ||
+              text.includes("404 not found") ||
+              text.includes("هذا السيرفر غير متاح") ||
+              text.includes("تم حذف الملف من المصدر") ||
+              text.includes("anime4up_server_dead") ||
+              text.includes("file was removed") ||
+              text.includes("file not found") ||
+              text.includes("video is unavailable")
+            ) {
+              alive = false;
+            }
+          }
+        } catch {}
+      }
+
       return {
         ok: true,
         value: {
-          alive: res.ok || res.status < 400,
-          status: res.status,
+          alive,
+          status,
           pingMs,
+          error: alive ? undefined : `HTTP ${status}`,
         },
       };
     } catch (e: any) {
+      clearTimeout(timeout);
       return {
         ok: true,
         value: {
           alive: false,
           status: 0,
           pingMs: Date.now() - startTime,
-          error: e.message || String(e),
+          error:
+            e?.name === "AbortError"
+              ? "Timeout (server stalled)"
+              : e?.message || String(e),
         },
       };
     }

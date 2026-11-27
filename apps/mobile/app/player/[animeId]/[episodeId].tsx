@@ -11,7 +11,9 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
@@ -29,6 +31,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Server,
   Play,
   X,
@@ -38,6 +41,8 @@ import {
   Unlock,
   Maximize2,
   CheckCircle,
+  ShieldCheck,
+  Zap,
 } from "lucide-react-native";
 import {
   parseEpisodeNumber,
@@ -55,6 +60,7 @@ import {
   prefetchNextEpisodeSkipTimes,
   type EpisodeStreamCacheEntry,
   type NormalizedStreamServer,
+  type ServerProbeResult,
 } from "@common/services/episodePrefetch.service";
 import {
   getVideoHeaders,
@@ -70,7 +76,71 @@ function formatEpisodeTime(seconds: number): string {
   return `${m}:${rem < 10 ? "0" : ""}${rem}`;
 }
 
-export type ServerOption = NormalizedStreamServer;
+export type ServerOption = NormalizedStreamServer & {
+  status?: "alive" | "dead" | "checking" | "untested";
+  pingMs?: number;
+  error?: string;
+};
+
+function mapEntryToServerOptions(entry: EpisodeStreamCacheEntry): ServerOption[] {
+  return entry.servers.map((srv, idx) => {
+    const probe = entry.probeResults?.find((p) => p.index === idx);
+    return {
+      ...srv,
+      status: probe ? probe.status : "checking",
+      pingMs: probe?.pingMs,
+      error: probe?.error,
+    };
+  });
+}
+
+function resolveEffectiveServerIndex(
+  items: ServerOption[],
+  preferredIndex: number,
+): number {
+  const candidate = items[preferredIndex];
+  if (candidate && candidate.status === "dead") {
+    const aliveDirectIdx = items.findIndex(
+      (srv) =>
+        srv.status === "alive" && (srv.type === "hls" || srv.type === "mp4"),
+    );
+    if (aliveDirectIdx !== -1) return aliveDirectIdx;
+    const aliveIdx = items.findIndex((srv) => srv.status === "alive");
+    if (aliveIdx !== -1) return aliveIdx;
+  }
+  return preferredIndex;
+}
+
+async function probeMobileServers(
+  cacheKey: string,
+  entry: EpisodeStreamCacheEntry,
+): Promise<ServerProbeResult[]> {
+  const results = await Promise.all(
+    entry.servers.map(async (srv, i): Promise<ServerProbeResult> => {
+      try {
+        const probeRes = await DataService.probeStream(
+          srv.url,
+          srv.headers,
+          3000,
+        );
+        return {
+          index: i,
+          status: probeRes.alive ? "alive" : "dead",
+          pingMs: probeRes.pingMs,
+          error: probeRes.error,
+        };
+      } catch {
+        return {
+          index: i,
+          status: "dead",
+          error: "Probe error",
+        };
+      }
+    }),
+  );
+  sharedEpisodeStreamCache.updateProbeResults(cacheKey, results);
+  return results;
+}
 
 async function fetchAndNormalizeMobileEpisode(
   pkg: string,
@@ -89,12 +159,14 @@ async function fetchAndNormalizeMobileEpisode(
 
   const rawUrls = extractRawStreamUrls(result);
   if (!rawUrls || rawUrls.length === 0) {
-    throw new Error("No stream URLs returned from extension");
+    throw new Error("No streaming servers found for this episode");
   }
 
   const parsedServers = normalizeStreamServers(rawUrls);
   if (parsedServers.length === 0) {
-    throw new Error("No playable video streams found (ad-only feeds filtered)");
+    throw new Error(
+      "No playable video streams found (ad-only feeds filtered)",
+    );
   }
 
   return {
@@ -147,7 +219,7 @@ const INJECTED_POPUP_BLOCKER = `
 true;
 `;
 
-// Direct Native Stream Player (HLS / MP4)
+// Direct Native Stream Player (HLS / MP4) with error & stall failover
 function DirectVideoPlayer({
   server,
   refererUrl,
@@ -155,6 +227,7 @@ function DirectVideoPlayer({
   contentFit = "contain",
   onProgress,
   onEnd,
+  onError,
   onRegisterSeek,
   onRegisterPlaybackRate,
   onRegisterFullscreen,
@@ -165,11 +238,17 @@ function DirectVideoPlayer({
   contentFit?: VideoContentFit;
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
+  onError: (reason: string) => void;
   onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
   onRegisterPlaybackRate?: (fn: ((rate: number) => void) | null) => void;
   onRegisterFullscreen?: (fn: (() => void) | null) => void;
 }) {
   const videoViewRef = useRef<VideoView | null>(null);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const hasReadyRef = useRef(false);
+  const hasReportedErrorRef = useRef(false);
+
   const headers = useMemo(() => {
     return (
       sanitizeHeadersMap({
@@ -212,19 +291,39 @@ function DirectVideoPlayer({
 
   useEffect(() => {
     hasAppliedInitialSeekRef.current = false;
+    hasReadyRef.current = false;
+    hasReportedErrorRef.current = false;
+
+    // 12s watchdog if direct stream hangs in loading state
+    const watchdog = setTimeout(() => {
+      if (!hasReadyRef.current && !hasReportedErrorRef.current) {
+        hasReportedErrorRef.current = true;
+        onErrorRef.current("Stream timed out waiting to buffer");
+      }
+    }, 12000);
+
+    return () => clearTimeout(watchdog);
   }, [server.url]);
 
   useEffect(() => {
     applyInitialSeekIfReady(initialTime);
   }, [initialTime, applyInitialSeekIfReady]);
 
-  useEventListener(player, "statusChange", ({ status }) => {
-    if (status === "readyToPlay") {
+  useEventListener(player, "statusChange", (event: any) => {
+    const nextStatus = event?.status;
+    if (nextStatus === "readyToPlay") {
+      hasReadyRef.current = true;
       applyInitialSeekIfReady(initialTime);
+    } else if (nextStatus === "error" && !hasReportedErrorRef.current) {
+      hasReportedErrorRef.current = true;
+      const errMessage =
+        event?.error?.message || "Direct stream playback error";
+      onErrorRef.current(errMessage);
     }
   });
 
   useEventListener(player, "timeUpdate", ({ currentTime }) => {
+    hasReadyRef.current = true;
     const duration = player.duration || 0;
     onProgress(currentTime, duration);
   });
@@ -273,12 +372,13 @@ function DirectVideoPlayer({
   );
 }
 
-// Embedded Web Stream Player (Iframe with Popup Blocking)
+// Embedded Web Stream Player (Iframe with Popup Blocking & HTTP error failover)
 function EmbedVideoPlayer({
   server,
   refererUrl,
   onProgress,
   onEnd,
+  onError,
   onRegisterSeek,
   onRegisterPlaybackRate,
 }: {
@@ -286,10 +386,18 @@ function EmbedVideoPlayer({
   refererUrl?: string;
   onProgress: (currentTime: number, duration: number) => void;
   onEnd: () => void;
+  onError: (reason: string) => void;
   onRegisterSeek?: (fn: ((seconds: number) => void) | null) => void;
   onRegisterPlaybackRate?: (fn: ((rate: number) => void) | null) => void;
 }) {
   const webViewRef = useRef<any>(null);
+  const [webLoading, setWebLoading] = useState(true);
+  const hasFailedRef = useRef(false);
+
+  useEffect(() => {
+    hasFailedRef.current = false;
+    setWebLoading(true);
+  }, [server.url]);
 
   useEffect(() => {
     if (!onRegisterSeek) return;
@@ -353,35 +461,81 @@ function EmbedVideoPlayer({
   }, []);
 
   return (
-    <WebView
-      ref={webViewRef}
-      source={{
-        uri: server.url,
-        headers,
-      }}
-      userAgent={DEFAULT_MOBILE_USER_AGENT}
-      allowsFullscreenVideo={true}
-      allowsInlineMediaPlayback={true}
-      mediaPlaybackRequiresUserAction={false}
-      javaScriptEnabled={true}
-      domStorageEnabled={true}
-      setSupportMultipleWindows={false}
-      javaScriptCanOpenWindowsAutomatically={false}
-      injectedJavaScript={INJECTED_POPUP_BLOCKER}
-      onMessage={(event: any) => {
-        try {
-          const data = JSON.parse(event.nativeEvent.data);
-          if (data.type === "timeupdate") {
-            onProgress(data.currentTime, data.duration);
-          } else if (data.type === "ended") {
-            onEnd();
+    <View className="flex-1 w-full h-full relative bg-black">
+      <WebView
+        ref={webViewRef}
+        source={{
+          uri: server.url,
+          headers,
+        }}
+        userAgent={DEFAULT_MOBILE_USER_AGENT}
+        allowsFullscreenVideo={true}
+        allowsInlineMediaPlayback={true}
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={false}
+        injectedJavaScript={INJECTED_POPUP_BLOCKER}
+        onLoadStart={() => setWebLoading(true)}
+        onLoadEnd={() => setWebLoading(false)}
+        onError={(syntheticEvent: any) => {
+          setWebLoading(false);
+          if (hasFailedRef.current) return;
+          hasFailedRef.current = true;
+          const desc =
+            syntheticEvent?.nativeEvent?.description ||
+            "Embed page failed to load";
+          onError(desc);
+        }}
+        onHttpError={(syntheticEvent: any) => {
+          const code = syntheticEvent?.nativeEvent?.statusCode;
+          const failedUrl = syntheticEvent?.nativeEvent?.url || "";
+          if (code >= 400 && !hasFailedRef.current) {
+            const isMainUrl =
+              !failedUrl ||
+              failedUrl === server.url ||
+              failedUrl.startsWith(server.url.split("?")[0]);
+            if (isMainUrl) {
+              hasFailedRef.current = true;
+              setWebLoading(false);
+              onError(`Embed server returned HTTP ${code}`);
+            }
           }
-        } catch {}
-      }}
-      onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-      style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
-    />
+        }}
+        onMessage={(event: any) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === "timeupdate") {
+              onProgress(data.currentTime, data.duration);
+            } else if (data.type === "ended") {
+              onEnd();
+            }
+          } catch {}
+        }}
+        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+        style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
+      />
+      {webLoading && (
+        <View
+          pointerEvents="none"
+          className="absolute inset-0 items-center justify-center bg-black/50"
+        >
+          <ActivityIndicator size="large" color="#e11d48" />
+          <Typography className="text-white/75 text-xs font-medium mt-2">
+            Connecting to {server.name}...
+          </Typography>
+        </View>
+      )}
+    </View>
   );
+}
+
+function getServerStatusDot(srv: ServerOption): string {
+  if (srv.status === "alive") return srv.type === "embed" ? "🟢" : "🟢⚡";
+  if (srv.status === "dead") return "🔴";
+  if (srv.status === "checking") return "⏳";
+  return srv.type === "embed" ? "🌐" : "⚡";
 }
 
 export default function PlayerScreen() {
@@ -405,16 +559,22 @@ export default function PlayerScreen() {
     animeUrl?: string;
   }>();
 
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isLandscape = winWidth > winHeight;
+
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
   const [errorMsg, setErrorMsg] = useState("");
   const [servers, setServers] = useState<ServerOption[]>([]);
   const [activeServerIdx, setActiveServerIdx] = useState(0);
+  const [isSwitchingServer, setIsSwitchingServer] = useState(false);
+  const [switchingNotice, setSwitchingNotice] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [showServerModal, setShowServerModal] = useState(false);
   const [showEpisodesModal, setShowEpisodesModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isBypassingCf, setIsBypassingCf] = useState(false);
   const [aspectFit, setAspectFit] = useState<VideoContentFit>("contain");
   const [initialTime, setInitialTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -427,6 +587,7 @@ export default function PlayerScreen() {
     null,
   );
 
+  const loadGenRef = useRef(0);
   const playerSeekRef = useRef<((seconds: number) => void) | null>(null);
   const registerPlayerSeek = useCallback(
     (fn: ((seconds: number) => void) | null) => {
@@ -476,7 +637,7 @@ export default function PlayerScreen() {
     null,
   );
 
-  // 1. Fetch episodes list & watch progress for drawer navigation
+  // 1. Fetch episodes list & watch progress for drawer / inline list
   const { data: allEpisodes } = useQuery({
     queryKey: ["anime-episodes", animeId],
     queryFn: async () => {
@@ -535,6 +696,8 @@ export default function PlayerScreen() {
     setSkipTimes(null);
     setOutroDismissed(false);
     setPlaybackSpeed(1);
+    setIsSwitchingServer(false);
+    setSwitchingNotice(null);
     playerPlaybackRateRef.current?.(1);
   }, [episodeId]);
 
@@ -549,7 +712,17 @@ export default function PlayerScreen() {
       .catch(() => {});
   }, []);
 
-  // Fetch AniSkip timestamps (MAL tracker -> AniList tracker -> AniList title search)
+  const toggleAutoNext = useCallback(() => {
+    setAutoNextEnabled((prev) => {
+      const next = !prev;
+      DataService.db
+        .setSetting("autoNextAnime", next ? "true" : "false")
+        .catch(() => {});
+      return next;
+    });
+  }, []);
+
+  // Fetch AniSkip timestamps
   const durationBucket = duration > 60 ? Math.floor(duration) : 0;
   useEffect(() => {
     const episodeNumber = parseEpisodeNumber(
@@ -595,7 +768,7 @@ export default function PlayerScreen() {
           setSkipTimes(result);
         }
       } catch {
-        // Silent failure: fallback UI remains active
+        // Silent failure
       }
     };
 
@@ -691,7 +864,13 @@ export default function PlayerScreen() {
 
       lastProgressRef.current = null;
     }
-  }, [animeId, episodeId, currentEpisode?.number, currentEpisode?.title, episodeTitle]);
+  }, [
+    animeId,
+    episodeId,
+    currentEpisode?.number,
+    currentEpisode?.title,
+    episodeTitle,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -699,7 +878,7 @@ export default function PlayerScreen() {
     };
   }, [flushProgress]);
 
-  // 4. Debounced progress schedule + 80% background next-episode prefetch
+  // 4. Debounced progress + 80% next-episode prefetch
   const handleProgress = useCallback(
     (ct: number, dur: number) => {
       if (Number.isFinite(ct) && ct >= 0) {
@@ -755,7 +934,154 @@ export default function PlayerScreen() {
     [animeId, animeTitle, episodeId, flushProgress, nextEpisode, pkg],
   );
 
-  // 5. Fetch stream from extension (consuming 80% background prefetch cache immediately when available)
+  // 5. Server selection, live probing, and automatic failover across servers
+  const applyEntryServers = useCallback(
+    (
+      entry: EpisodeStreamCacheEntry,
+      cacheKey: string,
+      currentGen: number,
+    ) => {
+      const initialServers = mapEntryToServerOptions(entry);
+      const preferredIdx = selectPreferredServerIndex(entry.servers);
+      const effectiveIdx = resolveEffectiveServerIndex(
+        initialServers,
+        preferredIdx,
+      );
+
+      setServers(initialServers);
+      setActiveServerIdx(effectiveIdx);
+      setErrorMsg("");
+      setStatus("ready");
+
+      if (!entry.probeResults) {
+        probeMobileServers(cacheKey, entry).then((results) => {
+          if (currentGen !== loadGenRef.current) return;
+          let nextAliveIdx = -1;
+
+          setServers((prev) => {
+            const updated = prev.map((srv, i) => {
+              const r = results.find((res) => res.index === i);
+              if (!r) return srv;
+              return {
+                ...srv,
+                status: r.status,
+                pingMs: r.pingMs,
+                error: r.error,
+              };
+            });
+            nextAliveIdx = resolveEffectiveServerIndex(updated, effectiveIdx);
+            return updated;
+          });
+
+          if (nextAliveIdx !== -1 && nextAliveIdx !== effectiveIdx) {
+            setActiveServerIdx(nextAliveIdx);
+          }
+        });
+      }
+    },
+    [],
+  );
+
+  const failoverToNextServer = useCallback(
+    (reason: string) => {
+      console.warn(
+        `[MobilePlayer] Server failover triggered (idx=${activeServerIdx}): ${reason}`,
+      );
+
+      setServers((prev) => {
+        if (!prev || prev.length === 0) {
+          setStatus("error");
+          setErrorMsg(reason || "Failed to load video stream");
+          return prev;
+        }
+
+        const updated = [...prev];
+        if (updated[activeServerIdx]) {
+          updated[activeServerIdx] = {
+            ...updated[activeServerIdx],
+            status: "dead",
+            error: reason,
+          };
+        }
+
+        // Priority 1: alive direct stream
+        let nextIdx = -1;
+        for (let step = 1; step < updated.length; step++) {
+          const idx = (activeServerIdx + step) % updated.length;
+          const srv = updated[idx];
+          if (
+            srv?.status === "alive" &&
+            (srv.type === "hls" || srv.type === "mp4")
+          ) {
+            nextIdx = idx;
+            break;
+          }
+        }
+        // Priority 2: any alive server
+        if (nextIdx === -1) {
+          for (let step = 1; step < updated.length; step++) {
+            const idx = (activeServerIdx + step) % updated.length;
+            if (updated[idx]?.status === "alive") {
+              nextIdx = idx;
+              break;
+            }
+          }
+        }
+        // Priority 3: any non-dead server
+        if (nextIdx === -1) {
+          for (let step = 1; step < updated.length; step++) {
+            const idx = (activeServerIdx + step) % updated.length;
+            if (updated[idx]?.status !== "dead") {
+              nextIdx = idx;
+              break;
+            }
+          }
+        }
+
+        if (nextIdx !== -1) {
+          const target = updated[nextIdx];
+          setIsSwitchingServer(true);
+          setSwitchingNotice(
+            `Switching to ${target.name} (${nextIdx + 1}/${updated.length})`,
+          );
+          setTimeout(() => {
+            setActiveServerIdx(nextIdx);
+            setIsSwitchingServer(false);
+            setErrorMsg("");
+            setStatus("ready");
+          }, 350);
+        } else {
+          setIsSwitchingServer(false);
+          setStatus("error");
+          setErrorMsg(
+            updated.length > 1
+              ? `All ${updated.length} servers failed to load (${reason}).`
+              : reason || "Server failed to load video stream.",
+          );
+        }
+
+        return updated;
+      });
+    },
+    [activeServerIdx],
+  );
+
+  const handleManualNextServer = useCallback(() => {
+    if (servers.length <= 1) return;
+    let nextIdx = (activeServerIdx + 1) % servers.length;
+    for (let step = 1; step < servers.length; step++) {
+      const checkIdx = (activeServerIdx + step) % servers.length;
+      if (servers[checkIdx]?.status !== "dead") {
+        nextIdx = checkIdx;
+        break;
+      }
+    }
+    if (currentTime > 10) setInitialTime(Math.floor(currentTime));
+    setActiveServerIdx(nextIdx);
+    setErrorMsg("");
+    setStatus("ready");
+  }, [servers, activeServerIdx, currentTime]);
+
   const fetchStream = useCallback(async () => {
     if (!pkg || !episodeUrl) {
       setStatus("error");
@@ -763,34 +1089,47 @@ export default function PlayerScreen() {
       return;
     }
 
+    const gen = ++loadGenRef.current;
     const cacheKey = makeEpisodePrefetchKey(pkg, episodeUrl);
     const cachedEntry = sharedEpisodeStreamCache.getCached(cacheKey);
     if (cachedEntry && cachedEntry.servers.length > 0) {
-      setErrorMsg("");
-      setServers(cachedEntry.servers);
-      setActiveServerIdx(selectPreferredServerIndex(cachedEntry.servers));
-      setStatus("ready");
+      applyEntryServers(cachedEntry, cacheKey, gen);
       return;
     }
 
     setStatus("loading");
     setErrorMsg("");
+    setIsSwitchingServer(false);
     try {
       const entry = await sharedEpisodeStreamCache.getOrLoad(cacheKey, () =>
         fetchAndNormalizeMobileEpisode(pkg, episodeUrl),
       );
-      setServers(entry.servers);
-      setActiveServerIdx(selectPreferredServerIndex(entry.servers));
-      setStatus("ready");
+      if (gen !== loadGenRef.current) return;
+      applyEntryServers(entry, cacheKey, gen);
     } catch (e: any) {
+      if (gen !== loadGenRef.current) return;
       setStatus("error");
       setErrorMsg(e.message || "Failed to load video stream");
     }
-  }, [pkg, episodeUrl]);
+  }, [pkg, episodeUrl, applyEntryServers]);
 
   useEffect(() => {
     fetchStream();
   }, [fetchStream]);
+
+  const handleResolveCloudflare = useCallback(async () => {
+    if (!episodeUrl) return;
+    setIsBypassingCf(true);
+    try {
+      await DataService.cfBypass(episodeUrl);
+      if (pkg && episodeUrl) {
+        sharedEpisodeStreamCache.clear();
+      }
+      await fetchStream();
+    } finally {
+      setIsBypassingCf(false);
+    }
+  }, [episodeUrl, pkg, fetchStream]);
 
   // 6. Navigation between episodes
   const navigateToEpisode = useCallback(
@@ -829,7 +1168,7 @@ export default function PlayerScreen() {
     [animeId, animeTitle, animeCover, animeUrl, pkg, flushProgress],
   );
 
-  // 7. Auto-next episode countdown when video finishes (respects Settings -> autoNextAnime)
+  // 7. Auto-next episode countdown when video finishes
   const handleEpisodeEnd = useCallback(() => {
     flushProgress();
     if (nextEpisode && autoNextEnabled) {
@@ -853,7 +1192,7 @@ export default function PlayerScreen() {
     return () => clearTimeout(timer);
   }, [autoNextCountdown, nextEpisode, navigateToEpisode]);
 
-  // 8. Auto-hiding top HUD (observes touches via onTouchStart without blocking VideoView controls)
+  // 8. Auto-hiding HUD timer (used in landscape fullscreen playback)
   const resetControlsTimer = useCallback(() => {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
@@ -876,313 +1215,189 @@ export default function PlayerScreen() {
   }, [resetControlsTimer]);
 
   const activeServer = servers[activeServerIdx] || null;
+  const stageHeight = isLandscape ? winHeight : Math.round((winWidth * 9) / 16);
 
-  return (
-    <View className="flex-1 bg-black">
-      <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar hidden={!showControls} style="light" />
-
-      {/* Main Video Surface */}
-      <View className="flex-1 items-center justify-center">
-        {status === "loading" ? (
-          <View className="items-center justify-center p-8">
-            <ActivityIndicator size="large" color="#e11d48" />
-            <Typography className="text-white/60 mt-4 text-center font-medium">
-              Loading video stream...
-            </Typography>
-          </View>
-        ) : status === "error" ? (
-          <View className="items-center justify-center px-8">
-            <AlertTriangle size={48} color="#ef4444" />
-            <Typography className="text-white text-lg font-semibold mt-4 text-center">
-              Failed to load video stream
-            </Typography>
-            <Typography className="text-white/60 mt-2 text-center text-sm">
-              {errorMsg}
-            </Typography>
-            <View className="flex-row gap-3 mt-6">
-              <Button
-                title="Retry"
-                variant="primary"
-                onPress={fetchStream}
-                icon={<RefreshCw size={16} color="#fff" />}
-              />
-              <TouchableOpacity
-                className="px-4 py-2 rounded-lg border border-white/25 bg-white/10 justify-center items-center"
-                onPress={() => {
-                  flushProgress();
-                  router.back();
-                }}
-              >
-                <Typography className="text-white font-medium text-sm">
-                  Go Back
-                </Typography>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : activeServer ? (
-          <View
-            className="flex-1 w-full h-full relative"
-            onTouchStart={revealControls}
-          >
-            {activeServer.type === "embed" ? (
-              <EmbedVideoPlayer
-                key={activeServer.url}
-                server={activeServer}
-                refererUrl={episodeUrl}
-                onProgress={handleProgress}
-                onEnd={handleEpisodeEnd}
-                onRegisterSeek={registerPlayerSeek}
-                onRegisterPlaybackRate={registerPlayerPlaybackRate}
-              />
-            ) : (
-              <DirectVideoPlayer
-                key={activeServer.url}
-                server={activeServer}
-                refererUrl={episodeUrl}
-                initialTime={initialTime}
-                contentFit={aspectFit}
-                onProgress={handleProgress}
-                onEnd={handleEpisodeEnd}
-                onRegisterSeek={registerPlayerSeek}
-                onRegisterPlaybackRate={registerPlayerPlaybackRate}
-                onRegisterFullscreen={registerPlayerFullscreen}
-              />
-            )}
-          </View>
-        ) : null}
-      </View>
-
-      {/* Top Floating HUD (keeps bottom native VideoView controls 100% unobstructed) */}
-      {showControls && status === "ready" && !isLocked && (
-        <View
-          pointerEvents="box-none"
-          className="absolute top-0 left-0 right-0 z-30"
+  const serverSelectorPill = servers.length > 0 && (
+    <View className="flex-row items-center gap-1">
+      <TouchableOpacity
+        onPress={() => setShowServerModal(true)}
+        activeOpacity={0.8}
+        className="flex-row items-center bg-zinc-800/95 border border-white/15 px-3 py-1.5 rounded-full gap-1.5"
+      >
+        <Typography className="text-xs">
+          {activeServer ? getServerStatusDot(activeServer) : "🌐"}
+        </Typography>
+        <Typography
+          className="text-white text-xs font-bold max-w-[110px]"
+          numberOfLines={1}
         >
-          <LinearGradient
-            colors={["rgba(0,0,0,0.88)", "rgba(0,0,0,0.45)", "transparent"]}
-            className="pt-10 pb-6 px-4"
-            pointerEvents="box-none"
-          >
-            <View className="flex-row items-center justify-between gap-2">
-              {/* Back button and Titles */}
-              <View className="flex-row items-center flex-1">
-                <TouchableOpacity
-                  className="p-2 rounded-full bg-white/15 active:bg-white/25 mr-2"
-                  onPress={() => {
-                    flushProgress();
-                    router.back();
-                  }}
-                >
-                  <ArrowLeft size={20} color="#fff" />
-                </TouchableOpacity>
-                <View className="flex-1 mr-1">
-                  <Typography
-                    className="text-white text-sm font-bold"
-                    numberOfLines={1}
-                  >
-                    {episodeTitle || "Episode"}
-                  </Typography>
-                  <Typography
-                    className="text-white/65 text-xs"
-                    numberOfLines={1}
-                  >
-                    {animeTitle || ""}
-                  </Typography>
-                </View>
-              </View>
-
-              {/* Episode Prev/Next, Drawer, Speed, Server & Actions */}
-              <View className="flex-row items-center gap-1.5">
-                {prevEpisode && (
-                  <TouchableOpacity
-                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
-                    onPress={() => navigateToEpisode(prevEpisode)}
-                    accessibilityLabel="Previous Episode"
-                  >
-                    <ChevronLeft size={16} color="#fff" />
-                  </TouchableOpacity>
-                )}
-
-                {nextEpisode && (
-                  <TouchableOpacity
-                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
-                    onPress={() => navigateToEpisode(nextEpisode)}
-                    accessibilityLabel="Next Episode"
-                  >
-                    <ChevronRight size={16} color="#fff" />
-                  </TouchableOpacity>
-                )}
-
-                {sortedEpisodes.length > 0 && (
-                  <TouchableOpacity
-                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
-                    onPress={() => setShowEpisodesModal(true)}
-                    accessibilityLabel="Episodes List"
-                  >
-                    <List size={16} color="#fff" />
-                  </TouchableOpacity>
-                )}
-
-                {activeServer?.type !== "embed" && (
-                  <TouchableOpacity
-                    className={`px-2.5 py-1.5 rounded-full border ${
-                      playbackSpeed > 1
-                        ? "bg-primary border-primary"
-                        : "bg-white/15 border-white/15"
-                    }`}
-                    onPress={cyclePlaybackSpeed}
-                    accessibilityLabel="Playback Speed"
-                  >
-                    <Typography className="text-white text-xs font-bold">
-                      {playbackSpeed}x
-                    </Typography>
-                  </TouchableOpacity>
-                )}
-
-                {servers.length > 1 && (
-                  <TouchableOpacity
-                    className="flex-row items-center bg-white/15 px-2.5 py-1.5 rounded-full active:bg-white/25"
-                    onPress={() => setShowServerModal(true)}
-                  >
-                    <Server size={14} color="#60a5fa" />
-                    <Typography
-                      className="text-white text-xs font-semibold ml-1"
-                      numberOfLines={1}
-                    >
-                      {activeServer?.name || `S${activeServerIdx + 1}`}
-                    </Typography>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  className="p-2 rounded-full bg-white/15 active:bg-white/25"
-                  onPress={() => setIsLocked(true)}
-                  accessibilityLabel="Lock Controls"
-                >
-                  <Lock size={15} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Quick Seek, Aspect Fit, Fullscreen & External Link Row */}
-            <View className="flex-row items-center justify-between mt-3">
-              <View className="flex-row items-center gap-1.5">
-                <TouchableOpacity
-                  className="px-2.5 py-1 rounded-full bg-white/15 active:bg-white/25"
-                  onPress={() => seekBy(-10)}
-                >
-                  <Typography className="text-white text-[11px] font-bold">
-                    -10s
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="px-2.5 py-1 rounded-full bg-white/15 active:bg-white/25"
-                  onPress={() => seekBy(10)}
-                >
-                  <Typography className="text-white text-[11px] font-bold">
-                    +10s
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="px-2.5 py-1 rounded-full bg-primary/80 active:bg-primary"
-                  onPress={() => seekBy(85)}
-                >
-                  <Typography className="text-white text-[11px] font-bold">
-                    +85s OP
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-
-              <View className="flex-row items-center gap-1.5">
-                {activeServer?.type !== "embed" && (
-                  <>
-                    <TouchableOpacity
-                      className="px-2.5 py-1 rounded-full bg-white/15 active:bg-white/25"
-                      onPress={cycleAspectFit}
-                    >
-                      <Typography className="text-white text-[11px] font-semibold capitalize">
-                        {aspectFit === "contain"
-                          ? "Fit"
-                          : aspectFit === "cover"
-                            ? "Crop"
-                            : "Stretch"}
-                      </Typography>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="p-1.5 rounded-full bg-white/15 active:bg-white/25"
-                      onPress={() => playerFullscreenRef.current?.()}
-                      accessibilityLabel="Fullscreen"
-                    >
-                      <Maximize2 size={14} color="#fff" />
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {activeServer?.url && (
-                  <TouchableOpacity
-                    className="p-1.5 rounded-full bg-white/15 active:bg-white/25"
-                    onPress={() => {
-                      WebBrowser.openBrowserAsync(activeServer.url, {
-                        toolbarColor: "#09090b",
-                        controlsColor: "#ffffff",
-                      }).catch(() => {});
-                    }}
-                    accessibilityLabel="Open in External Browser"
-                  >
-                    <ExternalLink size={14} color="#fff" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-      )}
-
-      {/* Subtle Show Controls Pill when HUD is hidden */}
-      {!showControls && status === "ready" && !isLocked && (
-        <TouchableOpacity
-          onPress={revealControls}
-          activeOpacity={0.8}
-          className="absolute top-10 right-4 z-30 bg-black/50 border border-white/15 px-3 py-1 rounded-full"
-        >
-          <Typography className="text-white/80 text-[11px] font-semibold">
-            Menu
+          {activeServer?.name || `Server ${activeServerIdx + 1}`}
+        </Typography>
+        {activeServer?.pingMs ? (
+          <Typography className="text-white/50 text-[10px]">
+            {activeServer.pingMs}ms
           </Typography>
+        ) : null}
+        <ChevronDown size={13} color="#a1a1aa" />
+      </TouchableOpacity>
+
+      {servers.length > 1 && (
+        <TouchableOpacity
+          onPress={handleManualNextServer}
+          activeOpacity={0.8}
+          className="p-1.5 rounded-full bg-zinc-800/95 border border-white/15"
+          accessibilityLabel="Switch to Next Working Server"
+        >
+          <RefreshCw size={13} color="#60a5fa" />
         </TouchableOpacity>
       )}
+    </View>
+  );
 
-      {/* Screen Lock Overlay */}
-      {isLocked && status === "ready" && (
-        <View className="absolute inset-0 z-50" pointerEvents="box-only">
-          <TouchableOpacity
-            onPress={() => setIsLocked(false)}
-            activeOpacity={0.85}
-            className="absolute top-12 right-4 flex-row items-center gap-1.5 bg-zinc-900/90 border border-white/25 px-3.5 py-2 rounded-full"
+  const videoStage = (
+    <View
+      style={
+        isLandscape
+          ? { flex: 1, width: "100%", height: "100%" }
+          : { width: winWidth, height: stageHeight }
+      }
+      className="bg-black items-center justify-center relative"
+    >
+      {status === "loading" ? (
+        <View className="items-center justify-center p-6">
+          <ActivityIndicator size="large" color="#e11d48" />
+          <Typography className="text-white/75 mt-3 text-center text-sm font-medium">
+            Loading servers...
+          </Typography>
+        </View>
+      ) : status === "error" ? (
+        <View className="items-center justify-center px-6 py-4">
+          <AlertTriangle size={40} color="#ef4444" />
+          <Typography className="text-white text-base font-bold mt-3 text-center">
+            Failed to load video stream
+          </Typography>
+          <Typography
+            className="text-white/65 mt-1.5 text-center text-xs max-w-sm"
+            numberOfLines={3}
           >
-            <Unlock size={14} color="#ffffff" />
-            <Typography className="text-white text-xs font-bold">
-              Unlock
+            {errorMsg}
+          </Typography>
+          <View className="flex-row flex-wrap items-center justify-center gap-2 mt-4">
+            <Button
+              title="Retry"
+              variant="primary"
+              size="sm"
+              onPress={fetchStream}
+              icon={<RefreshCw size={14} color="#fff" />}
+            />
+            {servers.length > 1 && (
+              <TouchableOpacity
+                className="px-3.5 py-2 rounded-lg bg-primary/20 border border-primary/50"
+                onPress={handleManualNextServer}
+              >
+                <Typography className="text-primary font-semibold text-xs">
+                  Try Next Server
+                </Typography>
+              </TouchableOpacity>
+            )}
+            {episodeUrl && (
+              <TouchableOpacity
+                className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-lg border border-amber-500/40 bg-amber-500/15"
+                onPress={handleResolveCloudflare}
+                disabled={isBypassingCf}
+              >
+                <ShieldCheck size={14} color="#fbbf24" />
+                <Typography className="text-amber-300 font-semibold text-xs">
+                  {isBypassingCf ? "Solving..." : "Resolve CF"}
+                </Typography>
+              </TouchableOpacity>
+            )}
+            {(activeServer?.url || episodeUrl) && (
+              <TouchableOpacity
+                className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/25 bg-white/10"
+                onPress={() => {
+                  const target = activeServer?.url || episodeUrl || "";
+                  if (target) {
+                    WebBrowser.openBrowserAsync(target, {
+                      toolbarColor: "#09090b",
+                      controlsColor: "#ffffff",
+                    }).catch(() => {});
+                  }
+                }}
+              >
+                <ExternalLink size={13} color="#fff" />
+                <Typography className="text-white font-medium text-xs">
+                  Open in Browser
+                </Typography>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      ) : activeServer ? (
+        <View
+          className="flex-1 w-full h-full relative"
+          onTouchStart={revealControls}
+        >
+          {activeServer.type === "embed" ? (
+            <EmbedVideoPlayer
+              key={`${activeServer.url}-${activeServerIdx}`}
+              server={activeServer}
+              refererUrl={episodeUrl}
+              onProgress={handleProgress}
+              onEnd={handleEpisodeEnd}
+              onError={failoverToNextServer}
+              onRegisterSeek={registerPlayerSeek}
+              onRegisterPlaybackRate={registerPlayerPlaybackRate}
+            />
+          ) : (
+            <DirectVideoPlayer
+              key={`${activeServer.url}-${activeServerIdx}`}
+              server={activeServer}
+              refererUrl={episodeUrl}
+              initialTime={initialTime}
+              contentFit={aspectFit}
+              onProgress={handleProgress}
+              onEnd={handleEpisodeEnd}
+              onError={failoverToNextServer}
+              onRegisterSeek={registerPlayerSeek}
+              onRegisterPlaybackRate={registerPlayerPlaybackRate}
+              onRegisterFullscreen={registerPlayerFullscreen}
+            />
+          )}
+        </View>
+      ) : null}
+
+      {/* Switching Server Failover Overlay */}
+      {isSwitchingServer && (
+        <View className="absolute inset-0 z-40 bg-black/85 items-center justify-center px-6">
+          <ActivityIndicator size="large" color="#e11d48" />
+          <Typography className="text-white font-bold text-base mt-3 uppercase">
+            Switching Server
+          </Typography>
+          {switchingNotice && (
+            <Typography className="text-white/70 text-xs mt-1 text-center">
+              {switchingNotice}
             </Typography>
-          </TouchableOpacity>
+          )}
         </View>
       )}
 
-      {/* Netflix-style Floating Skip Intro & Next Episode Pills */}
+      {/* Floating Skip Intro & Next Episode Pills */}
       {status === "ready" &&
+        !isLocked &&
         (skipUIState.isInIntro ||
           (skipUIState.showNextEpisode &&
             autoNextCountdown === null &&
             Boolean(nextEpisode))) && (
-          <View className="absolute right-4 bottom-24 z-40 items-end gap-2">
+          <View className="absolute right-3 bottom-14 z-30 items-end gap-2">
             {skipUIState.isInIntro && (
               <TouchableOpacity
                 onPress={handleSkipIntro}
                 activeOpacity={0.85}
-                className="flex-row items-center bg-zinc-900/95 border border-white/25 px-4 py-2.5 rounded-full shadow-2xl"
+                className="flex-row items-center bg-zinc-900/95 border border-white/25 px-3.5 py-2 rounded-full"
               >
-                <SkipForward size={15} color="#ffffff" fill="#ffffff" />
-                <Typography className="text-white text-xs font-bold ml-2">
+                <SkipForward size={14} color="#ffffff" fill="#ffffff" />
+                <Typography className="text-white text-xs font-bold ml-1.5">
                   Skip Intro
                 </Typography>
               </TouchableOpacity>
@@ -1191,38 +1406,38 @@ export default function PlayerScreen() {
             {skipUIState.showNextEpisode &&
               autoNextCountdown === null &&
               nextEpisode && (
-                <View className="flex-row items-center bg-zinc-900/95 border border-primary/50 rounded-full p-1 shadow-2xl">
+                <View className="flex-row items-center bg-zinc-900/95 border border-primary/50 rounded-full p-1">
                   <TouchableOpacity
                     onPress={() => navigateToEpisode(nextEpisode)}
                     activeOpacity={0.85}
-                    className="flex-row items-center bg-primary px-3.5 py-2 rounded-full"
+                    className="flex-row items-center bg-primary px-3 py-1.5 rounded-full"
                   >
-                    <Play size={13} color="#ffffff" fill="#ffffff" />
+                    <Play size={12} color="#ffffff" fill="#ffffff" />
                     <Typography className="text-white text-xs font-bold ml-1.5">
-                      Next Episode • Ep {nextEpisode.number}
+                      Next Episode · Ep {nextEpisode.number}
                     </Typography>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setOutroDismissed(true)}
-                    className="p-2"
+                    className="p-1.5"
                     accessibilityLabel="Dismiss Next Episode prompt"
                   >
-                    <X size={14} color="#a1a1aa" />
+                    <X size={13} color="#a1a1aa" />
                   </TouchableOpacity>
                 </View>
               )}
           </View>
         )}
 
-      {/* Auto-Next Episode Floating Banner */}
+      {/* Auto-Next Countdown Banner */}
       {autoNextCountdown !== null && nextEpisode && (
-        <View className="absolute bottom-24 left-4 right-4 z-40 bg-zinc-900/95 border border-primary/40 rounded-2xl p-4 shadow-2xl flex-row items-center justify-between">
-          <View className="flex-1 mr-3">
-            <Typography className="text-white text-xs font-bold uppercase tracking-wider text-primary">
+        <View className="absolute bottom-4 left-3 right-3 z-40 bg-zinc-900/95 border border-primary/40 rounded-2xl p-3 flex-row items-center justify-between">
+          <View className="flex-1 mr-2">
+            <Typography className="text-primary text-[11px] font-bold uppercase">
               Episode Finished
             </Typography>
             <Typography
-              className="text-white text-sm font-semibold mt-0.5"
+              className="text-white text-xs font-semibold mt-0.5"
               numberOfLines={1}
             >
               Next: Episode {nextEpisode.number} ({autoNextCountdown}s)
@@ -1240,9 +1455,454 @@ export default function PlayerScreen() {
               variant="primary"
               size="sm"
               onPress={() => navigateToEpisode(nextEpisode)}
-              icon={<Play size={14} color="#fff" />}
+              icon={<Play size={13} color="#fff" />}
             />
           </View>
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView
+      className="flex-1 bg-zinc-950"
+      edges={isLandscape ? [] : ["top"]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar hidden={isLandscape && !showControls} style="light" />
+
+      {!isLandscape ? (
+        /* PORTRAIT WATCH MODE (Desktop-parity Watch Layout: Header -> 16:9 Player -> Provider/Control Bar -> Episodes List) */
+        <View className="flex-1 bg-zinc-950">
+          {/* Always-visible Top Header */}
+          <View className="flex-row items-center justify-between px-3 py-2.5 border-b border-white/10 bg-zinc-950">
+            <View className="flex-row items-center flex-1 mr-2">
+              <TouchableOpacity
+                className="p-2 rounded-full bg-white/10 mr-2.5"
+                onPress={() => {
+                  flushProgress();
+                  router.back();
+                }}
+              >
+                <ArrowLeft size={18} color="#fff" />
+              </TouchableOpacity>
+              <View className="flex-1">
+                <Typography
+                  className="text-white text-sm font-bold"
+                  numberOfLines={1}
+                >
+                  {animeTitle || "Watch"}
+                </Typography>
+                <Typography
+                  className="text-zinc-400 text-xs"
+                  numberOfLines={1}
+                >
+                  {episodeTitle ||
+                    `Episode ${currentEpisode?.number || ""}`.trim()}
+                </Typography>
+              </View>
+            </View>
+
+            <View className="flex-row items-center gap-1.5">
+              <TouchableOpacity
+                onPress={fetchStream}
+                className="p-2 rounded-full bg-white/10"
+                accessibilityLabel="Reload Stream"
+              >
+                <RefreshCw size={16} color="#fff" />
+              </TouchableOpacity>
+              {activeServer?.url && (
+                <TouchableOpacity
+                  onPress={() => {
+                    WebBrowser.openBrowserAsync(activeServer.url, {
+                      toolbarColor: "#09090b",
+                      controlsColor: "#ffffff",
+                    }).catch(() => {});
+                  }}
+                  className="p-2 rounded-full bg-white/10"
+                  accessibilityLabel="Open in External Browser"
+                >
+                  <ExternalLink size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* 16:9 Video Player Surface */}
+          {videoStage}
+
+          {/* Control Strip Below Video (Desktop Parity) */}
+          <View className="px-3 py-2.5 bg-zinc-900 border-b border-white/10 gap-2">
+            {/* Row 1: Prev/Next Episode & Video Providers Dropdown */}
+            <View className="flex-row items-center justify-between gap-2">
+              <View className="flex-row items-center bg-zinc-800 rounded-full border border-white/10 p-0.5">
+                <TouchableOpacity
+                  disabled={!prevEpisode}
+                  onPress={() => prevEpisode && navigateToEpisode(prevEpisode)}
+                  className="p-1.5 rounded-full"
+                  style={{ opacity: prevEpisode ? 1 : 0.35 }}
+                >
+                  <ChevronLeft size={16} color="#fff" />
+                </TouchableOpacity>
+                <Typography className="text-white text-xs font-bold px-2">
+                  EP {currentEpisode?.number ?? "?"}
+                </Typography>
+                <TouchableOpacity
+                  disabled={!nextEpisode}
+                  onPress={() => nextEpisode && navigateToEpisode(nextEpisode)}
+                  className="p-1.5 rounded-full"
+                  style={{ opacity: nextEpisode ? 1 : 0.35 }}
+                >
+                  <ChevronRight size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {serverSelectorPill || (
+                <Typography className="text-zinc-500 text-xs">
+                  {status === "loading" ? "Resolving providers..." : "No providers"}
+                </Typography>
+              )}
+            </View>
+
+            {/* Row 2: Quick Seek, Speed, Aspect Fit, Auto-Next & Fullscreen */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 6, alignItems: "center" }}
+            >
+              <TouchableOpacity
+                onPress={toggleAutoNext}
+                className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full border ${
+                  autoNextEnabled
+                    ? "bg-primary/20 border-primary/50"
+                    : "bg-zinc-800 border-white/10"
+                }`}
+              >
+                <Zap
+                  size={12}
+                  color={autoNextEnabled ? "#e11d48" : "#a1a1aa"}
+                />
+                <Typography
+                  className={`text-[11px] font-bold ${
+                    autoNextEnabled ? "text-primary" : "text-zinc-300"
+                  }`}
+                >
+                  Auto-Next
+                </Typography>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => seekBy(-10)}
+                className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+              >
+                <Typography className="text-white text-[11px] font-bold">
+                  -10s
+                </Typography>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => seekBy(10)}
+                className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+              >
+                <Typography className="text-white text-[11px] font-bold">
+                  +10s
+                </Typography>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => seekBy(85)}
+                className="px-2.5 py-1 rounded-full bg-primary/25 border border-primary/40"
+              >
+                <Typography className="text-primary text-[11px] font-bold">
+                  +85s OP
+                </Typography>
+              </TouchableOpacity>
+
+              {activeServer?.type !== "embed" && (
+                <>
+                  <TouchableOpacity
+                    onPress={cyclePlaybackSpeed}
+                    className={`px-2.5 py-1 rounded-full border ${
+                      playbackSpeed > 1
+                        ? "bg-primary border-primary"
+                        : "bg-zinc-800 border-white/10"
+                    }`}
+                  >
+                    <Typography className="text-white text-[11px] font-bold">
+                      {playbackSpeed}x
+                    </Typography>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={cycleAspectFit}
+                    className="px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                  >
+                    <Typography className="text-white text-[11px] font-semibold">
+                      {aspectFit === "contain"
+                        ? "Fit"
+                        : aspectFit === "cover"
+                          ? "Crop"
+                          : "Stretch"}
+                    </Typography>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => playerFullscreenRef.current?.()}
+                    className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-800 border border-white/10"
+                  >
+                    <Maximize2 size={12} color="#fff" />
+                    <Typography className="text-white text-[11px] font-semibold">
+                      Fullscreen
+                    </Typography>
+                  </TouchableOpacity>
+                </>
+              )}
+            </ScrollView>
+          </View>
+
+          {/* Inline Episodes Panel (Desktop Watch Page Parity) */}
+          <ScrollView className="flex-1 px-3 pt-3" contentContainerStyle={{ paddingBottom: 32 }}>
+            <View className="flex-row items-center justify-between mb-2.5 px-1">
+              <Typography className="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+                Episodes ({sortedEpisodes.length})
+              </Typography>
+              {servers.length > 0 && (
+                <TouchableOpacity onPress={() => setShowServerModal(true)}>
+                  <Typography className="text-primary text-xs font-semibold">
+                    {servers.length} Server{servers.length !== 1 ? "s" : ""} Available
+                  </Typography>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {sortedEpisodes.map((ep: any) => {
+              const isActive = ep.id === episodeId;
+              const prog = episodeProgressMap.get(String(ep.id));
+              const isWatched = Boolean(prog?.isRead);
+              const resumeSec = prog?.lastPage || 0;
+              return (
+                <TouchableOpacity
+                  key={ep.id}
+                  onPress={() => {
+                    if (!isActive) navigateToEpisode(ep);
+                  }}
+                  className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 border ${
+                    isActive
+                      ? "bg-primary/15 border-primary/50"
+                      : "bg-zinc-900 border-white/5 active:bg-zinc-800"
+                  }`}
+                >
+                  <View className="flex-row items-center flex-1 mr-2">
+                    {isWatched ? (
+                      <CheckCircle size={15} color="#10b981" />
+                    ) : (
+                      <Play
+                        size={13}
+                        color={isActive ? "#e11d48" : "#94a3b8"}
+                        fill={isActive ? "#e11d48" : "none"}
+                      />
+                    )}
+                    <View className="flex-1 ml-2.5">
+                      <Typography
+                        className={`text-sm font-semibold ${
+                          isActive
+                            ? "text-primary"
+                            : isWatched
+                              ? "text-zinc-400"
+                              : "text-white"
+                        }`}
+                        numberOfLines={1}
+                      >
+                        {ep.title || `Episode ${ep.number}`}
+                      </Typography>
+                      {!isWatched && resumeSec > 10 && (
+                        <Typography className="text-[11px] text-primary">
+                          Paused at {formatEpisodeTime(resumeSec)}
+                        </Typography>
+                      )}
+                    </View>
+                  </View>
+                  {isActive && (
+                    <Typography className="text-[10px] font-bold uppercase text-primary">
+                      Playing
+                    </Typography>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : (
+        /* LANDSCAPE / FULLSCREEN CINEMA MODE */
+        <View className="flex-1 bg-black relative">
+          {videoStage}
+
+          {/* Floating Top HUD (always shown on loading/error, auto-hides during ready playback) */}
+          {(showControls || status !== "ready") && !isLocked && (
+            <View
+              pointerEvents="box-none"
+              className="absolute top-0 left-0 right-0 z-30"
+            >
+              <LinearGradient
+                colors={["rgba(0,0,0,0.88)", "rgba(0,0,0,0.45)", "transparent"]}
+                className="pt-4 pb-6 px-4"
+                pointerEvents="box-none"
+              >
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-row items-center flex-1">
+                    <TouchableOpacity
+                      className="p-2 rounded-full bg-white/15 mr-2"
+                      onPress={() => {
+                        flushProgress();
+                        router.back();
+                      }}
+                    >
+                      <ArrowLeft size={20} color="#fff" />
+                    </TouchableOpacity>
+                    <View className="flex-1 mr-1">
+                      <Typography
+                        className="text-white text-sm font-bold"
+                        numberOfLines={1}
+                      >
+                        {episodeTitle || "Episode"}
+                      </Typography>
+                      <Typography
+                        className="text-white/65 text-xs"
+                        numberOfLines={1}
+                      >
+                        {animeTitle || ""}
+                      </Typography>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-center gap-1.5">
+                    {prevEpisode && (
+                      <TouchableOpacity
+                        className="p-2 rounded-full bg-white/15"
+                        onPress={() => navigateToEpisode(prevEpisode)}
+                      >
+                        <ChevronLeft size={16} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                    {nextEpisode && (
+                      <TouchableOpacity
+                        className="p-2 rounded-full bg-white/15"
+                        onPress={() => navigateToEpisode(nextEpisode)}
+                      >
+                        <ChevronRight size={16} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                    {sortedEpisodes.length > 0 && (
+                      <TouchableOpacity
+                        className="p-2 rounded-full bg-white/15"
+                        onPress={() => setShowEpisodesModal(true)}
+                      >
+                        <List size={16} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                    {serverSelectorPill}
+                    <TouchableOpacity
+                      className="p-2 rounded-full bg-white/15"
+                      onPress={() => setIsLocked(true)}
+                    >
+                      <Lock size={15} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {status === "ready" && (
+                  <View className="flex-row items-center justify-between mt-2.5">
+                    <View className="flex-row items-center gap-1.5">
+                      <TouchableOpacity
+                        className="px-2.5 py-1 rounded-full bg-white/15"
+                        onPress={() => seekBy(-10)}
+                      >
+                        <Typography className="text-white text-[11px] font-bold">
+                          -10s
+                        </Typography>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="px-2.5 py-1 rounded-full bg-white/15"
+                        onPress={() => seekBy(10)}
+                      >
+                        <Typography className="text-white text-[11px] font-bold">
+                          +10s
+                        </Typography>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        className="px-2.5 py-1 rounded-full bg-primary/80"
+                        onPress={() => seekBy(85)}
+                      >
+                        <Typography className="text-white text-[11px] font-bold">
+                          +85s OP
+                        </Typography>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View className="flex-row items-center gap-1.5">
+                      {activeServer?.type !== "embed" && (
+                        <>
+                          <TouchableOpacity
+                            className="px-2.5 py-1 rounded-full bg-white/15"
+                            onPress={cyclePlaybackSpeed}
+                          >
+                            <Typography className="text-white text-[11px] font-bold">
+                              {playbackSpeed}x
+                            </Typography>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            className="px-2.5 py-1 rounded-full bg-white/15"
+                            onPress={cycleAspectFit}
+                          >
+                            <Typography className="text-white text-[11px] font-semibold">
+                              {aspectFit === "contain"
+                                ? "Fit"
+                                : aspectFit === "cover"
+                                  ? "Crop"
+                                  : "Stretch"}
+                            </Typography>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            className="p-1.5 rounded-full bg-white/15"
+                            onPress={() => playerFullscreenRef.current?.()}
+                          >
+                            <Maximize2 size={14} color="#fff" />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                )}
+              </LinearGradient>
+            </View>
+          )}
+
+          {!showControls && status === "ready" && !isLocked && (
+            <TouchableOpacity
+              onPress={revealControls}
+              activeOpacity={0.8}
+              className="absolute top-4 right-4 z-30 bg-black/55 border border-white/15 px-3 py-1 rounded-full"
+            >
+              <Typography className="text-white/80 text-[11px] font-semibold">
+                Menu
+              </Typography>
+            </TouchableOpacity>
+          )}
+
+          {isLocked && status === "ready" && (
+            <View className="absolute inset-0 z-50" pointerEvents="box-only">
+              <TouchableOpacity
+                onPress={() => setIsLocked(false)}
+                activeOpacity={0.85}
+                className="absolute top-6 right-4 flex-row items-center gap-1.5 bg-zinc-900/90 border border-white/25 px-3.5 py-2 rounded-full"
+              >
+                <Unlock size={14} color="#ffffff" />
+                <Typography className="text-white text-xs font-bold">
+                  Unlock
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
@@ -1259,7 +1919,7 @@ export default function PlayerScreen() {
               <View className="flex-row items-center">
                 <Server size={18} color="#60a5fa" />
                 <Typography className="text-white font-bold text-base ml-2">
-                  Select Video Server
+                  Select Video Provider ({servers.length})
                 </Typography>
               </View>
               <TouchableOpacity
@@ -1270,40 +1930,66 @@ export default function PlayerScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="max-h-64 my-2">
+            <ScrollView className="max-h-72 my-2">
               {servers.map((srv, idx) => {
                 const isSelected = idx === activeServerIdx;
+                const isDead = srv.status === "dead";
                 return (
                   <TouchableOpacity
                     key={`${srv.url}-${idx}`}
                     className={`flex-row items-center justify-between p-3 rounded-xl mb-1.5 ${
                       isSelected
                         ? "bg-primary/20 border border-primary/50"
-                        : "bg-white/5 active:bg-white/10"
+                        : isDead
+                          ? "bg-red-500/10 border border-red-500/20"
+                          : "bg-white/5 active:bg-white/10"
                     }`}
                     onPress={() => {
                       if (idx !== activeServerIdx && currentTime > 10) {
                         setInitialTime(Math.floor(currentTime));
                       }
                       setActiveServerIdx(idx);
+                      setErrorMsg("");
+                      setStatus("ready");
                       setShowServerModal(false);
                     }}
                   >
-                    <View className="flex-1 mr-2">
-                      <Typography
-                        className={`text-sm font-semibold ${
-                          isSelected ? "text-primary" : "text-white"
-                        }`}
-                        numberOfLines={1}
-                      >
-                        {srv.name}
+                    <View className="flex-row items-center flex-1 mr-2 gap-2">
+                      <Typography className="text-xs">
+                        {getServerStatusDot(srv)}
                       </Typography>
+                      <View className="flex-1">
+                        <Typography
+                          className={`text-sm font-semibold ${
+                            isSelected
+                              ? "text-primary"
+                              : isDead
+                                ? "text-zinc-400 line-through"
+                                : "text-white"
+                          }`}
+                          numberOfLines={1}
+                        >
+                          {srv.name}
+                        </Typography>
+                        {srv.error ? (
+                          <Typography
+                            className="text-[10px] text-red-400"
+                            numberOfLines={1}
+                          >
+                            {srv.error}
+                          </Typography>
+                        ) : srv.pingMs ? (
+                          <Typography className="text-[10px] text-emerald-400">
+                            {srv.pingMs}ms
+                          </Typography>
+                        ) : null}
+                      </View>
                     </View>
                     <View
-                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
+                      className={`px-2 py-0.5 rounded ${
                         srv.type === "hls" || srv.type === "mp4"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-amber-500/20 text-amber-400"
+                          ? "bg-emerald-500/20"
+                          : "bg-amber-500/20"
                       }`}
                     >
                       <Typography
@@ -1324,7 +2010,7 @@ export default function PlayerScreen() {
         </View>
       </Modal>
 
-      {/* Episodes Drawer Modal */}
+      {/* Episodes Drawer Modal (for Landscape mode) */}
       <Modal
         visible={showEpisodesModal}
         transparent={true}
@@ -1409,6 +2095,6 @@ export default function PlayerScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
