@@ -1,11 +1,28 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { View, TouchableOpacity, Alert } from 'react-native'
+import { View, TouchableOpacity, Alert, NativeModules, Platform } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { WebView } from 'react-native-webview'
-import CookieManager from '@react-native-cookies/cookies'
 import { CfBypassFlow, DEFAULT_MOBILE_USER_AGENT } from '../src/mobile/cf-cookies'
 import { Typography, Button } from '@mobile/native/ui';
 import { ArrowLeft, Shield, ShieldCheck, AlertTriangle } from 'lucide-react-native'
+
+async function getNativeCookies(targetUrl: string): Promise<Record<string, any> | null> {
+  const hasNativeModule =
+    (Platform.OS === 'android' && Boolean(NativeModules.RNCookieManagerAndroid)) ||
+    (Platform.OS === 'ios' && Boolean(NativeModules.RNCookieManagerIOS))
+  if (!hasNativeModule) return null
+  try {
+    // Lazy require avoids crashing Expo Go when native @react-native-cookies module isn't linked
+    const mod = require('@react-native-cookies/cookies')
+    const CookieManager = mod?.default || mod
+    if (CookieManager?.get) {
+      return await CookieManager.get(targetUrl, true)
+    }
+  } catch {
+    // Ignore and fall back to WebView document.cookie extraction
+  }
+  return null
+}
 
 const CF_CHECK_JS = `
   (function() {
@@ -62,7 +79,7 @@ export default function CfBypassScreen() {
   const checkCookies = useCallback(async () => {
     if (!url || status === 'solved') return false
     try {
-      const cookies = await CookieManager.get(url, true)
+      const cookies = await getNativeCookies(url)
       if (cookies) {
         const cfEntry = cookies['cf_clearance']
         const cfValue = typeof cfEntry === 'object' && cfEntry !== null ? cfEntry?.value : cfEntry
@@ -78,7 +95,7 @@ export default function CfBypassScreen() {
         }
       }
     } catch (e) {
-      console.warn('[CfBypass] CookieManager.get error:', e)
+      console.warn('[CfBypass] getNativeCookies error:', e)
     }
     return false
   }, [url, status])
@@ -101,7 +118,7 @@ export default function CfBypassScreen() {
       if (data.type === 'cf_cookie' && data.value && status !== 'solved') {
         let cookieJar = `cf_clearance=${data.value}`
         try {
-          const cookies = await CookieManager.get(url, true)
+          const cookies = await getNativeCookies(url)
           if (cookies) {
             const serialized = serializeCookies(cookies)
             if (serialized) {
