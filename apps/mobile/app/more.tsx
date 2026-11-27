@@ -1,10 +1,21 @@
 import React from 'react'
 import { View, TouchableOpacity, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
-import { Settings, Tv, Info, ChevronRight, Heart, Share2, Globe, GitBranch } from 'lucide-react-native'
+import { Stack, router } from 'expo-router'
+import {
+  ArrowLeft,
+  Info,
+  ChevronRight,
+  Heart,
+  Share2,
+  Globe,
+  GitBranch,
+  Package,
+  BarChart3
+} from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { Typography, Card, CardContent } from '../src/native/ui'
+import { useAppTheme } from '../src/mobile/theme'
 
 interface MoreItem {
   id: string
@@ -12,46 +23,44 @@ interface MoreItem {
   description: string
   icon: React.ComponentType<{ size?: number; color?: string }>
   path?: string
-  badge?: string
-  badgeColor?: string
   onPress?: () => void
 }
 
 export default function MorePage(): React.JSX.Element {
+  const { palette } = useAppTheme()
   const items: MoreItem[] = [
     {
+      id: 'extensions',
+      label: 'Extensions',
+      description: 'Install, pin, and update anime & manga scrapers',
+      icon: Package,
+      path: '/extensions'
+    },
+    {
       id: 'sources',
-      label: 'Content Sources',
-      description: 'Manage extension repositories',
+      label: 'Content Repositories',
+      description: 'Manage manifest.json & Keiyoushi repositories',
       icon: Globe,
       path: '/repositories'
     },
     {
+      id: 'stats',
+      label: 'Local Wrapped & Stats',
+      description: 'Reading/watching streak, top genres & hours',
+      icon: BarChart3,
+      path: '/stats'
+    },
+    {
       id: 'sync',
       label: 'Sync with Desktop',
-      description: 'Pair your device via local Wi-Fi',
+      description: 'Pair your device via QR code or local Wi-Fi',
       icon: Share2,
       path: '/sync'
     },
     {
-      id: 'anime',
-      label: 'Anime',
-      description: 'Browse and watch anime from supported sources',
-      icon: Tv,
-      path: '/anime',
-      badge: 'BETA'
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      description: 'Configure reader, downloads, and preferences',
-      icon: Settings,
-      path: '/settings'
-    },
-    {
       id: 'about',
       label: 'About',
-      description: 'App version, features, and licensing',
+      description: 'App version, features, updates, and licensing',
       icon: Info,
       path: '/about'
     },
@@ -81,12 +90,14 @@ export default function MorePage(): React.JSX.Element {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
-      <View className="px-4 py-4 border-b border-border">
-        <Typography variant="h2" className="font-bold text-center">More</Typography>
-        <Typography variant="small" className="text-muted-foreground text-center mt-1">
-          Explore more features & resources
-        </Typography>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border bg-background">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+          <ArrowLeft size={22} color={palette.foreground} />
+        </TouchableOpacity>
+        <Typography variant="h2" className="font-bold text-lg">More</Typography>
+        <View className="w-9" />
       </View>
 
       <ScrollView className="flex-1 px-4 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
@@ -105,16 +116,7 @@ export default function MorePage(): React.JSX.Element {
                       <Icon size={20} color="#e11d48" />
                     </View>
                     <View className="flex-1">
-                      <View className="flex-row items-center gap-2">
-                        <Typography className="font-bold text-base">{item.label}</Typography>
-                        {item.badge && (
-                          <View className="bg-amber-500/20 px-2 py-0.5 rounded-full">
-                            <Typography variant="small" className="text-amber-600 font-bold text-[10px]">
-                              {item.badge}
-                            </Typography>
-                          </View>
-                        )}
-                      </View>
+                      <Typography className="font-bold text-base">{item.label}</Typography>
                       <Typography variant="muted" className="text-xs mt-0.5">
                         {item.description}
                       </Typography>
