@@ -5,11 +5,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useWindowDimensions,
+  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography, Card } from "@mobile/native/ui";
-import { BookOpen, Play, Search, LayoutGrid, List } from "lucide-react-native";
+import { BookOpen, Play, Search, LayoutGrid, List, X, ArrowUpDown } from "lucide-react-native";
 import { normalizeManga } from "@common/utils/mangaNormalizer";
 import { isAnimeExtension } from "@common/utils/mediaType";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
@@ -67,6 +68,8 @@ export default function LibraryTab() {
   const cardWidth = Math.floor((windowWidth - 16 - 24) / 3);
   const [activeTab, setActiveTab] = useState<"manga" | "anime">("manga");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "title">("recent");
   const syncedDisplayModeRef = useRef<string | null>(null);
 
   const {
@@ -89,15 +92,54 @@ export default function LibraryTab() {
     queryFn: () => DataService.db.getExtensions(),
   });
 
+  const rawItems = useMemo(() => data?.pages?.flat() || [], [data]);
+  const itemIdsKey = useMemo(
+    () => rawItems.map((it: any) => it.id).join("|"),
+    [rawItems],
+  );
+
+  const { data: unreadMap = {} } = useQuery({
+    queryKey: ["library-unread", activeTab, itemIdsKey],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        rawItems.map(async (item: any) => {
+          try {
+            const [chapters, progress] = await Promise.all([
+              DataService.db.getChapters(item.id).catch(() => []),
+              DataService.db.getProgress(item.id).catch(() => []),
+            ]);
+            const chList = Array.isArray(chapters) ? chapters : [];
+            if (chList.length === 0) return;
+            const readSet = new Set(
+              (Array.isArray(progress) ? progress : [])
+                .filter((p: any) => Boolean(p.is_read ?? p.isRead))
+                .map((p: any) => String(p.chapter_id ?? p.chapterId)),
+            );
+            const unread = chList.filter(
+              (ch: any) => !readSet.has(String(ch.id)),
+            ).length;
+            if (unread > 0) {
+              counts[item.id] = unread;
+            }
+          } catch {}
+        }),
+      );
+      return counts;
+    },
+    enabled: rawItems.length > 0,
+  });
+
   useFocusEffect(
     useCallback(() => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ["history", activeTab] });
       queryClient.invalidateQueries({ queryKey: ["extensions", "installed"] });
+      queryClient.invalidateQueries({ queryKey: ["library-unread", activeTab] });
       DataService.db
         .getSetting("displayMode")
         .then((res: any) => {
-          const val = typeof res === "object" && res !== null ? res.value : res;
+          const val = typeof res === "string" ? res : (res as any)?.value;
           if ((val === "grid" || val === "list") && val !== syncedDisplayModeRef.current) {
             syncedDisplayModeRef.current = val;
             setViewMode(val);
@@ -117,7 +159,28 @@ export default function LibraryTab() {
     return map;
   }, [historyData]);
 
-  const allItems = data?.pages?.flat() || [];
+  const allItems = useMemo(() => {
+    let list = [...rawItems];
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((it: any) =>
+        normalizeManga(it).title.toLowerCase().includes(q),
+      );
+    }
+    if (sortBy === "title") {
+      list.sort((a: any, b: any) =>
+        normalizeManga(a).title.localeCompare(normalizeManga(b).title),
+      );
+    } else {
+      list.sort((a: any, b: any) => {
+        const aTime = historyMap.get(a.id)?.started_at || "";
+        const bTime = historyMap.get(b.id)?.started_at || "";
+        if (aTime !== bTime) return bTime.localeCompare(aTime);
+        return normalizeManga(a).title.localeCompare(normalizeManga(b).title);
+      });
+    }
+    return list;
+  }, [rawItems, searchQuery, sortBy, historyMap]);
 
   const openMangaDetails = (item: any) => {
     const norm = normalizeManga(item);
@@ -142,8 +205,11 @@ export default function LibraryTab() {
     const history = historyMap.get(item.id);
     const chapterText = history?.chapter_title
       ? history.chapter_title
-      : "Unread";
+      : activeTab === "anime"
+        ? "Unwatched"
+        : "Unread";
     const src = resolveExtensionBadge(item.pkg, installedExtensions);
+    const unreadCount = unreadMap[item.id] || 0;
 
     if (viewMode === "grid") {
       return (
@@ -159,24 +225,35 @@ export default function LibraryTab() {
               contentFit="cover"
               transition={150}
             />
-            {src && (
-              <View className="absolute top-1.5 left-1.5 right-1.5 flex-row items-center">
-                <View className="flex-row items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 max-w-full">
-                  <View
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: 99,
-                      backgroundColor: src.color || "#e11d48",
-                    }}
-                  />
-                  <Typography
-                    className="text-white text-[9px] font-semibold"
-                    numberOfLines={1}
-                  >
-                    {src.name}
-                  </Typography>
-                </View>
+            {(src || unreadCount > 0) && (
+              <View className="absolute top-1.5 left-1.5 right-1.5 flex-row items-center justify-between gap-1">
+                {src ? (
+                  <View className="flex-row items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 flex-shrink">
+                    <View
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: 99,
+                        backgroundColor: src.color || "#e11d48",
+                      }}
+                    />
+                    <Typography
+                      className="text-white text-[9px] font-semibold"
+                      numberOfLines={1}
+                    >
+                      {src.name}
+                    </Typography>
+                  </View>
+                ) : (
+                  <View />
+                )}
+                {unreadCount > 0 && (
+                  <View className="rounded-md bg-primary px-1.5 py-0.5">
+                    <Typography className="text-white text-[9px] font-bold">
+                      {unreadCount}
+                    </Typography>
+                  </View>
+                )}
               </View>
             )}
             <LinearGradient
@@ -246,6 +323,13 @@ export default function LibraryTab() {
                 {chapterText}
               </Typography>
             </View>
+            {unreadCount > 0 && (
+              <View className="px-2 py-0.5 rounded-md bg-primary/15 border border-primary/30">
+                <Typography className="text-[11px] font-bold text-primary">
+                  {unreadCount} {activeTab === "anime" ? "unwatched" : "unread"}
+                </Typography>
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -345,6 +429,37 @@ export default function LibraryTab() {
         })}
       </View>
 
+      {/* Search & Sort Bar */}
+      {rawItems.length > 0 && (
+        <View className="mx-4 mb-2 flex-row items-center gap-2">
+          <View className="flex-1 px-3 py-1 bg-secondary/50 rounded-xl border border-border flex-row items-center h-10">
+            <Search size={15} color="#71717a" />
+            <TextInput
+              className="flex-1 ml-2 text-foreground text-sm py-0"
+              placeholder={`Search ${activeTab === "anime" ? "anime" : "manga"} library...`}
+              placeholderTextColor="#71717a"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {!!searchQuery && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} className="p-1">
+                <X size={14} color="#71717a" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={() => setSortBy((prev) => (prev === "recent" ? "title" : "recent"))}
+            className="h-10 px-3 rounded-xl bg-secondary/60 border border-border flex-row items-center gap-1.5"
+            activeOpacity={0.7}
+          >
+            <ArrowUpDown size={14} color="#e11d48" />
+            <Typography className="text-xs font-semibold text-foreground">
+              {sortBy === "recent" ? "Recent" : "A–Z"}
+            </Typography>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Content */}
       <View className="flex-1">
         {isLoading && allItems.length === 0 ? (
@@ -353,6 +468,16 @@ export default function LibraryTab() {
             className="flex-1 items-center justify-center"
           >
             <ActivityIndicator size="large" color="#e11d48" />
+          </View>
+        ) : allItems.length === 0 && searchQuery.trim() ? (
+          <View
+            key="search-empty-state"
+            className="flex-1 items-center justify-center p-8"
+          >
+            <Search size={36} color="#71717a" />
+            <Typography className="text-muted-foreground mt-3 text-center text-sm">
+              No saved {activeTab} match "{searchQuery}"
+            </Typography>
           </View>
         ) : allItems.length === 0 ? (
           <View

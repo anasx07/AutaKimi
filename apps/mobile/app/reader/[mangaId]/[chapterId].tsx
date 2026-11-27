@@ -735,9 +735,12 @@ export default function ReaderScreen() {
       if (urls.length === 0) throw new Error("No pages returned");
       return urls;
     },
-    enabled: !!pkg && !!chapterUrl,
+    enabled: Boolean(mangaId && chapterId),
     staleTime: 1000 * 60 * 60,
-    retry: 2,
+    retry: (failureCount, err) => {
+      if ((err as Error)?.message === "Missing extension info") return false;
+      return failureCount < 2;
+    },
   });
 
   // 2. Fetch Chapters for Navigation

@@ -1,25 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl
+  RefreshControl, Alert
 } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { DataService } from '@renderer/shared/api'
-import { normalizeManga } from '@common/utils/mangaNormalizer'
-import { Typography, Button, Card } from '@mobile/native/ui';
+import { Typography, Button } from '@mobile/native/ui'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Download, Trash2, BookOpen, CheckCircle, AlertCircle, Loader2 } from 'lucide-react-native'
-import { Manga } from '@common/types'
+import { Download, Trash2, CheckCircle, AlertCircle, Loader2, ChevronRight } from 'lucide-react-native'
 
 export default function DownloadsTab() {
   const [downloads, setDownloads] = useState<any[]>([])
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'manga' | 'anime'>('all')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeProgress, setActiveProgress] = useState<Record<string, { cached: number, total: number, status: string }>>({})
 
-  const loadDownloads = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
+  const loadDownloads = useCallback(async (mode: 'initial' | 'refresh' | 'silent' = 'initial') => {
+    if (mode === 'refresh') setRefreshing(true)
+    else if (mode === 'initial') setLoading(true)
     try {
       const result = await DataService.download.getAllMangaDownloads()
       setDownloads(result || [])
@@ -32,8 +31,13 @@ export default function DownloadsTab() {
     }
   }, [])
 
+  useFocusEffect(
+    useCallback(() => {
+      loadDownloads(downloads.length > 0 ? 'silent' : 'initial')
+    }, [loadDownloads, downloads.length])
+  )
+
   useEffect(() => {
-    loadDownloads()
     const api = (window as any).api
     if (api?.download?.onEvent) {
       const unsub = api.download.onEvent((data: any) => {
@@ -47,7 +51,7 @@ export default function DownloadsTab() {
             }
           }))
         } else if (data.type === 'completed' || data.type === 'error' || data.type === 'canceled') {
-          loadDownloads()
+          loadDownloads('silent')
           setActiveProgress(prev => {
             const next = { ...prev }
             delete next[`${data.mangaId}:${data.chapterId}`]
@@ -59,19 +63,45 @@ export default function DownloadsTab() {
     }
   }, [loadDownloads])
 
-  const grouped = downloads.reduce<Record<string, any[]>>((acc, d) => {
-    if (!acc[d.mangaId]) acc[d.mangaId] = []
-    acc[d.mangaId].push(d)
-    return acc
-  }, {})
+  const filteredDownloads = useMemo(() => {
+    if (mediaFilter === 'all') return downloads
+    return downloads.filter((d) => (d.mediaType || 'manga') === mediaFilter)
+  }, [downloads, mediaFilter])
+
+  const grouped = useMemo(() => {
+    return filteredDownloads.reduce<Record<string, any[]>>((acc, d) => {
+      if (!acc[d.mangaId]) acc[d.mangaId] = []
+      acc[d.mangaId].push(d)
+      return acc
+    }, {})
+  }, [filteredDownloads])
 
   const removeDownload = async (mangaId: string, chapterId: string) => {
     try {
       await DataService.download.remove({ mangaId, chapterId })
-      loadDownloads()
+      loadDownloads('silent')
     } catch (e) {
       console.error('[Downloads] Remove failed:', e)
     }
+  }
+
+  const clearDownloads = () => {
+    const label = mediaFilter === 'all' ? 'all downloads' : `all ${mediaFilter} downloads`
+    Alert.alert('Clear Downloads', `Remove ${label} from device storage?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await DataService.download.clearAll(mediaFilter === 'all' ? undefined : mediaFilter)
+            loadDownloads('silent')
+          } catch (e) {
+            console.error('[Downloads] Clear failed:', e)
+          }
+        }
+      }
+    ])
   }
 
   const statusIcon = (status: string) => {
@@ -91,16 +121,74 @@ export default function DownloadsTab() {
     })
   }
 
+  const openOfflineChapter = (dl: any) => {
+    if (dl.mediaType === 'anime') {
+      openMedia(dl.mangaId, 'anime')
+      return
+    }
+    router.push({
+      pathname: '/reader/[mangaId]/[chapterId]' as any,
+      params: {
+        mangaId: dl.mangaId,
+        chapterId: dl.chapterId,
+        chapterTitle: dl.chapterTitle || `Chapter ${String(dl.chapterId || '').slice(0, 8)}`,
+        mangaTitle: dl.mangaTitle || ''
+      }
+    })
+  }
+
   const groupedEntries = Object.entries(grouped) as [string, any[]][]
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <View className="px-4 py-3 border-b border-border">
-        <Typography variant="h1">Downloads</Typography>
-        <Typography variant="muted">
-          {downloads.length} chapter{downloads.length !== 1 ? 's' : ''} downloaded
-        </Typography>
+      <View className="px-4 py-3 border-b border-border flex-row items-center justify-between">
+        <View>
+          <Typography variant="h1">Downloads</Typography>
+          <Typography variant="muted">
+            {filteredDownloads.length} item{filteredDownloads.length !== 1 ? 's' : ''} saved
+          </Typography>
+        </View>
+        {filteredDownloads.length > 0 && (
+          <Button
+            title="Clear"
+            variant="ghost"
+            onPress={clearDownloads}
+            icon={<Trash2 size={16} color="#ef4444" />}
+          />
+        )}
       </View>
+
+      {downloads.length > 0 && (
+        <View className="flex-row px-4 pt-3 gap-2">
+          {(
+            [
+              { key: 'all', label: 'All' },
+              { key: 'manga', label: 'Manga' },
+              { key: 'anime', label: 'Anime' }
+            ] as const
+          ).map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setMediaFilter(tab.key)}
+              className={`px-3.5 py-1.5 rounded-lg border ${
+                mediaFilter === tab.key
+                  ? 'bg-primary border-primary'
+                  : 'bg-card border-border'
+              }`}
+            >
+              <Typography
+                className={
+                  mediaFilter === tab.key
+                    ? 'text-white font-semibold text-xs'
+                    : 'text-muted-foreground font-medium text-xs'
+                }
+              >
+                {tab.label}
+              </Typography>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -124,14 +212,18 @@ export default function DownloadsTab() {
           data={groupedEntries}
           keyExtractor={([mangaId]) => mangaId}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadDownloads(true)} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadDownloads('refresh')} />}
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           renderItem={({ item: [mangaId, chapters] }) => (
             <View className="mb-6">
-              <TouchableOpacity onPress={() => openMedia(mangaId, chapters[0]?.mediaType)}>
-                <Typography className="font-semibold text-base mb-2">
-                  {chapters[0]?.mangaTitle || mangaId.slice(0, 20)}
+              <TouchableOpacity
+                className="flex-row items-center justify-between mb-2"
+                onPress={() => openMedia(mangaId, chapters[0]?.mediaType)}
+              >
+                <Typography className="font-semibold text-base flex-1 mr-2" numberOfLines={1}>
+                  {chapters[0]?.mangaTitle || mangaId.slice(0, 24)}
                 </Typography>
+                <ChevronRight size={16} color="#94a3b8" />
               </TouchableOpacity>
               <View className="bg-card rounded-xl border border-border overflow-hidden">
                 {chapters.map((dl: any, idx: number) => {
@@ -140,36 +232,43 @@ export default function DownloadsTab() {
                   const status = progress ? progress.status : dl.status
                   const total = progress ? progress.total : dl.totalPages
                   const cached = progress ? progress.cached : dl.cachedPages
+                  const canOpenOffline = status === 'completed'
 
                   return (
                     <View
                       key={dl.chapterId}
                       className={`flex-row items-center px-4 py-3 ${idx !== chapters.length - 1 ? 'border-b border-border/50' : ''}`}
                     >
-                      <View className="mr-3">
-                        {statusIcon(status)}
-                      </View>
-                      <View className="flex-1">
-                        <Typography className="text-sm font-medium" numberOfLines={1}>
-                          Chapter {dl.chapterId?.split('-')?.pop() || dl.chapterId?.slice(0, 8) || '?'}
-                        </Typography>
-                        {total > 0 && (
-                          <Typography className="text-xs text-muted-foreground mt-0.5">
-                            {status === 'downloading' || status === 'queued'
-                              ? `${cached || 0} / ${total} pages (${Math.round(((cached || 0) / total) * 100)}%)`
-                              : `${total} pages`}
-                            {' · '}{dl.mediaType}
+                      <TouchableOpacity
+                        className="flex-1 flex-row items-center"
+                        disabled={!canOpenOffline}
+                        onPress={() => openOfflineChapter(dl)}
+                        activeOpacity={0.7}
+                      >
+                        <View className="mr-3">
+                          {statusIcon(status)}
+                        </View>
+                        <View className="flex-1">
+                          <Typography className="text-sm font-medium" numberOfLines={1}>
+                            {dl.chapterTitle || `Chapter ${String(dl.chapterId || '').split('-')?.pop() || '?'}`}
                           </Typography>
-                        )}
-                        {(status === 'downloading' || status === 'queued') && total > 0 && (
-                          <View className="h-1 bg-border rounded-full mt-1.5 overflow-hidden">
-                            <View 
-                              className="h-full bg-primary" 
-                              style={{ width: `${((cached || 0) / total) * 100}%` }}
-                            />
-                          </View>
-                        )}
-                      </View>
+                          {total > 0 && (
+                            <Typography className="text-xs text-muted-foreground mt-0.5">
+                              {status === 'downloading' || status === 'queued'
+                                ? `${cached || 0} / ${total} pages (${Math.round(((cached || 0) / total) * 100)}%)`
+                                : `${total} pages · Tap to read offline`}
+                            </Typography>
+                          )}
+                          {(status === 'downloading' || status === 'queued') && total > 0 && (
+                            <View className="h-1 bg-border rounded-full mt-1.5 overflow-hidden">
+                              <View
+                                className="h-full bg-primary"
+                                style={{ width: `${((cached || 0) / total) * 100}%` }}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         className="p-2 ml-2"
                         onPress={() => removeDownload(mangaId, dl.chapterId)}
