@@ -9,11 +9,8 @@ import {
   View,
   ActivityIndicator,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  Pressable,
   Modal,
   ScrollView,
-  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, router, Stack } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +19,7 @@ import { useEventListener } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { WebView } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
+import { LinearGradient } from "expo-linear-gradient";
 import { Typography, Button } from "@mobile/native/ui";
 import { DataService } from "@renderer/shared/api";
 import {
@@ -34,7 +32,6 @@ import {
   Server,
   Play,
   X,
-  Radio,
   SkipForward,
 } from "lucide-react-native";
 import {
@@ -58,8 +55,6 @@ import {
   getVideoHeaders,
   DEFAULT_MOBILE_USER_AGENT,
 } from "../../../src/mobile/cf-cookies";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export type ServerOption = NormalizedStreamServer;
 
@@ -176,12 +171,36 @@ function DirectVideoPlayer({
     };
   }, [server.url, headers, server.type]);
 
+  const hasAppliedInitialSeekRef = useRef(false);
+
   const player = useVideoPlayer(videoSource, (p) => {
     p.timeUpdateEventInterval = 1;
-    if (initialTime > 10) {
-      p.currentTime = initialTime;
-    }
     p.play();
+  });
+
+  const applyInitialSeekIfReady = useCallback(
+    (targetSeconds: number) => {
+      if (hasAppliedInitialSeekRef.current || targetSeconds <= 10) return;
+      if (player.status === "readyToPlay") {
+        player.currentTime = targetSeconds;
+        hasAppliedInitialSeekRef.current = true;
+      }
+    },
+    [player],
+  );
+
+  useEffect(() => {
+    hasAppliedInitialSeekRef.current = false;
+  }, [server.url]);
+
+  useEffect(() => {
+    applyInitialSeekIfReady(initialTime);
+  }, [initialTime, applyInitialSeekIfReady]);
+
+  useEventListener(player, "statusChange", ({ status }) => {
+    if (status === "readyToPlay") {
+      applyInitialSeekIfReady(initialTime);
+    }
   });
 
   useEventListener(player, "timeUpdate", ({ currentTime }) => {
@@ -362,7 +381,8 @@ export default function PlayerScreen() {
   const [duration, setDuration] = useState(0);
   const [skipTimes, setSkipTimes] = useState<EpisodeSkipTimes | null>(null);
   const [outroDismissed, setOutroDismissed] = useState(false);
-  const [isHold2x, setIsHold2x] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false);
   const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(
     null,
   );
@@ -381,18 +401,12 @@ export default function PlayerScreen() {
     },
     [],
   );
-  const isHold2xRef = useRef(false);
-  const startHold2x = useCallback(() => {
-    if (isHold2xRef.current) return;
-    isHold2xRef.current = true;
-    setIsHold2x(true);
-    playerPlaybackRateRef.current?.(2);
-  }, []);
-  const stopHold2x = useCallback(() => {
-    if (!isHold2xRef.current) return;
-    isHold2xRef.current = false;
-    setIsHold2x(false);
-    playerPlaybackRateRef.current?.(1);
+  const cyclePlaybackSpeed = useCallback(() => {
+    setPlaybackSpeed((prev) => {
+      const next: 1 | 1.5 | 2 = prev === 1 ? 1.5 : prev === 1.5 ? 2 : 1;
+      playerPlaybackRateRef.current?.(next);
+      return next;
+    });
   }, []);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -430,14 +444,27 @@ export default function PlayerScreen() {
       ? sortedEpisodes[currentEpIndex + 1]
       : null;
 
-  // Reset Skip Intro / Outro state when episode changes
+  // Reset Skip Intro / Outro / resume state when episode changes
   useEffect(() => {
+    setInitialTime(0);
     setCurrentTime(0);
     setDuration(0);
     setSkipTimes(null);
     setOutroDismissed(false);
-    stopHold2x();
-  }, [episodeId, stopHold2x]);
+    setPlaybackSpeed(1);
+    playerPlaybackRateRef.current?.(1);
+  }, [episodeId]);
+
+  // Load autoNextAnime setting from SQLite
+  useEffect(() => {
+    DataService.db
+      .getSetting("autoNextAnime")
+      .then((val: any) => {
+        const raw = typeof val === "object" && val !== null ? val.value : val;
+        setAutoNextEnabled(raw === "true" || raw === true);
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch AniSkip timestamps (MAL tracker -> AniList tracker -> AniList title search)
   const durationBucket = duration > 60 ? Math.floor(duration) : 0;
@@ -707,13 +734,13 @@ export default function PlayerScreen() {
     [animeId, animeTitle, animeCover, animeUrl, pkg, flushProgress],
   );
 
-  // 7. Auto-next episode countdown when video finishes
+  // 7. Auto-next episode countdown when video finishes (respects Settings -> autoNextAnime)
   const handleEpisodeEnd = useCallback(() => {
     flushProgress();
-    if (nextEpisode) {
+    if (nextEpisode && autoNextEnabled) {
       setAutoNextCountdown(5);
     }
-  }, [flushProgress, nextEpisode]);
+  }, [flushProgress, nextEpisode, autoNextEnabled]);
 
   useEffect(() => {
     if (autoNextCountdown === null) return;
@@ -731,7 +758,7 @@ export default function PlayerScreen() {
     return () => clearTimeout(timer);
   }, [autoNextCountdown, nextEpisode, navigateToEpisode]);
 
-  // 8. Auto-hiding HUD controls
+  // 8. Auto-hiding top HUD (observes touches via onTouchStart without blocking VideoView controls)
   const resetControlsTimer = useCallback(() => {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
@@ -741,12 +768,9 @@ export default function PlayerScreen() {
     }, 4500);
   }, []);
 
-  const toggleControls = useCallback(() => {
-    setShowControls((prev) => {
-      const next = !prev;
-      if (next) resetControlsTimer();
-      return next;
-    });
+  const revealControls = useCallback(() => {
+    setShowControls(true);
+    resetControlsTimer();
   }, [resetControlsTimer]);
 
   useEffect(() => {
@@ -799,119 +823,159 @@ export default function PlayerScreen() {
             </View>
           </View>
         ) : activeServer ? (
-          <View className="flex-1 w-full h-full relative">
-            <TouchableWithoutFeedback onPress={toggleControls}>
-              <View className="flex-1 w-full h-full">
-                {activeServer.type === "embed" ? (
-                  <EmbedVideoPlayer
-                    key={activeServer.url}
-                    server={activeServer}
-                    refererUrl={episodeUrl}
-                    onProgress={handleProgress}
-                    onEnd={handleEpisodeEnd}
-                    onRegisterSeek={registerPlayerSeek}
-                    onRegisterPlaybackRate={registerPlayerPlaybackRate}
-                  />
-                ) : (
-                  <DirectVideoPlayer
-                    key={activeServer.url}
-                    server={activeServer}
-                    refererUrl={episodeUrl}
-                    initialTime={initialTime}
-                    onProgress={handleProgress}
-                    onEnd={handleEpisodeEnd}
-                    onRegisterSeek={registerPlayerSeek}
-                    onRegisterPlaybackRate={registerPlayerPlaybackRate}
-                  />
-                )}
-              </View>
-            </TouchableWithoutFeedback>
-
-            {/* Right-side Long-Press Hold-to-2x Gesture Zone */}
-            {activeServer.type !== "embed" && (
-              <Pressable
-                onPress={toggleControls}
-                onLongPress={startHold2x}
-                onPressOut={stopHold2x}
-                delayLongPress={250}
-                className="absolute right-0 top-16 bottom-20 w-[35%] z-20"
+          <View
+            className="flex-1 w-full h-full relative"
+            onTouchStart={revealControls}
+          >
+            {activeServer.type === "embed" ? (
+              <EmbedVideoPlayer
+                key={activeServer.url}
+                server={activeServer}
+                refererUrl={episodeUrl}
+                onProgress={handleProgress}
+                onEnd={handleEpisodeEnd}
+                onRegisterSeek={registerPlayerSeek}
+                onRegisterPlaybackRate={registerPlayerPlaybackRate}
+              />
+            ) : (
+              <DirectVideoPlayer
+                key={activeServer.url}
+                server={activeServer}
+                refererUrl={episodeUrl}
+                initialTime={initialTime}
+                onProgress={handleProgress}
+                onEnd={handleEpisodeEnd}
+                onRegisterSeek={registerPlayerSeek}
+                onRegisterPlaybackRate={registerPlayerPlaybackRate}
               />
             )}
           </View>
         ) : null}
       </View>
 
-      {/* Hold-to-2x Speed Pill */}
-      {isHold2x && status === "ready" && (
+      {/* Top Floating HUD (keeps bottom native VideoView controls 100% unobstructed) */}
+      {showControls && status === "ready" && (
         <View
-          pointerEvents="none"
-          className="absolute top-14 self-center z-50 bg-black/80 border border-white/25 px-4 py-1.5 rounded-full flex-row items-center shadow-2xl"
+          pointerEvents="box-none"
+          className="absolute top-0 left-0 right-0 z-30"
         >
-          <Typography className="text-white text-xs font-extrabold tracking-wider">
-            2x &gt;&gt;
-          </Typography>
+          <LinearGradient
+            colors={["rgba(0,0,0,0.88)", "rgba(0,0,0,0.45)", "transparent"]}
+            className="pt-10 pb-6 px-4"
+            pointerEvents="box-none"
+          >
+            <View className="flex-row items-center justify-between gap-2">
+              {/* Back button and Titles */}
+              <View className="flex-row items-center flex-1">
+                <TouchableOpacity
+                  className="p-2 rounded-full bg-white/15 active:bg-white/25 mr-2"
+                  onPress={() => {
+                    flushProgress();
+                    router.back();
+                  }}
+                >
+                  <ArrowLeft size={20} color="#fff" />
+                </TouchableOpacity>
+                <View className="flex-1 mr-1">
+                  <Typography
+                    className="text-white text-sm font-bold"
+                    numberOfLines={1}
+                  >
+                    {episodeTitle || "Episode"}
+                  </Typography>
+                  <Typography
+                    className="text-white/65 text-xs"
+                    numberOfLines={1}
+                  >
+                    {animeTitle || ""}
+                  </Typography>
+                </View>
+              </View>
+
+              {/* Episode Prev/Next, Playback Speed, Server Selector & External Link */}
+              <View className="flex-row items-center gap-1.5">
+                {prevEpisode && (
+                  <TouchableOpacity
+                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
+                    onPress={() => navigateToEpisode(prevEpisode)}
+                    accessibilityLabel="Previous Episode"
+                  >
+                    <ChevronLeft size={16} color="#fff" />
+                  </TouchableOpacity>
+                )}
+
+                {nextEpisode && (
+                  <TouchableOpacity
+                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
+                    onPress={() => navigateToEpisode(nextEpisode)}
+                    accessibilityLabel="Next Episode"
+                  >
+                    <ChevronRight size={16} color="#fff" />
+                  </TouchableOpacity>
+                )}
+
+                {activeServer?.type !== "embed" && (
+                  <TouchableOpacity
+                    className={`px-2.5 py-1.5 rounded-full border ${
+                      playbackSpeed > 1
+                        ? "bg-primary border-primary"
+                        : "bg-white/15 border-white/15"
+                    }`}
+                    onPress={cyclePlaybackSpeed}
+                    accessibilityLabel="Playback Speed"
+                  >
+                    <Typography className="text-white text-xs font-bold">
+                      {playbackSpeed}x
+                    </Typography>
+                  </TouchableOpacity>
+                )}
+
+                {servers.length > 1 && (
+                  <TouchableOpacity
+                    className="flex-row items-center bg-white/15 px-2.5 py-1.5 rounded-full active:bg-white/25"
+                    onPress={() => setShowServerModal(true)}
+                  >
+                    <Server size={14} color="#60a5fa" />
+                    <Typography
+                      className="text-white text-xs font-semibold ml-1"
+                      numberOfLines={1}
+                    >
+                      {activeServer?.name || `S${activeServerIdx + 1}`}
+                    </Typography>
+                  </TouchableOpacity>
+                )}
+
+                {activeServer?.url && (
+                  <TouchableOpacity
+                    className="p-2 rounded-full bg-white/15 active:bg-white/25"
+                    onPress={() => {
+                      WebBrowser.openBrowserAsync(activeServer.url, {
+                        toolbarColor: "#09090b",
+                        controlsColor: "#ffffff",
+                      }).catch(() => {});
+                    }}
+                    accessibilityLabel="Open in External Browser"
+                  >
+                    <ExternalLink size={16} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </LinearGradient>
         </View>
       )}
 
-      {/* Top Floating HUD */}
-      {showControls && status === "ready" && (
-        <View className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-10 pb-4 px-4">
-          <View className="flex-row items-center justify-between">
-            {/* Back button and Titles */}
-            <View className="flex-row items-center flex-1 mr-2">
-              <TouchableOpacity
-                className="p-2 rounded-full bg-white/10 active:bg-white/20 mr-2"
-                onPress={() => {
-                  flushProgress();
-                  router.back();
-                }}
-              >
-                <ArrowLeft size={20} color="#fff" />
-              </TouchableOpacity>
-              <View className="flex-1">
-                <Typography
-                  className="text-white text-sm font-bold"
-                  numberOfLines={1}
-                >
-                  {episodeTitle || "Episode"}
-                </Typography>
-                <Typography className="text-white/60 text-xs" numberOfLines={1}>
-                  {animeTitle || ""}
-                </Typography>
-              </View>
-            </View>
-
-            {/* Server Selector & External Fallback */}
-            <View className="flex-row items-center gap-2">
-              {servers.length > 1 && (
-                <TouchableOpacity
-                  className="flex-row items-center bg-white/15 px-3 py-1.5 rounded-full active:bg-white/25"
-                  onPress={() => setShowServerModal(true)}
-                >
-                  <Server size={14} color="#60a5fa" />
-                  <Typography className="text-white text-xs font-semibold ml-1.5">
-                    {activeServer?.name || `Server ${activeServerIdx + 1}`}
-                  </Typography>
-                </TouchableOpacity>
-              )}
-
-              {activeServer?.url && (
-                <TouchableOpacity
-                  className="p-2 rounded-full bg-white/10 active:bg-white/20"
-                  onPress={() => {
-                    WebBrowser.openBrowserAsync(activeServer.url, {
-                      toolbarColor: "#09090b",
-                      controlsColor: "#ffffff",
-                    }).catch(() => {});
-                  }}
-                  accessibilityLabel="Open in External Browser"
-                >
-                  <ExternalLink size={18} color="#fff" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
+      {/* Subtle Show Controls Pill when HUD is hidden */}
+      {!showControls && status === "ready" && (
+        <TouchableOpacity
+          onPress={revealControls}
+          activeOpacity={0.8}
+          className="absolute top-10 right-4 z-30 bg-black/50 border border-white/15 px-3 py-1 rounded-full"
+        >
+          <Typography className="text-white/80 text-[11px] font-semibold">
+            Menu
+          </Typography>
+        </TouchableOpacity>
       )}
 
       {/* Netflix-style Floating Skip Intro & Next Episode Pills */}
@@ -920,11 +984,7 @@ export default function PlayerScreen() {
           (skipUIState.showNextEpisode &&
             autoNextCountdown === null &&
             Boolean(nextEpisode))) && (
-          <View
-            className={`absolute right-4 z-40 items-end gap-2 ${
-              showControls ? "bottom-20" : "bottom-6"
-            }`}
-          >
+          <View className="absolute right-4 bottom-24 z-40 items-end gap-2">
             {skipUIState.isInIntro && (
               <TouchableOpacity
                 onPress={handleSkipIntro}
@@ -966,7 +1026,7 @@ export default function PlayerScreen() {
 
       {/* Auto-Next Episode Floating Banner */}
       {autoNextCountdown !== null && nextEpisode && (
-        <View className="absolute bottom-20 left-4 right-4 z-40 bg-zinc-900/95 border border-primary/40 rounded-2xl p-4 shadow-2xl flex-row items-center justify-between">
+        <View className="absolute bottom-24 left-4 right-4 z-40 bg-zinc-900/95 border border-primary/40 rounded-2xl p-4 shadow-2xl flex-row items-center justify-between">
           <View className="flex-1 mr-3">
             <Typography className="text-white text-xs font-bold uppercase tracking-wider text-primary">
               Episode Finished
@@ -992,56 +1052,6 @@ export default function PlayerScreen() {
               onPress={() => navigateToEpisode(nextEpisode)}
               icon={<Play size={14} color="#fff" />}
             />
-          </View>
-        </View>
-      )}
-
-      {/* Bottom Floating Navigation HUD */}
-      {showControls && status === "ready" && (
-        <View className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent pb-6 pt-3 px-6">
-          <View className="flex-row items-center justify-between">
-            {/* Previous Episode */}
-            <TouchableOpacity
-              className={`flex-row items-center py-2 px-3 rounded-full bg-white/10 ${
-                !prevEpisode ? "opacity-30" : "active:bg-white/20"
-              }`}
-              disabled={!prevEpisode}
-              onPress={() => prevEpisode && navigateToEpisode(prevEpisode)}
-            >
-              <ChevronLeft size={18} color="#fff" />
-              <Typography className="text-white text-xs font-medium ml-1">
-                Prev
-              </Typography>
-            </TouchableOpacity>
-
-            {/* Stream Type Pill */}
-            <View className="flex-row items-center bg-black/60 border border-white/10 px-3 py-1.5 rounded-full">
-              <Radio
-                size={12}
-                color={activeServer?.type === "embed" ? "#f59e0b" : "#10b981"}
-              />
-              <Typography className="text-white/80 text-[11px] font-bold uppercase tracking-wider ml-1.5">
-                {activeServer?.type === "hls"
-                  ? "Direct HLS"
-                  : activeServer?.type === "mp4"
-                    ? "Direct MP4"
-                    : "Web Embed"}
-              </Typography>
-            </View>
-
-            {/* Next Episode */}
-            <TouchableOpacity
-              className={`flex-row items-center py-2 px-3 rounded-full bg-white/10 ${
-                !nextEpisode ? "opacity-30" : "active:bg-white/20"
-              }`}
-              disabled={!nextEpisode}
-              onPress={() => nextEpisode && navigateToEpisode(nextEpisode)}
-            >
-              <Typography className="text-white text-xs font-medium mr-1">
-                Next
-              </Typography>
-              <ChevronRight size={18} color="#fff" />
-            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -1082,6 +1092,9 @@ export default function PlayerScreen() {
                         : "bg-white/5 active:bg-white/10"
                     }`}
                     onPress={() => {
+                      if (idx !== activeServerIdx && currentTime > 10) {
+                        setInitialTime(Math.floor(currentTime));
+                      }
                       setActiveServerIdx(idx);
                       setShowServerModal(false);
                     }}
