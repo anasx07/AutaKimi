@@ -1,6 +1,6 @@
 import { IpcResult, FetchOptions, FetchResult, networkClient } from '@autakimi/sdk'
 import { mobileBypassProvider } from './bypass.native'
-import { CfCookieStore } from './cf-cookies'
+import { CfCookieStore, sanitizeHeadersMap, sanitizeUrlForHttp } from './cf-cookies'
 
 let cfStatusCallback: ((data: { status: 'started' | 'completed' | 'failed'; domain?: string }) => void) | null = null
 
@@ -28,9 +28,11 @@ export const MobileNetwork = {
 
   async fetchText(url: string, options?: FetchOptions): Promise<IpcResult<FetchResult>> {
     try {
-      const response = await networkClient.fetch(url, {
+      const safeUrl = sanitizeUrlForHttp(url)
+      const safeHeaders = sanitizeHeadersMap(options?.headers as any)
+      const response = await networkClient.fetch(safeUrl, {
         method: options?.method || 'GET',
-        headers: options?.headers as any,
+        headers: safeHeaders,
         body: options?.body
           ? typeof options.body === 'string'
             ? options.body

@@ -58,6 +58,7 @@ import {
 } from "@common/services/episodePrefetch.service";
 import {
   getVideoHeaders,
+  sanitizeHeadersMap,
   DEFAULT_MOBILE_USER_AGENT,
 } from "../../../src/mobile/cf-cookies";
 import { MobileTracker } from "../../../src/mobile/tracker.native";
@@ -170,10 +171,12 @@ function DirectVideoPlayer({
 }) {
   const videoViewRef = useRef<VideoView | null>(null);
   const headers = useMemo(() => {
-    return {
-      ...getVideoHeaders(server.url, refererUrl),
-      ...(server.headers || {}),
-    };
+    return (
+      sanitizeHeadersMap({
+        ...getVideoHeaders(server.url, refererUrl),
+        ...(server.headers || {}),
+      }) || {}
+    );
   }, [server.url, server.headers, refererUrl]);
 
   const videoSource = useMemo(() => {
@@ -323,10 +326,12 @@ function EmbedVideoPlayer({
   }, [onRegisterPlaybackRate]);
 
   const headers = useMemo(() => {
-    return {
-      ...getVideoHeaders(server.url, refererUrl),
-      ...(server.headers || {}),
-    };
+    return (
+      sanitizeHeadersMap({
+        ...getVideoHeaders(server.url, refererUrl),
+        ...(server.headers || {}),
+      }) || {}
+    );
   }, [server.url, server.headers, refererUrl]);
 
   const onShouldStartLoadWithRequest = useCallback((request: any) => {
