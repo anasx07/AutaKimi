@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   FlatList,
@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { Image } from "expo-image";
-import { router, Stack } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { DataService } from "@renderer/shared/api";
 import {
   computeAvailableUpdates,
@@ -20,21 +20,19 @@ import {
   getRepoMeta,
   normalizeRepoKey,
 } from "@common/services/repoIdentity";
+import { isAnimeExtension } from "@common/utils/mediaType";
 import { Typography, Button, Card, CardContent } from "@mobile/native/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Package,
-  Download,
   Trash2,
-  CheckCircle,
   X,
-  Loader2,
-  Globe,
   Search,
   ArrowLeft,
   Check,
-  Compass,
   RefreshCw,
+  Pin,
+  ChevronRight,
 } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 
@@ -114,26 +112,37 @@ export default function ExtensionsScreen() {
   const isDark = colorScheme === "dark";
   const [catalog, setCatalog] = useState<any[]>([]);
   const [installed, setInstalled] = useState<any[]>([]);
+  const [pinnedPkgs, setPinnedPkgs] = useState<string[]>([]);
+  const [showNsfw, setShowNsfw] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchingLangCatalog, setFetchingLangCatalog] = useState(false);
   const [installingPkgs, setInstallingPkgs] = useState<Set<string>>(new Set());
   const [updatingAll, setUpdatingAll] = useState(false);
   const [activeTab, setActiveTab] = useState<"installed" | "available">(
     "available",
   );
+  const [mediaFilter, setMediaFilter] = useState<"all" | "manga" | "anime">(
+    "all",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [langFilter, setLangFilter] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasInitializedTabRef = useRef(false);
 
   const loadData = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, explicitLang?: string | null) => {
       if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      else if (!hasInitializedTabRef.current) setLoading(true);
       setError(null);
       try {
-        const [installedExts, catalogRes] = await Promise.all([
+        const targetLang =
+          explicitLang !== undefined ? explicitLang : langFilter;
+        const [installedExts, catalogRes, pinnedRaw, nsfwRaw] = await Promise.all([
           DataService.db.getExtensions(),
-          DataService.getExtensionsCatalog(),
+          DataService.getExtensionsCatalog(targetLang || "all"),
+          DataService.db.getSetting("pinned_extensions").catch(() => null),
+          DataService.db.getSetting("showNsfw").catch(() => null),
         ]);
         const validInstalled = (installedExts || []).filter(
           (e: any) => e.pkg && !/^\d+$/.test(e.pkg),
@@ -142,13 +151,25 @@ export default function ExtensionsScreen() {
         const cat = Array.isArray(catalogRes) ? catalogRes : [];
         setCatalog(cat);
 
-        // Auto-switch to installed if user has installed extensions on initial load
-        if (
-          !isRefresh &&
-          validInstalled.length > 0 &&
-          activeTab === "available"
-        ) {
-          setActiveTab("installed");
+        const rawPinned =
+          typeof pinnedRaw === "string" ? pinnedRaw : (pinnedRaw as any)?.value;
+        if (typeof rawPinned === "string" && rawPinned) {
+          try {
+            const parsed = JSON.parse(rawPinned);
+            if (Array.isArray(parsed)) setPinnedPkgs(parsed);
+          } catch {}
+        }
+
+        const rawNsfw =
+          typeof nsfwRaw === "string" ? nsfwRaw : (nsfwRaw as any)?.value;
+        setShowNsfw(rawNsfw === "true" || rawNsfw === true);
+
+        // Auto-switch to installed once on initial load when extensions are already installed
+        if (!hasInitializedTabRef.current) {
+          hasInitializedTabRef.current = true;
+          if (validInstalled.length > 0) {
+            setActiveTab("installed");
+          }
         }
       } catch (e: any) {
         setError(e.message || "Failed to load extensions");
@@ -157,14 +178,41 @@ export default function ExtensionsScreen() {
         setRefreshing(false);
       }
     },
-    [activeTab],
+    [langFilter],
   );
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData(false);
+    }, [loadData]),
+  );
 
   const onRefresh = () => loadData(true);
+
+  const handleSelectLang = async (nextLang: string | null) => {
+    setLangFilter(nextLang);
+    setFetchingLangCatalog(true);
+    try {
+      const cat = await DataService.getExtensionsCatalog(nextLang || "all");
+      if (Array.isArray(cat)) setCatalog(cat);
+    } catch {
+      // keep existing cached catalog on failure
+    } finally {
+      setFetchingLangCatalog(false);
+    }
+  };
+
+  const togglePinExt = async (pkg: string) => {
+    const next = pinnedPkgs.includes(pkg)
+      ? pinnedPkgs.filter((p) => p !== pkg)
+      : [...pinnedPkgs, pkg];
+    setPinnedPkgs(next);
+    const json = JSON.stringify(next);
+    await Promise.all([
+      DataService.db.setSetting("pinned_extensions", json),
+      DataService.db.setSetting("pinned_anime_sources", json),
+    ]).catch(() => {});
+  };
 
   const validInstalled = useMemo(() => {
     return installed.filter((e) => e.pkg && !/^\d+$/.test(e.pkg));
@@ -180,6 +228,11 @@ export default function ExtensionsScreen() {
 
   const filteredInstalled = useMemo(() => {
     let list = validInstalled;
+    if (mediaFilter === "anime") {
+      list = list.filter((ext) => isAnimeExtension(ext));
+    } else if (mediaFilter === "manga") {
+      list = list.filter((ext) => !isAnimeExtension(ext));
+    }
     if (langFilter) {
       list = list.filter((ext) => ext.lang === langFilter);
     }
@@ -191,11 +244,24 @@ export default function ExtensionsScreen() {
           (ext.pkg || "").toLowerCase().includes(q),
       );
     }
-    return list;
-  }, [validInstalled, langFilter, searchQuery]);
+    return [...list].sort((a, b) => {
+      const aPin = pinnedPkgs.includes(a.pkg) ? 1 : 0;
+      const bPin = pinnedPkgs.includes(b.pkg) ? 1 : 0;
+      if (aPin !== bPin) return bPin - aPin;
+      return (a.name || a.pkg).localeCompare(b.name || b.pkg);
+    });
+  }, [validInstalled, mediaFilter, langFilter, searchQuery, pinnedPkgs]);
 
   const filteredCatalog = useMemo(() => {
     let list = catalog;
+    if (!showNsfw) {
+      list = list.filter((ext) => !ext.nsfw);
+    }
+    if (mediaFilter === "anime") {
+      list = list.filter((ext) => isAnimeExtension(ext));
+    } else if (mediaFilter === "manga") {
+      list = list.filter((ext) => !isAnimeExtension(ext));
+    }
     if (langFilter) {
       list = list.filter((ext) => ext.lang === langFilter);
     }
@@ -208,7 +274,7 @@ export default function ExtensionsScreen() {
       );
     }
     return list;
-  }, [catalog, langFilter, searchQuery]);
+  }, [catalog, showNsfw, mediaFilter, langFilter, searchQuery]);
 
   const installExt = async (ext: any) => {
     const payload = resolveInstallPayload(ext, validInstalled);
@@ -293,6 +359,8 @@ export default function ExtensionsScreen() {
     const repoMeta = hasRepo ? getRepoMeta(item.repoUrl, item.repoName) : null;
     const repoColor = item.repoColor || repoMeta?.repoColor;
     const repoName = item.repoName || repoMeta?.repoName;
+    const isPinned = installedMatch ? pinnedPkgs.includes(installedMatch.pkg) : false;
+    const itemIsAnime = isAnimeExtension(item);
 
     return (
       <Card
@@ -305,51 +373,90 @@ export default function ExtensionsScreen() {
       >
         <CardContent>
           <View className="flex-row items-center">
-            {item.icon ? (
-              <Image
-                source={{ uri: item.icon }}
-                className="w-12 h-12 rounded-xl bg-secondary"
-                contentFit="contain"
-                transition={150}
-              />
-            ) : (
-              <View className="w-12 h-12 bg-primary/10 rounded-xl items-center justify-center">
-                <Package size={24} color="#e11d48" />
-              </View>
-            )}
-            <View className="flex-1 ml-3">
-              <Typography className="font-semibold" numberOfLines={1}>
-                {item.name || extractBasePkg(item.pkg)}
-              </Typography>
-              <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
-                <Typography className="text-xs text-muted-foreground">
-                  {flag} {langName} ·{" "}
-                  {updateTarget
-                    ? `v${installedMatch?.version || item.version || "1.0.0"} → v${updateTarget.version}`
-                    : `v${item.version || "1.0.0"}`}
-                </Typography>
-                {repoName && repoColor && (
-                  <View
-                    style={{
-                      backgroundColor: `${repoColor}1f`,
-                      borderColor: `${repoColor}45`,
-                      borderWidth: 1,
-                    }}
-                    className="px-1.5 py-0.5 rounded-md"
-                  >
-                    <Typography
-                      style={{ color: repoColor }}
-                      className="text-[10px] font-bold"
-                    >
-                      {repoName}
+            <TouchableOpacity
+              className="flex-row items-center flex-1 mr-2"
+              activeOpacity={installed_ ? 0.75 : 1}
+              disabled={!installed_}
+              onPress={() => {
+                const targetPkg = installedMatch?.pkg || item.pkg;
+                router.push({
+                  pathname: "/(tabs)/browse" as any,
+                  params: { pkg: targetPkg },
+                });
+              }}
+            >
+              {item.icon ? (
+                <Image
+                  source={{ uri: item.icon }}
+                  className="w-12 h-12 rounded-xl bg-secondary"
+                  contentFit="contain"
+                  transition={150}
+                />
+              ) : (
+                <View className="w-12 h-12 bg-primary/10 rounded-xl items-center justify-center">
+                  <Package size={24} color="#e11d48" />
+                </View>
+              )}
+              <View className="flex-1 ml-3">
+                <View className="flex-row items-center gap-1.5">
+                  <Typography className="font-semibold flex-shrink" numberOfLines={1}>
+                    {item.name || extractBasePkg(item.pkg)}
+                  </Typography>
+                  <View className="px-1.5 py-0.5 rounded bg-secondary border border-border/50">
+                    <Typography className="text-[9px] font-bold uppercase text-muted-foreground">
+                      {itemIsAnime ? "Anime" : "Manga"}
                     </Typography>
                   </View>
-                )}
+                </View>
+                <View className="flex-row items-center flex-wrap gap-1.5 mt-0.5">
+                  <Typography className="text-xs text-muted-foreground">
+                    {flag} {langName} ·{" "}
+                    {updateTarget
+                      ? `v${installedMatch?.version || item.version || "1.0.0"} → v${updateTarget.version}`
+                      : `v${item.version || "1.0.0"}`}
+                  </Typography>
+                  {repoName && repoColor && (
+                    <View
+                      style={{
+                        backgroundColor: `${repoColor}1f`,
+                        borderColor: `${repoColor}45`,
+                        borderWidth: 1,
+                      }}
+                      className="px-1.5 py-0.5 rounded-md"
+                    >
+                      <Typography
+                        style={{ color: repoColor }}
+                        className="text-[10px] font-bold"
+                      >
+                        {repoName}
+                      </Typography>
+                    </View>
+                  )}
+                  {!!item.nsfw && (
+                    <View className="px-1.5 py-0.5 rounded bg-destructive/15 border border-destructive/30">
+                      <Typography className="text-[9px] font-bold text-destructive">
+                        18+
+                      </Typography>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {activeTab === "installed" ? (
-              <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center gap-1.5">
+                <TouchableOpacity
+                  className="p-2 rounded-xl bg-secondary/60"
+                  onPress={() => togglePinExt(item.pkg)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={isPinned ? "Unpin extension" : "Pin extension"}
+                >
+                  <Pin
+                    size={16}
+                    color={isPinned ? "#e11d48" : "#71717a"}
+                    fill={isPinned ? "#e11d48" : "none"}
+                  />
+                </TouchableOpacity>
                 {updateTarget && (
                   <Button
                     title={installing ? "" : "Update"}
@@ -361,11 +468,22 @@ export default function ExtensionsScreen() {
                   />
                 )}
                 <TouchableOpacity
-                  className="p-2.5 bg-destructive/10 rounded-xl"
+                  className="p-2 bg-destructive/10 rounded-xl"
                   onPress={() => uninstallExt(item.pkg)}
                   activeOpacity={0.7}
                 >
-                  <Trash2 size={18} color="#ef4444" />
+                  <Trash2 size={16} color="#ef4444" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="p-1.5"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(tabs)/browse" as any,
+                      params: { pkg: item.pkg },
+                    })
+                  }
+                >
+                  <ChevronRight size={16} color="#71717a" />
                 </TouchableOpacity>
               </View>
             ) : installed_ ? (
@@ -542,6 +660,42 @@ export default function ExtensionsScreen() {
           ) : null}
         </View>
 
+        {/* Media Filter: All / Manga / Anime */}
+        <View className="flex-row mx-4 mt-2.5 gap-2">
+          {(
+            [
+              { key: "all", label: "All" },
+              { key: "manga", label: "Manga" },
+              { key: "anime", label: "Anime" },
+            ] as const
+          ).map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              onPress={() => setMediaFilter(opt.key)}
+              className={`px-3.5 py-1.5 rounded-lg border ${
+                mediaFilter === opt.key
+                  ? "bg-primary border-primary"
+                  : "bg-card border-border"
+              }`}
+            >
+              <Typography
+                className={
+                  mediaFilter === opt.key
+                    ? "text-white font-semibold text-xs"
+                    : "text-muted-foreground font-medium text-xs"
+                }
+              >
+                {opt.label}
+              </Typography>
+            </TouchableOpacity>
+          ))}
+          {fetchingLangCatalog && (
+            <View className="ml-auto justify-center pr-1">
+              <ActivityIndicator size="small" color="#e11d48" />
+            </View>
+          )}
+        </View>
+
         {/* Lang Filter */}
         <View className="py-2">
           <FlatList
@@ -557,7 +711,9 @@ export default function ExtensionsScreen() {
                     ? "bg-primary"
                     : "bg-card border border-border"
                 }`}
-                onPress={() => setLangFilter(lang === "all" ? null : lang)}
+                onPress={() =>
+                  handleSelectLang(lang === "all" ? null : lang)
+                }
               >
                 <Typography
                   className={`text-xs font-medium ${

@@ -27,6 +27,9 @@ import {
   Menu,
   Upload,
   BarChart3,
+  Globe,
+  Package,
+  Share2,
 } from "lucide-react-native";
 
 type SettingsMap = Record<string, string>;
@@ -228,6 +231,73 @@ export default function SettingsTab() {
       </View>
 
       <ScrollView className="flex-1">
+        {/* Sources & Sync */}
+        <View className="mt-6 px-4">
+          <View className="flex-row items-center mb-2 px-2">
+            <Globe size={16} color="#71717a" />
+            <Typography className="ml-2 font-semibold text-muted-foreground uppercase text-xs tracking-wide">
+              Sources &amp; Sync
+            </Typography>
+          </View>
+          <Card className="overflow-hidden">
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={() => router.push("/extensions" as any)}
+            >
+              <View className="flex-row items-center flex-1">
+                <Package size={18} color="#e11d48" />
+                <View className="ml-3 flex-1">
+                  <Typography className="font-medium">Extensions</Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Install, pin, and update scrapers
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View className="border-t border-border/50" />
+
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={() => router.push("/repositories" as any)}
+            >
+              <View className="flex-row items-center flex-1">
+                <Globe size={18} color="#10b981" />
+                <View className="ml-3 flex-1">
+                  <Typography className="font-medium">
+                    Content Repositories
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Manage manifest.json &amp; Keiyoushi repos
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View className="border-t border-border/50" />
+
+            <TouchableOpacity
+              className="flex-row items-center justify-between px-4 py-4"
+              onPress={() => router.push("/sync" as any)}
+            >
+              <View className="flex-row items-center flex-1">
+                <Share2 size={18} color="#3b82f6" />
+                <View className="ml-3 flex-1">
+                  <Typography className="font-medium">
+                    Sync with Desktop
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    Pair via QR code or local Wi-Fi
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+          </Card>
+        </View>
+
         {/* Reader */}
         <View className="mt-6 px-4">
           <View className="flex-row items-center mb-2 px-2">
