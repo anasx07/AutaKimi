@@ -1,6 +1,6 @@
 import { IBypassProvider, Result, networkClient } from '@autakimi/sdk'
 import { router } from 'expo-router'
-import { CfCookieStore, CfBypassFlow, DEFAULT_MOBILE_USER_AGENT } from './cf-cookies'
+import { CfCookieStore, CfBypassFlow, DEFAULT_MOBILE_USER_AGENT, sanitizeHeaderValue } from './cf-cookies'
 
 export class MobileBypassProvider implements IBypassProvider {
   private static instance: MobileBypassProvider
@@ -17,9 +17,10 @@ export class MobileBypassProvider implements IBypassProvider {
     await CfCookieStore.init()
     const domain = new URL(url).hostname
     const cfCookie = CfCookieStore.get(domain)
+    const rawCookie = cfCookie ? (cfCookie.includes('=') ? cfCookie : `cf_clearance=${cfCookie}`) : ''
     return {
       userAgent: this.userAgent,
-      cookies: cfCookie ? (cfCookie.includes('=') ? cfCookie : `cf_clearance=${cfCookie}`) : ''
+      cookies: sanitizeHeaderValue(rawCookie, 'Cookie')
     }
   }
 

@@ -9,6 +9,71 @@ let pendingUrls: string[] = []
 export const DEFAULT_MOBILE_USER_AGENT =
   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
 
+function stripControlChars(input: string): string {
+  let out = ''
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i)
+    if (code >= 0x20 && code !== 0x7f) {
+      out += input[i]
+    }
+  }
+  return out.trim()
+}
+
+export function sanitizeUrlForHttp(rawUrl: string): string {
+  const cleaned = stripControlChars(String(rawUrl || ''))
+  return cleaned.replace(/[ \u0080-\uFFFF]+/g, (seq) => {
+    try {
+      return encodeURI(seq)
+    } catch {
+      return ''
+    }
+  })
+}
+
+export function sanitizeHeaderValue(value: unknown, key?: string): string {
+  const cleaned = stripControlChars(String(value ?? ''))
+  const lowerKey = (key || '').toLowerCase()
+  const pattern =
+    lowerKey === 'referer' ||
+    lowerKey === 'origin' ||
+    cleaned.startsWith('http://') ||
+    cleaned.startsWith('https://')
+      ? /[ \u0080-\uFFFF]+/g
+      : /[\u0080-\uFFFF]+/g
+
+  return cleaned.replace(pattern, (seq) => {
+    try {
+      return encodeURI(seq)
+    } catch {
+      return ''
+    }
+  })
+}
+
+export function sanitizeHeadersMap(
+  headers?: HeadersInit | Record<string, any> | null,
+): Record<string, string> | undefined {
+  if (!headers) return undefined
+  const out: Record<string, string> = {}
+  if (typeof Headers !== 'undefined' && headers instanceof Headers) {
+    headers.forEach((v, k) => {
+      out[k] = sanitizeHeaderValue(v, k)
+    })
+  } else if (Array.isArray(headers)) {
+    for (const [k, v] of headers) {
+      out[String(k)] = sanitizeHeaderValue(v, String(k))
+    }
+  } else if (typeof headers === 'object') {
+    for (const [k, v] of Object.entries(headers)) {
+      if (v !== undefined && v !== null) {
+        out[k] = sanitizeHeaderValue(v, k)
+      }
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
 export const CfCookieStore = {
   async init(): Promise<void> {
     if (isInitialized) return
@@ -192,11 +257,11 @@ export function getImageHeaders(imageUrl: string, refererUrl?: string): Record<s
 
   // 1. Referer Header for anti-hotlinking
   if (refererUrl && (refererUrl.startsWith('http://') || refererUrl.startsWith('https://'))) {
-    headers['Referer'] = refererUrl
+    headers['Referer'] = sanitizeHeaderValue(refererUrl, 'Referer')
   } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     try {
       const u = new URL(imageUrl)
-      headers['Referer'] = u.origin
+      headers['Referer'] = sanitizeHeaderValue(u.origin, 'Referer')
     } catch {}
   }
 
@@ -244,11 +309,11 @@ export function getVideoHeaders(videoUrl: string, refererUrl?: string): Record<s
 
   // 1. Referer Header for anti-hotlinking
   if (refererUrl && (refererUrl.startsWith('http://') || refererUrl.startsWith('https://'))) {
-    headers['Referer'] = refererUrl
+    headers['Referer'] = sanitizeHeaderValue(refererUrl, 'Referer')
   } else if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
     try {
       const u = new URL(videoUrl)
-      headers['Referer'] = u.origin
+      headers['Referer'] = sanitizeHeaderValue(u.origin, 'Referer')
     } catch {}
   }
 
@@ -299,9 +364,10 @@ export function buildImageSource(
     uri = `https:${uri}`
   }
   if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    const safeUri = sanitizeUrlForHttp(uri)
     return {
-      uri,
-      headers: getImageHeaders(uri, refererUrl),
+      uri: safeUri,
+      headers: getImageHeaders(safeUri, refererUrl),
     }
   }
   return { uri }
