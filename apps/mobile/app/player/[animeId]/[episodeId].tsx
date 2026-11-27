@@ -151,14 +151,24 @@ async function fetchAndNormalizeMobileEpisode(
   const ext = extList.find((e: any) => e.pkg === pkg);
   if (!ext?.code) throw new Error("Extension not found");
 
-  const result = await DataService.executeExtension({
+  const result: any = await DataService.executeExtension({
     pkg,
     code: ext.code,
     contextArgs: { type: "fetchPages", chapterUrl: targetEpisodeUrl },
   });
 
+  if (result && typeof result === "object" && result.ok === false) {
+    throw new Error(result.error || "Extension failed to resolve episode streams");
+  }
+
   const rawUrls = extractRawStreamUrls(result);
   if (!rawUrls || rawUrls.length === 0) {
+    const debugInfo = result?.pages?.debug || result?.debug;
+    if (debugInfo?.isBlocked) {
+      throw new Error(
+        "Cloudflare challenge blocked this episode page. Tap Resolve CF to continue.",
+      );
+    }
     throw new Error("No streaming servers found for this episode");
   }
 
@@ -1307,7 +1317,10 @@ export default function PlayerScreen() {
                 disabled={isBypassingCf}
               >
                 <ShieldCheck size={14} color="#fbbf24" />
-                <Typography className="text-amber-300 font-semibold text-xs">
+                <Typography
+                  className="font-semibold text-xs"
+                  style={{ color: "#fcd34d" }}
+                >
                   {isBypassingCf ? "Solving..." : "Resolve CF"}
                 </Typography>
               </TouchableOpacity>

@@ -32,6 +32,7 @@ import {
   networkClient,
   getRepoMeta,
   resolveRemoteExtensionIconUrl,
+  extractBasePkg,
 } from "@common";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
@@ -364,7 +365,87 @@ export const MobileApi: ElectronApi = {
       };
     }
 
-    let result = await MobileExtension.execute({ pkg, code, contextArgs });
+    // Enrich execution context with baseUrl, UA, CF cookies, and bypass setting (matching Desktop ExtIPC)
+    const enrichedContextArgs: Record<string, unknown> = { ...(contextArgs || {}) };
+    try {
+      const basePkg = extractBasePkg(pkg);
+      const cleanPkg = basePkg.replace(/^ma\.autakimi\.extension\./, "");
+      const fullPkg = basePkg.startsWith("ma.autakimi.extension.")
+        ? basePkg
+        : `ma.autakimi.extension.${basePkg}`;
+
+      let resolvedBaseUrl = String(
+        enrichedContextArgs._baseUrl || enrichedContextArgs.baseUrl || "",
+      );
+      if (!resolvedBaseUrl) {
+        const dbLookup = await MobileDB.getExtension(pkg);
+        if (dbLookup.ok && dbLookup.value?.baseUrl) {
+          resolvedBaseUrl = dbLookup.value.baseUrl;
+        } else {
+          const catalogSrc =
+            (sourceService.getSource(pkg) as any) ||
+            (sourceService.getSource(fullPkg) as any) ||
+            (sourceService.getSource(cleanPkg) as any);
+          if (catalogSrc?.baseUrl || catalogSrc?.url) {
+            resolvedBaseUrl = catalogSrc.baseUrl || catalogSrc.url;
+          }
+        }
+      }
+
+      for (const key of [
+        `domain_override_${pkg}`,
+        `domain_override_${fullPkg}`,
+        `domain_override_${cleanPkg}`,
+        `domain_override_${basePkg}`,
+      ]) {
+        const overrideRes = await MobileDB.getSetting(key);
+        if (overrideRes.ok && overrideRes.value && overrideRes.value.trim()) {
+          resolvedBaseUrl = overrideRes.value.trim();
+          break;
+        }
+      }
+
+      const bypassRes = await MobileDB.getSetting("bypass_cloudflare");
+      const bypassCf = !(bypassRes.ok && bypassRes.value === "false");
+      const uaRes = await MobileDB.getSetting("user_agent");
+      const effectiveUa =
+        uaRes.ok && uaRes.value && uaRes.value !== "Default"
+          ? uaRes.value
+          : DEFAULT_MOBILE_USER_AGENT;
+
+      let cfCookies = "";
+      if (bypassCf && resolvedBaseUrl) {
+        try {
+          const host = new URL(resolvedBaseUrl).hostname;
+          const storedCookie = await CfCookieStore.getAsync(host);
+          if (storedCookie) cfCookies = storedCookie;
+        } catch {
+          /* ignore invalid baseUrl */
+        }
+      }
+
+      if (resolvedBaseUrl) {
+        enrichedContextArgs._baseUrl = resolvedBaseUrl;
+        enrichedContextArgs.baseUrl = resolvedBaseUrl;
+      }
+      if (!enrichedContextArgs._userAgent) {
+        enrichedContextArgs._userAgent = effectiveUa;
+      }
+      if (cfCookies && !enrichedContextArgs._cfCookies) {
+        enrichedContextArgs._cfCookies = cfCookies;
+      }
+      if (enrichedContextArgs._bypassCloudflare === undefined) {
+        enrichedContextArgs._bypassCloudflare = bypassCf;
+      }
+    } catch {
+      /* ignore metadata enrichment errors */
+    }
+
+    let result = await MobileExtension.execute({
+      pkg,
+      code,
+      contextArgs: enrichedContextArgs,
+    });
     if (
       !result.ok &&
       result.error &&
@@ -381,7 +462,11 @@ export const MobileApi: ElectronApi = {
           const regenerated = await regenerateCode(dbExt.value, true);
           if (regenerated) {
             code = regenerated;
-            result = await MobileExtension.execute({ pkg, code, contextArgs });
+            result = await MobileExtension.execute({
+              pkg,
+              code,
+              contextArgs: enrichedContextArgs,
+            });
           }
         }
       } catch (err) {

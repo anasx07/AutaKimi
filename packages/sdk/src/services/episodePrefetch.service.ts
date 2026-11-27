@@ -123,19 +123,33 @@ export function isAdStreamUrl(url?: string): boolean {
   return false;
 }
 
+function unwrapRawStreamUrls(res: unknown, depth: number): unknown[] {
+  if (!res || depth > 4) return [];
+  if (Array.isArray(res)) return res;
+  if (typeof res === "object") {
+    const obj = res as Record<string, unknown>;
+    if (obj.ok === false) return [];
+    if ("value" in obj && obj.value !== undefined) {
+      const fromVal = unwrapRawStreamUrls(obj.value, depth + 1);
+      if (fromVal.length > 0) return fromVal;
+    }
+    for (const key of ["pages", "urls", "data", "servers", "sources"] as const) {
+      const candidate = obj[key];
+      if (Array.isArray(candidate)) return candidate;
+      if (candidate && typeof candidate === "object") {
+        const nested = unwrapRawStreamUrls(candidate, depth + 1);
+        if (nested.length > 0) return nested;
+      }
+    }
+  }
+  return [];
+}
+
 /**
  * Extracts raw server candidate entries from various extension response shapes.
  */
 export function extractRawStreamUrls(res: unknown): unknown[] {
-  if (!res) return [];
-  if (Array.isArray(res)) return res;
-  if (typeof res === "object") {
-    const obj = res as Record<string, unknown>;
-    if (Array.isArray(obj.pages)) return obj.pages;
-    if (Array.isArray(obj.urls)) return obj.urls;
-    if (Array.isArray(obj.data)) return obj.data;
-  }
-  return [];
+  return unwrapRawStreamUrls(res, 0);
 }
 
 /**
