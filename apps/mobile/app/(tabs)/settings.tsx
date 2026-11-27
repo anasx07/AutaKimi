@@ -9,6 +9,10 @@ import {
 import { Typography, Button, Card } from "@mobile/native/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DataService } from "@renderer/shared/api";
+import {
+  checkMobileReleaseUpdate,
+  type MobileReleaseCheckResult,
+} from "../../src/mobile/updater.native";
 import { router } from "expo-router";
 import { useColorScheme } from "nativewind";
 import {
@@ -30,6 +34,7 @@ import {
   Globe,
   Package,
   Share2,
+  RefreshCw,
 } from "lucide-react-native";
 
 type SettingsMap = Record<string, string>;
@@ -39,7 +44,47 @@ export default function SettingsTab() {
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<MobileReleaseCheckResult | null>(
+    null,
+  );
   const { setColorScheme } = useColorScheme();
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    try {
+      const info = await checkMobileReleaseUpdate();
+      setUpdateInfo(info);
+      if (info.updateAvailable) {
+        Alert.alert(
+          `Update Available (v${info.latestVersion})`,
+          `A new version of AutaKimi Mobile is available (current: v${info.currentVersion}).`,
+          [
+            { text: "Later", style: "cancel" },
+            {
+              text: info.apkDownloadUrl ? "Download APK" : "View Release",
+              onPress: () =>
+                DataService.openExternal(
+                  info.apkDownloadUrl || info.releaseUrl,
+                ),
+            },
+          ],
+        );
+      } else {
+        Alert.alert(
+          "Up to Date",
+          `AutaKimi Mobile v${info.currentVersion} is the latest release.`,
+        );
+      }
+    } catch (e: any) {
+      Alert.alert(
+        "Update Check Failed",
+        e?.message || "Could not reach GitHub releases.",
+      );
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   const handleExportBackup = async () => {
     setBackupLoading(true);
@@ -666,6 +711,31 @@ export default function SettingsTab() {
                 </Typography>
                 <Typography>SQLite (expo-sqlite)</Typography>
               </View>
+            </TouchableOpacity>
+            <View className="border-t border-border/50" />
+            <TouchableOpacity
+              onPress={handleCheckUpdate}
+              disabled={checkingUpdate}
+              className="flex-row items-center justify-between px-4 py-4 active:bg-secondary"
+            >
+              <View className="flex-row items-center flex-1 mr-2">
+                <RefreshCw size={18} color="#e11d48" />
+                <View className="ml-3 flex-1">
+                  <Typography className="font-medium">
+                    {checkingUpdate
+                      ? "Checking for Updates..."
+                      : "Check for App Updates"}
+                  </Typography>
+                  <Typography className="text-xs text-muted-foreground">
+                    {updateInfo
+                      ? updateInfo.updateAvailable
+                        ? `v${updateInfo.latestVersion} available on GitHub`
+                        : `Up to date (v${updateInfo.currentVersion})`
+                      : "Download latest Android APK from GitHub Releases"}
+                  </Typography>
+                </View>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
           </Card>
         </View>

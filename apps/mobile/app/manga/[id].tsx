@@ -11,11 +11,13 @@ import { LinearGradient } from 'expo-linear-gradient'
 import {
   ArrowLeft, BookOpen, ChevronRight, AlignLeft,
   Download, CheckCircle, Loader2, Bookmark, AlertTriangle,
-  ArrowUpDown, Search, X, Check
+  ArrowUpDown, Search, X, Check, Link2
 } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { resolveExtensionBadge } from '@common/services/repoIdentity'
 import { Chapter } from '@common/types'
+import { TrackingModal } from '../../src/native/components/TrackingModal'
+import { MobileTracker } from '../../src/mobile/tracker.native'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 0.75), 300)
@@ -44,6 +46,7 @@ export default function MangaDetailsScreen() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMode, setFilterMode] = useState<'all' | 'unread'>('all')
   const [batchDownloading, setBatchDownloading] = useState(false)
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
 
   // 1. Fetch cached manga info from SQLite
   const { data: cachedManga } = useQuery({
@@ -86,6 +89,16 @@ export default function MangaDetailsScreen() {
     },
     enabled: !!id
   })
+
+  const { data: trackersList = [], refetch: refetchTrackers } = useQuery({
+    queryKey: ['manga-trackers', id],
+    queryFn: async () => {
+      const res = await DataService.tracker.getByManga(id)
+      return (res as any)?.value || res || []
+    },
+    enabled: !!id
+  })
+  const isTracked = trackersList.some((t: any) => t.provider === 'anilist')
 
   useFocusEffect(
     useCallback(() => {
@@ -438,6 +451,9 @@ export default function MangaDetailsScreen() {
       isRead,
       lastPage: isRead ? 0 : progressMap.get(String(chapter.id))?.lastPage || 0
     })
+    if (isRead) {
+      void MobileTracker.autoSyncProgress(id, chapter.number ?? chapter.title)
+    }
     await refetchProgress()
     queryClient.invalidateQueries({ queryKey: ['library-unread'] })
   }
@@ -451,6 +467,7 @@ export default function MangaDetailsScreen() {
       chapterIds: targetIds,
       isRead: true
     })
+    void MobileTracker.autoSyncProgress(id, chapter.number ?? chapter.title)
     await refetchProgress()
     queryClient.invalidateQueries({ queryKey: ['library-unread'] })
   }
@@ -658,6 +675,17 @@ export default function MangaDetailsScreen() {
             }}
             disabled={!targetContinueChapter}
           />
+          <TouchableOpacity
+            className={`w-12 h-12 rounded-xl items-center justify-center border ${
+              isTracked
+                ? 'bg-[#02A9FF]/20 border-[#02A9FF]'
+                : 'bg-card border-border'
+            }`}
+            onPress={() => setShowTrackingModal(true)}
+            accessibilityLabel="Track on AniList"
+          >
+            <Link2 size={20} color={isTracked ? '#02A9FF' : '#94a3b8'} />
+          </TouchableOpacity>
           <TouchableOpacity
             className={`w-12 h-12 rounded-xl items-center justify-center border border-border ${
               isInLibrary ? 'bg-primary/20 border-primary' : 'bg-card'
@@ -1016,6 +1044,23 @@ export default function MangaDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      <TrackingModal
+        visible={showTrackingModal}
+        onClose={() => setShowTrackingModal(false)}
+        mediaId={id}
+        mediaTitle={displayTitle}
+        mediaType="manga"
+        suggestedProgress={sortedAscChapters.reduce((max, ch) => {
+          if (progressMap.get(String(ch.id))?.isRead) {
+            return Math.max(max, Math.floor(Number(ch.number || 0)))
+          }
+          return max
+        }, 0)}
+        onTrackerChanged={() => {
+          refetchTrackers()
+        }}
+      />
     </View>
   )
 }

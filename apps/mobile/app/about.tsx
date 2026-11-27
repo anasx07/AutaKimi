@@ -1,9 +1,10 @@
-import React from 'react'
-import { View, ScrollView, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
+import { View, ScrollView, TouchableOpacity, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
-import { ArrowLeft, ExternalLink, Shield, Code, Heart, Info, GitBranch } from 'lucide-react-native'
+import { ArrowLeft, ExternalLink, Shield, Code, Heart, Info, GitBranch, RefreshCw } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
+import { checkMobileReleaseUpdate } from '../src/mobile/updater.native'
 import { Typography, Card, CardContent, Button } from '../src/native/ui'
 import { useColorScheme } from 'nativewind'
 
@@ -11,6 +12,33 @@ export default function AboutPage(): React.JSX.Element {
   const { colorScheme } = useColorScheme()
   const isDark = colorScheme === 'dark'
   const version = DataService.version
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true)
+    try {
+      const info = await checkMobileReleaseUpdate()
+      if (info.updateAvailable) {
+        Alert.alert(
+          `Update Available (v${info.latestVersion})`,
+          `New release available (current: v${info.currentVersion}).`,
+          [
+            { text: 'Later', style: 'cancel' },
+            {
+              text: info.apkDownloadUrl ? 'Download APK' : 'Open Release',
+              onPress: () => DataService.openExternal(info.apkDownloadUrl || info.releaseUrl)
+            }
+          ]
+        )
+      } else {
+        Alert.alert('Up to Date', `You are running the latest version (v${info.currentVersion}).`)
+      }
+    } catch (e: any) {
+      Alert.alert('Update Check Failed', e?.message || 'Could not reach GitHub releases.')
+    } finally {
+      setCheckingUpdate(false)
+    }
+  }
 
   const features = [
     {
@@ -64,16 +92,24 @@ export default function AboutPage(): React.JSX.Element {
             The ultimate open-source manga & anime experience for mobile. Built for speed, designed for stability, and powered by you.
           </Typography>
 
-          <View className="flex-row gap-3 mt-6">
+          <View className="flex-row flex-wrap justify-center gap-3 mt-6">
             <Button
-              title="GitHub"
+              title={checkingUpdate ? 'Checking...' : 'Check Update'}
               variant="primary"
               size="sm"
-              icon={<GitBranch size={16} color="#fff" />}
+              disabled={checkingUpdate}
+              icon={<RefreshCw size={16} color="#fff" />}
+              onPress={handleCheckUpdate}
+            />
+            <Button
+              title="GitHub"
+              variant="outline"
+              size="sm"
+              icon={<GitBranch size={16} color="#e11d48" />}
               onPress={() => DataService.openExternal('https://github.com/anasx07/AutaKimi')}
             />
             <Button
-              title="Join Discord"
+              title="Discord"
               variant="outline"
               size="sm"
               icon={<ExternalLink size={16} color="#e11d48" />}
