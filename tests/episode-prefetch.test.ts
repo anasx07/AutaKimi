@@ -99,6 +99,22 @@ describe("episodePrefetch.service helpers", () => {
     expect(selectPreferredServerIndex(servers, "EmbedMirror")).toBe(1);
     expect(selectPreferredServerIndex(servers, "Server 4")).toBe(2);
     expect(selectPreferredServerIndex(servers, null)).toBe(1);
+
+    // Nested sandbox shapes (e.g. RistoAnime mobile executeExtension -> { pages: { urls, debug } })
+    const nested = extractRawStreamUrls({
+      pages: {
+        urls: [
+          { name: "Vidmoly Direct", url: "https://cdn.example.com/v.m3u8", type: "hls" },
+          { name: "Sendvid", url: "https://sendvid.com/embed/abc" },
+        ],
+        debug: { version: "1.0.3-v2", isBlocked: false },
+      },
+    });
+    expect(nested).toHaveLength(2);
+    expect(
+      extractRawStreamUrls({ ok: true, value: { pages: { urls: ["https://cdn.example.com/a.mp4"] } } }),
+    ).toEqual(["https://cdn.example.com/a.mp4"]);
+    expect(extractRawStreamUrls({ ok: false, error: "Timeout" })).toEqual([]);
   });
 });
 

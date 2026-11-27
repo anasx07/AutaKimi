@@ -36,13 +36,15 @@ export const ALLOWED_STREAMING_DOMAINS = [
   'streamruby.com', 'earnvids.com',
   'vidara.org', 'firestream.net',
   'mixdrop.co', 'mixdrop.to', 'mixdrop.sx', 'mixdrop.ch', 'mixdrop.bz', 'mixdrop.ag',
-  'mega.nz', 'uqload.com', 'uqload.to', 'uqload.io', 'uqload.vc',
+  'mega.nz', 'uqload.com', 'uqload.to', 'uqload.io', 'uqload.vc', 'uqload.ws',
   'sibnet.ru', 'mp4upload.com', 'sendvid.com',
   'google.com', 'ok.ru', 'vk.com', 'vkvideo.ru',
   'videa.hu', 'videas.hu', 'yonaplay.net', '4shared.com', 'hgcloud.to',
   'mediafire.com', 'workupload.com', 'gofile.io',
   'dood.to', 'dood.watch', 'dood.so', 'dood.pm', 'dood.wf', 'dood.cx', 'dood.sh', 'doodstream.com',
   'filelions.to', 'filelions.site', 'filelions.live',
+  'filemoon.sx', 'filemoon.to', 'filemoon.in',
+  'hlswish.com', 'listeamed.net', 'vidhide.com', 'vidhidepro.com',
   'streamtape.com', 'streamtape.to', 'streamtape.net',
   'upstream.to',
   'streamwish.to', 'streamwish.com',
@@ -600,23 +602,36 @@ export const MobileExtension = {
         }
 
         const normalizedHeaders: Record<string, string> = {}
+        const setHeaderCaseInsensitive = (rawKey: string, rawVal: string) => {
+          const lower = rawKey.toLowerCase()
+          for (const existingKey of Object.keys(normalizedHeaders)) {
+            if (existingKey.toLowerCase() === lower) {
+              delete normalizedHeaders[existingKey]
+            }
+          }
+          normalizedHeaders[rawKey] = rawVal
+        }
         if (params?._userAgent) {
-          normalizedHeaders['User-Agent'] = String(params._userAgent)
+          setHeaderCaseInsensitive('User-Agent', String(params._userAgent))
         }
         if (params?._cfCookies) {
-          normalizedHeaders['Cookie'] = String(params._cfCookies)
+          setHeaderCaseInsensitive('Cookie', String(params._cfCookies))
         }
         if (init?.headers) {
           if (typeof (init.headers as any).forEach === 'function') {
             ;(init.headers as any).forEach((v: any, k: any) => {
-              normalizedHeaders[String(k)] = String(v)
+              setHeaderCaseInsensitive(String(k), String(v))
             })
           } else if (Array.isArray(init.headers)) {
             for (const [k, v] of init.headers) {
-              normalizedHeaders[String(k)] = String(v)
+              setHeaderCaseInsensitive(String(k), String(v))
             }
           } else if (typeof init.headers === 'object') {
-            Object.assign(normalizedHeaders, init.headers)
+            for (const [k, v] of Object.entries(init.headers)) {
+              if (v !== undefined && v !== null) {
+                setHeaderCaseInsensitive(k, String(v))
+              }
+            }
           }
         }
 
@@ -713,11 +728,15 @@ export const MobileExtension = {
         wrappedCode
       )
 
+      const timeoutMs =
+        typeof params?._timeoutMs === 'number' && params._timeoutMs > 0
+          ? params._timeoutMs
+          : 25000
       let timer: ReturnType<typeof setTimeout> | null = null
       const timeoutPromise = new Promise((_, reject) => {
         timer = setTimeout(() => {
-          reject(new Error(`Extension execution timed out after 15000ms for ${args.pkg}`))
-        }, 15000)
+          reject(new Error(`Extension execution timed out after ${timeoutMs}ms for ${args.pkg}`))
+        }, timeoutMs)
       })
 
       try {
