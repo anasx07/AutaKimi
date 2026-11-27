@@ -23,6 +23,8 @@ import {
   ExtensionEngine,
   IExtensionPlatform,
   networkClient,
+  getRepoMeta,
+  resolveRemoteExtensionIconUrl,
 } from "@common";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
@@ -77,7 +79,10 @@ const mobileExtensionPlatform: IExtensionPlatform = {
     return res.ok ? res.value : null;
   },
   upsertExtension: async (ext: any) => {
-    await MobileDB.addExtension(ext);
+    await MobileDB.addExtension({
+      ...ext,
+      icon: resolveRemoteExtensionIconUrl(ext.icon, ext.pkg, ext.repoUrl),
+    });
   },
 };
 
@@ -337,7 +342,15 @@ export const MobileApi: ElectronApi = {
     repoUrl: string,
   ): Promise<IpcResult<{ success: boolean }>> => {
     try {
-      const res = await extensionEngine.install(ext, repoUrl);
+      const effectiveRepoUrl =
+        ext.repoUrl && ext.repoUrl !== "remote" && ext.repoUrl !== "local"
+          ? ext.repoUrl
+          : repoUrl;
+      const extWithIcon: Extension = {
+        ...ext,
+        icon: resolveRemoteExtensionIconUrl(ext.icon, ext.pkg, effectiveRepoUrl),
+      };
+      const res = await extensionEngine.install(extWithIcon, repoUrl);
       return { ok: true, value: res };
     } catch (err: any) {
       return { ok: false, error: err.message || String(err) };
@@ -615,7 +628,6 @@ export const MobileApi: ElectronApi = {
         await sourceService.fetchCatalogByLang(lang, "manga");
         await sourceService.fetchCatalogByLang(lang, "anime");
       }
-      const { getRepoMeta } = await import("@common/services/repoIdentity");
       const sources = sourceService.getAllSources();
       const value = sources.map((s: any) => {
         const fullPkg = s.pkg || s.id || "";
@@ -624,13 +636,11 @@ export const MobileApi: ElectronApi = {
             ? s.repoUrl
             : repos[0] || "remote";
         const meta = getRepoMeta(effectiveRepoUrl, s.repoName);
-        const iconName = fullPkg.startsWith("ma.autakimi.extension.")
-          ? `${fullPkg}.png`
-          : `ma.autakimi.extension.${fullPkg}.png`;
-        const iconUrl =
-          typeof s.icon === "string" && s.icon.startsWith("http")
-            ? s.icon
-            : `autakimi-cache://local-icon/${iconName}`;
+        const iconUrl = resolveRemoteExtensionIconUrl(
+          s.icon,
+          fullPkg,
+          effectiveRepoUrl,
+        );
 
         return {
           pkg: fullPkg,

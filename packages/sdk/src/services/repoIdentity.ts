@@ -243,3 +243,51 @@ export function resolveExtensionBadge(
     color: undefined,
   };
 }
+
+const OFFICIAL_EXTENSIONS_DIST_BASE =
+  "https://raw.githubusercontent.com/Autakimi-Ecosystem/autakimi-extensions/main/dist/";
+
+/**
+ * Resolves a remote HTTPS icon URL for mobile/non-Electron clients, replacing
+ * Electron-only `autakimi-cache://local-icon/...` and relative icon paths.
+ */
+export function resolveRemoteExtensionIconUrl(
+  rawIcon?: string | null,
+  pkg?: string | null,
+  repoUrl?: string | null,
+): string {
+  const icon = (rawIcon || "").trim();
+  if (icon.startsWith("http://") || icon.startsWith("https://")) {
+    return icon;
+  }
+
+  let repoBase = "";
+  const repo = (repoUrl || "").trim();
+  if (repo.startsWith("http://") || repo.startsWith("https://")) {
+    repoBase = repo
+      .replace(/[\\/]?([^/]+\.json)$/i, "")
+      .replace(/\/?$/, "/");
+  }
+  const effectiveBase = repoBase || OFFICIAL_EXTENSIONS_DIST_BASE;
+
+  if (icon.startsWith("autakimi-cache://local-icon/")) {
+    const file = icon
+      .slice("autakimi-cache://local-icon/".length)
+      .split(/[/?#]/)[0];
+    if (file) return `${effectiveBase}icons/${file}`;
+  }
+
+  if (icon && !icon.includes("://")) {
+    const cleanRel = icon.replace(/^\/+/, "");
+    return cleanRel.startsWith("icons/")
+      ? `${effectiveBase}${cleanRel}`
+      : `${effectiveBase}icons/${cleanRel}`;
+  }
+
+  const basePkg = extractBasePkg(pkg);
+  if (!basePkg) return "";
+  const iconName = basePkg.startsWith("ma.autakimi.extension.")
+    ? `${basePkg}.png`
+    : `ma.autakimi.extension.${basePkg}.png`;
+  return `${effectiveBase}icons/${iconName}`;
+}

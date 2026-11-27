@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   View,
   FlatList,
@@ -67,6 +67,7 @@ export default function LibraryTab() {
   const cardWidth = Math.floor((windowWidth - 16 - 24) / 3);
   const [activeTab, setActiveTab] = useState<"manga" | "anime">("manga");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const syncedDisplayModeRef = useRef<string | null>(null);
 
   const {
     data,
@@ -92,6 +93,17 @@ export default function LibraryTab() {
     useCallback(() => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ["history", activeTab] });
+      queryClient.invalidateQueries({ queryKey: ["extensions", "installed"] });
+      DataService.db
+        .getSetting("displayMode")
+        .then((res: any) => {
+          const val = typeof res === "object" && res !== null ? res.value : res;
+          if ((val === "grid" || val === "list") && val !== syncedDisplayModeRef.current) {
+            syncedDisplayModeRef.current = val;
+            setViewMode(val);
+          }
+        })
+        .catch(() => {});
     }, [refetch, queryClient, activeTab]),
   );
 
