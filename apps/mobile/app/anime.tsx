@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   View,
   ScrollView,
@@ -12,17 +12,12 @@ import {
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Stack, router } from 'expo-router'
-import { Search, Play, Loader2, ArrowLeft } from 'lucide-react-native'
+import { Search, Play, ArrowLeft, X } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
+import { isAnimeExtension } from '@common/utils/mediaType'
+import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
 import { Typography, Card, Button } from '../src/native/ui'
 import { useColorScheme } from 'nativewind'
-
-const ANIME_SOURCES = [
-  { pkg: 'en.allanime', name: 'AllAnime', lang: 'en' },
-  { pkg: 'en.gogoanime', name: 'Gogoanime', lang: 'en' },
-  { pkg: 'ar.anime4up', name: 'Anime4Up', lang: 'ar' },
-  { pkg: 'ar.witanime', name: 'WitAnime', lang: 'ar' }
-]
 
 interface AnimeItem {
   id: string
@@ -32,7 +27,7 @@ interface AnimeItem {
   [key: string]: any
 }
 
-type FeedType = 'popular' | 'latest' | 'search'
+type FeedType = 'popular' | 'latest'
 
 export default function AnimePage(): React.JSX.Element {
   const { colorScheme } = useColorScheme()
@@ -40,6 +35,7 @@ export default function AnimePage(): React.JSX.Element {
   const [activePkg, setActivePkg] = useState<string | null>(null)
   const [activeFeed, setActiveFeed] = useState<FeedType>('popular')
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [items, setItems] = useState<AnimeItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,14 +44,15 @@ export default function AnimePage(): React.JSX.Element {
   const [extensionCode, setExtensionCode] = useState<string | null>(null)
   const [extensions, setExtensions] = useState<any[]>([])
   const [extensionsLoading, setExtensionsLoading] = useState(true)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const screenWidth = Dimensions.get('window').width
   const cardWidth = (screenWidth - 48) / 3
 
-  // Load installed extensions on mount
+  // Load installed anime extensions dynamically
   useEffect(() => {
     DataService.db.getExtensions().then((exts: any[]) => {
-      const installed = exts.filter((e: any) => e.pkg && (e.type === 'anime' || e.pkg.toLowerCase().includes('anime')))
+      const installed = (exts || []).filter((e: any) => e.pkg && isAnimeExtension(e))
       setExtensions(installed)
       setExtensionsLoading(false)
     }).catch(() => setExtensionsLoading(false))
@@ -64,95 +61,117 @@ export default function AnimePage(): React.JSX.Element {
   // Resolve source for the selected pkg
   const activeSource = useMemo(() => {
     if (!activePkg) return null
-    const installed = extensions.find((e) => e.pkg === activePkg)
-    return installed ? { ...installed, code: installed.code || null } : null
+    return extensions.find((e) => e.pkg === activePkg) || null
   }, [activePkg, extensions])
 
   // Load extension code when source changes
   useEffect(() => {
-    if (!activePkg) return
+    if (!activePkg) {
+      setExtensionCode(null)
+      return
+    }
     DataService.db.getExtension(activePkg).then((ext: any) => {
-      setExtensionCode(ext?.code || null)
-    }).catch(() => setExtensionCode(null))
+      setExtensionCode(ext?.code || '')
+    }).catch(() => setExtensionCode(''))
   }, [activePkg])
 
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim())
+    }, 350)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [searchQuery])
+
   const fetchAnime = useCallback(async (p: number, feed: FeedType, query: string) => {
-    if (!extensionCode || !activePkg) return
+    if (!activePkg) return
     setLoading(true)
     setError(null)
 
     try {
+      const trimmed = query.trim()
       const contextArgs: Record<string, any> = {
+        page: p,
         limit: 24,
         offset: (p - 1) * 24,
-        activeFeed: feed,
-        lang: 'all'
-      }
-      if (feed === 'search' && query) {
-        contextArgs.query = query
+        activeFeed: trimmed ? 'search' : feed,
+        debouncedSearch: trimmed,
+        query: trimmed,
+        lang: activeSource?.lang || 'all'
       }
 
       const res: any = await DataService.executeExtension({
         pkg: activePkg,
-        code: extensionCode,
+        code: extensionCode || '',
         contextArgs
       })
 
-      const data = (res?.data || []).map((item: any) => ({
-        id: item.id || item.url?.split('/').filter(Boolean).pop() || String(Math.random()),
-        title: item.title || item.name || 'Unknown',
-        coverUrl: item.coverUrl || item.thumbnail || item.image || '',
-        url: item.url || ''
-      }))
+      const raw = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      const data = raw
+        .filter(isValidMediaCatalogItem)
+        .map((item: any) => {
+          const norm = normalizeManga(item)
+          return {
+            id: item.id || item.url?.split('/').filter(Boolean).pop() || String(Math.random()),
+            title: norm.title,
+            coverUrl: norm.coverUrl || '',
+            url: item.url || item.id || ''
+          }
+        })
 
       if (p === 1) {
         setItems(data)
       } else {
-        setItems((prev) => [...prev, ...data])
+        setItems((prev) => {
+          const seen = new Set(prev.map((x) => x.id))
+          return [...prev, ...data.filter((x: AnimeItem) => !seen.has(x.id))]
+        })
       }
-      setHasMore(data.length >= 24)
+      setHasMore(data.length >= 8)
     } catch (err: any) {
       setError(err.message || 'Failed to fetch anime')
     } finally {
       setLoading(false)
     }
-  }, [extensionCode, activePkg])
+  }, [extensionCode, activePkg, activeSource])
 
-  // Fetch when source/feed/page changes
+  // Fetch when source/feed/search changes
   useEffect(() => {
-    if (!activePkg || !extensionCode) return
-    fetchAnime(1, activeFeed, searchQuery)
+    if (!activePkg || extensionCode === null) return
     setPage(1)
-  }, [activePkg, extensionCode, activeFeed])
-
-  const handleSearch = useCallback(() => {
-    if (!searchQuery.trim()) {
-      setActiveFeed('popular')
-      return
-    }
-    setActiveFeed('search')
-  }, [searchQuery])
+    fetchAnime(1, activeFeed, debouncedQuery)
+  }, [activePkg, extensionCode, activeFeed, debouncedQuery, fetchAnime])
 
   const handleLoadMore = useCallback(() => {
     if (loading || !hasMore) return
     const nextPage = page + 1
     setPage(nextPage)
-    fetchAnime(nextPage, activeFeed, searchQuery)
-  }, [loading, hasMore, page, activeFeed, searchQuery, fetchAnime])
+    fetchAnime(nextPage, activeFeed, debouncedQuery)
+  }, [loading, hasMore, page, activeFeed, debouncedQuery, fetchAnime])
 
   const handleRefresh = useCallback(() => {
     setPage(1)
-    fetchAnime(1, activeFeed, searchQuery)
-  }, [activeFeed, searchQuery, fetchAnime])
+    fetchAnime(1, activeFeed, debouncedQuery)
+  }, [activeFeed, debouncedQuery, fetchAnime])
 
   const handleAnimePress = useCallback((item: AnimeItem) => {
-    router.push({ pathname: '/anime/[id]' as any, params: { id: item.id, pkg: activePkg!, title: item.title, coverUrl: item.coverUrl } })
+    router.push({
+      pathname: '/anime/[id]' as any,
+      params: {
+        id: item.id,
+        pkg: activePkg!,
+        title: item.title,
+        coverUrl: item.coverUrl,
+        url: item.url || item.id || ''
+      }
+    })
   }, [activePkg])
 
   const feedTabs: { key: FeedType; label: string }[] = [
     { key: 'popular', label: 'Popular' },
-    { key: 'latest', label: 'Latest' },
-    { key: 'search', label: 'Search' }
+    { key: 'latest', label: 'Latest' }
   ]
 
   return (
@@ -161,10 +180,24 @@ export default function AnimePage(): React.JSX.Element {
 
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border/40 bg-background">
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 rounded-xl" activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => {
+            if (activePkg) {
+              setActivePkg(null)
+              setItems([])
+              setSearchQuery('')
+            } else {
+              router.back()
+            }
+          }}
+          className="p-2 -ml-2 rounded-xl"
+          activeOpacity={0.7}
+        >
           <ArrowLeft size={22} color={isDark ? '#f4f4f5' : '#09090b'} />
         </TouchableOpacity>
-        <Typography variant="h3" className="font-bold text-lg flex-1 text-center">Browse Anime</Typography>
+        <Typography variant="h3" className="font-bold text-lg flex-1 text-center" numberOfLines={1}>
+          {activeSource?.name || 'Browse Anime'}
+        </Typography>
         <View className="w-10" />
       </View>
 
@@ -172,43 +205,66 @@ export default function AnimePage(): React.JSX.Element {
         /* Source Selection */
         <ScrollView className="flex-1 px-4 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
           <Typography variant="small" className="text-muted-foreground uppercase font-semibold tracking-wide mb-3 px-1">
-            Select an Anime Source
+            Installed Anime Sources ({extensions.length})
           </Typography>
           {extensionsLoading ? (
             <ActivityIndicator size="large" color="#e11d48" className="mt-20" />
+          ) : extensions.length === 0 ? (
+            <Card className="mb-3">
+              <View className="items-center py-8 px-4">
+                <Play size={32} color="#71717a" />
+                <Typography className="font-semibold mt-3 text-center">No anime sources installed</Typography>
+                <Typography variant="muted" className="text-xs mt-1 text-center">
+                  Install an anime extension from Extensions to start watching.
+                </Typography>
+              </View>
+            </Card>
           ) : (
-            ANIME_SOURCES.map((source) => {
-              const isInstalled = extensions.some((e: any) => e.pkg === source.pkg)
-              return (
-                <TouchableOpacity
-                  key={source.pkg}
-                  onPress={() => isInstalled && setActivePkg(source.pkg)}
-                  className="mb-3"
-                  disabled={!isInstalled}
-                >
-                  <Card>
-                    <View className="flex-row items-center gap-3.5 p-4">
+            extensions.map((source) => (
+              <TouchableOpacity
+                key={source.pkg}
+                onPress={() => {
+                  setActivePkg(source.pkg)
+                  setActiveFeed('popular')
+                  setSearchQuery('')
+                }}
+                className="mb-3"
+              >
+                <Card>
+                  <View className="flex-row items-center gap-3.5 p-4">
+                    {source.icon ? (
+                      <Image
+                        source={{ uri: source.icon }}
+                        className="w-11 h-11 rounded-xl bg-secondary"
+                        contentFit="contain"
+                        transition={150}
+                      />
+                    ) : (
                       <View className="w-11 h-11 rounded-xl bg-secondary border border-border items-center justify-center">
-                        <Play size={20} color={isInstalled ? '#e11d48' : '#71717a'} />
+                        <Play size={20} color="#e11d48" />
                       </View>
-                      <View className="flex-1">
-                        <View className="flex-row items-center gap-2">
-                          <Typography className="font-bold text-base">{source.name}</Typography>
+                    )}
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        <Typography className="font-bold text-base" numberOfLines={1}>
+                          {source.name || source.pkg}
+                        </Typography>
+                        {source.lang && (
                           <View className="bg-secondary px-2 py-0.5 rounded-full">
                             <Typography variant="small" className="text-muted-foreground font-medium text-[10px]">
-                              {source.lang.toUpperCase()}
+                              {String(source.lang).toUpperCase()}
                             </Typography>
                           </View>
-                        </View>
-                        <Typography variant="muted" className="text-xs mt-0.5">
-                          {isInstalled ? 'Ready to browse' : 'Not installed — install from Extensions'}
-                        </Typography>
+                        )}
                       </View>
+                      <Typography variant="muted" className="text-xs mt-0.5">
+                        {source.version ? `v${source.version} · ` : ''}Tap to browse catalog
+                      </Typography>
                     </View>
-                  </Card>
-                </TouchableOpacity>
-              )
-            })
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))
           )}
           <TouchableOpacity
             onPress={() => router.push('/extensions' as any)}
@@ -225,38 +281,47 @@ export default function AnimePage(): React.JSX.Element {
       ) : (
         /* Catalog Browsing */
         <View className="flex-1">
-          {/* Feed Tabs + Search */}
+          {/* Quick Search Bar + Feed Tabs */}
           <View className="px-4 pt-3 pb-2 border-b border-border">
-            <View className="flex-row gap-2 mb-3">
-              {feedTabs.map((tab) => (
+            <View className="flex-row items-center bg-secondary rounded-xl px-3.5 py-1.5 border border-border mb-2.5">
+              <Search size={16} color="#94a3b8" />
+              <TextInput
+                className="flex-1 ml-2 py-1.5 text-foreground text-sm"
+                placeholder={`Search in ${activeSource?.name || 'anime'}...`}
+                placeholderTextColor="#94a3b8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                onSubmitEditing={() => setDebouncedQuery(searchQuery.trim())}
+              />
+              {!!searchQuery && (
                 <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setActiveFeed(tab.key)}
-                  className={`px-4 py-2 rounded-full ${activeFeed === tab.key ? 'bg-primary' : 'bg-secondary'}`}
+                  onPress={() => {
+                    setSearchQuery('')
+                    setDebouncedQuery('')
+                  }}
+                  className="p-1"
                 >
-                  <Typography
-                    variant="small"
-                    className={`font-bold ${activeFeed === tab.key ? 'text-white' : 'text-muted-foreground'}`}
-                  >
-                    {tab.label}
-                  </Typography>
+                  <X size={16} color="#94a3b8" />
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
-            {activeFeed === 'search' && (
-              <View className="flex-row items-center gap-2">
-                <TextInput
-                  className="flex-1 bg-secondary rounded-xl px-4 py-2.5 text-foreground border border-border"
-                  placeholder="Search anime..."
-                  placeholderTextColor="#94a3b8"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  returnKeyType="search"
-                  onSubmitEditing={handleSearch}
-                />
-                <TouchableOpacity onPress={handleSearch} className="bg-primary rounded-xl p-2.5">
-                  <Search size={18} color="#fff" />
-                </TouchableOpacity>
+            {!debouncedQuery && (
+              <View className="flex-row gap-2">
+                {feedTabs.map((tab) => (
+                  <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => setActiveFeed(tab.key)}
+                    className={`px-4 py-1.5 rounded-full ${activeFeed === tab.key ? 'bg-primary' : 'bg-secondary'}`}
+                  >
+                    <Typography
+                      variant="small"
+                      className={`font-bold ${activeFeed === tab.key ? 'text-white' : 'text-muted-foreground'}`}
+                    >
+                      {tab.label}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
@@ -269,7 +334,7 @@ export default function AnimePage(): React.JSX.Element {
               </Typography>
             </TouchableOpacity>
             <Typography variant="muted" className="text-xs">
-              · {ANIME_SOURCES.find((s) => s.pkg === activePkg)?.name}
+              · {activeSource?.name || activePkg}
             </Typography>
           </View>
 

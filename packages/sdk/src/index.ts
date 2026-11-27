@@ -16,6 +16,7 @@ export {
   normalizeManga,
   isValidMediaCatalogItem,
 } from "./utils/mangaNormalizer";
+export { ANIME_SOURCE_PKGS, isAnimeExtension } from "./utils/mediaType";
 export * from "./utils/eyeCare";
 export * from "./utils/smartDownloads";
 export * from "./utils/discordPresence";

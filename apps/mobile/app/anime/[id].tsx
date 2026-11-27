@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -6,25 +6,49 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  TextInput,
 } from "react-native";
 import { Image } from "expo-image";
-import { useLocalSearchParams, router, Stack } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useLocalSearchParams,
+  router,
+  Stack,
+  useFocusEffect,
+} from "expo-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Typography, Button, Card, CardContent } from "@mobile/native/ui";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowLeft, Play, ChevronRight, AlignLeft } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Play,
+  ChevronRight,
+  AlignLeft,
+  Bookmark,
+  CheckCircle,
+  Search,
+  ArrowUpDown,
+  X,
+} from "lucide-react-native";
 import { DataService } from "@renderer/shared/api";
+import { resolveExtensionBadge } from "@common/services/repoIdentity";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HERO_HEIGHT = SCREEN_WIDTH * 1.4;
+const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 1.15), 420);
+
+function formatResumeTime(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}:${rem < 10 ? "0" : ""}${rem}`;
+}
 
 export default function AnimeDetailsScreen() {
   const {
     id,
     title: paramTitle,
     coverUrl: paramCover,
-    pkg,
-    url,
+    pkg: paramPkg,
+    url: paramUrl,
   } = useLocalSearchParams<{
     id: string;
     title?: string;
@@ -33,49 +57,129 @@ export default function AnimeDetailsScreen() {
     url?: string;
   }>();
 
-  const [extCode, setExtCode] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [descExpanded, setDescExpanded] = useState(false);
   const [description, setDescription] = useState<string>(
     "No description available.",
   );
-  const [displayTitle, setDisplayTitle] = useState<string>(paramTitle || "Unknown");
+  const [genres, setGenres] = useState<string[]>([]);
+  const [mediaStatus, setMediaStatus] = useState<string>("");
+  const [displayTitle, setDisplayTitle] = useState<string>(
+    paramTitle || "Unknown",
+  );
   const [displayCover, setDisplayCover] = useState<string>(paramCover || "");
+  const displayMetaRef = useRef({ title: displayTitle, cover: displayCover });
+  displayMetaRef.current = { title: displayTitle, cover: displayCover };
   const [seasons, setSeasons] = useState<any[]>([]);
   const [activeSeasonUrl, setActiveSeasonUrl] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filterMode, setFilterMode] = useState<"all" | "unwatched">("all");
 
-  const effectiveEpisodeSourceUrl = activeSeasonUrl || url || id;
+  const effectiveEpisodeSourceUrl = activeSeasonUrl || paramUrl || id;
   const effectiveMediaId = activeSeasonUrl || id;
-  const isAlternateSeason = Boolean(activeSeasonUrl && activeSeasonUrl !== (url || id));
+  const isAlternateSeason = Boolean(
+    activeSeasonUrl && activeSeasonUrl !== (paramUrl || id),
+  );
+
+  // Installed extensions for code resolution and clickable source badge
+  const { data: installedExtensions = [] } = useQuery({
+    queryKey: ["installed-extensions"],
+    queryFn: async () => {
+      const res = await DataService.db.getExtensions();
+      return (res as any)?.value || res || [];
+    },
+  });
+
+  // Library items (track membership per season via effectiveMediaId)
+  const { data: libraryItems = [] } = useQuery({
+    queryKey: ["library"],
+    queryFn: async () => {
+      const res = await DataService.db.getLibrary();
+      return (res as any)?.value || res || [];
+    },
+  });
+  const libraryItem = libraryItems.find(
+    (item: any) => String(item.id) === String(effectiveMediaId),
+  );
+  const isInLibrary = Boolean(libraryItem);
+
+  // Watch history for this season/anime
+  const { data: historyEntries = [] } = useQuery({
+    queryKey: ["anime-history", effectiveMediaId],
+    queryFn: async () => {
+      const res = await DataService.db.getHistory({ limit: 500 });
+      const entries = (res as any)?.value || res || [];
+      return entries.filter(
+        (e: any) => String(e.mangaId || e.manga_id) === String(effectiveMediaId),
+      );
+    },
+    enabled: !!effectiveMediaId,
+  });
+
+  // Episode watch progress for this season/anime
+  const { data: progressRows = [], refetch: refetchProgress } = useQuery({
+    queryKey: ["anime-progress", effectiveMediaId],
+    queryFn: async () => {
+      const res = await DataService.db.getProgress(effectiveMediaId);
+      return (res as any)?.value || res || [];
+    },
+    enabled: !!effectiveMediaId,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProgress();
+      queryClient.invalidateQueries({
+        queryKey: ["anime-history", effectiveMediaId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["library"] });
+    }, [refetchProgress, queryClient, effectiveMediaId]),
+  );
+
+  // Resolve pkg & url waterfall
+  const resolvedPkg =
+    paramPkg ||
+    libraryItem?.pkg ||
+    historyEntries[0]?.pkg ||
+    "";
+  const matchedExt = installedExtensions.find(
+    (e: any) => e.pkg === resolvedPkg,
+  );
+  const extCode = matchedExt?.code || null;
+  const sourceBadge = resolveExtensionBadge(resolvedPkg, installedExtensions);
 
   const {
     data: episodes,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["anime-episodes", id, pkg, effectiveEpisodeSourceUrl],
+    queryKey: [
+      "anime-episodes",
+      effectiveMediaId,
+      resolvedPkg,
+      effectiveEpisodeSourceUrl,
+    ],
     queryFn: async () => {
-      // 1. Check local DB first (for default season)
-      const cached = isAlternateSeason ? null : await DataService.db.getChapters(id);
+      const cached = await DataService.db.getChapters(effectiveMediaId);
       const cachedList = (cached as any)?.value || cached || [];
 
-      // If we don't have package/url info, return cached list
-      if (!pkg && !url) {
+      if (!resolvedPkg && !effectiveEpisodeSourceUrl) {
         return cachedList;
       }
 
-      // 2. Fetch fresh episodes from extension if available
       try {
         let codeToUse = extCode;
-        if (!codeToUse && pkg) {
+        if (!codeToUse && resolvedPkg) {
           const exts = await DataService.db.getExtensions();
           const extList = (exts as any)?.value || exts || [];
-          const found = extList.find((e: any) => e.pkg === pkg);
+          const found = extList.find((e: any) => e.pkg === resolvedPkg);
           if (found?.code) codeToUse = found.code;
         }
 
-        if (pkg && codeToUse) {
+        if (resolvedPkg && codeToUse) {
           const result: any = await DataService.executeExtension({
-            pkg,
+            pkg: resolvedPkg,
             code: codeToUse,
             contextArgs: {
               type: "fetchChapters",
@@ -92,7 +196,9 @@ export default function AnimeDetailsScreen() {
           if (Array.isArray(rawChapters) && rawChapters.length > 0) {
             const formattedEpisodes = rawChapters.map(
               (ch: any, idx: number) => ({
-                id: String(ch.id || `${id}-ep-${ch.number ?? idx + 1}`),
+                id: String(
+                  ch.id || `${effectiveMediaId}-ep-${ch.number ?? idx + 1}`,
+                ),
                 number:
                   ch.number !== undefined && !isNaN(Number(ch.number))
                     ? Number(ch.number)
@@ -108,13 +214,11 @@ export default function AnimeDetailsScreen() {
               }),
             );
 
-            // Persist primary season to local SQLite for offline access
-            if (!isAlternateSeason) {
-              await DataService.db.saveChapters({
-                mangaId: id,
-                chapters: formattedEpisodes,
-              });
-            }
+            // Persist episodes for EVERY season so Player Prev/Next and History Continue work across seasons
+            await DataService.db.saveChapters({
+              mangaId: effectiveMediaId,
+              chapters: formattedEpisodes,
+            });
 
             return formattedEpisodes;
           }
@@ -128,54 +232,70 @@ export default function AnimeDetailsScreen() {
 
       return cachedList;
     },
-    enabled: !!id,
+    enabled: !!effectiveMediaId,
   });
 
-  // Load extension code and synopsis details
-  useEffect(() => {
-    if (!pkg) return;
-    DataService.db
-      .getExtensions()
-      .then((exts: any[]) => {
-        const ext = exts.find((e: any) => e.pkg === pkg);
-        if (ext?.code) setExtCode(ext.code);
-      })
-      .catch(() => {});
-  }, [pkg]);
-
+  // Load metadata & seasons for current season selection
   useEffect(() => {
     if (!effectiveMediaId) return;
+    let cancelled = false;
+
+    // Reset metadata cleanly when switching to an alternate season before async load finishes
+    if (isAlternateSeason) {
+      setDescription("No description available.");
+      setGenres([]);
+      setMediaStatus("");
+    }
+
     DataService.db
       .getMangaCache(effectiveMediaId)
       .then(async (cached: any) => {
+        if (cancelled) return;
         const c = (cached as any)?.value || cached;
         if (c?.description && c.description !== "No description available.") {
           setDescription(c.description);
+        } else if (!isAlternateSeason) {
+          setDescription("No description available.");
         }
         if (c?.title) setDisplayTitle(c.title);
-        if (c?.coverUrl || c?.cover_url) setDisplayCover(c.coverUrl || c.cover_url);
+        if (c?.coverUrl || c?.cover_url) {
+          setDisplayCover(c.coverUrl || c.cover_url);
+        }
+        if (c?.status) setMediaStatus(c.status);
+        if (c?.genres) {
+          try {
+            const parsed = Array.isArray(c.genres)
+              ? c.genres
+              : JSON.parse(c.genres);
+            if (Array.isArray(parsed)) setGenres(parsed);
+          } catch {}
+        }
 
-        if (pkg && effectiveEpisodeSourceUrl) {
+        if (resolvedPkg && effectiveEpisodeSourceUrl) {
           let codeToUse = extCode;
           if (!codeToUse) {
             const exts = await DataService.db.getExtensions();
             const extList = (exts as any)?.value || exts || [];
-            const found = extList.find((e: any) => e.pkg === pkg);
+            const found = extList.find((e: any) => e.pkg === resolvedPkg);
             if (found?.code) codeToUse = found.code;
           }
 
-          if (codeToUse) {
+          if (codeToUse && !cancelled) {
             try {
               const res: any = await DataService.executeExtension({
-                pkg,
+                pkg: resolvedPkg,
                 code: codeToUse,
                 contextArgs: {
                   type: "fetchMangaDetails",
                   mangaUrl: effectiveEpisodeSourceUrl,
                 },
               });
+              if (cancelled) return;
               const details = res?.data || res;
-              if (Array.isArray(details?.seasons) && details.seasons.length > 0) {
+              if (
+                Array.isArray(details?.seasons) &&
+                details.seasons.length > 0
+              ) {
                 setSeasons((prev) => {
                   if (!prev.length) return details.seasons;
                   const prevById = new Map(prev.map((s: any) => [s.id, s]));
@@ -195,33 +315,162 @@ export default function AnimeDetailsScreen() {
               }
               if (details?.title) setDisplayTitle(details.title);
               if (details?.coverUrl) setDisplayCover(details.coverUrl);
+              if (details?.status) setMediaStatus(details.status);
+              if (Array.isArray(details?.genres)) setGenres(details.genres);
               if (details?.description) {
                 setDescription(details.description);
-                await DataService.db.saveMangaCache({
-                  id: effectiveMediaId,
-                  title: details.title || paramTitle || "Unknown",
-                  coverUrl: details.coverUrl || paramCover || "",
-                  description: details.description,
-                  url: effectiveEpisodeSourceUrl,
-                  pkg,
-                  mediaType: "anime",
-                });
               }
+
+              await DataService.db.saveMangaCache({
+                id: effectiveMediaId,
+                title:
+                  details?.title ||
+                  displayMetaRef.current.title ||
+                  paramTitle ||
+                  "Unknown",
+                coverUrl:
+                  details?.coverUrl ||
+                  displayMetaRef.current.cover ||
+                  paramCover ||
+                  "",
+                description: details?.description || "",
+                status: details?.status || "",
+                genres: Array.isArray(details?.genres) ? details.genres : [],
+                url: effectiveEpisodeSourceUrl,
+                pkg: resolvedPkg,
+                mediaType: "anime",
+              });
             } catch (_) {}
           }
         }
       })
       .catch(() => {});
-  }, [effectiveMediaId, effectiveEpisodeSourceUrl, pkg, extCode, paramTitle, paramCover]);
 
-  const sortedEpisodes = episodes
-    ? [...episodes].sort(
-        (a: any, b: any) => Number(a.number || 0) - Number(b.number || 0),
-      )
-    : [];
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    effectiveMediaId,
+    effectiveEpisodeSourceUrl,
+    isAlternateSeason,
+    resolvedPkg,
+    extCode,
+    paramTitle,
+    paramCover,
+  ]);
+
+  const progressMap = useMemo(() => {
+    const map = new Map<string, { isRead: boolean; lastPage: number }>();
+    for (const row of progressRows || []) {
+      const chId = String(row.chapter_id || row.chapterId || "");
+      if (!chId) continue;
+      map.set(chId, {
+        isRead: Boolean(row.is_read ?? row.isRead),
+        lastPage: Number(row.last_page ?? row.lastPage ?? 0),
+      });
+    }
+    return map;
+  }, [progressRows]);
+
+  const sortedEpisodes = useMemo(() => {
+    if (!episodes || !Array.isArray(episodes)) return [];
+    return [...episodes].sort(
+      (a: any, b: any) => Number(a.number || 0) - Number(b.number || 0),
+    );
+  }, [episodes]);
+
+  const unwatchedCount = useMemo(() => {
+    return sortedEpisodes.filter(
+      (ep: any) => !progressMap.get(String(ep.id))?.isRead,
+    ).length;
+  }, [sortedEpisodes, progressMap]);
+
+  const filteredEpisodes = useMemo(() => {
+    let list = [...sortedEpisodes];
+    if (filterMode === "unwatched") {
+      list = list.filter((ep: any) => !progressMap.get(String(ep.id))?.isRead);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(
+        (ep: any) =>
+          (ep.title && ep.title.toLowerCase().includes(q)) ||
+          (ep.number !== undefined && String(ep.number).includes(q)),
+      );
+    }
+    if (!sortAsc) {
+      list.reverse();
+    }
+    return list;
+  }, [sortedEpisodes, filterMode, progressMap, searchQuery, sortAsc]);
+
+  // Determine Continue / Start episode
+  const { targetEpisode, primaryButtonLabel } = useMemo(() => {
+    if (sortedEpisodes.length === 0) {
+      return { targetEpisode: null, primaryButtonLabel: "Start Watching" };
+    }
+    const lastHistory = historyEntries[0];
+    if (lastHistory) {
+      const lastEpIdx = sortedEpisodes.findIndex(
+        (ep: any) =>
+          String(ep.id) ===
+          String(lastHistory.chapterId || lastHistory.chapter_id),
+      );
+      if (lastEpIdx >= 0) {
+        const lastEp = sortedEpisodes[lastEpIdx];
+        const prog = progressMap.get(String(lastEp.id));
+        if (prog?.isRead && lastEpIdx + 1 < sortedEpisodes.length) {
+          const nextEp = sortedEpisodes[lastEpIdx + 1];
+          return {
+            targetEpisode: nextEp,
+            primaryButtonLabel: `Continue · Ep ${nextEp.number}`,
+          };
+        }
+        return {
+          targetEpisode: lastEp,
+          primaryButtonLabel: `Continue · Ep ${lastEp.number}`,
+        };
+      }
+    }
+    const firstUnwatched = sortedEpisodes.find(
+      (ep: any) => !progressMap.get(String(ep.id))?.isRead,
+    );
+    const chosen = firstUnwatched || sortedEpisodes[0];
+    const hasAnyProgress = progressMap.size > 0;
+    return {
+      targetEpisode: chosen,
+      primaryButtonLabel: hasAnyProgress
+        ? `Continue · Ep ${chosen.number}`
+        : "Start Watching",
+    };
+  }, [sortedEpisodes, historyEntries, progressMap]);
+
+  const toggleLibrary = useMutation({
+    mutationFn: async () => {
+      return DataService.db.toggleLibrary({
+        id: effectiveMediaId,
+        title: displayTitle,
+        coverUrl: displayCover || undefined,
+        url: effectiveEpisodeSourceUrl,
+        pkg: resolvedPkg || undefined,
+        mediaType: "anime",
+      } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["library"] });
+    },
+  });
+
+  const handleBrowseSource = () => {
+    if (!resolvedPkg) return;
+    router.push({
+      pathname: "/(tabs)/browse" as any,
+      params: { pkg: resolvedPkg },
+    });
+  };
 
   const playEpisode = async (episode: any) => {
-    if (!pkg) return;
+    if (!resolvedPkg) return;
 
     DataService.db
       .addHistory({
@@ -232,7 +481,7 @@ export default function AnimeDetailsScreen() {
         chapterId: episode.id,
         chapterTitle: episode.title || `Episode ${episode.number}`,
         startedAt: new Date().toISOString(),
-        pkg,
+        pkg: resolvedPkg,
         type: "anime",
       })
       .catch(() => {});
@@ -242,7 +491,7 @@ export default function AnimeDetailsScreen() {
       params: {
         animeId: effectiveMediaId,
         episodeId: episode.id,
-        pkg: pkg,
+        pkg: resolvedPkg,
         episodeUrl: episode.url,
         episodeTitle: episode.title || `Episode ${episode.number}`,
         animeTitle: displayTitle || paramTitle || "",
@@ -281,13 +530,13 @@ export default function AnimeDetailsScreen() {
             </View>
           )}
           <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.85)"]}
+            colors={["transparent", "rgba(0,0,0,0.88)"]}
             style={{
               position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
-              height: HERO_HEIGHT * 0.5,
+              height: HERO_HEIGHT * 0.6,
             }}
           />
           <TouchableOpacity
@@ -308,26 +557,77 @@ export default function AnimeDetailsScreen() {
           </Typography>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions: Continue/Start Watching + Bookmark */}
         <View className="px-4 mt-4 flex-row gap-3">
           <Button
-            title="Start Watching"
+            title={primaryButtonLabel}
             variant="primary"
             className="flex-1"
             onPress={() => {
-              if (sortedEpisodes.length > 0) playEpisode(sortedEpisodes[0]);
+              if (targetEpisode) playEpisode(targetEpisode);
             }}
-            disabled={sortedEpisodes.length === 0}
+            disabled={!targetEpisode}
           />
+          <TouchableOpacity
+            className={`w-12 h-12 rounded-xl items-center justify-center border border-border ${
+              isInLibrary ? "bg-primary/20 border-primary" : "bg-card"
+            }`}
+            onPress={() => toggleLibrary.mutate()}
+            disabled={toggleLibrary.isPending}
+          >
+            {toggleLibrary.isPending ? (
+              <ActivityIndicator size="small" color="#e11d48" />
+            ) : (
+              <Bookmark
+                size={22}
+                color={isInLibrary ? "#e11d48" : "#94a3b8"}
+                fill={isInLibrary ? "#e11d48" : "none"}
+              />
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* Genres */}
-        <View className="px-4 mt-4 flex-row flex-wrap gap-2">
-          <View className="bg-primary/20 px-3 py-1 rounded-full">
-            <Typography className="text-primary text-xs">
-              {pkg || "Source"}
-            </Typography>
-          </View>
+        {/* Clickable Source Badge + Status & Genres */}
+        <View className="px-4 mt-4 flex-row flex-wrap gap-2 items-center">
+          {!!resolvedPkg && (
+            <TouchableOpacity
+              onPress={handleBrowseSource}
+              activeOpacity={0.75}
+              className="flex-row items-center gap-1.5 bg-primary/15 border border-primary/30 px-3 py-1 rounded-full"
+            >
+              {sourceBadge?.color && (
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 99,
+                    backgroundColor: sourceBadge.color,
+                  }}
+                />
+              )}
+              <Typography className="text-primary text-xs font-semibold">
+                {sourceBadge?.name || resolvedPkg}
+              </Typography>
+              <ChevronRight size={12} color="#e11d48" />
+            </TouchableOpacity>
+          )}
+          {!!mediaStatus && (
+            <View className="bg-muted px-3 py-1 rounded-full">
+              <Typography className="text-muted-foreground text-xs uppercase font-medium">
+                {mediaStatus}
+              </Typography>
+            </View>
+          )}
+          {genres.map((genre, idx) => (
+            <View
+              key={idx}
+              className="bg-card px-3 py-1 rounded-full border border-border"
+            >
+              <Typography className="text-muted-foreground text-xs">
+                {genre}
+              </Typography>
+            </View>
+          ))}
         </View>
 
         {/* Description */}
@@ -346,14 +646,16 @@ export default function AnimeDetailsScreen() {
               >
                 {description}
               </Typography>
-              <TouchableOpacity
-                className="mt-2"
-                onPress={() => setDescExpanded(!descExpanded)}
-              >
-                <Typography className="text-primary text-sm">
-                  {descExpanded ? "Show less" : "Read more"}
-                </Typography>
-              </TouchableOpacity>
+              {description.length > 120 && (
+                <TouchableOpacity
+                  className="mt-2"
+                  onPress={() => setDescExpanded(!descExpanded)}
+                >
+                  <Typography className="text-primary text-sm">
+                    {descExpanded ? "Show less" : "Read more"}
+                  </Typography>
+                </TouchableOpacity>
+              )}
             </CardContent>
           </Card>
         </View>
@@ -414,10 +716,94 @@ export default function AnimeDetailsScreen() {
                 Episodes
               </Typography>
             </View>
-            <Typography className="text-muted-foreground text-sm">
-              {sortedEpisodes.length}
-            </Typography>
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                onPress={() => setFilterMode("all")}
+                className={`px-2.5 py-1 rounded-lg border ${
+                  filterMode === "all"
+                    ? "bg-primary/15 border-primary/40"
+                    : "bg-card border-border"
+                }`}
+              >
+                <Typography
+                  className={`text-xs font-medium ${
+                    filterMode === "all"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  All ({sortedEpisodes.length})
+                </Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFilterMode("unwatched")}
+                className={`px-2.5 py-1 rounded-lg border ${
+                  filterMode === "unwatched"
+                    ? "bg-primary/15 border-primary/40"
+                    : "bg-card border-border"
+                }`}
+              >
+                <Typography
+                  className={`text-xs font-medium ${
+                    filterMode === "unwatched"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Unwatched ({unwatchedCount})
+                </Typography>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Episode Search & Sort Controls */}
+          {sortedEpisodes.length > 0 && (
+            <View className="flex-row items-center gap-2 mb-3">
+              <View className="flex-1 flex-row items-center bg-card border border-border rounded-xl px-3 py-1.5 h-10">
+                <Search size={16} color="#94a3b8" />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search episode..."
+                  placeholderTextColor="#71717a"
+                  className="flex-1 ml-2 text-foreground text-sm py-0"
+                  returnKeyType="search"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {!!searchQuery && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery("")}
+                    className="p-1"
+                  >
+                    <X size={14} color="#94a3b8" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setSortAsc((prev) => !prev)}
+                className={`h-10 px-3 rounded-xl border flex-row items-center gap-1.5 ${
+                  !sortAsc
+                    ? "bg-primary/15 border-primary/40"
+                    : "bg-card border-border"
+                }`}
+                activeOpacity={0.7}
+              >
+                <ArrowUpDown
+                  size={15}
+                  color={!sortAsc ? "#e11d48" : "#94a3b8"}
+                />
+                <Typography
+                  className={`text-xs font-medium ${
+                    !sortAsc ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {sortAsc ? "Oldest" : "Newest"}
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {isLoading ? (
             <View className="py-8 items-center">
@@ -436,30 +822,72 @@ export default function AnimeDetailsScreen() {
                 onPress={() => refetch()}
               />
             </View>
+          ) : filteredEpisodes.length === 0 ? (
+            <View className="py-8 items-center bg-card rounded-xl border border-border">
+              <Search size={28} color="#94a3b8" />
+              <Typography className="mt-2 text-muted-foreground text-sm">
+                {searchQuery.trim()
+                  ? `No episodes match "${searchQuery}"`
+                  : "All episodes have been watched"}
+              </Typography>
+            </View>
           ) : (
             <View className="bg-card rounded-xl border border-border overflow-hidden">
-              {sortedEpisodes.map((episode: any, idx: number) => (
-                <TouchableOpacity
-                  key={episode.id}
-                  className={`flex-row items-center px-4 py-3.5 ${idx !== sortedEpisodes.length - 1 ? "border-b border-border/50" : ""}`}
-                  onPress={() => playEpisode(episode)}
-                >
-                  <View className="w-8 h-8 bg-primary/20 rounded-full items-center justify-center mr-3">
-                    <Play size={12} color="#e11d48" fill="#e11d48" />
-                  </View>
-                  <View className="flex-1">
-                    <Typography className="font-medium" numberOfLines={1}>
-                      {episode.title || `Episode ${episode.number}`}
-                    </Typography>
-                    {episode.date && (
-                      <Typography className="text-xs text-muted-foreground mt-0.5">
-                        {episode.date}
+              {filteredEpisodes.map((episode: any, idx: number) => {
+                const prog = progressMap.get(String(episode.id));
+                const isWatched = Boolean(prog?.isRead);
+                const resumeSec = prog?.lastPage || 0;
+
+                return (
+                  <TouchableOpacity
+                    key={episode.id}
+                    className={`flex-row items-center px-4 py-3.5 ${
+                      idx !== filteredEpisodes.length - 1
+                        ? "border-b border-border/50"
+                        : ""
+                    }`}
+                    onPress={() => playEpisode(episode)}
+                  >
+                    <View
+                      className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
+                        isWatched ? "bg-emerald-500/15" : "bg-primary/20"
+                      }`}
+                    >
+                      {isWatched ? (
+                        <CheckCircle size={15} color="#10b981" />
+                      ) : (
+                        <Play size={12} color="#e11d48" fill="#e11d48" />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Typography
+                        className={`font-medium ${isWatched ? "text-muted-foreground" : ""}`}
+                        numberOfLines={1}
+                      >
+                        {episode.title || `Episode ${episode.number}`}
                       </Typography>
-                    )}
-                  </View>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </TouchableOpacity>
-              ))}
+                      <View className="flex-row items-center gap-2 mt-0.5">
+                        {isWatched && (
+                          <Typography className="text-[11px] font-semibold text-emerald-500">
+                            Watched
+                          </Typography>
+                        )}
+                        {!isWatched && resumeSec > 10 && (
+                          <Typography className="text-[11px] font-semibold text-primary">
+                            Paused at {formatResumeTime(resumeSec)}
+                          </Typography>
+                        )}
+                        {!!episode.date && (
+                          <Typography className="text-xs text-muted-foreground">
+                            {episode.date}
+                          </Typography>
+                        )}
+                      </View>
+                    </View>
+                    <ChevronRight size={18} color="#94a3b8" />
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>

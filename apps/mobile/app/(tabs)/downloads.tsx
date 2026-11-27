@@ -83,9 +83,10 @@ export default function DownloadsTab() {
     }
   }
 
-  const openManga = (mangaId: string) => {
+  const openMedia = (mangaId: string, mediaType?: string) => {
+    const pathname = mediaType === 'anime' ? '/anime/[id]' : '/manga/[id]'
     router.push({
-      pathname: '/manga/[id]' as any,
+      pathname: pathname as any,
       params: { id: mangaId }
     })
   }
@@ -127,7 +128,7 @@ export default function DownloadsTab() {
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
           renderItem={({ item: [mangaId, chapters] }) => (
             <View className="mb-6">
-              <TouchableOpacity onPress={() => openManga(mangaId)}>
+              <TouchableOpacity onPress={() => openMedia(mangaId, chapters[0]?.mediaType)}>
                 <Typography className="font-semibold text-base mb-2">
                   {chapters[0]?.mangaTitle || mangaId.slice(0, 20)}
                 </Typography>

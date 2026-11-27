@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   FlatList,
@@ -8,9 +8,9 @@ import {
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { DataService } from "@renderer/shared/api";
-import { normalizeManga } from "@common/utils/mangaNormalizer";
+import { isAnimeExtension } from "@common/utils/mediaType";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
 import { Typography, Button } from "@mobile/native/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,7 +19,7 @@ import {
   Trash2,
   BookOpen,
   Play,
-  ChevronRight,
+  Film,
 } from "lucide-react-native";
 
 function groupByDate(entries: any[]) {
@@ -49,12 +49,14 @@ function groupByDate(entries: any[]) {
 export default function HistoryTab() {
   const [entries, setEntries] = useState<any[]>([]);
   const [installedExtensions, setInstalledExtensions] = useState<any[]>([]);
+  const [mediaFilter, setMediaFilter] = useState<"all" | "manga" | "anime">("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
-  const loadHistory = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  const loadHistory = useCallback(async (mode: "initial" | "refresh" | "silent" = "initial") => {
+    if (mode === "refresh") setRefreshing(true);
+    else if (mode === "initial" && !hasLoadedOnceRef.current) setLoading(true);
     try {
       const [result, extensions] = await Promise.all([
         DataService.db.getHistory({ limit: 100 }),
@@ -76,40 +78,60 @@ export default function HistoryTab() {
         type: e.type,
       }));
       setEntries(normalized);
+      hasLoadedOnceRef.current = true;
     } catch (e) {
       console.error("[History] Load failed:", e);
-      setEntries([]);
+      if (!hasLoadedOnceRef.current) setEntries([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory(hasLoadedOnceRef.current ? "silent" : "initial");
+    }, [loadHistory]),
+  );
 
-  const groups = groupByDate(entries);
+  const filteredEntries = useMemo(() => {
+    if (mediaFilter === "all") return entries;
+    return entries.filter((entry) => {
+      const isAnime =
+        entry.type === "anime" || isAnimeExtension({ pkg: entry.pkg });
+      return mediaFilter === "anime" ? isAnime : !isAnime;
+    });
+  }, [entries, mediaFilter]);
+
+  const groups = useMemo(() => groupByDate(filteredEntries), [filteredEntries]);
 
   const deleteEntry = async (id: number) => {
     try {
       await DataService.db.deleteHistoryEntry(id);
-      loadHistory();
+      loadHistory("silent");
     } catch (e) {
       console.error("[History] Delete failed:", e);
     }
   };
 
   const clearAll = () => {
-    Alert.alert("Clear History", "Clear all reading history?", [
+    const scopeLabel =
+      mediaFilter === "all"
+        ? "reading and watching history"
+        : mediaFilter === "anime"
+          ? "anime watch history"
+          : "manga reading history";
+    Alert.alert("Clear History", `Clear all ${scopeLabel}?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Clear",
         style: "destructive",
         onPress: async () => {
           try {
-            await DataService.db.clearHistory();
-            loadHistory();
+            await DataService.db.clearHistory(
+              mediaFilter === "all" ? undefined : mediaFilter,
+            );
+            loadHistory("silent");
           } catch (e) {
             console.error("[History] Clear failed:", e);
           }
@@ -118,53 +140,70 @@ export default function HistoryTab() {
     ]);
   };
 
-  const openManga = (entry: any) => {
+  const isEntryAnime = (entry: any) =>
+    entry.type === "anime" || isAnimeExtension({ pkg: entry.pkg });
+
+  const openMedia = (entry: any) => {
+    const anime = isEntryAnime(entry);
     router.push({
-      pathname: "/manga/[id]" as any,
+      pathname: (anime ? "/anime/[id]" : "/manga/[id]") as any,
       params: {
         id: entry.mangaId,
         title: entry.mangaTitle,
-        coverUrl: entry.mangaCover,
+        coverUrl: entry.mangaCover || "",
         pkg: entry.pkg || "",
         url: entry.mangaUrl || "",
       },
     });
   };
 
-  const continueReading = async (entry: any) => {
+  const continueMedia = async (entry: any) => {
+    const anime = isEntryAnime(entry);
     try {
-      setLoading(true);
       const res = await DataService.db.getChapters(entry.mangaId);
       const chapters = (res as any)?.value || res || [];
       const chapter = chapters.find(
         (c: any) =>
-          c.id === entry.chapterId || c.id === Number(entry.chapterId),
+          String(c.id) === String(entry.chapterId),
       );
 
       if (chapter && chapter.url) {
-        router.push({
-          pathname: "/reader/[mangaId]/[chapterId]" as any,
-          params: {
-            mangaId: entry.mangaId,
-            chapterId: entry.chapterId,
-            pkg: entry.pkg || "",
-            chapterUrl: chapter.url,
-            chapterTitle:
-              entry.chapterTitle || chapter.title || `Ch. ${chapter.number}`,
-            mangaTitle: entry.mangaTitle,
-          },
-        });
+        if (anime) {
+          router.push({
+            pathname: "/player/[animeId]/[episodeId]" as any,
+            params: {
+              animeId: entry.mangaId,
+              episodeId: String(chapter.id),
+              pkg: entry.pkg || "",
+              episodeUrl: chapter.url,
+              episodeTitle:
+                entry.chapterTitle || chapter.title || `Episode ${chapter.number}`,
+              animeTitle: entry.mangaTitle || "",
+              animeCover: entry.mangaCover || "",
+              animeUrl: entry.mangaUrl || "",
+            },
+          });
+        } else {
+          router.push({
+            pathname: "/reader/[mangaId]/[chapterId]" as any,
+            params: {
+              mangaId: entry.mangaId,
+              chapterId: String(chapter.id),
+              pkg: entry.pkg || "",
+              chapterUrl: chapter.url,
+              chapterTitle:
+                entry.chapterTitle || chapter.title || `Ch. ${chapter.number}`,
+              mangaTitle: entry.mangaTitle,
+            },
+          });
+        }
       } else {
-        Alert.alert(
-          "Error",
-          "Chapter URL not found. The chapter may have been deleted.",
-        );
+        // Fallback cleanly to details screen so episodes/chapters can be fetched from source (e.g. synced history)
+        openMedia(entry);
       }
     } catch (e) {
-      console.error("[History] continueReading failed:", e);
-      Alert.alert("Error", "Failed to load chapter.");
-    } finally {
-      setLoading(false);
+      console.error("[History] continueMedia failed:", e);
+      openMedia(entry);
     }
   };
 
@@ -176,7 +215,12 @@ export default function HistoryTab() {
         <View>
           <Typography variant="h1">History</Typography>
           <Typography variant="muted">
-            {entries.length} chapter{entries.length !== 1 ? "s" : ""} read
+            {filteredEntries.length}{" "}
+            {mediaFilter === "anime"
+              ? `episode${filteredEntries.length !== 1 ? "s" : ""} watched`
+              : mediaFilter === "manga"
+                ? `chapter${filteredEntries.length !== 1 ? "s" : ""} read`
+                : `entr${filteredEntries.length !== 1 ? "ies" : "y"}`}
           </Typography>
         </View>
         {entries.length > 0 && (
@@ -189,20 +233,58 @@ export default function HistoryTab() {
         )}
       </View>
 
+      {entries.length > 0 && (
+        <View className="flex-row px-4 pt-3 gap-2">
+          {(
+            [
+              { key: "all", label: "All" },
+              { key: "manga", label: "Manga" },
+              { key: "anime", label: "Anime" },
+            ] as const
+          ).map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setMediaFilter(tab.key)}
+              className={`px-3.5 py-1.5 rounded-lg border ${
+                mediaFilter === tab.key
+                  ? "bg-primary border-primary"
+                  : "bg-card border-border"
+              }`}
+            >
+              <Typography
+                className={
+                  mediaFilter === tab.key
+                    ? "text-white font-semibold text-xs"
+                    : "text-muted-foreground font-medium text-xs"
+                }
+              >
+                {tab.label}
+              </Typography>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#e11d48" />
         </View>
-      ) : entries.length === 0 ? (
+      ) : filteredEntries.length === 0 ? (
         <View className="flex-1 items-center justify-center p-8">
           <View className="w-16 h-16 rounded-2xl bg-secondary border border-border items-center justify-center mb-4">
             <Clock size={28} color="#e11d48" />
           </View>
           <Typography variant="h2" className="text-center">
-            No reading history
+            {mediaFilter === "anime"
+              ? "No anime history"
+              : mediaFilter === "manga"
+                ? "No manga history"
+                : "No history yet"}
           </Typography>
           <Typography variant="muted" className="text-center mt-1.5 px-8">
-            Your recently read chapters will appear here.
+            {mediaFilter === "anime"
+              ? "Your recently watched episodes will appear here."
+              : "Your recently read or watched titles will appear here."}
           </Typography>
         </View>
       ) : (
@@ -214,7 +296,7 @@ export default function HistoryTab() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => loadHistory(true)}
+              onRefresh={() => loadHistory("refresh")}
             />
           }
           contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
@@ -229,11 +311,12 @@ export default function HistoryTab() {
                     entry.pkg,
                     installedExtensions,
                   );
+                  const anime = isEntryAnime(entry);
                   return (
                     <TouchableOpacity
                       key={entry.id || idx}
                       className={`flex-row items-center px-3 py-3 ${idx !== dateEntries.length - 1 ? "border-b border-border/50" : ""}`}
-                      onPress={() => openManga(entry)}
+                      onPress={() => openMedia(entry)}
                     >
                       <View className="relative">
                         {entry.mangaCover ? (
@@ -244,8 +327,12 @@ export default function HistoryTab() {
                             transition={150}
                           />
                         ) : (
-                          <View className="w-12 h-16 rounded-lg bg-card items-center justify-center">
-                            <BookOpen size={20} color="#94a3b8" />
+                          <View className="w-12 h-16 rounded-lg bg-secondary items-center justify-center">
+                            {anime ? (
+                              <Film size={20} color="#94a3b8" />
+                            ) : (
+                              <BookOpen size={20} color="#94a3b8" />
+                            )}
                           </View>
                         )}
                       </View>
@@ -266,6 +353,11 @@ export default function HistoryTab() {
                               </Typography>
                             </View>
                           )}
+                          <View className="px-1.5 py-0.5 rounded bg-secondary/50 border border-border/30">
+                            <Typography className="text-[9px] font-semibold uppercase text-muted-foreground">
+                              {anime ? "Anime" : "Manga"}
+                            </Typography>
+                          </View>
                         </View>
                         <Typography
                           className="font-medium text-sm mt-0.5"
@@ -275,7 +367,7 @@ export default function HistoryTab() {
                         </Typography>
                         <Typography className="text-xs text-muted-foreground mt-0.5">
                           {entry.chapterTitle ||
-                            `Chapter ${entry.chapterId?.slice(0, 8)}`}
+                            `${anime ? "Episode" : "Chapter"} ${String(entry.chapterId || "").slice(0, 8)}`}
                         </Typography>
                         {entry.startedAt && (
                           <Typography className="text-[10px] text-muted-foreground mt-0.5">
@@ -289,7 +381,7 @@ export default function HistoryTab() {
                       <View className="flex-row items-center gap-1">
                         <TouchableOpacity
                           className="p-2"
-                          onPress={() => continueReading(entry)}
+                          onPress={() => continueMedia(entry)}
                         >
                           <Play size={18} color="#e11d48" fill="#e11d48" />
                         </TouchableOpacity>
