@@ -33,6 +33,7 @@ import {
 import { DataService } from "@renderer/shared/api";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
 import { TrackingModal } from "../../src/native/components/TrackingModal";
+import { buildImageSource } from "../../src/mobile/cf-cookies";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 1.15), 420);
@@ -532,7 +533,7 @@ export default function AnimeDetailsScreen() {
         <View style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}>
           {displayCover ? (
             <Image
-              source={{ uri: displayCover }}
+              source={buildImageSource(displayCover, effectiveEpisodeSourceUrl)}
               style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}
               contentFit="cover"
               transition={150}

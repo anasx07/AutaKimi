@@ -12,6 +12,7 @@ import { router, useFocusEffect } from "expo-router";
 import { DataService } from "@renderer/shared/api";
 import { isAnimeExtension } from "@common/utils/mediaType";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
+import { buildImageSource } from "../../src/mobile/cf-cookies";
 import { Typography, Button } from "@mobile/native/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -321,8 +322,8 @@ export default function HistoryTab() {
                       <View className="relative">
                         {entry.mangaCover ? (
                           <Image
-                            source={{ uri: entry.mangaCover || undefined }}
-                            className="w-12 h-16 rounded-lg"
+                            source={buildImageSource(entry.mangaCover, entry.mangaUrl)}
+                            style={{ width: 48, height: 64, borderRadius: 8 }}
                             contentFit="cover"
                             transition={150}
                           />

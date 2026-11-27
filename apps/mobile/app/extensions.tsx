@@ -388,7 +388,7 @@ export default function ExtensionsScreen() {
               {item.icon ? (
                 <Image
                   source={{ uri: item.icon }}
-                  className="w-12 h-12 rounded-xl bg-secondary"
+                  style={{ width: 48, height: 48, borderRadius: 12 }}
                   contentFit="contain"
                   transition={150}
                 />

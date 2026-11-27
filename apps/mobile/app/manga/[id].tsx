@@ -18,6 +18,7 @@ import { resolveExtensionBadge } from '@common/services/repoIdentity'
 import { Chapter } from '@common/types'
 import { TrackingModal } from '../../src/native/components/TrackingModal'
 import { MobileTracker } from '../../src/mobile/tracker.native'
+import { buildImageSource } from '../../src/mobile/cf-cookies'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const HERO_HEIGHT = Math.min(Math.round(SCREEN_WIDTH * 0.75), 300)
@@ -630,7 +631,7 @@ export default function MangaDetailsScreen() {
         <View style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}>
           {displayCover ? (
             <Image
-              source={{ uri: displayCover }}
+              source={buildImageSource(displayCover, resolvedUrl)}
               style={{ width: SCREEN_WIDTH, height: HERO_HEIGHT }}
               contentFit="cover"
               transition={150}

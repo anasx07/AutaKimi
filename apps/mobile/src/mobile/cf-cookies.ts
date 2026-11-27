@@ -288,3 +288,22 @@ export function getVideoHeaders(videoUrl: string, refererUrl?: string): Record<s
   return headers
 }
 
+export function buildImageSource(
+  rawUrl?: string | null,
+  refererUrl?: string,
+): { uri: string; headers?: Record<string, string> } | undefined {
+  if (!rawUrl || typeof rawUrl !== 'string') return undefined
+  let uri = rawUrl.trim()
+  if (!uri) return undefined
+  if (uri.startsWith('//')) {
+    uri = `https:${uri}`
+  }
+  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    return {
+      uri,
+      headers: getImageHeaders(uri, refererUrl),
+    }
+  }
+  return { uri }
+}
+

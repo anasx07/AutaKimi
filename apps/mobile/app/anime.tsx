@@ -16,6 +16,7 @@ import { Search, Play, ArrowLeft, X } from 'lucide-react-native'
 import { DataService } from '@renderer/shared/api'
 import { isAnimeExtension } from '@common/utils/mediaType'
 import { normalizeManga, isValidMediaCatalogItem } from '@common/utils/mangaNormalizer'
+import { buildImageSource } from '../src/mobile/cf-cookies'
 import { Typography, Card, Button } from '../src/native/ui'
 import { useColorScheme } from 'nativewind'
 
@@ -234,8 +235,8 @@ export default function AnimePage(): React.JSX.Element {
                   <View className="flex-row items-center gap-3.5 p-4">
                     {source.icon ? (
                       <Image
-                        source={{ uri: source.icon }}
-                        className="w-11 h-11 rounded-xl bg-secondary"
+                        source={buildImageSource(source.icon, source.baseUrl)}
+                        style={{ width: 44, height: 44, borderRadius: 12 }}
                         contentFit="contain"
                         transition={150}
                       />
@@ -362,11 +363,11 @@ export default function AnimePage(): React.JSX.Element {
                   style={{ width: cardWidth }}
                 >
                   <View className="rounded-xl overflow-hidden bg-secondary border border-border">
-                    <View className="aspect-[3/4] bg-muted">
+                    <View style={{ width: cardWidth - 12, height: Math.round((cardWidth - 12) * 1.33) }} className="bg-muted">
                       {item.coverUrl ? (
                         <Image
-                          source={{ uri: item.coverUrl }}
-                          className="w-full h-full"
+                          source={buildImageSource(item.coverUrl, activeSource?.baseUrl || item.url)}
+                          style={{ width: '100%', height: '100%' }}
                           contentFit="cover"
                           transition={150}
                         />
