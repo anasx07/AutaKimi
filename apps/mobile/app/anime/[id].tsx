@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Dimensions,
   TextInput,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import {
@@ -29,9 +30,15 @@ import {
   ArrowUpDown,
   X,
   Link2,
+  Download,
+  Loader2,
 } from "lucide-react-native";
 import { DataService } from "@renderer/shared/api";
 import { resolveExtensionBadge } from "@common/services/repoIdentity";
+import {
+  extractRawStreamUrls,
+  normalizeStreamServers,
+} from "@common/services/episodePrefetch.service";
 import { TrackingModal } from "../../src/native/components/TrackingModal";
 import { buildImageSource } from "../../src/mobile/cf-cookies";
 
@@ -79,6 +86,12 @@ export default function AnimeDetailsScreen() {
   const [sortAsc, setSortAsc] = useState(true);
   const [filterMode, setFilterMode] = useState<"all" | "unwatched">("all");
   const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [downloadStatuses, setDownloadStatuses] = useState<Record<string, string>>({});
+  const [resolvingEpisodes, setResolvingEpisodes] = useState<Set<string>>(new Set());
+  const [activeDownloadProgress, setActiveDownloadProgress] = useState<
+    Record<string, { cached: number; total: number; status: string }>
+  >({});
+  const [batchDownloading, setBatchDownloading] = useState(false);
 
   const effectiveEpisodeSourceUrl = activeSeasonUrl || paramUrl || id;
   const effectiveMediaId = activeSeasonUrl || id;
@@ -515,6 +528,260 @@ export default function AnimeDetailsScreen() {
     });
   };
 
+  useEffect(() => {
+    if (!effectiveMediaId) return;
+    DataService.download
+      .getMangaDownloads(effectiveMediaId)
+      .then((result: any[]) => {
+        const statuses: Record<string, string> = {};
+        for (const dl of result || []) {
+          statuses[dl.chapterId] = dl.status;
+        }
+        setDownloadStatuses(statuses);
+      })
+      .catch(() => {});
+
+    const api = (window as any).api;
+    if (api?.download?.onEvent) {
+      const unsub = api.download.onEvent((data: any) => {
+        if (data.mangaId !== effectiveMediaId) return;
+        if (
+          data.type === "progress" ||
+          data.type === "start" ||
+          data.type === "queued"
+        ) {
+          setActiveDownloadProgress((prev) => ({
+            ...prev,
+            [data.chapterId]: {
+              cached: data.cached || 0,
+              total: data.total || 0,
+              status: data.type === "queued" ? "queued" : "downloading",
+            },
+          }));
+          setDownloadStatuses((prev) => ({
+            ...prev,
+            [data.chapterId]: data.type === "queued" ? "queued" : "downloading",
+          }));
+        } else if (
+          data.type === "completed" ||
+          data.type === "error" ||
+          data.type === "canceled"
+        ) {
+          setActiveDownloadProgress((prev) => {
+            const next = { ...prev };
+            delete next[data.chapterId];
+            return next;
+          });
+          setDownloadStatuses((prev) => ({
+            ...prev,
+            [data.chapterId]: data.type === "canceled" ? "" : data.type,
+          }));
+          setResolvingEpisodes((prev) => {
+            const next = new Set(prev);
+            next.delete(data.chapterId);
+            return next;
+          });
+        }
+      });
+      return () => unsub();
+    }
+    return undefined;
+  }, [effectiveMediaId]);
+
+  const downloadEpisode = async (
+    episode: any,
+    options?: { silent?: boolean },
+  ): Promise<boolean> => {
+    const pkgToUse = resolvedPkg;
+    if (!pkgToUse || !episode?.url) return false;
+
+    const epId = String(episode.id);
+    if (resolvingEpisodes.has(epId)) return false;
+    const existingStatus = downloadStatuses[epId];
+    if (
+      existingStatus === "completed" ||
+      existingStatus === "downloading" ||
+      existingStatus === "queued"
+    ) {
+      return false;
+    }
+
+    setResolvingEpisodes((prev) => new Set(prev).add(epId));
+    setDownloadStatuses((prev) => ({ ...prev, [epId]: "queued" }));
+
+    try {
+      let codeToUse = extCode;
+      if (!codeToUse) {
+        const exts = await DataService.db.getExtensions();
+        const extList = (exts as any)?.value || exts || [];
+        const found = extList.find((e: any) => e.pkg === pkgToUse);
+        if (found?.code) codeToUse = found.code;
+      }
+
+      const result: any = await DataService.executeExtension({
+        pkg: pkgToUse,
+        code: codeToUse || "",
+        contextArgs: { type: "fetchPages", chapterUrl: episode.url },
+      });
+
+      const rawUrls = extractRawStreamUrls(result);
+      const servers = normalizeStreamServers(rawUrls);
+      const directServers = servers.filter(
+        (srv) => srv.type === "mp4" || srv.type === "hls",
+      );
+
+      if (directServers.length === 0) {
+        throw new Error(
+          servers.length > 0
+            ? "Offline download requires a direct MP4 or HLS stream (only web embeds returned)."
+            : "No streaming servers found for this episode.",
+        );
+      }
+
+      // Prefer alive MP4 first (fastest single-file download), then alive HLS, then untested direct
+      const prioritized = [
+        ...directServers.filter((s) => s.type === "mp4"),
+        ...directServers.filter((s) => s.type === "hls"),
+      ];
+
+      let chosen = prioritized[0];
+      for (const candidate of prioritized) {
+        try {
+          const probe = await DataService.probeStream(
+            candidate.url,
+            candidate.headers,
+            3500,
+          );
+          if (probe.alive) {
+            chosen = candidate;
+            break;
+          }
+        } catch {
+          /* continue trying candidates */
+        }
+      }
+
+      await DataService.download.start({
+        mangaId: effectiveMediaId,
+        chapterId: epId,
+        pageUrls: [chosen.url],
+        type: "anime",
+        mangaTitle: displayTitle || paramTitle || "Anime",
+        chapterTitle: episode.title || `Episode ${episode.number}`,
+        headers: chosen.headers,
+      });
+      return true;
+    } catch (e: any) {
+      console.error("[AnimeDetails] Episode download failed:", e);
+      setDownloadStatuses((prev) => ({ ...prev, [epId]: "error" }));
+      if (!options?.silent) {
+        Alert.alert(
+          "Download Unavailable",
+          e?.message || "Could not find a downloadable stream for this episode.",
+        );
+      }
+      return false;
+    } finally {
+      setResolvingEpisodes((prev) => {
+        const next = new Set(prev);
+        next.delete(epId);
+        return next;
+      });
+    }
+  };
+
+  const handleDownloadActionPress = (episode: any) => {
+    const epId = String(episode.id);
+    const dlStatus = downloadStatuses[epId];
+    const epLabel = episode.title || `Episode ${episode.number}`;
+
+    if (dlStatus === "completed") {
+      Alert.alert(
+        "Remove Offline Episode",
+        `Delete downloaded files for ${epLabel}?`,
+        [
+          { text: "Keep", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              await DataService.download.remove({
+                mangaId: effectiveMediaId,
+                chapterId: epId,
+              });
+              setDownloadStatuses((prev) => {
+                const next = { ...prev };
+                delete next[epId];
+                return next;
+              });
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    if (dlStatus === "downloading" || dlStatus === "queued") {
+      Alert.alert("Cancel Download", `Stop downloading ${epLabel}?`, [
+        { text: "Continue", style: "cancel" },
+        {
+          text: "Cancel Download",
+          style: "destructive",
+          onPress: () => {
+            DataService.download
+              .cancel({ mangaId: effectiveMediaId, chapterId: epId })
+              .catch(() => {});
+          },
+        },
+      ]);
+      return;
+    }
+
+    void downloadEpisode(episode);
+  };
+
+  const downloadNextUnwatched = async () => {
+    if (batchDownloading || !resolvedPkg) return;
+    const targets = sortedEpisodes
+      .filter((ep: any) => {
+        const epId = String(ep.id);
+        const isWatched = Boolean(progressMap.get(epId)?.isRead);
+        const dl = downloadStatuses[epId];
+        return (
+          !isWatched &&
+          dl !== "completed" &&
+          dl !== "downloading" &&
+          dl !== "queued"
+        );
+      })
+      .slice(0, 3);
+
+    if (targets.length === 0) {
+      Alert.alert(
+        "Nothing to Download",
+        "All unwatched episodes are already downloaded or queued.",
+      );
+      return;
+    }
+
+    setBatchDownloading(true);
+    let queuedCount = 0;
+    try {
+      for (const ep of targets) {
+        const ok = await downloadEpisode(ep, { silent: true });
+        if (ok) queuedCount++;
+      }
+      if (queuedCount === 0) {
+        Alert.alert(
+          "No Direct Streams Found",
+          "These episodes only returned web embeds rather than downloadable MP4/HLS streams.",
+        );
+      }
+    } finally {
+      setBatchDownloading(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ headerShown: false }} />
@@ -781,6 +1048,25 @@ export default function AnimeDetailsScreen() {
             </View>
           </View>
 
+          {/* Batch Download Next Unwatched Episodes */}
+          {sortedEpisodes.length > 0 && !!resolvedPkg && unwatchedCount > 0 && (
+            <TouchableOpacity
+              onPress={downloadNextUnwatched}
+              disabled={batchDownloading}
+              className="h-9 px-3 rounded-xl bg-card border border-border flex-row items-center justify-center gap-1.5 mb-3"
+              activeOpacity={0.7}
+            >
+              {batchDownloading ? (
+                <ActivityIndicator size="small" color="#e11d48" />
+              ) : (
+                <Download size={14} color="#e11d48" />
+              )}
+              <Typography className="text-xs font-semibold text-foreground">
+                Download Next 3 Unwatched
+              </Typography>
+            </TouchableOpacity>
+          )}
+
           {/* Episode Search & Sort Controls */}
           {sortedEpisodes.length > 0 && (
             <View className="flex-row items-center gap-2 mb-3">
@@ -859,58 +1145,110 @@ export default function AnimeDetailsScreen() {
           ) : (
             <View className="bg-card rounded-xl border border-border overflow-hidden">
               {filteredEpisodes.map((episode: any, idx: number) => {
-                const prog = progressMap.get(String(episode.id));
+                const epKey = String(episode.id);
+                const prog = progressMap.get(epKey);
                 const isWatched = Boolean(prog?.isRead);
                 const resumeSec = prog?.lastPage || 0;
+                const dlStatus = downloadStatuses[epKey];
+                const isResolving = resolvingEpisodes.has(epKey);
+                const dlProg = activeDownloadProgress[epKey];
+                const dlPct =
+                  dlProg && dlProg.total > 0
+                    ? Math.round(((dlProg.cached || 0) / dlProg.total) * 100)
+                    : null;
 
                 return (
-                  <TouchableOpacity
+                  <View
                     key={episode.id}
                     className={`flex-row items-center px-4 py-3.5 ${
                       idx !== filteredEpisodes.length - 1
                         ? "border-b border-border/50"
                         : ""
                     }`}
-                    onPress={() => playEpisode(episode)}
                   >
-                    <View
-                      className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
-                        isWatched ? "bg-emerald-500/15" : "bg-primary/20"
-                      }`}
+                    <TouchableOpacity
+                      className="flex-1 flex-row items-center"
+                      onPress={() => playEpisode(episode)}
                     >
-                      {isWatched ? (
-                        <CheckCircle size={15} color="#10b981" />
-                      ) : (
-                        <Play size={12} color="#e11d48" fill="#e11d48" />
-                      )}
-                    </View>
-                    <View className="flex-1">
-                      <Typography
-                        className={`font-medium ${isWatched ? "text-muted-foreground" : ""}`}
-                        numberOfLines={1}
+                      <View
+                        className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
+                          isWatched ? "bg-emerald-500/15" : "bg-primary/20"
+                        }`}
                       >
-                        {episode.title || `Episode ${episode.number}`}
-                      </Typography>
-                      <View className="flex-row items-center gap-2 mt-0.5">
-                        {isWatched && (
-                          <Typography className="text-[11px] font-semibold text-emerald-500">
-                            Watched
-                          </Typography>
-                        )}
-                        {!isWatched && resumeSec > 10 && (
-                          <Typography className="text-[11px] font-semibold text-primary">
-                            Paused at {formatResumeTime(resumeSec)}
-                          </Typography>
-                        )}
-                        {!!episode.date && (
-                          <Typography className="text-xs text-muted-foreground">
-                            {episode.date}
-                          </Typography>
+                        {isWatched ? (
+                          <CheckCircle size={15} color="#10b981" />
+                        ) : (
+                          <Play size={12} color="#e11d48" fill="#e11d48" />
                         )}
                       </View>
+                      <View className="flex-1">
+                        <Typography
+                          className={`font-medium ${isWatched ? "text-muted-foreground" : ""}`}
+                          numberOfLines={1}
+                        >
+                          {episode.title || `Episode ${episode.number}`}
+                        </Typography>
+                        <View className="flex-row items-center gap-2 mt-0.5">
+                          {isWatched && (
+                            <Typography className="text-[11px] font-semibold text-emerald-500">
+                              Watched
+                            </Typography>
+                          )}
+                          {!isWatched && resumeSec > 10 && (
+                            <Typography className="text-[11px] font-semibold text-primary">
+                              Paused at {formatResumeTime(resumeSec)}
+                            </Typography>
+                          )}
+                          {dlStatus === "completed" && (
+                            <Typography className="text-[11px] font-semibold text-emerald-500">
+                              Offline
+                            </Typography>
+                          )}
+                          {!!episode.date && (
+                            <Typography className="text-xs text-muted-foreground">
+                              {episode.date}
+                            </Typography>
+                          )}
+                        </View>
+                      </View>
+                      <ChevronRight size={18} color="#94a3b8" />
+                    </TouchableOpacity>
+
+                    <View className="ml-2">
+                      {dlStatus === "completed" ? (
+                        <TouchableOpacity
+                          onPress={() => handleDownloadActionPress(episode)}
+                          className="p-1"
+                          accessibilityLabel="Downloaded offline"
+                        >
+                          <CheckCircle size={18} color="#22c55e" />
+                        </TouchableOpacity>
+                      ) : isResolving ||
+                        dlStatus === "queued" ||
+                        dlStatus === "downloading" ? (
+                        <TouchableOpacity
+                          onPress={() => handleDownloadActionPress(episode)}
+                          className="flex-row items-center p-1"
+                          accessibilityLabel="Cancel episode download"
+                        >
+                          {dlPct !== null && (
+                            <Typography className="text-xs text-primary font-semibold mr-1.5">
+                              {dlPct}%
+                            </Typography>
+                          )}
+                          <Loader2 size={18} color="#e11d48" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => handleDownloadActionPress(episode)}
+                          className="p-1"
+                          accessibilityLabel="Download episode"
+                        >
+                          <Download size={18} color="#94a3b8" />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <ChevronRight size={18} color="#94a3b8" />
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
