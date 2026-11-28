@@ -69,6 +69,28 @@ import {
 
 export type { ServerItem, QualityLevel }
 
+const TEXT_INPUT_TYPES = new Set([
+  'text',
+  'search',
+  'password',
+  'email',
+  'url',
+  'tel',
+  'number'
+])
+
+function isTextEditableTarget(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') return false
+  const el = target as HTMLElement
+  if (el.isContentEditable) return true
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true
+  if (el.tagName === 'INPUT') {
+    const inputType = ((el as HTMLInputElement).type || 'text').toLowerCase()
+    return TEXT_INPUT_TYPES.has(inputType)
+  }
+  return false
+}
+
 function mapEntryToServerItems(entry: EpisodeStreamCacheEntry): ServerItem[] {
   return entry.servers.map((srv, idx) => {
     const probe = entry.probeResults?.find((p) => p.index === idx)
@@ -1336,6 +1358,7 @@ export default function AnimeViewer({
           try {
             await container.requestFullscreen()
             setIsFullscreen(true)
+            requestAnimationFrame(() => container.focus({ preventScroll: true }))
             return
           } catch (err) {
             console.warn('[AnimeViewer] Element fullscreen failed, trying native window:', err)
@@ -1345,6 +1368,7 @@ export default function AnimeViewer({
         try {
           await document.exitFullscreen()
           setIsFullscreen(false)
+          requestAnimationFrame(() => containerRef.current?.focus({ preventScroll: true }))
           return
         } catch (err) {
           console.warn('[AnimeViewer] Exit element fullscreen failed:', err)
@@ -1359,6 +1383,7 @@ export default function AnimeViewer({
         const target = !isFull
         await DataService.window.setFullScreen(target)
         setIsFullscreen(target)
+        requestAnimationFrame(() => containerRef.current?.focus({ preventScroll: true }))
         return
       } catch (err) {
         console.warn('[AnimeViewer] Native window fullscreen toggle failed, using fallback:', err)
@@ -1371,13 +1396,19 @@ export default function AnimeViewer({
       if (container.requestFullscreen) {
         container
           .requestFullscreen()
-          .then(() => setIsFullscreen(true))
+          .then(() => {
+            setIsFullscreen(true)
+            requestAnimationFrame(() => containerRef.current?.focus({ preventScroll: true }))
+          })
           .catch(() => {})
       }
     } else if (document.exitFullscreen) {
       document
         .exitFullscreen()
-        .then(() => setIsFullscreen(false))
+        .then(() => {
+          setIsFullscreen(false)
+          requestAnimationFrame(() => containerRef.current?.focus({ preventScroll: true }))
+        })
         .catch(() => {})
     }
   }, [isInline])
@@ -1474,25 +1505,66 @@ export default function AnimeViewer({
     }
   }, [videoRef])
 
+  const keyboardCtxRef = useRef({
+    videoType,
+    togglePlay,
+    stopHold2x,
+    seekBy,
+    handleSkipIntro,
+    togglePiP,
+    adjustVolume,
+    toggleFullscreen,
+    isFullscreen,
+    toggleMute,
+    nextEpisode,
+    prevEpisode,
+    isEpisodesOpen,
+    setIsEpisodesOpen,
+    setEffectiveEpisode,
+    closeAndStopPlayer,
+    reloadPlayer,
+    isInline,
+    isTheaterMode,
+    onToggleTheaterMode
+  })
+  keyboardCtxRef.current = {
+    videoType,
+    togglePlay,
+    stopHold2x,
+    seekBy,
+    handleSkipIntro,
+    togglePiP,
+    adjustVolume,
+    toggleFullscreen,
+    isFullscreen,
+    toggleMute,
+    nextEpisode,
+    prevEpisode,
+    isEpisodesOpen,
+    setIsEpisodesOpen,
+    setEffectiveEpisode,
+    closeAndStopPlayer,
+    reloadPlayer,
+    isInline,
+    isTheaterMode,
+    onToggleTheaterMode
+  }
+
   // Keyboard Shortcuts (disabled in Mini PiP so users can search/type freely in main pages)
+  // Listeners stay mounted across timeupdate ticks via keyboardCtxRef so spaceDownRef is never reset mid-keystroke.
   useEffect(() => {
     if (isMini) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        e.metaKey ||
-        e.ctrlKey ||
-        e.altKey
-      ) {
+      if (isTextEditableTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
         return
       }
 
+      const ctx = keyboardCtxRef.current
       switch (e.key.toLowerCase()) {
         case ' ':
           e.preventDefault()
-          if (videoType === 'embed' || !videoRef.current) {
+          e.stopPropagation()
+          if (ctx.videoType === 'embed' || !videoRef.current) {
             if (!e.repeat) {
               try {
                 const iframe = document.querySelector('iframe')
@@ -1514,8 +1586,8 @@ export default function AnimeViewer({
           break
         case 'k':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            togglePlay()
+          if (ctx.videoType !== 'embed' && videoRef.current) {
+            ctx.togglePlay()
           } else {
             try {
               const iframe = document.querySelector('iframe')
@@ -1525,13 +1597,13 @@ export default function AnimeViewer({
           break
         case 'f':
           e.preventDefault()
-          toggleFullscreen()
+          ctx.toggleFullscreen()
           break
         case 'arrowleft':
         case 'j':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            seekBy(-10)
+          if (ctx.videoType !== 'embed' && videoRef.current) {
+            ctx.seekBy(-10)
           } else {
             try {
               const iframe = document.querySelector('iframe')
@@ -1542,8 +1614,8 @@ export default function AnimeViewer({
         case 'arrowright':
         case 'l':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            seekBy(10)
+          if (ctx.videoType !== 'embed' && videoRef.current) {
+            ctx.seekBy(10)
           } else {
             try {
               const iframe = document.querySelector('iframe')
@@ -1553,18 +1625,18 @@ export default function AnimeViewer({
           break
         case 's':
           e.preventDefault()
-          handleSkipIntro()
+          ctx.handleSkipIntro()
           break
         case 'i':
           e.preventDefault()
-          if (videoType !== 'embed') {
-            togglePiP()
+          if (ctx.videoType !== 'embed') {
+            ctx.togglePiP()
           }
           break
         case 'arrowup':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            adjustVolume(0.1)
+          if (ctx.videoType !== 'embed' && videoRef.current) {
+            ctx.adjustVolume(0.1)
           } else {
             try {
               const iframe = document.querySelector('iframe')
@@ -1574,8 +1646,8 @@ export default function AnimeViewer({
           break
         case 'arrowdown':
           e.preventDefault()
-          if (videoType !== 'embed' && videoRef.current) {
-            adjustVolume(-0.1)
+          if (ctx.videoType !== 'embed' && videoRef.current) {
+            ctx.adjustVolume(-0.1)
           } else {
             try {
               const iframe = document.querySelector('iframe')
@@ -1584,42 +1656,42 @@ export default function AnimeViewer({
           }
           break
         case 'n':
-          if (nextEpisode) setEffectiveEpisode(nextEpisode)
+          if (ctx.nextEpisode) ctx.setEffectiveEpisode(ctx.nextEpisode)
           break
         case 'p':
-          if (prevEpisode) setEffectiveEpisode(prevEpisode)
+          if (ctx.prevEpisode) ctx.setEffectiveEpisode(ctx.prevEpisode)
           break
         case 'm':
           e.preventDefault()
-          toggleMute()
+          ctx.toggleMute()
           break
         case 'e':
           e.preventDefault()
-          setIsEpisodesOpen((prev) => !prev)
+          ctx.setIsEpisodesOpen((prev) => !prev)
           break
         case 't':
           e.preventDefault()
-          if (isFullscreen) {
-            toggleFullscreen()
-          } else if (isInline && onToggleTheaterMode) {
-            onToggleTheaterMode()
+          if (ctx.isFullscreen) {
+            ctx.toggleFullscreen()
+          } else if (ctx.isInline && ctx.onToggleTheaterMode) {
+            ctx.onToggleTheaterMode()
           }
           break
         case 'escape':
-          if (isFullscreen) {
+          if (ctx.isFullscreen) {
             e.preventDefault()
-            toggleFullscreen()
-          } else if (isEpisodesOpen) {
-            setIsEpisodesOpen(false)
-          } else if (isInline && isTheaterMode && onToggleTheaterMode) {
-            onToggleTheaterMode()
+            ctx.toggleFullscreen()
+          } else if (ctx.isEpisodesOpen) {
+            ctx.setIsEpisodesOpen(false)
+          } else if (ctx.isInline && ctx.isTheaterMode && ctx.onToggleTheaterMode) {
+            ctx.onToggleTheaterMode()
           } else {
-            closeAndStopPlayer()
+            ctx.closeAndStopPlayer()
           }
           break
         case 'r':
           e.preventDefault()
-          reloadPlayer()
+          ctx.reloadPlayer()
           break
       }
     }
@@ -1628,58 +1700,38 @@ export default function AnimeViewer({
       if (e.key !== ' ') return
       if (!spaceDownRef.current) return
       e.preventDefault()
+      e.stopPropagation()
       spaceDownRef.current = false
+      const ctx = keyboardCtxRef.current
       if (isHold2xRef.current) {
-        stopHold2x()
+        ctx.stopHold2x()
       } else {
         if (spaceHoldTimerRef.current) {
           clearTimeout(spaceHoldTimerRef.current)
           spaceHoldTimerRef.current = null
         }
-        if (videoType !== 'embed' && videoRef.current) {
-          togglePlay()
+        if (ctx.videoType !== 'embed' && videoRef.current) {
+          ctx.togglePlay()
         }
       }
     }
 
     const handleWindowBlur = () => {
       spaceDownRef.current = false
-      stopHold2x()
+      keyboardCtxRef.current.stopHold2x()
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    window.addEventListener('keyup', handleKeyUp, { capture: true })
     window.addEventListener('blur', handleWindowBlur)
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+      window.removeEventListener('keyup', handleKeyUp, { capture: true })
       window.removeEventListener('blur', handleWindowBlur)
       spaceDownRef.current = false
-      stopHold2x()
+      keyboardCtxRef.current.stopHold2x()
     }
-  }, [
-    videoType,
-    togglePlay,
-    stopHold2x,
-    seekBy,
-    handleSkipIntro,
-    togglePiP,
-    adjustVolume,
-    toggleFullscreen,
-    isFullscreen,
-    toggleMute,
-    nextEpisode,
-    prevEpisode,
-    isEpisodesOpen,
-    setEffectiveEpisode,
-    closeAndStopPlayer,
-    reloadPlayer,
-    videoRef,
-    isMini,
-    isInline,
-    isTheaterMode,
-    onToggleTheaterMode
-  ])
+  }, [isMini, videoRef])
 
   if (!effectiveChapter || !effectiveManga) return null
 
@@ -1876,13 +1928,14 @@ export default function AnimeViewer({
         )}
         <div
           ref={containerRef}
+          tabIndex={-1}
           onMouseLeave={() => {
             if (showBoxedInline && isPlaying) {
               setShowControls(false)
             }
           }}
           className={cn(
-            'bg-black flex flex-col overflow-hidden text-white select-none',
+            'bg-black flex flex-col overflow-hidden text-white select-none outline-none',
             showBoxedInline
               ? 'relative z-10 w-full aspect-video max-h-[76vh] rounded-2xl border border-white/10 shadow-2xl'
               : 'fixed inset-0 z-[100] animate-in fade-in duration-500',
