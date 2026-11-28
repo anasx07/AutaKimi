@@ -9,6 +9,7 @@ export const DownloadService = {
     mangaTitle?: string
     extensionName?: string
     chapterTitle?: string
+    headers?: Record<string, string>
   }) => callIpc(() => getApi().download.start(args)),
   cancel: (args: { mangaId: string; chapterId: string }) =>
     callIpc(() => getApi().download.cancel(args)),

@@ -123,7 +123,16 @@ export default function DownloadsTab() {
 
   const openOfflineChapter = (dl: any) => {
     if (dl.mediaType === 'anime') {
-      openMedia(dl.mangaId, 'anime')
+      router.push({
+        pathname: '/player/[animeId]/[episodeId]' as any,
+        params: {
+          animeId: dl.mangaId,
+          episodeId: dl.chapterId,
+          episodeUrl: dl.chapterId,
+          episodeTitle: dl.chapterTitle || 'Episode',
+          animeTitle: dl.mangaTitle || ''
+        }
+      })
       return
     }
     router.push({
@@ -203,7 +212,7 @@ export default function DownloadsTab() {
             No downloads yet
           </Typography>
           <Typography variant="muted" className="text-center mt-1.5 px-8">
-            Downloads will appear here when you save chapters for offline reading.
+            Downloads will appear here when you save chapters or episodes for offline viewing.
           </Typography>
         </View>
       ) : (
@@ -255,8 +264,12 @@ export default function DownloadsTab() {
                           {total > 0 && (
                             <Typography className="text-xs text-muted-foreground mt-0.5">
                               {status === 'downloading' || status === 'queued'
-                                ? `${cached || 0} / ${total} pages (${Math.round(((cached || 0) / total) * 100)}%)`
-                                : `${total} pages · Tap to read offline`}
+                                ? dl.mediaType === 'anime'
+                                  ? `${cached || 0} / ${total} (${Math.round(((cached || 0) / total) * 100)}%)`
+                                  : `${cached || 0} / ${total} pages (${Math.round(((cached || 0) / total) * 100)}%)`
+                                : dl.mediaType === 'anime'
+                                  ? 'Saved offline · Tap to watch'
+                                  : `${total} pages · Tap to read offline`}
                             </Typography>
                           )}
                           {(status === 'downloading' || status === 'queued') && total > 0 && (

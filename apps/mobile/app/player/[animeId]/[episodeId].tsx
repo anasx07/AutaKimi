@@ -21,6 +21,7 @@ import { useEventListener } from "expo";
 import { useVideoPlayer, VideoView, type VideoContentFit } from "expo-video";
 import { WebView } from "react-native-webview";
 import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
 import { Typography, Button } from "@mobile/native/ui";
 import { DataService } from "@renderer/shared/api";
@@ -1127,13 +1128,56 @@ export default function PlayerScreen() {
   }, [servers, activeServerIdx, currentTime]);
 
   const fetchStream = useCallback(async () => {
+    const gen = ++loadGenRef.current;
+    setStatus("loading");
+    setErrorMsg("");
+    setIsSwitchingServer(false);
+
+    // Offline-first check: play downloaded local episode immediately even without network
+    if (animeId && episodeId) {
+      try {
+        const dlRes: any = await DataService.download.getStatus({
+          mangaId: animeId,
+          chapterId: episodeId,
+        });
+        const dlEntry = dlRes?.value ?? dlRes;
+        const localUri =
+          dlEntry?.status === "completed" && Array.isArray(dlEntry.localPages)
+            ? dlEntry.localPages[0]
+            : null;
+        if (localUri) {
+          const info = await FileSystem.getInfoAsync(localUri).catch(() => null);
+          if (info?.exists && !info.isDirectory) {
+            if (gen !== loadGenRef.current) return;
+            const offlineType = localUri.toLowerCase().endsWith(".m3u8")
+              ? "hls"
+              : "mp4";
+            setServers([
+              {
+                name: "Offline Download",
+                url: localUri,
+                type: offlineType,
+                status: "alive",
+              },
+            ]);
+            setActiveServerIdx(0);
+            setErrorMsg("");
+            setStatus("ready");
+            return;
+          }
+        }
+      } catch {
+        /* ignore offline cache probe errors and continue online */
+      }
+    }
+
     if (!pkg || !episodeUrl) {
+      if (gen !== loadGenRef.current) return;
       setStatus("error");
       setErrorMsg("Missing extension package or episode URL");
       return;
     }
 
-    const gen = ++loadGenRef.current;
     const cacheKey = makeEpisodePrefetchKey(pkg, episodeUrl);
     const cachedEntry = sharedEpisodeStreamCache.getCached(cacheKey);
     if (cachedEntry && cachedEntry.servers.length > 0) {
@@ -1141,9 +1185,6 @@ export default function PlayerScreen() {
       return;
     }
 
-    setStatus("loading");
-    setErrorMsg("");
-    setIsSwitchingServer(false);
     try {
       const entry = await sharedEpisodeStreamCache.getOrLoad(cacheKey, () =>
         fetchAndNormalizeMobileEpisode(pkg, episodeUrl),
@@ -1155,7 +1196,7 @@ export default function PlayerScreen() {
       setStatus("error");
       setErrorMsg(e.message || "Failed to load video stream");
     }
-  }, [pkg, episodeUrl, applyEntryServers]);
+  }, [animeId, episodeId, pkg, episodeUrl, applyEntryServers]);
 
   useEffect(() => {
     fetchStream();

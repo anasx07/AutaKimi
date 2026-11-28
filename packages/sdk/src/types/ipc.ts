@@ -340,6 +340,7 @@ export type IpcInvokeMap = {
     mangaTitle?: string;
     extensionName?: string;
     chapterTitle?: string;
+    headers?: Record<string, string>;
   }) => Promise<IpcResult<boolean>>;
   [IpcChannel.CANCEL_DOWNLOAD]: (args: {
     mangaId: string;
