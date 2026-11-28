@@ -128,6 +128,13 @@ export const VideoControls = memo(function VideoControls({
         !showControls && 'translate-y-[110%] opacity-0 pointer-events-none'
       )}
       onClick={(e) => e.stopPropagation()}
+      onPointerUpCapture={(e) => {
+        const target = e.target as HTMLElement | null
+        const focusEl = target?.closest?.('button, input') as HTMLElement | null
+        if (focusEl) {
+          requestAnimationFrame(() => focusEl.blur())
+        }
+      }}
     >
       {/* Seekbar */}
       <div
@@ -314,7 +321,10 @@ export const VideoControls = memo(function VideoControls({
               </span>
               <select
                 value={selectedQuality}
-                onChange={(e) => onQualityChange(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  onQualityChange(parseInt(e.target.value, 10))
+                  e.currentTarget.blur()
+                }}
                 className="bg-transparent text-xs font-bold text-white/90 outline-none cursor-pointer"
                 title="Select Video Quality"
               >
